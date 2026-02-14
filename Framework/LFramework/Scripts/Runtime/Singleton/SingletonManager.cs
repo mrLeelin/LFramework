@@ -57,6 +57,8 @@ namespace LFramework.Runtime
             }
 
             SingletonTypes.Clear();
+            Updates.Clear();
+            LateUpdates.Clear();
         }
         
         /// <summary>

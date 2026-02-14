@@ -50,7 +50,7 @@ namespace LFramework.Runtime
             {
                 switch (variableType)
                 {
-                    case VariableType.Object: return typeof(bool);
+                    case VariableType.Object: return typeof(UnityEngine.Object);
                     case VariableType.GameObject:
                         return objectValue == null ? typeof(GameObject) : objectValue.GetType();
                     case VariableType.Component: return objectValue == null ? typeof(Component) : objectValue.GetType();

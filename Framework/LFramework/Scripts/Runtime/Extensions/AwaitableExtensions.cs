@@ -36,7 +36,36 @@ namespace LFramework.Runtime
             eventComponent.Subscribe(LoadSceneFailureEventArgs.EventId, OnLoadSceneFailure);
         }
 
-    
+        /// <summary>
+        /// 清理所有未完成的异步任务，防止内存泄漏。
+        /// 应在应用关闭或场景切换时调用。
+        /// </summary>
+        public static void ClearAll()
+        {
+            foreach (var tcs in SuiFormTcs.Values)
+            {
+                tcs.TrySetCanceled();
+            }
+            SuiFormTcs.Clear();
+
+            foreach (var tcs in SEntityTcs.Values)
+            {
+                tcs.TrySetCanceled();
+            }
+            SEntityTcs.Clear();
+
+            foreach (var tcs in SEntityHideTcs.Values)
+            {
+                tcs.TrySetCanceled();
+            }
+            SEntityHideTcs.Clear();
+
+            foreach (var tcs in SSceneTcs.Values)
+            {
+                tcs.TrySetCanceled();
+            }
+            SSceneTcs.Clear();
+        }
 
         #region Ui form
 
@@ -123,7 +152,7 @@ namespace LFramework.Runtime
         }
 
         /// <summary>
-        /// 显示实体（可等待）
+        /// 隐藏实体（可等待）
         /// </summary>
         public static UniTask HideEntityAsync(this EntityComponent entityComponent, int entityID)
         {
@@ -132,7 +161,7 @@ namespace LFramework.Runtime
             entityComponent.HideEntity(entityID);
             return tcs.Task;
         }
-        
+
         private static void OnHideEntitySuccess(object sender, GameEventArgs e)
         {
             var arg = e as HideEntityCompleteEventArgs;
@@ -148,6 +177,7 @@ namespace LFramework.Runtime
             }
 
             tcs.TrySetResult();
+            SEntityHideTcs.Remove(arg.EntityId);
         }
 
         #endregion
@@ -224,7 +254,7 @@ namespace LFramework.Runtime
 
             return loadAssetTcs.Task;
         }
-        
+
         #endregion
     }
 }

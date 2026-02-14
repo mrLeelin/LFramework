@@ -63,6 +63,7 @@ namespace LFramework.Hotfix.Procedure
             container.Resolve<ISystemProviderRegister>()
                 .TryUnRegisterProvider(ProcedureState);
             container.Resolve<IWorldRegister>().TryUnRegisterWorld();
+            _linkWorld = null;
         }
 
 
