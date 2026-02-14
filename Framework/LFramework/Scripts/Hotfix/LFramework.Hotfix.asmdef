@@ -1,0 +1,20 @@
+{
+    "name": "LFramework.Hotfix",
+    "rootNamespace": "",
+    "references": [
+        "GUID:5d2c94404c9ddcd4ab61d8977bf9d1cb",
+        "GUID:363c5eb08ff8e6a439b85e37b8c20d96",
+        "GUID:be1727561b13ff7459535874cb949a96",
+        "GUID:0d8beb7f090555447a6cf5ce9e54dbb4",
+        "GUID:348ef6fa46faf2b43ba10eeea5acfe94"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

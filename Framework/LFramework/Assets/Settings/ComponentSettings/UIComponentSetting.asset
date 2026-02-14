@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 53558cd2fdf2466f922b03df221783f7, type: 3}
+  m_Name: UIComponentSetting
+  m_EditorClassIdentifier: 
+  bindTypeName: UnityGameFramework.Runtime.UIComponent
+  m_EnableOpenUIFormSuccessEvent: 1
+  m_EnableOpenUIFormFailureEvent: 1
+  m_EnableOpenUIFormUpdateEvent: 0
+  m_EnableOpenUIFormDependencyAssetEvent: 0
+  m_EnableCloseUIFormCompleteEvent: 1
+  m_InstanceAutoReleaseInterval: 60
+  m_InstanceCapacity: 16
+  m_InstanceExpireTime: 60
+  m_InstancePriority: 0
+  m_InstanceRoot: {fileID: 1359759352226229096, guid: 82a1ddea6a651e64c88d540da46f55f3,
+    type: 3}
+  m_InstanceRootOffset: {x: -1000, y: 100}
+  m_UIFormHelperTypeName: LFramework.Runtime.DefaultUIFormHelper
+  m_CustomUIFormHelper: {fileID: 0}
+  m_UIGroupHelperTypeName: LFramework.Runtime.DefaultUIGroupHelper
+  m_CustomUIGroupHelper: {fileID: 0}
+  m_UIGroups:
+  - m_Name: World
+    m_Depth: 50
+  - m_Name: HUD
+    m_Depth: 200
+  - m_Name: PlayerWorld
+    m_Depth: 250
+  - m_Name: Dialog
+    m_Depth: 300
+  - m_Name: CurrencyTop
+    m_Depth: 400
+  - m_Name: PopUp
+    m_Depth: 500
+  - m_Name: Loading
+    m_Depth: 600
+  - m_Name: Top
+    m_Depth: 700
+  - m_Name: Fly
+    m_Depth: 800
+  - m_Name: NetError
+    m_Depth: 900

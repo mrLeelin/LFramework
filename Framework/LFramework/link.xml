@@ -1,0 +1,5 @@
+<linker>
+  <assembly fullname="UnityGameFramework.Runtime" preserve="all"/>
+  <assembly fullname="LFramework.Runtime" preserve="all"/>
+  <assembly fullname="LFramework.Hotfix" preserve="all"/>
+</linker>

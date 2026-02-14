@@ -1,0 +1,29 @@
+{
+    "name": "LFramework.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:5d2c94404c9ddcd4ab61d8977bf9d1cb",
+        "GUID:363c5eb08ff8e6a439b85e37b8c20d96",
+        "GUID:be1727561b13ff7459535874cb949a96",
+        "GUID:a2d8a19598eca814496b089021d08d60",
+        "GUID:69448af7b92c7f342b298e06a37122aa",
+        "GUID:f6fa0c2f8b9a9f64897d3351666f3d66",
+        "GUID:831409e8f9d13b5479a3baef9822ad34",
+        "GUID:3dc2666f1394e2c48a30ea492efb1717",
+        "GUID:2373f786d14518f44b0f475db77ba4de",
+        "GUID:6256bdcb0aaf53446b7dd10403a9d748",
+        "GUID:c5ecc461727906345a35491a0440694f",
+        "GUID:935f0513784704f42a2a0731602483fe"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
