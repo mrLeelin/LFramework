@@ -42,7 +42,7 @@ namespace LFramework.Hotfix
                 if (attribute == null)
                 {
                     Log.Fatal($"None BelongToAttribute in '{providerType.FullName}' Provider");
-                    return;
+                    continue;
                 }
 
                 if (attribute.ProcedureState != procedureState)
@@ -53,13 +53,13 @@ namespace LFramework.Hotfix
                 var instance = /*Activator.CreateInstance(providerType);*/ ReferencePool.Acquire(providerType);
                 if (instance == null)
                 {
-                    return;
+                    continue;
                 }
 
                 if (!(instance is SystemProviderBase systemProvider))
                 {
                     Log.Fatal($"BelongToAttribute '{providerType.FullName}' is none impl ISystemProvider");
-                    return;
+                    continue;
                 }
 
                 RegisterCommonDataSync(systemProvider);
@@ -117,7 +117,7 @@ namespace LFramework.Hotfix
                 if (attribute == null)
                 {
                     Log.Fatal($"None BelongToAttribute in '{kPair.Key.FullName}' Provider");
-                    return;
+                    continue;
                 }
 
                 if (attribute.ProviderLifeCycle == ProviderLifeCycle.Forever)
@@ -143,10 +143,8 @@ namespace LFramework.Hotfix
 
         private void UnRegisterProvider(Type t, ISystemProvider v)
         {
-            ReferencePool.Release(v);
-            //v.Dispose();
+            // 先完成所有使用，再释放回对象池
             UnRegisterCommonDataSync(v as SystemProviderBase);
-            v = null;
             var interfaceType =
                 t.GetDerivedInterfaces(typeof(ISystemProvider), typeof(IReference), typeof(IDisposable));
             if (interfaceType != null)
@@ -156,6 +154,8 @@ namespace LFramework.Hotfix
                     Log.Fatal($"Un bind '{interfaceType}' 'Provider' error.");
                 }
             }
+
+            ReferencePool.Release(v);
         }
     }
 }

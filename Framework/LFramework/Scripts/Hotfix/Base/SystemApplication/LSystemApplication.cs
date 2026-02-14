@@ -121,15 +121,22 @@ namespace LFramework.Hotfix
                 }
 
                 LinkedListNode<GameFrameworkComponent> current = _hotfixComponents.First;
+                bool isDuplicate = false;
                 while (current != null)
                 {
                     if (current.Value.GetType() == type)
                     {
                         Log.Error("Game Framework hotfix component type '{0}' is already exist.", type.FullName);
-                        return;
+                        isDuplicate = true;
+                        break;
                     }
 
                     current = current.Next;
+                }
+
+                if (isDuplicate)
+                {
+                    continue;
                 }
 
                 var instance = Activator.CreateInstance(type) as GameFrameworkComponent;

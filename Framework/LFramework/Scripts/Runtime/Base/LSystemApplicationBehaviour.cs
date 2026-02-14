@@ -59,7 +59,7 @@ namespace LFramework.Runtime
 
                 if (fType.IsAbstract ||
                     fType.IsInterface ||
-                    fType.IsAssignableFrom(typeof(GameFrameworkComponent)))
+                    !typeof(GameFrameworkComponent).IsAssignableFrom(fType))
                 {
                     continue;
                 }

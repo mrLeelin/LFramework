@@ -25,7 +25,7 @@ namespace LFramework.Runtime.Settings
 
             if (componentType.IsAbstract ||
                 componentType.IsInterface ||
-                componentType.IsAssignableFrom(typeof(GameFrameworkComponent))
+                !typeof(GameFrameworkComponent).IsAssignableFrom(componentType)
                )
             {
                 Log.Fatal(

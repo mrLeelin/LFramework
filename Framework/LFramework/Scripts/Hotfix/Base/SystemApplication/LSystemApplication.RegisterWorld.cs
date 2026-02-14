@@ -32,7 +32,7 @@ namespace LFramework.Hotfix
                 if (attribute == null)
                 {
                     Log.Fatal($"None BelongToAttribute in '{providerType.FullName}' Provider");
-                    return null;
+                    continue;
                 }
 
                 if (attribute.ProcedureState != procedureState)
@@ -44,14 +44,14 @@ namespace LFramework.Hotfix
                 var instance = /*Activator.CreateInstance(providerType); */ ReferencePool.Acquire(providerType);
                 if (instance == null)
                 {
-                    return null;
+                    continue;
                 }
 
 
                 if (!(instance is WorldBase world))
                 {
                     Log.Fatal($"BelongToAttribute '{providerType.FullName}' is none impl ISystemProvider");
-                    return null;
+                    continue;
                 }
 
                 LFrameworkAspect.Instance.DiContainer.Inject(world);
@@ -77,10 +77,7 @@ namespace LFramework.Hotfix
                 return;
             }
 
-
-            ReferencePool.Release(_worldBase);
-            //_worldBase.Dispose();
-
+            // 先获取类型信息并解绑 DI，再释放回对象池
             var interfaceType = _worldBase.GetType()
                 .GetDerivedInterfaces(typeof(IWorld), typeof(IReference), typeof(IDisposable));
             if (interfaceType != null)
@@ -91,6 +88,7 @@ namespace LFramework.Hotfix
                 }
             }
 
+            ReferencePool.Release(_worldBase);
             _worldBase = null;
         }
     }

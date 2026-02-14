@@ -14,7 +14,7 @@ namespace LFramework.Runtime
         public static bool IsEditor = false;
 #endif
         
-#if !ENABLE_CODES
+#if ENABLE_CODES
 		public static bool EnableCodes = true;
 #else
         public static bool EnableCodes = false;
