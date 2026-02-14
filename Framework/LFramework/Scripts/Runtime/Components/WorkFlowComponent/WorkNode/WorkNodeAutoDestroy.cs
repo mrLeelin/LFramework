@@ -11,7 +11,7 @@ namespace LFramework.Runtime
             base.OnStart();
             if (this.WorkFlow != null && this.WorkFlow.gameObject != null)
             {
-                Object.DestroyImmediate(this.WorkFlow.gameObject);
+                Object.Destroy(this.WorkFlow.gameObject);
             }
         }
 

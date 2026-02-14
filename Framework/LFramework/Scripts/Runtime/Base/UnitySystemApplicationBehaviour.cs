@@ -28,14 +28,36 @@ namespace LFramework.Runtime
 
         protected virtual void StartApplication()
         {
-            SingletonManager.AddSingleton(new LFrameworkAspect(DiContainer));
-            RegisterSetting();
-            RegisterComponents();
-            BindComponents();
-            ResolveApplicationDependencies();
-            StartComponents();
-            ApplicationStarted();
-            SetUpComponents();
+            try
+            {
+                SingletonManager.AddSingleton(new LFrameworkAspect(DiContainer));
+            }
+            catch (Exception e)
+            {
+                Log.Fatal($"StartApplication failed at AddSingleton: {e}");
+                return;
+            }
+
+            try { RegisterSetting(); }
+            catch (Exception e) { Log.Fatal($"StartApplication failed at RegisterSetting: {e}"); return; }
+
+            try { RegisterComponents(); }
+            catch (Exception e) { Log.Fatal($"StartApplication failed at RegisterComponents: {e}"); return; }
+
+            try { BindComponents(); }
+            catch (Exception e) { Log.Fatal($"StartApplication failed at BindComponents: {e}"); return; }
+
+            try { ResolveApplicationDependencies(); }
+            catch (Exception e) { Log.Fatal($"StartApplication failed at ResolveApplicationDependencies: {e}"); return; }
+
+            try { StartComponents(); }
+            catch (Exception e) { Log.Fatal($"StartApplication failed at StartComponents: {e}"); return; }
+
+            try { ApplicationStarted(); }
+            catch (Exception e) { Log.Fatal($"StartApplication failed at ApplicationStarted: {e}"); return; }
+
+            try { SetUpComponents(); }
+            catch (Exception e) { Log.Fatal($"StartApplication failed at SetUpComponents: {e}"); return; }
         }
 
         protected virtual void Update()

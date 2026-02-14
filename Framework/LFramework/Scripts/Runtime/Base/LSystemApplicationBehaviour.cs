@@ -53,8 +53,8 @@ namespace LFramework.Runtime
                 var fType = Utility.Assembly.GetType(fullName);
                 if (fType == null)
                 {
-                    Log.Fatal($"Type '{fullName}' is null");
-                    return;
+                    Log.Error($"Type '{fullName}' is null, skipping.");
+                    continue;
                 }
 
                 if (fType.IsAbstract ||

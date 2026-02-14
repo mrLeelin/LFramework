@@ -15,6 +15,8 @@ namespace LFramework.Runtime
 
         public LFrameworkAspect()
         {
+            throw new InvalidOperationException(
+                "LFrameworkAspect must be created with a DiContainer. Use LFrameworkAspect(DiContainer) constructor.");
         }
 
         public LFrameworkAspect(DiContainer diContainer)

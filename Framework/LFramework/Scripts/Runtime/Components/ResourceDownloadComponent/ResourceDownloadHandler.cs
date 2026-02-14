@@ -123,6 +123,19 @@ namespace LFramework.Runtime
 
         public async void CheckAndLoadAsync()
         {
+            try
+            {
+                await CheckAndLoadInternalAsync();
+            }
+            catch (Exception ex)
+            {
+                LogError($"CheckAndLoadAsync unhandled exception: {ex}");
+                ExceptionFailure(UpdateResultType.CheckCatalogsFailure);
+            }
+        }
+
+        private async Task CheckAndLoadInternalAsync()
+        {
             var catalogsToUpdate = new List<string>();
             var result = await CheckCatalogs(catalogsToUpdate);
             if (result != UpdateResultType.Successful)
@@ -305,9 +318,12 @@ namespace LFramework.Runtime
             return UpdateResultType.Successful;
         }
 
+        private const int MaxRetryCount = 5;
+
         private async void DownLoad(List<string> downloadKeys)
         {
-            while (true)
+            int retryCount = 0;
+            while (retryCount < MaxRetryCount)
             {
                 if (_downloadHandle.IsValid())
                 {
@@ -318,19 +334,28 @@ namespace LFramework.Runtime
                     Addressables.DownloadDependenciesAsync((IEnumerable)downloadKeys, _addressableMergeMode,
                         false);
                 await _downloadHandle.Task;
-                if (_downloadHandle.Status != AsyncOperationStatus.Succeeded)
-                {
-                    await Task.Delay(500);
-                }
-                else
+                if (_downloadHandle.Status == AsyncOperationStatus.Succeeded)
                 {
                     break;
                 }
+
+                retryCount++;
+                var delayMs = Math.Min(500 * (1 << retryCount), 16000);
+                LogError($"Download failed, retry {retryCount}/{MaxRetryCount} after {delayMs}ms");
+                await Task.Delay(delayMs);
             }
 
             if (_downloadHandle.IsValid())
             {
+                var succeeded = _downloadHandle.Status == AsyncOperationStatus.Succeeded;
                 Addressables.Release(_downloadHandle);
+
+                if (!succeeded)
+                {
+                    LogError($"Download failed after {MaxRetryCount} retries.");
+                    ExceptionFailure(UpdateResultType.DownloadFailure);
+                    return;
+                }
             }
 
             DownloadSuccessful();

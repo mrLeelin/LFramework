@@ -116,7 +116,10 @@ namespace LFramework.Runtime
                 return;
             }
 
-          
+            var callBack = _workFlowFinishedCallBack;
+            var binder =
+                CreateNode(parent, typeof(WorkNodeCallBack), "[FinishedCallBackNode]") as WorkNodeCallBack;
+            binder.SetCallBack(_ => callBack?.Invoke(), null);
         }
         
         protected WorkNode CreateNode(Transform parent, Type type, string name)

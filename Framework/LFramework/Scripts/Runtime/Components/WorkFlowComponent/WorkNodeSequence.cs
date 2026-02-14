@@ -115,6 +115,7 @@ namespace LFramework.Runtime
 
                 for (int i = 0, count = Nodes.Count; i < count; i++)
                 {
+                    if (Nodes[i] == mCurrentNode) continue;
                     Nodes[i].OnStop();
                 }
 
@@ -137,12 +138,13 @@ namespace LFramework.Runtime
 
             for (int i = 0, count = Nodes.Count; i < count; i++)
             {
+                if (Nodes[i] == mCurrentNode) continue;
                 Nodes[i].OnDispose();
             }
 
             Clear();
         }
-        
+
         public override void OnEnd()
         {
             base.OnEnd();
@@ -169,6 +171,7 @@ namespace LFramework.Runtime
 
                 for (int i = 0, count = Nodes.Count; i < count; i++)
                 {
+                    if (Nodes[i] == mCurrentNode) continue;
                     Nodes[i].OnResetWorkFlow();
                 }
 

@@ -47,6 +47,7 @@ namespace LFramework.Runtime
         */
         public void Clear()
         {
+            UnSubscribeEvent();
             OnStop();
         }
         public virtual void UpdateComponent(float elapseSeconds, float realElapseSeconds)

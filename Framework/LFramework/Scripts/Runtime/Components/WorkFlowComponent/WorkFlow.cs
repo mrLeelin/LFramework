@@ -112,7 +112,7 @@ namespace LFramework.Runtime
             StopReal(); // invoke one time
             if (isDestroy)
             {
-                GameObject.DestroyImmediate(this.gameObject);
+                GameObject.Destroy(this.gameObject);
             }
             else
             {
@@ -125,7 +125,6 @@ namespace LFramework.Runtime
 
         private void StopReal()
         {
-            if (mStatus == WorkFlowStatus.Running) return;
             Root.OnStop();
             Root.OnResetWorkFlow();
         }
