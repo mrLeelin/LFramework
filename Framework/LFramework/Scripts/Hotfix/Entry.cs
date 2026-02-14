@@ -18,7 +18,7 @@ namespace LFramework.Hotfix
         {
             Log.Info("Enter Hotfix Entry");
             var application =SingletonManager.AddSingleton<LSystemApplication>();
-
+            LSystemApplication.ClearReflectionCache();
             var procedureComponent = LFrameworkAspect.Instance.Get<ProcedureComponent>();
             if (procedureComponent == null)
             {
@@ -38,7 +38,7 @@ namespace LFramework.Hotfix
             var entranceProcedure = procedureComponent.EntranceHotfixProcedureTypeName;
             var hotfixEntranceProcedureType = hotfixComponent.GetHotfixAssemblyType(entranceProcedure);
             procedureComponent.ForceChangedProcedure(hotfixEntranceProcedureType);
-            Log.Info($"Enter Hotfix Force Changed Procedure. '{nameof(hotfixEntranceProcedureType)}'");
+            Log.Info($"Enter Hotfix Force Changed Procedure. '{hotfixEntranceProcedureType?.FullName}'");
         }
 
       

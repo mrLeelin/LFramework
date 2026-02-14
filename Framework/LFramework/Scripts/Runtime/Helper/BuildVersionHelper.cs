@@ -7,7 +7,7 @@ namespace LFramework.Runtime
 {
     public class BuildVersionHelper : Version.IVersionHelper
     {
-        public string GameVersion => Application.dataPath;
+        public string GameVersion => Application.version;
         public int InternalGameVersion => 0;
         
     }
