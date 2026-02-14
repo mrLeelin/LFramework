@@ -271,6 +271,12 @@ namespace LFramework.Runtime
         /// <returns>是否销毁数据表成功。</returns>
         public bool DestroyDataTable<T>() where T : TableBase, new()
         {
+            var dataTable = _tableManager.GetDataTable<T>();
+            if (dataTable != null)
+            {
+                UnRegisterDataTableEvents(dataTable);
+            }
+
             return _tableManager.DestroyDataTable<T>();
         }
 
@@ -281,6 +287,12 @@ namespace LFramework.Runtime
         /// <returns>是否销毁数据表成功。</returns>
         public bool DestroyDataTable(Type dataRowType)
         {
+            var dataTable = _tableManager.GetDataTable(dataRowType);
+            if (dataTable != null)
+            {
+                UnRegisterDataTableEvents(dataTable);
+            }
+
             return _tableManager.DestroyDataTable(dataRowType);
         }
 
@@ -292,6 +304,12 @@ namespace LFramework.Runtime
         /// <returns>是否销毁数据表成功。</returns>
         public bool DestroyDataTable<T>(string name) where T : TableBase
         {
+            var dataTable = _tableManager.GetDataTable<T>(name);
+            if (dataTable != null)
+            {
+                UnRegisterDataTableEvents(dataTable);
+            }
+
             return _tableManager.DestroyDataTable<T>(name);
         }
 
@@ -303,6 +321,12 @@ namespace LFramework.Runtime
         /// <returns>是否销毁数据表成功。</returns>
         public bool DestroyDataTable(Type dataRowType, string name)
         {
+            var dataTable = _tableManager.GetDataTable(dataRowType, name);
+            if (dataTable != null)
+            {
+                UnRegisterDataTableEvents(dataTable);
+            }
+
             return _tableManager.DestroyDataTable(dataRowType, name);
         }
 
@@ -314,6 +338,11 @@ namespace LFramework.Runtime
         /// <returns>是否销毁数据表成功。</returns>
         public bool DestroyDataTable<T>(T dataTable) where T : TableBase
         {
+            if (dataTable != null)
+            {
+                UnRegisterDataTableEvents(dataTable);
+            }
+
             return _tableManager.DestroyDataTable(dataTable);
         }
 
@@ -324,7 +353,20 @@ namespace LFramework.Runtime
         /// <returns>是否销毁数据表成功。</returns>
         public bool DestroyDataTable(TableBase dataTable)
         {
+            if (dataTable != null)
+            {
+                UnRegisterDataTableEvents(dataTable);
+            }
+
             return _tableManager.DestroyDataTable(dataTable);
+        }
+
+        private void UnRegisterDataTableEvents(TableBase dataTable)
+        {
+            dataTable.ReadDataSuccess -= OnReadDataSuccess;
+            dataTable.ReadDataFailure -= OnReadDataFailure;
+            dataTable.ReadDataUpdate -= OnReadDataUpdate;
+            dataTable.ReadDataDependencyAsset -= OnReadDataDependencyAsset;
         }
 
         private void OnReadDataSuccess(object sender, ReadDataSuccessEventArgs e)

@@ -39,12 +39,13 @@ namespace LFramework.Runtime
         public void Clear()
         {
             UnSubscribe(EventComponent);
+            // 先解绑 DI，再释放回对象池
+            UnRegisterWorldHelper();
             foreach (var worldHelper in _worldHelpers.Values)
             {
                 ReferencePool.Release(worldHelper);
             }
 
-            UnRegisterWorldHelper();
             _worldHelpers.Clear();
             _worldUpdates.Clear();
             _worldLateUpdates.Clear();

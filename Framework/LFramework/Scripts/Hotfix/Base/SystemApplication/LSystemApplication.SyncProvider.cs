@@ -12,15 +12,26 @@ namespace LFramework.Hotfix
     {
         private static readonly IDictionary<string, PropertyInfo> CachePropertyInfoByClass =
             new Dictionary<string, PropertyInfo>();
-        
+
         // 新增：缓存类型的属性信息，避免每次反射
         private static readonly ConcurrentDictionary<Type, PropertyInfo[]> TypePropertiesCache = new();
-        
+
         // 新增：缓存类型的泛型参数信息
         private static readonly ConcurrentDictionary<Type, Type[]> TypeGenericArgumentsCache = new();
-        
+
         // 新增：缓存类型的接口信息
         private static readonly ConcurrentDictionary<Type, Type[]> TypeInterfacesCache = new();
+
+        /// <summary>
+        /// 清理所有静态反射缓存，应在热更新重载时调用
+        /// </summary>
+        public static void ClearReflectionCache()
+        {
+            CachePropertyInfoByClass.Clear();
+            TypePropertiesCache.Clear();
+            TypeGenericArgumentsCache.Clear();
+            TypeInterfacesCache.Clear();
+        }
 
         private readonly Dictionary<Type, List<ISyncServerData>> _syncServerDates = new();
         private readonly Dictionary<ISyncServerData, Type> _linkSyncServerDates = new();

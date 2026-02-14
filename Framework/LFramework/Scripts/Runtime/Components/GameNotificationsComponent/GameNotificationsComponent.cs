@@ -333,7 +333,6 @@ namespace LFramework.Runtime
                 yield break;
             }
 
-            Initialized = true;
             var args = NotificationCenterArgs.Default;
             args.AndroidChannelId = "notifications";
             args.AndroidChannelName = "Notifications";
@@ -346,6 +345,10 @@ namespace LFramework.Runtime
             {
                 Serializer = new DefaultSerializer(Path.Combine(Application.persistentDataPath, DefaultFilename));
             }
+
+            // Initialized 必须在 Serializer 赋值之后设置，
+            // 否则 RuntimeOnApplicationFocus 可能在 Serializer 为 null 时被调用
+            Initialized = true;
 
             yield return Platform.RequestNotificationPermission();
             OnForegrounding();

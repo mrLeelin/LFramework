@@ -1,14 +1,25 @@
 using System;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace LFramework.Runtime
 {
     public class AESUtility
     {
-        // 密钥长度应为 16、24 或 32 字节（128、192 或 256 位）
-        private static readonly byte[] Key = Convert.FromBase64String("sZ5C8k1n+W3vmqx9q+CYz/OJKlhCKmJSiPhEXOH+5M8="); // Base64 解码后的密钥
-        private static readonly byte[] IV = Convert.FromBase64String("4T2uo7j6hLlVXVgV8A+zXA=="); // Base64 解码后的初始化向量
+        private static byte[] _key;
+        private static byte[] _iv;
+        private static bool _enabled;
+
+        /// <summary>
+        /// 初始化 AES 加密参数，必须在使用前调用
+        /// </summary>
+        /// <param name="keyBase64">Base64 编码的密钥（16/24/32 字节）</param>
+        /// <param name="ivBase64">Base64 编码的初始化向量（16 字节）</param>
+        public static void Initialize(string keyBase64, string ivBase64)
+        {
+            _key = Convert.FromBase64String(keyBase64);
+            _iv = Convert.FromBase64String(ivBase64);
+            _enabled = true;
+        }
 
         /// <summary>
         /// 使用 AES 加密 byte[]
@@ -17,11 +28,15 @@ namespace LFramework.Runtime
         /// <returns>加密后的 byte[]</returns>
         public static byte[] Encrypt(byte[] data)
         {
-            /*
+            if (!_enabled || _key == null || _iv == null)
+            {
+                return data;
+            }
+
             using (Aes aes = Aes.Create())
             {
-                aes.Key = Key;
-                aes.IV = IV;
+                aes.Key = _key;
+                aes.IV = _iv;
                 aes.Mode = CipherMode.CBC;
                 aes.Padding = PaddingMode.PKCS7;
 
@@ -30,8 +45,6 @@ namespace LFramework.Runtime
                     return encryptor.TransformFinalBlock(data, 0, data.Length);
                 }
             }
-            */
-            return data;
         }
 
         /// <summary>
@@ -41,11 +54,15 @@ namespace LFramework.Runtime
         /// <returns>解密后的 byte[]</returns>
         public static byte[] Decrypt(byte[] encryptedData)
         {
-            /*
+            if (!_enabled || _key == null || _iv == null)
+            {
+                return encryptedData;
+            }
+
             using (Aes aes = Aes.Create())
             {
-                aes.Key = Key;
-                aes.IV = IV;
+                aes.Key = _key;
+                aes.IV = _iv;
                 aes.Mode = CipherMode.CBC;
                 aes.Padding = PaddingMode.PKCS7;
 
@@ -53,8 +70,7 @@ namespace LFramework.Runtime
                 {
                     return decryptor.TransformFinalBlock(encryptedData, 0, encryptedData.Length);
                 }
-            }*/
-            return encryptedData;
+            }
         }
     }
 }
