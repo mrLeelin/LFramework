@@ -32,7 +32,7 @@ namespace LFramework.Editor.Window
             if (_resourceModeField == null)
             {
                 _resourceModeField = _resourceComponent.GetType()
-                    .GetField("", BindingFlags.NonPublic | BindingFlags.Instance);
+                    .GetField("m_ResourceMode", BindingFlags.NonPublic | BindingFlags.Instance);
             }
 
             var isEditorResourceMode = (bool)_editorResourceModeField.GetValue(_resourceComponent);

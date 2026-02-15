@@ -141,7 +141,7 @@ namespace LFramework.Editor.Builder.Builder
                 AndroidChannel = MBuildData.androidChannel,
                 IsResourcesBuildIn = MBuildData.isResourcesBuildIn,
                 ResourcesVersion = MBuildData.resourcesVersion,
-                BuildResourcesSeverModel = (BuildResourcesSeverModel)MBuildData.cdnType,
+                BuildResourcesServerModel = (BuildResourcesServerModel)MBuildData.cdnType,
                 BuildType = MBuildData.buildType,
                 IsForceUpdate = MBuildData.isForceUpdate,
                 IsBuildDll = MBuildData.isBuildDll,

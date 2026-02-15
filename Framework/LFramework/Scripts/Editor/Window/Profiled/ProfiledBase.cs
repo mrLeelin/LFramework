@@ -24,7 +24,7 @@ namespace LFramework.Editor.Window
 
         protected void GetComponent<T>(ref T instance) where T : GameFrameworkComponent
         {
-            if (EditorApplication.isPlaying)
+            if (!EditorApplication.isPlaying)
             {
                 return;
             }

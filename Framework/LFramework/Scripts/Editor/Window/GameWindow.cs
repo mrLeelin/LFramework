@@ -11,6 +11,7 @@ using Sirenix.Utilities;
 using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEngine;
+using Type = UnityGameFramework.Editor.Type;
 
 namespace LFramework.Editor.Window
 {
@@ -27,12 +28,34 @@ namespace LFramework.Editor.Window
             window.position = GUIHelper.GetEditorWindowRect().AlignCenter(800, 600);
         }
 
-        private GameProfiledWindow _gameProfiledWindow;
+        private List<ProfiledBase> _allProfiled;
 
         protected override void OnEnable()
         {
             base.OnEnable();
-            _gameProfiledWindow = CreateInstance<GameProfiledWindow>();
+            if (_allProfiled == null)
+            {
+                _allProfiled = new List<ProfiledBase>();
+                var profiledBaseTypes = Type.GetRuntimeOrEditorTypes(typeof(ProfiledBase));
+                foreach (var type in profiledBaseTypes)
+                {
+                    if (type.IsAbstract || type.IsInterface)
+                        continue;
+
+                    try
+                    {
+                        var instance = Activator.CreateInstance(type) as ProfiledBase;
+                        if (instance != null)
+                        {
+                            _allProfiled.Add(instance);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogWarning($"Failed to create ProfiledBase instance: {type.Name}, Error: {e.Message}");
+                    }
+                }
+            }
         }
 
         protected override OdinMenuTree BuildMenuTree()
@@ -40,8 +63,21 @@ namespace LFramework.Editor.Window
             var tree = new OdinMenuTree(supportsMultiSelect: true)
             {
                 { "Home", this, EditorIcons.House },
-                { "Utility", _gameProfiledWindow, EditorIcons.Car },
             };
+
+            // Framework Profiled 子菜单
+            tree.Add("Framework Profiled", null, EditorIcons.Car);
+            if (_allProfiled != null)
+            {
+                foreach (var profiled in _allProfiled)
+                {
+                    if (profiled == null) continue;
+                    var name = profiled.GetType().Name;
+                    if (name.EndsWith("Profiled"))
+                        name = name.Substring(0, name.Length - "Profiled".Length);
+                    tree.AddObjectAtPath("Framework Profiled/" + name, profiled);
+                }
+            }
 
             AddAllAssetsAtType<ComponentSetting>(tree, "Framework Setting")
                 .AddIcons(EditorIcons.SettingsCog);
@@ -58,6 +94,49 @@ namespace LFramework.Editor.Window
             AddAllExtendItems(tree);
             tree.SortMenuItemsByName();
             return tree;
+        }
+
+        protected override void DrawEditors()
+        {
+            var selected = this.MenuTree?.Selection?.SelectedValue;
+            if (selected is ProfiledBase profiledBase)
+            {
+                GUILayout.BeginVertical();
+
+                if (!EditorApplication.isPlaying)
+                {
+                    SirenixEditorGUI.Title("Runtime Only", "此面板仅在 Play Mode 下可用", TextAlignment.Left, true);
+                    GUILayout.EndVertical();
+                    return;
+                }
+
+                if (!profiledBase.CanDraw)
+                {
+                    SirenixEditorGUI.Title("Not Available", "当前监控组件不可用", TextAlignment.Left, true);
+                    GUILayout.EndVertical();
+                    return;
+                }
+
+                SirenixEditorGUI.Title(
+                    title: string.IsNullOrEmpty(profiledBase.Title)
+                        ? profiledBase.GetType().Name
+                        : profiledBase.Title,
+                    subtitle: string.IsNullOrEmpty(profiledBase.SubTitle)
+                        ? profiledBase.GetType().GetNiceFullName()
+                        : profiledBase.SubTitle,
+                    textAlignment: TextAlignment.Left,
+                    horizontalLine: true
+                );
+
+                GUILayout.Space(10);
+                profiledBase.Draw();
+                GUILayout.EndVertical();
+                Repaint();
+            }
+            else
+            {
+                base.DrawEditors();
+            }
         }
 
 

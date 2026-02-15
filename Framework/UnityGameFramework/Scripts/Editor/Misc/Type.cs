@@ -37,7 +37,7 @@ namespace UnityGameFramework.Editor
             "Assembly-CSharp",
 #if UNITY_2017_3_OR_NEWER
             "UnityGameFramework.Editor",
-            "IFramework.Editor",
+            "LFramework.Editor",
             "MagicWarrior.Editor",
 #endif
             "Assembly-CSharp-Editor",

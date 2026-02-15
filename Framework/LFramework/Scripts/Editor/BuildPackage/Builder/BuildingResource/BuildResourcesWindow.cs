@@ -77,9 +77,9 @@ namespace LFramework.Editor.Builder.BuildingResource
                 _isResourceUpdate = EditorGUILayout.Toggle("Is Resource Update", _isResourceUpdate);
                 _resourcesData.BuildType = _isResourceUpdate ? BuildType.ResourcesUpdate : BuildType.APP;
                 //选择服务器
-                _resourcesData.BuildResourcesSeverModel =
-                    (BuildResourcesSeverModel)EditorGUILayout.EnumPopup("ServerModel",
-                        _resourcesData.BuildResourcesSeverModel);
+                _resourcesData.BuildResourcesServerModel =
+                    (BuildResourcesServerModel)EditorGUILayout.EnumPopup("ServerModel",
+                        _resourcesData.BuildResourcesServerModel);
             }
 
 
@@ -107,7 +107,7 @@ namespace LFramework.Editor.Builder.BuildingResource
             // EditorGUILayout.LabelField("Backup Build Path", GetBackupBuildPath(_resourcesData));
             EditorGUILayout.LabelField("Backup SeverData Path", GetBackupSeverDataBuildPath(_resourcesData));
             EditorGUILayout.Space();
-            if (_resourcesData.BuildResourcesSeverModel != BuildResourcesSeverModel.LocalHost)
+            if (_resourcesData.BuildResourcesServerModel != BuildResourcesServerModel.LocalHost)
             {
                 EditorGUILayout.LabelField("Backup Version Folder Path", GetBackupVersionFolderPath(_resourcesData));
                 EditorGUILayout.LabelField("Backup Version Path", GetBackupVersionPath(_resourcesData));

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(find:*)",
+      "Bash(git -C /d/Project/Unity/Demo/YooAssetsDemo/Assets/Framework log --oneline --all -- \"Framework/UnityGameFramework/Scripts/Runtime/Base/GameFrameworkComponent.cs\")",
+      "Bash(git -C /d/Project/Unity/Demo/YooAssetsDemo/Assets/Framework log --all --oneline -- \"Framework/UnityGameFramework/Scripts/Runtime/Base/GameFrameworkComponent.cs\")",
+      "Bash(git -C /d/Project/Unity/Demo/YooAssetsDemo/Assets/Framework show b342960:Framework/UnityGameFramework/Scripts/Runtime/Base/GameFrameworkComponent.cs)"
+    ]
+  }
+}

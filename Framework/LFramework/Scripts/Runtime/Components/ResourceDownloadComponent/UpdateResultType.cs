@@ -15,6 +15,7 @@ namespace LFramework.Runtime
         NotReachable,
         GetDownloadSizeFailure,
        
+        DownloadFailure
     }
 }
 

@@ -55,7 +55,7 @@ namespace LFramework.Editor.Builder
 
         [HideIf("IsResourcesBuildIn")] public bool IsForceUpdate;
         [HideIf("IsResourcesBuildIn")] public BuildType BuildType;
-        [HideIf("IsResourcesBuildIn")] public BuildResourcesSeverModel BuildResourcesSeverModel;
+        [HideIf("IsResourcesBuildIn")] public BuildResourcesServerModel BuildResourcesServerModel;
 
         [InfoBox("点击按钮打包")]
         [Button("打包")]
@@ -670,19 +670,19 @@ namespace LFramework.Editor.Builder
         }
 
 
-        private static string GetUrl(BuildResourcesSeverModel model)
+        private static string GetUrl(BuildResourcesServerModel model)
         {
             string url = "";
             switch (model)
             {
-                case BuildResourcesSeverModel.LocalHost:
+                case BuildResourcesServerModel.LocalHost:
                     url = "http://[PrivateIpAddress]:[HostingServicePort]";
                     break;
                 /*
-                case BuildResourcesSeverModel.Debug:
+                case BuildResourcesServerModel.Debug:
                     //url = PathManager.Instance.GetCdnUrl(CdnType.Debug);
                     break;
-                case BuildResourcesSeverModel.Release:
+                case BuildResourcesServerModel.Release:
                     //url = PathManager.Instance.GetCdnUrl(CdnType.Release);
                     break;
                     */
@@ -712,13 +712,13 @@ namespace LFramework.Editor.Builder
         private static string GetLoadPath(BuildResourcesData data)
         {
             var path = string.Empty;
-            if (data.BuildResourcesSeverModel == BuildResourcesSeverModel.LocalHost)
+            if (data.BuildResourcesServerModel == BuildResourcesServerModel.LocalHost)
             {
-                path += GetUrl(data.BuildResourcesSeverModel);
+                path += GetUrl(data.BuildResourcesServerModel);
             }
             else
             {
-                path += GetUrl(data.BuildResourcesSeverModel) + GetFolderNameBasedOnAppVersion(data) + "/" +
+                path += GetUrl(data.BuildResourcesServerModel) + GetFolderNameBasedOnAppVersion(data) + "/" +
                         GetReplaceVersionName(data);
             }
 
@@ -781,19 +781,19 @@ namespace LFramework.Editor.Builder
         private static string GetFolderName(BuildResourcesData data)
         {
             return GetChannelName(data) + "_" + data.ResourcesVersion + "_" +
-                   data.BuildResourcesSeverModel;
+                   data.BuildResourcesServerModel;
         }
 
         private static string GetReplaceVersionName(BuildResourcesData data)
         {
             return GetChannelName(data) + "_" + Replace_Version + "_" +
-                   data.BuildResourcesSeverModel;
+                   data.BuildResourcesServerModel;
         }
 
         public static string GetFolderNameBasedOnAppVersion(BuildResourcesData data)
         {
             return GetChannelName(data) + "_" + data.AppVersion + "_" +
-                   data.BuildResourcesSeverModel;
+                   data.BuildResourcesServerModel;
         }
 
         #region Backup Path
@@ -830,7 +830,7 @@ namespace LFramework.Editor.Builder
         private static string GetBackupVersionFolderPath(BuildResourcesData data)
         {
             return Application.dataPath + "/../" + BACKUP_FOLDER_NAME + "/" + GetChannelName(data) + "_" +
-                   data.BuildResourcesSeverModel;
+                   data.BuildResourcesServerModel;
         }
 
         private static string GetLastVersionPath(BuildResourcesData data)
@@ -854,13 +854,13 @@ namespace LFramework.Editor.Builder
         private static string GetTempDebugExportVersionPath(BuildResourcesData data)
         {
             string path = GetExportPath();
-            return path + "/" + GetChannelName(data) + "_" + data.BuildResourcesSeverModel + "/" + BACKUP_FILE_NAME;
+            return path + "/" + GetChannelName(data) + "_" + data.BuildResourcesServerModel + "/" + BACKUP_FILE_NAME;
         }
 
         private static string GetBackupLastBuildPath(BuildResourcesData data)
         {
             string path = GetBackupPath(data);
-            return path + "/" + GetChannelName(data) + "_" + BACKUP_LAST_NAME + "_" + data.BuildResourcesSeverModel;
+            return path + "/" + GetChannelName(data) + "_" + BACKUP_LAST_NAME + "_" + data.BuildResourcesServerModel;
         }
 
         #endregion

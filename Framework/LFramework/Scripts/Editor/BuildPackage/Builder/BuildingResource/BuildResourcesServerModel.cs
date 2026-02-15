@@ -1,6 +1,6 @@
 ﻿namespace ThirdParty.Framework.LFramework.Scripts.Editor.BuildPackage.Builder.BuildingResource
 {
-    public enum BuildResourcesSeverModel
+    public enum BuildResourcesServerModel
     {
         LocalHost,
         /// <summary>

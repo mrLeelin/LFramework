@@ -13,13 +13,6 @@ MonoBehaviour:
   m_Name: ProcedureComponentSetting
   m_EditorClassIdentifier: 
   bindTypeName: UnityGameFramework.Runtime.ProcedureComponent
-  m_AvailableProcedureTypeNames:
-  - LFramework.Runtime.Procedure.DownloadProcedure
-  - LFramework.Runtime.Procedure.InitResourcesProcedure
-  - LFramework.Runtime.Procedure.LaunchProcedure
-  - LFramework.Runtime.Procedure.LoadAssemblyProcedure
-  - LFramework.Runtime.Procedure.ResourcesUpdateProcedure
-  - LFramework.Runtime.Procedure.SplashProcedure
-  - MagicWarrior.Runtime.CheckVersionProcedure
-  m_EntranceProcedureTypeName: LFramework.Runtime.Procedure.LaunchProcedure
-  m_EntranceHotfixProcedureTypeName: MagicWarrior.Hotfix.Procedure.PreLoadProcedure
+  m_AvailableProcedureTypeNames: []
+  m_EntranceProcedureTypeName: 
+  m_EntranceHotfixProcedureTypeName: 
