@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using LFramework.Editor.Builder.Pipeline;
+using LFramework.Editor.Builder.Pipeline.Pipelines;
 using LFramework.Runtime;
 using Sirenix.Utilities.Editor;
 using ThirdParty.Framework.LFramework.Scripts.Editor.BuildPackage.Builder.BuildingResource;
@@ -11,6 +13,7 @@ using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
+using BuildPipelineContext = LFramework.Editor.Builder.Pipeline.BuildPipelineContext;
 
 namespace LFramework.Editor.Builder.Builder
 {
@@ -70,7 +73,60 @@ namespace LFramework.Editor.Builder.Builder
         }
 
 
+        /// <summary>
+        /// 构建方法 - 使用 Pipeline 架构
+        /// 新架构: 通过 BuildPipeline 和 BuildTask 实现流式构建
+        /// 旧架构: 原有的 protected 方法(BuildBeforeInternal, BuildInternal 等)仍然保留,通过反射调用
+        /// </summary>
+        /// <param name="handlers">构建事件处理器列表</param>
         public void Build(List<IBuildEventHandler> handlers)
+        {
+            Debug.Log("[BaseBuilder] Starting build with Pipeline architecture...");
+
+            // 创建构建上下文
+            var context = new BuildPipelineContext(MBuildData, handlers, this);
+            context.BuildTarget = Target;
+            context.BuildTargetGroup = TargetGroup;
+
+            // 根据构建类型选择管线
+            IBuildPipeline pipeline;
+            if (MBuildData.buildType == BuildType.APP)
+            {
+                Debug.Log("[BaseBuilder] Using AppBuildPipeline for APP build");
+                pipeline = new AppBuildPipeline();
+            }
+            else if (MBuildData.buildType == BuildType.ResourcesUpdate)
+            {
+                Debug.Log("[BaseBuilder] Using ResourceBuildPipeline for resource update");
+                pipeline = new ResourceBuildPipeline();
+            }
+            else
+            {
+                Debug.Log("[BaseBuilder] Using DefaultBuildPipeline");
+                pipeline = new DefaultBuildPipeline();
+            }
+
+            // 执行管线
+            bool success = pipeline.Execute(context);
+
+            if (success)
+            {
+                Debug.Log("[BaseBuilder] Build completed successfully with Pipeline architecture.");
+            }
+            else
+            {
+                Debug.LogError("[BaseBuilder] Build failed with Pipeline architecture.");
+                throw new Exception("Build failed. Check the logs for details.");
+            }
+        }
+
+        /// <summary>
+        /// 旧版构建方法 - 保留用于向后兼容
+        /// 如果需要使用旧的构建流程,可以调用此方法
+        /// </summary>
+        /// <param name="handlers">构建事件处理器列表</param>
+        [Obsolete("Use Build() method with Pipeline architecture instead. This method is kept for backward compatibility.")]
+        public void BuildLegacy(List<IBuildEventHandler> handlers)
         {
             if (MBuildData.buildType == BuildType.APP)
             {
@@ -98,12 +154,40 @@ namespace LFramework.Editor.Builder.Builder
             }
         }
 
+        /// <summary>
+        /// 构建前处理 - 由 BuildBeforeTask 通过反射调用
+        /// 子类可以重写此方法实现平台特定的构建前处理
+        /// </summary>
         protected virtual void BuildBeforeInternal(){}
+
+        /// <summary>
+        /// 构建内部逻辑 - 由 BuildPlayerTask 通过反射调用
+        /// 子类必须实现此方法执行实际的玩家构建
+        /// </summary>
         protected abstract void BuildInternal();
+
+        /// <summary>
+        /// 获取构建玩家选项 - 由子类实现
+        /// </summary>
+        /// <param name="options">构建选项</param>
         protected abstract void GetBuildPlayerOptionsInternal(ref BuildPlayerOptions options);
+
+        /// <summary>
+        /// 预处理构建回调 - Unity 构建系统调用
+        /// </summary>
+        /// <param name="report">构建报告</param>
         public abstract void OnPreprocessBuild(BuildReport report);
+
+        /// <summary>
+        /// 后处理构建回调 - Unity 构建系统调用
+        /// </summary>
+        /// <param name="report">构建报告</param>
         public abstract void OnPostprocessBuild(BuildReport report);
 
+        /// <summary>
+        /// 构建 DLL - 由 BuildDllTask 通过反射调用
+        /// 子类可以重写此方法实现 DLL 构建逻辑
+        /// </summary>
         protected virtual void BuildDll()
         {
             if (!MBuildData.isBuildResources)
@@ -112,6 +196,12 @@ namespace LFramework.Editor.Builder.Builder
             }
         }
 
+        /// <summary>
+        /// 构建资源 - 由 BuildResourcesTask 调用
+        /// 此方法保留用于向后兼容,新架构中由 BuildResourcesTask 直接调用 BuildResourcesData.Build()
+        /// </summary>
+        /// <param name="handlers">事件处理器列表</param>
+        /// <param name="buildResourcesData">构建资源数据</param>
         protected virtual void BuildResources(List<IBuildEventHandler> handlers, BuildResourcesData buildResourcesData)
         {
             if (!MBuildData.isBuildResources)
@@ -123,7 +213,7 @@ namespace LFramework.Editor.Builder.Builder
                 handler.OnPreprocessBuildResources(buildResourcesData);
             });
             BuildResourcesData.Build(buildResourcesData);
-            
+
             IBuildEventHandler.HandleList(handlers, (handler) =>
             {
                 handler.OnPostprocessBuildResources(buildResourcesData);
@@ -131,7 +221,12 @@ namespace LFramework.Editor.Builder.Builder
         }
 
 
-        private BuildResourcesData GetBuildResourceData()
+        /// <summary>
+        /// 获取构建资源数据 - 由 BuildResourcesTask 调用
+        /// 此方法保留为 internal,供 Pipeline 任务访问
+        /// </summary>
+        /// <returns>构建资源数据</returns>
+        internal BuildResourcesData GetBuildResourceData()
         {
             var buildResourcesData = new BuildResourcesData
             {
@@ -150,16 +245,25 @@ namespace LFramework.Editor.Builder.Builder
             return buildResourcesData;
         }
 
-        private void CreateBuildDirectory()
+        /// <summary>
+        /// 创建构建目录 - 由 CreateDirectoryTask 调用
+        /// 此方法保留为 internal,供 Pipeline 任务访问
+        /// </summary>
+        internal void CreateBuildDirectory()
         {
             var folder = GetFolderPath();
             DeleteDirectory(folder);
             CreateDirectory(folder);
         }
 
-        private void AddOrRemoveSymbolsForGroup(List<IBuildEventHandler> handlers)
+        /// <summary>
+        /// 添加或移除宏定义 - 由 SetScriptingDefineSymbolsTask 调用
+        /// 此方法保留为 internal,供 Pipeline 任务访问
+        /// </summary>
+        /// <param name="handlers">事件处理器列表</param>
+        internal void AddOrRemoveSymbolsForGroup(List<IBuildEventHandler> handlers)
         {
-          
+
             //Release 移除 log 宏
             var defines = PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.FromBuildTargetGroup(TargetGroup));
             var defineList = new List<string>(defines.Split(';'));
@@ -224,7 +328,13 @@ namespace LFramework.Editor.Builder.Builder
         }
 
 
-        private void BuildGameSetting(BuildSetting buildSetting, BuildResourcesData buildResourcesData)
+        /// <summary>
+        /// 构建游戏设置 - 由 BuildGameSettingTask 调用
+        /// 此方法保留为 internal,供 Pipeline 任务访问
+        /// </summary>
+        /// <param name="buildSetting">构建设置</param>
+        /// <param name="buildResourcesData">构建资源数据</param>
+        internal void BuildGameSetting(BuildSetting buildSetting, BuildResourcesData buildResourcesData)
         {
             var allSettings = AssetUtilities.GetAllAssetsOfType<GameSetting>();
             var setting = allSettings.FirstOrDefault();
@@ -233,7 +343,7 @@ namespace LFramework.Editor.Builder.Builder
             {
                 setting.versionUrl = buildSetting.ip;
             }
-            
+
             setting.isResourcesBuildIn = buildSetting.isResourcesBuildIn;
             if (!setting.isResourcesBuildIn)
             {
