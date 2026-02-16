@@ -1,32 +1,17 @@
-using System.Linq;
-using Sirenix.Utilities.Editor;
-using ThirdParty.Framework.LFramework.Scripts.Editor.BuildPackage.Builder.BuildingResource;
 using UnityEngine;
 
 namespace LFramework.Editor.Builder.Pipeline.Tasks
 {
     /// <summary>
     /// 构建资源任务
-    /// 构建游戏资源,包括调用事件处理器的预处理和后处理方法
+    /// 完全独立实现，调用 BuildResourcesService 构建游戏资源
+    /// 符合 Task 架构原则：Task 负责编排，Service 负责逻辑
     /// </summary>
     public class BuildResourcesTask : IBuildTask
     {
-        /// <summary>
-        /// 任务名称
-        /// </summary>
         public string TaskName => "Build Resources";
+        public string Description => "Build game resources using BuildResourcesService";
 
-        /// <summary>
-        /// 任务描述
-        /// </summary>
-        public string Description => "Build game resources with pre/post processing";
-
-        /// <summary>
-        /// 判断任务是否可以执行
-        /// 仅在需要构建资源时执行
-        /// </summary>
-        /// <param name="context">构建上下文</param>
-        /// <returns>true 表示可以执行,false 表示跳过</returns>
         public bool CanExecute(BuildPipelineContext context)
         {
             if (context?.BuildSetting == null)
@@ -38,20 +23,18 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             return context.BuildSetting.isBuildResources;
         }
 
-        /// <summary>
-        /// 执行任务
-        /// </summary>
-        /// <param name="context">构建上下文</param>
-        /// <returns>任务执行结果</returns>
         public BuildTaskResult Execute(BuildPipelineContext context)
         {
             try
             {
                 Debug.Log($"[BuildResourcesTask] Building resources...");
 
-                // 创建 BuildResourcesData
-                var buildResourcesData = CreateBuildResourcesData(context.BuildSetting);
-                context.BuildResourcesData = buildResourcesData;
+                // BuildResourcesData 应该已经在 CreateBuildResourcesDataTask 中创建
+                var buildResourcesData = context.BuildResourcesData;
+                if (buildResourcesData == null)
+                {
+                    return BuildTaskResult.CreateFailed(TaskName, "BuildResourcesData is null. Make sure CreateBuildResourcesDataTask runs before this task.");
+                }
 
                 // 调用预处理事件
                 var handlers = context.EventHandlers;
@@ -65,9 +48,9 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                     });
                 }
 
-                // 构建资源
-                Debug.Log($"[BuildResourcesTask] Executing BuildResourcesData.Build...");
-                BuildResourcesData.Build(buildResourcesData);
+                // 构建资源 - 使用 BuildResourcesService
+                Debug.Log($"[BuildResourcesTask] Executing BuildResourcesService.Build...");
+                BuildResourcesService.Build(buildResourcesData);
 
                 // 调用后处理事件
                 if (handlers != null && handlers.Count > 0)
@@ -87,31 +70,6 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             {
                 return BuildTaskResult.CreateFailed(TaskName, $"Build resources failed: {ex.Message}");
             }
-        }
-
-        /// <summary>
-        /// 创建 BuildResourcesData
-        /// </summary>
-        /// <param name="buildSetting">构建设置</param>
-        /// <returns>构建资源数据</returns>
-        private BuildResourcesData CreateBuildResourcesData(BuildSetting buildSetting)
-        {
-            var buildResourcesData = new BuildResourcesData
-            {
-                BuilderTarget = buildSetting.builderTarget,
-                IOSChannel = buildSetting.iosChannel,
-                WindowsChannel = buildSetting.windowsChannel,
-                AndroidChannel = buildSetting.androidChannel,
-                IsResourcesBuildIn = buildSetting.isResourcesBuildIn,
-                ResourcesVersion = buildSetting.resourcesVersion,
-                BuildResourcesServerModel = (BuildResourcesServerModel)buildSetting.cdnType,
-                BuildType = buildSetting.buildType,
-                IsForceUpdate = buildSetting.isForceUpdate,
-                IsBuildDll = buildSetting.isBuildDll,
-                AppVersion = buildSetting.appVersion + "." + buildSetting.versionCode
-            };
-
-            return buildResourcesData;
         }
     }
 }

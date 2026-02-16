@@ -1,5 +1,6 @@
+using System;
 using System.Collections.Generic;
-using LFramework.Editor.Builder.Builder;
+using LFramework.Editor.Builder.PlatformConfig;
 using UnityEditor;
 
 namespace LFramework.Editor.Builder.Pipeline
@@ -7,6 +8,7 @@ namespace LFramework.Editor.Builder.Pipeline
     /// <summary>
     /// 构建管线上下文
     /// 用于在任务之间共享数据和状态
+    /// 使用 PlatformConfig 提供平台配置，Task 完全独立实现逻辑
     /// </summary>
     public class BuildPipelineContext
     {
@@ -26,9 +28,10 @@ namespace LFramework.Editor.Builder.Pipeline
         public List<IBuildEventHandler> EventHandlers { get; private set; }
 
         /// <summary>
-        /// 当前构建器引用
+        /// 平台配置
+        /// 提供平台特定的配置信息，不包含构建逻辑
         /// </summary>
-        public BaseBuilder Builder { get; private set; }
+        public IPlatformConfig PlatformConfig { get; private set; }
 
         /// <summary>
         /// 构建目标平台
@@ -55,13 +58,20 @@ namespace LFramework.Editor.Builder.Pipeline
         /// </summary>
         /// <param name="buildSetting">构建设置</param>
         /// <param name="eventHandlers">事件处理器列表</param>
-        /// <param name="builder">构建器引用</param>
-        public BuildPipelineContext(BuildSetting buildSetting, List<IBuildEventHandler> eventHandlers, BaseBuilder builder)
+        /// <param name="platformConfig">平台配置</param>
+        public BuildPipelineContext(
+            BuildSetting buildSetting,
+            List<IBuildEventHandler> eventHandlers,
+            IPlatformConfig platformConfig)
         {
-            BuildSetting = buildSetting;
+            BuildSetting = buildSetting ?? throw new ArgumentNullException(nameof(buildSetting));
             EventHandlers = eventHandlers ?? new List<IBuildEventHandler>();
-            Builder = builder;
+            PlatformConfig = platformConfig ?? throw new ArgumentNullException(nameof(platformConfig));
             CustomData = new Dictionary<string, object>();
+
+            // 从 PlatformConfig 获取构建目标
+            BuildTarget = platformConfig.GetBuildTarget();
+            BuildTargetGroup = platformConfig.GetBuildTargetGroup();
         }
 
         /// <summary>

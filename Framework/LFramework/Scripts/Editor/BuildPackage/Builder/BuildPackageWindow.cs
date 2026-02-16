@@ -68,7 +68,7 @@ namespace LFramework.Editor.Builder
                 isForceUpdate = IsForceUpdate
             };
 
-            ProjectBuilder.Build(setting);
+            BuildOrchestrator.BuildFromSetting(setting);
         }
 
         // 映射方法，将 BuildTarget 转换为自定义的 BuilderTarget 枚举

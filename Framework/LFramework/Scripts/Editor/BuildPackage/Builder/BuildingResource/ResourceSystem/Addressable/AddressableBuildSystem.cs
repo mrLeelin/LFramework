@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Linq;
+using LFramework.Runtime;
 using ThirdParty.Framework.LFramework.Scripts.Editor.BuildPackage.Builder.BuildingResource;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
@@ -17,12 +19,37 @@ namespace LFramework.Editor.Builder.BuildingResource
     {
         /// <summary>
         /// 构建资源
+        /// 自己负责获取所需的 AddressableAssetSettings 和 GameSetting
         /// </summary>
-        public void Build(BuildResourcesData buildResourcesData, AddressableAssetSettings settings, GameSetting gameSetting)
+        public void Build(BuildResourcesData buildResourcesData)
+        {
+            // 获取 Addressable 配置
+            var settings = AddressableAssetSettingsDefaultObject.Settings;
+            if (settings == null)
+            {
+                throw new Exception("[AddressableBuildSystem] AddressableAssetSettings not found!");
+            }
+
+            // 获取 GameSetting
+            var allSettings = Sirenix.Utilities.Editor.AssetUtilities.GetAllAssetsOfType<GameSetting>();
+            var gameSetting = allSettings.FirstOrDefault();
+            if (gameSetting == null)
+            {
+                throw new Exception("[AddressableBuildSystem] GameSetting not found in project!");
+            }
+
+            // 执行构建
+            BuildInternal(buildResourcesData, settings, gameSetting);
+        }
+
+        /// <summary>
+        /// 内部构建方法
+        /// </summary>
+        private void BuildInternal(BuildResourcesData buildResourcesData, AddressableAssetSettings settings, GameSetting gameSetting)
         {
             if (buildResourcesData.IsResourcesBuildIn)
             {
-                BuildInPackage(settings);
+                BuildInPackage();
                 return;
             }
 
@@ -139,9 +166,16 @@ namespace LFramework.Editor.Builder.BuildingResource
 
         /// <summary>
         /// 构建内置资源包
+        /// 自己负责获取所需的 AddressableAssetSettings
         /// </summary>
-        public void BuildInPackage(AddressableAssetSettings settings)
+        public void BuildInPackage()
         {
+            var settings = AddressableAssetSettingsDefaultObject.Settings;
+            if (settings == null)
+            {
+                throw new Exception("[AddressableBuildSystem] AddressableAssetSettings not found!");
+            }
+
             AddressableBuildHelper.SetProfile(settings, "Default");
             settings.BuildRemoteCatalog = false;
             AssetDatabase.Refresh();

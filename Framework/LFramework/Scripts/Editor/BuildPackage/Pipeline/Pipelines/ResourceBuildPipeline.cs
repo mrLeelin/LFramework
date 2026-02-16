@@ -27,10 +27,13 @@ namespace LFramework.Editor.Builder.Pipeline.Pipelines
         {
             return new List<IBuildTask>
             {
-                // 1. 构建 DLL
+                // 1. 创建 BuildResourcesData
+                new CreateBuildResourcesDataTask(),
+
+                // 2. 构建 DLL（如果需要）
                 new BuildDllTask(),
 
-                // 2. 构建资源
+                // 3. 构建资源
                 new BuildResourcesTask()
             };
         }

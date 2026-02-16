@@ -23,14 +23,15 @@ namespace LFramework.Editor.Builder.BuildingResource
 
         /// <summary>
         /// 构建资源
+        /// YooAssets 系统不需要 AddressableAssetSettings
         /// </summary>
-        public void Build(BuildResourcesData buildResourcesData, AddressableAssetSettings settings, GameSetting gameSetting)
+        public void Build(BuildResourcesData buildResourcesData)
         {
             Debug.Log("[YooAssets] 开始构建资源...");
 
             if (buildResourcesData.IsResourcesBuildIn)
             {
-                BuildInPackage(settings);
+                BuildInPackage();
                 return;
             }
 
@@ -77,8 +78,9 @@ namespace LFramework.Editor.Builder.BuildingResource
 
         /// <summary>
         /// 构建内置资源包
+        /// YooAssets 系统不需要 AddressableAssetSettings
         /// </summary>
-        public void BuildInPackage(AddressableAssetSettings settings)
+        public void BuildInPackage()
         {
             Debug.Log("[YooAssets] 开始构建内置资源包...");
 
@@ -288,14 +290,14 @@ namespace LFramework.Editor.Builder.BuildingResource
     /// </summary>
     public class YooAssetsBuildSystem : IResourceBuildSystem
     {
-        public void Build(BuildResourcesData buildResourcesData, AddressableAssetSettings settings, LFramework.Runtime.GameSetting gameSetting)
+        public void Build(BuildResourcesData buildResourcesData)
         {
-            Debug.LogError("[YooAssets] YooAssets support is not enabled. Please define YOOASSET_SUPPORT in Player Settings.");
+            
         }
 
-        public void BuildInPackage(AddressableAssetSettings settings)
+        public void BuildInPackage()
         {
-            Debug.LogError("[YooAssets] YooAssets support is not enabled. Please define YOOASSET_SUPPORT in Player Settings.");
+         
         }
 
         public string GetBuildPath(BuildResourcesData data)

@@ -45,7 +45,8 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
         {
             try
             {
-                var folderPath = context.Builder.GetFolderPath();
+                // 使用 PlatformConfig 获取构建文件夹路径
+                var folderPath = context.PlatformConfig.GetBuildFolderPath();
                 context.OutputFolder = folderPath;
 
                 Debug.Log($"[CreateDirectoryTask] Output folder: {folderPath}");

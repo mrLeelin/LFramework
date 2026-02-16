@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using LFramework.Runtime;
+using ThirdParty.Framework.LFramework.Scripts.Editor.BuildPackage.Builder.BuildingResource;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Build.Layout;

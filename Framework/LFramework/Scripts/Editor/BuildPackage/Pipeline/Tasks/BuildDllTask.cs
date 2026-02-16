@@ -1,72 +1,85 @@
+using System;
+using System.Linq;
+using LFramework.Editor.Builder.BuildingResource;
+using LFramework.Runtime;
+using Sirenix.Utilities.Editor;
+using ThirdParty.Framework.LFramework.Scripts.Editor.BuildPackage.Builder.BuildingResource;
+using UnityEditor;
+using UnityEditor.AddressableAssets;
 using UnityEngine;
 
 namespace LFramework.Editor.Builder.Pipeline.Tasks
 {
     /// <summary>
     /// 构建 DLL 任务
-    /// 调用 BaseBuilder 的 BuildDll 方法构建热更新 DLL
+    /// 完全独立实现，直接调用 BuildDllsHelper 构建热更新 DLL
+    /// 不依赖任何 Builder 或 Strategy
     /// </summary>
     public class BuildDllTask : IBuildTask
     {
-        /// <summary>
-        /// 任务名称
-        /// </summary>
         public string TaskName => "Build DLL";
+        public string Description => "Build hot-fix DLL files using BuildDllsHelper";
 
-        /// <summary>
-        /// 任务描述
-        /// </summary>
-        public string Description => "Build hot-fix DLL files";
-
-        /// <summary>
-        /// 判断任务是否可以执行
-        /// 仅在需要构建资源时执行
-        /// </summary>
-        /// <param name="context">构建上下文</param>
-        /// <returns>true 表示可以执行,false 表示跳过</returns>
         public bool CanExecute(BuildPipelineContext context)
         {
-            if (context?.BuildSetting == null)
+            if (context?.BuildSetting == null || context.BuildResourcesData == null)
             {
                 return false;
             }
 
-            // 仅在需要构建资源时执行
-            return context.BuildSetting.isBuildResources;
+            // 仅在需要构建 DLL 时执行
+            return context.BuildResourcesData.IsBuildDll;
         }
 
-        /// <summary>
-        /// 执行任务
-        /// </summary>
-        /// <param name="context">构建上下文</param>
-        /// <returns>任务执行结果</returns>
         public BuildTaskResult Execute(BuildPipelineContext context)
         {
             try
             {
-                Debug.Log($"[BuildDllTask] Building DLL files...");
+                Debug.Log($"[BuildDllTask] Building hot-fix DLL files...");
 
-                // 通过反射调用 BaseBuilder 的 BuildDll 方法
-                var builder = context.Builder;
-                var method = builder.GetType().GetMethod("BuildDll",
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                var buildResourcesData = context.BuildResourcesData;
+                var settings = AddressableAssetSettingsDefaultObject.Settings;
 
-                if (method != null)
+                // 获取 GameSetting
+                var allSettings = AssetUtilities.GetAllAssetsOfType<GameSetting>();
+                var gameSetting = allSettings.FirstOrDefault();
+                if (gameSetting == null)
                 {
-                    method.Invoke(builder, null);
-                    Debug.Log($"[BuildDllTask] DLL files built successfully.");
-                }
-                else
-                {
-                    Debug.LogWarning($"[BuildDllTask] BuildDll method not found, skipping.");
+                    return BuildTaskResult.CreateFailed(TaskName, "GameSetting not found in project!");
                 }
 
+                // 获取备份路径
+                string backupPath = GetBackupPath(buildResourcesData);
+
+                // 构建 DLL
+                if (!BuildDllsHelper.BuildDll(buildResourcesData.BuildType == BuildType.APP, backupPath))
+                {
+                    return BuildTaskResult.CreateFailed(TaskName, "Build DLL failed.");
+                }
+
+                Debug.Log($"[BuildDllTask] DLL built successfully, refreshing AssetDatabase...");
+                AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
+
+                // 复制 DLL
+                if (!BuildDllsHelper.CopyDll(buildResourcesData, settings, gameSetting, backupPath))
+                {
+                    return BuildTaskResult.CreateFailed(TaskName, "Copy DLL failed.");
+                }
+
+                Debug.Log($"[BuildDllTask] Hot-fix DLL files built and copied successfully.");
                 return BuildTaskResult.CreateSuccess(TaskName);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 return BuildTaskResult.CreateFailed(TaskName, $"Build DLL failed: {ex.Message}");
             }
+        }
+
+        private string GetBackupPath(BuildResourcesData data)
+        {
+            string channelName = AddressableBuildHelper.GetChannelName(data);
+            string folderName = AddressableBuildHelper.GetFolderName(data);
+            return $"{AddressableBuildHelper.GetExportPath()}/PartyGame_BackUp_BuildResource/{channelName}/{folderName}";
         }
     }
 }

@@ -1,64 +1,50 @@
+using UnityEditor;
+using UnityEditor.Build.Reporting;
 using UnityEngine;
 
 namespace LFramework.Editor.Builder.Pipeline.Tasks
 {
     /// <summary>
     /// 构建玩家任务
-    /// 调用 BaseBuilder 的 BuildInternal 方法执行实际的玩家构建
+    /// 完全独立实现，直接调用 Unity BuildPipeline.BuildPlayer()
+    /// 不依赖任何 Builder 或 Strategy，通过 PlatformConfig 获取配置
     /// </summary>
     public class BuildPlayerTask : IBuildTask
     {
-        /// <summary>
-        /// 任务名称
-        /// </summary>
         public string TaskName => "Build Player";
+        public string Description => "Build player using Unity BuildPipeline";
 
-        /// <summary>
-        /// 任务描述
-        /// </summary>
-        public string Description => "Execute platform-specific player build";
-
-        /// <summary>
-        /// 判断任务是否可以执行
-        /// 仅在构建 APP 时需要构建玩家
-        /// </summary>
-        /// <param name="context">构建上下文</param>
-        /// <returns>true 表示可以执行,false 表示跳过</returns>
         public bool CanExecute(BuildPipelineContext context)
         {
-            if (context?.BuildSetting == null)
+            if (context?.BuildSetting == null || context.PlatformConfig == null)
             {
                 return false;
             }
 
-            // 仅在构建 APP 时构建玩家
             return context.BuildSetting.buildType == BuildType.APP;
         }
 
-        /// <summary>
-        /// 执行任务
-        /// </summary>
-        /// <param name="context">构建上下文</param>
-        /// <returns>任务执行结果</returns>
         public BuildTaskResult Execute(BuildPipelineContext context)
         {
             try
             {
-                Debug.Log($"[BuildPlayerTask] Building player...");
+                Debug.Log($"[BuildPlayerTask] Building player for {context.PlatformConfig.GetBuildTarget()}...");
 
-                // 通过反射调用 BaseBuilder 的 BuildInternal 方法
-                var builder = context.Builder;
-                var method = builder.GetType().GetMethod("BuildInternal",
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                // 配置平台设置
+                context.PlatformConfig.ConfigurePlatformSettings(context.BuildSetting);
 
-                if (method == null)
+                // 获取构建选项
+                BuildPlayerOptions options = context.PlatformConfig.GetBuildPlayerOptions(context.BuildSetting);
+
+                // 执行构建
+                var report = BuildPipeline.BuildPlayer(options);
+
+                if (report.summary.result != BuildResult.Succeeded)
                 {
-                    return BuildTaskResult.CreateFailed(TaskName, "BuildInternal method not found in BaseBuilder.");
+                    return BuildTaskResult.CreateFailed(TaskName, $"Build failed: {report.summary.result}");
                 }
 
-                method.Invoke(builder, null);
-
-                Debug.Log($"[BuildPlayerTask] Player built successfully.");
+                Debug.Log($"[BuildPlayerTask] Player built successfully at: {options.locationPathName}");
                 return BuildTaskResult.CreateSuccess(TaskName);
             }
             catch (System.Exception ex)
