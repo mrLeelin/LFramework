@@ -18,11 +18,6 @@ namespace LFramework.Editor.Builder.Pipeline
         public BuildSetting BuildSetting { get; private set; }
 
         /// <summary>
-        /// 构建资源数据
-        /// </summary>
-        public BuildResourcesData BuildResourcesData { get; set; }
-
-        /// <summary>
         /// 构建事件处理器列表
         /// </summary>
         public List<IBuildEventHandler> EventHandlers { get; private set; }

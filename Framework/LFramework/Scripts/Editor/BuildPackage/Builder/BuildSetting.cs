@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using LFramework.Editor.Builder;
+using LFramework.Editor.Builder.BuildingResource;
 using LFramework.Runtime;
 using UnityEngine;
 
@@ -18,7 +19,12 @@ namespace LFramework.Editor
 
     
         public string ip;
-        
+
+        /// <summary>
+        /// 资源系统类型（Addressable 或 YooAssets）
+        /// </summary>
+        public ResourceSystemType resourceSystem = ResourceSystemType.Addressable;
+
         /// <summary>
         /// 打包的目标
         /// </summary>
@@ -61,9 +67,9 @@ namespace LFramework.Editor
 
         public override string ToString()
         {
-                
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.AppendLine($"ip:{ip}");
+            stringBuilder.AppendLine($"resourceSystem:{resourceSystem}");
             stringBuilder.AppendLine($"builderTarget:{builderTarget}");
             stringBuilder.AppendLine($"windowsChannel:{windowsChannel}");
             stringBuilder.AppendLine($"androidChannel:{androidChannel}");

@@ -39,22 +39,19 @@ namespace LFramework.Editor.Builder.Pipeline.Pipelines
                 // 4. 构建前处理
                 new BuildBeforeTask(),
 
-                // 5. 创建 BuildResourcesData（如果需要构建资源）
-                new CreateBuildResourcesDataTask(),
-
-                // 6. 构建 DLL（如果需要）
+                // 5. 构建 DLL（如果需要）
                 new BuildDllTask(),
 
-                // 7. 构建资源（如果需要）
+                // 6. 构建资源（如果需要）
                 new BuildResourcesTask(),
 
-                // 8. 构建游戏设置
+                // 7. 构建游戏设置
                 new BuildGameSettingTask(),
 
-                // 9. 构建玩家
+                // 8. 构建玩家
                 new BuildPlayerTask(),
 
-                // 10. 后处理
+                // 9. 后处理
                 new PostprocessBuildTask()
             };
         }

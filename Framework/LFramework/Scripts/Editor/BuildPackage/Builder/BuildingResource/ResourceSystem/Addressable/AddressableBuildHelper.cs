@@ -38,20 +38,20 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 获取渠道名称
         /// </summary>
-        public static string GetChannelName(BuildResourcesData data)
+        public static string GetChannelName(BuildSetting data)
         {
             string name = string.Empty;
             if (data == null) return name;
-            switch (data.BuilderTarget)
+            switch (data.builderTarget)
             {
                 case BuilderTarget.Windows:
-                    name = data.WindowsChannel.ToString();
+                    name = data.windowsChannel.ToString();
                     break;
                 case BuilderTarget.Android:
-                    name = data.AndroidChannel.ToString();
+                    name = data.androidChannel.ToString();
                     break;
                 case BuilderTarget.iOS:
-                    name = data.IOSChannel.ToString();
+                    name = data.iosChannel.ToString();
                     break;
             }
 
@@ -61,12 +61,12 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 获取服务器 URL
         /// </summary>
-        public static string GetUrl(BuildResourcesServerModel model)
+        public static string GetUrl(CdnType cdnType)
         {
             string url = "";
-            switch (model)
+            switch (cdnType)
             {
-                case BuildResourcesServerModel.LocalHost:
+                case CdnType.Local:
                     url = "http://[PrivateIpAddress]:[HostingServicePort]";
                     break;
                 default:
@@ -80,28 +80,28 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 获取文件夹名称（包含资源版本）
         /// </summary>
-        public static string GetFolderName(BuildResourcesData data)
+        public static string GetFolderName(BuildSetting data)
         {
-            return GetChannelName(data) + "_" + data.ResourcesVersion + "_" +
-                   data.BuildResourcesServerModel;
+            return GetChannelName(data) + "_" + data.resourcesVersion + "_" +
+                   data.cdnType;
         }
 
         /// <summary>
         /// 获取替换版本名称
         /// </summary>
-        public static string GetReplaceVersionName(BuildResourcesData data)
+        public static string GetReplaceVersionName(BuildSetting data)
         {
             return GetChannelName(data) + "_" + Replace_Version + "_" +
-                   data.BuildResourcesServerModel;
+                   data.cdnType;
         }
 
         /// <summary>
         /// 获取基于应用版本的文件夹名称
         /// </summary>
-        public static string GetFolderNameBasedOnAppVersion(BuildResourcesData data)
+        public static string GetFolderNameBasedOnAppVersion(BuildSetting data)
         {
-            return GetChannelName(data) + "_" + data.AppVersion + "_" +
-                   data.BuildResourcesServerModel;
+            return GetChannelName(data) + "_" + data.appVersion + "_" +
+                   data.cdnType;
         }
 
         /// <summary>
@@ -115,7 +115,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 获取导出构建路径
         /// </summary>
-        public static string GetExportBuildPath(BuildResourcesData data)
+        public static string GetExportBuildPath(BuildSetting data)
         {
             return Application.dataPath + "/../" + GetBuildPath(data);
         }
@@ -131,15 +131,15 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 获取 Addressable Bin 导出路径
         /// </summary>
-        public static string GetExportAdsBinPath(BuildResourcesData data)
+        public static string GetExportAdsBinPath(BuildSetting data)
         {
-            return GetExportAdsPath() + "/" + data.BuilderTarget;
+            return GetExportAdsPath() + "/" + data.builderTarget;
         }
 
         /// <summary>
         /// 获取导出版本文件路径
         /// </summary>
-        public static string GetExportVersionPath(BuildResourcesData data)
+        public static string GetExportVersionPath(BuildSetting data)
         {
             string path = GetExportBuildPath(data);
             return path + "/" + BACKUP_FILE_NAME;
@@ -148,16 +148,16 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 获取临时调试导出版本路径
         /// </summary>
-        public static string GetTempDebugExportVersionPath(BuildResourcesData data)
+        public static string GetTempDebugExportVersionPath(BuildSetting data)
         {
             string path = GetExportPath();
-            return path + "/" + GetChannelName(data) + "_" + data.BuildResourcesServerModel + "/" + BACKUP_FILE_NAME;
+            return path + "/" + GetChannelName(data) + "_" + data.cdnType + "/" + BACKUP_FILE_NAME;
         }
 
         /// <summary>
         /// 获取备份根路径
         /// </summary>
-        public static string GetBackupPath(BuildResourcesData data)
+        public static string GetBackupPath(BuildSetting data)
         {
             return Application.dataPath + "/../" + BACKUP_FOLDER_NAME + "/" + GetFolderNameBasedOnAppVersion(data);
         }
@@ -165,7 +165,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 获取备份服务器数据构建路径
         /// </summary>
-        public static string GetBackupSeverDataBuildPath(BuildResourcesData data)
+        public static string GetBackupSeverDataBuildPath(BuildSetting data)
         {
             string path = GetBackupPath(data);
             return path + "/" + GetFolderName(data);
@@ -174,7 +174,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 获取备份 Addressable 构建路径
         /// </summary>
-        public static string GetBackupAdsBuildPath(BuildResourcesData data)
+        public static string GetBackupAdsBuildPath(BuildSetting data)
         {
             var path = GetBackupPath(data);
             return path + "/com.unity.addressables";
@@ -183,15 +183,15 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 获取备份 Addressable Bin 路径
         /// </summary>
-        public static string GetBackupAdsBinPath(BuildResourcesData data)
+        public static string GetBackupAdsBinPath(BuildSetting data)
         {
-            return GetBackupAdsBuildPath(data) + "/" + data.BuilderTarget.ToString();
+            return GetBackupAdsBuildPath(data) + "/" + data.builderTarget.ToString();
         }
 
         /// <summary>
         /// 获取构建路径（相对路径）
         /// </summary>
-        public static string GetBuildPath(BuildResourcesData data)
+        public static string GetBuildPath(BuildSetting data)
         {
             return SERVER_DATA_FOLDER_NAME + "/" + GetFolderNameBasedOnAppVersion(data) + "/" + GetFolderName(data);
         }
@@ -234,7 +234,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 设置 Addressable 构建配置
         /// </summary>
-        public static void SetSetting(AddressableAssetSettings settings, BuildResourcesData buildResourcesData,
+        public static void SetSetting(AddressableAssetSettings settings, BuildSetting buildResourcesData,
             string buildPath, string loadPath)
         {
             var dynamicProfileId = SetProfile(settings, "Dynamic");
@@ -242,7 +242,7 @@ namespace LFramework.Editor.Builder.BuildingResource
             settings.profileSettings.SetValue(dynamicProfileId, AddressableAssetSettings.kRemoteLoadPath, loadPath);
             settings.BuildRemoteCatalog = true;
             settings.DisableCatalogUpdateOnStartup = true;
-            settings.OverridePlayerVersion = buildResourcesData.AppVersion;
+            settings.OverridePlayerVersion = buildResourcesData.appVersion;
             AddressableAssetSettings.CleanPlayerContent();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -324,7 +324,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// 检查需要更新的内容并创建更新组
         /// </summary>
         public static void CheckForUpdateContent(string backUpPath, AddressableAssetSettings settings,
-            BuildResourcesData data, GameSetting gameSetting)
+            BuildSetting data, GameSetting gameSetting)
         {
             var reportPath = backUpPath + "/" + Last_Report_File_Name;
             Debug.Log($"reportPath:{reportPath}");
@@ -621,7 +621,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// 生成版本更新文件
         /// </summary>
         public static void GenerateUpdateFile(string filePath, string debugFilePath,
-            BuildResourcesData buildResourcesData)
+            BuildSetting buildResourcesData)
         {
             if (File.Exists(filePath))
             {
@@ -635,7 +635,7 @@ namespace LFramework.Editor.Builder.BuildingResource
 
             var setting = new GameVersion
             {
-                appVersion = buildResourcesData.AppVersion,
+                appVersion = buildResourcesData.appVersion,
             };
             var json = JsonUtility.ToJson(setting);
             File.WriteAllText(filePath, json);
@@ -651,7 +651,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 复制构建报告到备份目录
         /// </summary>
-        public static void CopyReportToBackUp(BuildResourcesData buildResourcesData)
+        public static void CopyReportToBackUp(BuildSetting buildResourcesData)
         {
             var originFilePath = GetBuildReportFilePath();
             var newFilePath = GetBackupPath(buildResourcesData) + "/" + Last_Report_File_Name;

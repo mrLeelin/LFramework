@@ -52,8 +52,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                 Debug.Log($"[BuildGameSettingTask] Updating GameSetting asset...");
 
                 var buildSetting = context.BuildSetting;
-                var buildResourcesData = context.BuildResourcesData;
-
+                
                 // 查找 GameSetting 资源
                 var allSettings = AssetUtilities.GetAllAssetsOfType<GameSetting>();
                 var setting = allSettings.FirstOrDefault();

@@ -44,14 +44,14 @@ namespace LFramework.Editor
         /// <summary>
         /// 执行打包前事件。
         /// </summary>
-        /// <param name="buildResourcesData"></param>
-        void OnPreprocessBuildResources(BuildResourcesData buildResourcesData);
+        /// <param name="buildSetting"></param>
+        void OnPreprocessBuildResources(BuildSetting buildSetting);
 
         /// <summary>
         ///     执行打包后事件。
         /// </summary>
-        /// <param name="buildResourcesData"></param>
-        void OnPostprocessBuildResources(BuildResourcesData buildResourcesData);
+        /// <param name="buildSetting"></param>
+        void OnPostprocessBuildResources(BuildSetting buildSetting);
         
         /// <summary>
         ///  执行打包后事件。

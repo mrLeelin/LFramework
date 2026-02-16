@@ -81,10 +81,10 @@ namespace LFramework.Editor.Builder
 
                 case BuildType.ResourcesUpdate:
                     return new ResourceBuildPipeline();
-
-                default:
-                    return new DefaultBuildPipeline();
+                
             }
+
+            throw new Exception($"The SelectPipeline error. '{buildType}'");
         }
 
         /// <summary>

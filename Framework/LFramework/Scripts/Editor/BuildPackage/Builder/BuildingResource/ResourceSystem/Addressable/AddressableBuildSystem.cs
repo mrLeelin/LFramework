@@ -21,7 +21,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// 构建资源
         /// 自己负责获取所需的 AddressableAssetSettings 和 GameSetting
         /// </summary>
-        public void Build(BuildResourcesData buildResourcesData)
+        public void Build(BuildSetting buildResourcesData)
         {
             // 获取 Addressable 配置
             var settings = AddressableAssetSettingsDefaultObject.Settings;
@@ -45,9 +45,9 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 内部构建方法
         /// </summary>
-        private void BuildInternal(BuildResourcesData buildResourcesData, AddressableAssetSettings settings, GameSetting gameSetting)
+        private void BuildInternal(BuildSetting buildResourcesData, AddressableAssetSettings settings, GameSetting gameSetting)
         {
-            if (buildResourcesData.IsResourcesBuildIn)
+            if (buildResourcesData.isResourcesBuildIn)
             {
                 BuildInPackage();
                 return;
@@ -89,7 +89,7 @@ namespace LFramework.Editor.Builder.BuildingResource
 
             // 创建backupPath
             AddressableBuildHelper.CreateDirectory(backupPath);
-            if (buildResourcesData.BuildType == BuildType.ResourcesUpdate)
+            if (buildResourcesData.buildType == BuildType.ResourcesUpdate)
             {
                 Debug.Log("开始编译增量更新资源");
                 // 删除assetAdsBinPath文件夹
@@ -148,7 +148,7 @@ namespace LFramework.Editor.Builder.BuildingResource
             AddressableBuildHelper.CopyDirectory(exportBuildPath, backupSeverDataPath);
 
             // 资源更新
-            if (buildResourcesData.BuildType == BuildType.ResourcesUpdate)
+            if (buildResourcesData.buildType == BuildType.ResourcesUpdate)
             {
                 if (Directory.Exists(backupLastAssetsDataPath))
                 {
@@ -195,7 +195,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 获取构建路径
         /// </summary>
-        public string GetBuildPath(BuildResourcesData data)
+        public string GetBuildPath(BuildSetting data)
         {
             return AddressableBuildHelper.GetBuildPath(data);
         }
@@ -203,16 +203,16 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 获取加载路径
         /// </summary>
-        public string GetLoadPath(BuildResourcesData data)
+        public string GetLoadPath(BuildSetting data)
         {
             var path = string.Empty;
-            if (data.BuildResourcesServerModel == BuildResourcesServerModel.LocalHost)
+            if (data.cdnType == CdnType.Local)
             {
-                path += AddressableBuildHelper.GetUrl(data.BuildResourcesServerModel);
+                path += AddressableBuildHelper.GetUrl(data.cdnType);
             }
             else
             {
-                path += AddressableBuildHelper.GetUrl(data.BuildResourcesServerModel) +
+                path += AddressableBuildHelper.GetUrl(data.cdnType) +
                         AddressableBuildHelper.GetFolderNameBasedOnAppVersion(data) + "/" +
                         AddressableBuildHelper.GetReplaceVersionName(data);
             }
@@ -223,25 +223,25 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 获取备份最后构建路径
         /// </summary>
-        private string GetBackupLastBuildPath(BuildResourcesData data)
+        private string GetBackupLastBuildPath(BuildSetting data)
         {
             string path = AddressableBuildHelper.GetBackupPath(data);
             return path + "/" + AddressableBuildHelper.GetChannelName(data) + "_" +
-                   AddressableBuildHelper.BACKUP_LAST_NAME + "_" + data.BuildResourcesServerModel;
+                   AddressableBuildHelper.BACKUP_LAST_NAME + "_" + data.cdnType;
         }
 
         /// <summary>
         /// 获取资产 Addressable Bin 路径
         /// </summary>
-        private string GetAssetAdsBinPath(BuildResourcesData data)
+        private string GetAssetAdsBinPath(BuildSetting data)
         {
-            return Application.dataPath + "/AddressableAssetsData/" + data.BuilderTarget;
+            return Application.dataPath + "/AddressableAssetsData/" + data.builderTarget;
         }
 
         /// <summary>
         /// 获取资产 Addressable Bin 文件路径
         /// </summary>
-        private string GetAssetAdsBinFilePath(BuildResourcesData data)
+        private string GetAssetAdsBinFilePath(BuildSetting data)
         {
             return GetAssetAdsBinPath(data) + "/addressables_content_state.bin";
         }

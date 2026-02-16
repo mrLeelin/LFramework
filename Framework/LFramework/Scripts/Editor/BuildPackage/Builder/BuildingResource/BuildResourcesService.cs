@@ -1,5 +1,6 @@
 using System;
 using LFramework.Editor.Builder.BuildingResource;
+using LFramework.Runtime;
 using UnityEditor;
 using UnityEngine;
 
@@ -12,44 +13,45 @@ namespace LFramework.Editor.Builder
     /// </summary>
     public static class BuildResourcesService
     {
+
         /// <summary>
-        /// 构建资源
+        /// 构建资源（从 BuildSetting 调用，用于构建管线）
         /// </summary>
-        /// <param name="buildResourcesData">构建资源数据</param>
-        public static void Build(BuildResourcesData buildResourcesData)
+        /// <param name="buildSetting">构建设置</param>
+        public static void Build(BuildSetting buildSetting)
         {
             Debug.Log($"[BuildResourcesService] Starting resource build...");
             Debug.Log($"[BuildResourcesService] Active build target: '{EditorUserBuildSettings.activeBuildTarget}'");
 
-            if (buildResourcesData == null)
+            if (buildSetting == null)
             {
-                Debug.LogError("[BuildResourcesService] BuildResourcesData is null.");
+                Debug.LogError("[BuildResourcesService] BuildSetting is null.");
                 return;
             }
 
             // 检查资源系统是否受支持
-            if (!ResourceBuildSystemFactory.IsSupported(buildResourcesData.ResourceSystem))
+            if (!ResourceBuildSystemFactory.IsSupported(buildSetting.resourceSystem))
             {
-                Debug.LogError($"[BuildResourcesService] Resource system '{buildResourcesData.ResourceSystem}' is not supported. Please check your configuration.");
+                Debug.LogError($"[BuildResourcesService] Resource system '{buildSetting.resourceSystem}' is not supported. Please check your configuration.");
                 return;
             }
 
-            Debug.Log($"[BuildResourcesService] Using resource system: {ResourceBuildSystemFactory.GetDisplayName(buildResourcesData.ResourceSystem)}");
+            Debug.Log($"[BuildResourcesService] Using resource system: {ResourceBuildSystemFactory.GetDisplayName(buildSetting.resourceSystem)}");
 
             // 设置构建目标平台
-            SetBuildTarget(BuildPackageWindow.ConvertToBuilderTarget(buildResourcesData.BuilderTarget));
+            SetBuildTarget(BuildPackageWindow.ConvertToBuilderTarget(buildSetting.builderTarget));
 
             // 使用工厂模式创建资源构建系统
             Debug.Log($"[BuildResourcesService] Creating resource build system...");
-            var buildSystem = ResourceBuildSystemFactory.Create(buildResourcesData.ResourceSystem);
+            var buildSystem = ResourceBuildSystemFactory.Create(buildSetting.resourceSystem);
 
             // 执行构建 - 每个系统自己负责获取所需的配置
             Debug.Log($"[BuildResourcesService] Executing resource build...");
-            buildSystem.Build(buildResourcesData);
+            buildSystem.Build(buildSetting);
 
             Debug.Log($"[BuildResourcesService] Resource build completed successfully.");
         }
-
+        
         /// <summary>
         /// 设置构建目标平台
         /// </summary>

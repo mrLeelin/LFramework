@@ -22,13 +22,13 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
 
         public bool CanExecute(BuildPipelineContext context)
         {
-            if (context?.BuildSetting == null || context.BuildResourcesData == null)
+            if (context?.BuildSetting == null)
             {
                 return false;
             }
 
             // 仅在需要构建 DLL 时执行
-            return context.BuildResourcesData.IsBuildDll;
+            return context.BuildSetting.isBuildDll;
         }
 
         public BuildTaskResult Execute(BuildPipelineContext context)
@@ -37,7 +37,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             {
                 Debug.Log($"[BuildDllTask] Building hot-fix DLL files...");
 
-                var buildResourcesData = context.BuildResourcesData;
+                var buildSetting = context.BuildSetting;
                 var settings = AddressableAssetSettingsDefaultObject.Settings;
 
                 // 获取 GameSetting
@@ -49,10 +49,10 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                 }
 
                 // 获取备份路径
-                string backupPath = GetBackupPath(buildResourcesData);
+                string backupPath = GetBackupPath(buildSetting);
 
                 // 构建 DLL
-                if (!BuildDllsHelper.BuildDll(buildResourcesData.BuildType == BuildType.APP, backupPath))
+                if (!BuildDllsHelper.BuildDll(buildSetting.buildType == BuildType.APP, backupPath))
                 {
                     return BuildTaskResult.CreateFailed(TaskName, "Build DLL failed.");
                 }
@@ -61,7 +61,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                 AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
 
                 // 复制 DLL
-                if (!BuildDllsHelper.CopyDll(buildResourcesData, settings, gameSetting, backupPath))
+                if (!BuildDllsHelper.CopyDll(buildSetting, settings, gameSetting, backupPath))
                 {
                     return BuildTaskResult.CreateFailed(TaskName, "Copy DLL failed.");
                 }
@@ -75,10 +75,10 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             }
         }
 
-        private string GetBackupPath(BuildResourcesData data)
+        private string GetBackupPath(BuildSetting buildSetting)
         {
-            string channelName = AddressableBuildHelper.GetChannelName(data);
-            string folderName = AddressableBuildHelper.GetFolderName(data);
+            string channelName = AddressableBuildHelper.GetChannelName(buildSetting);
+            string folderName = AddressableBuildHelper.GetFolderName(buildSetting);
             return $"{AddressableBuildHelper.GetExportPath()}/PartyGame_BackUp_BuildResource/{channelName}/{folderName}";
         }
     }

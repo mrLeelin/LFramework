@@ -1,4 +1,5 @@
 using LFramework.Editor.Builder.BuildingResource;
+using LFramework.Runtime;
 using Sirenix.OdinInspector;
 using ThirdParty.Framework.LFramework.Scripts.Editor.BuildPackage.Builder.BuildingResource;
 using UnityEngine;
@@ -66,16 +67,29 @@ namespace LFramework.Editor.Builder
         [Button("打包")]
         public void Build()
         {
-            
-            BuildResourcesService.Build(this);
+            BuildOrchestrator.BuildFromSetting(ConvertToBuildSetting(this));
         }
-
+        
         /// <summary>
-        /// 获取渠道名称
+        /// 将 BuildResourcesData 转换为 BuildSetting
         /// </summary>
-        public static string GetChannelName(BuildResourcesData data)
+        private static BuildSetting ConvertToBuildSetting(BuildResourcesData data)
         {
-            return AddressableBuildHelper.GetChannelName(data);
+            return new BuildSetting
+            {
+                resourceSystem = data.ResourceSystem,
+                builderTarget = data.BuilderTarget,
+                windowsChannel = data.WindowsChannel,
+                androidChannel = data.AndroidChannel,
+                iosChannel = data.IOSChannel,
+                appVersion = data.AppVersion,
+                resourcesVersion = data.ResourcesVersion,
+                isResourcesBuildIn = data.IsResourcesBuildIn,
+                isBuildDll = data.IsBuildDll,
+                isForceUpdate = data.IsForceUpdate,
+                buildType = data.BuildType,
+                cdnType = (CdnType)data.BuildResourcesServerModel
+            };
         }
     }
 }

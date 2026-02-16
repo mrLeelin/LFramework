@@ -36,6 +36,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                 // 获取构建选项
                 BuildPlayerOptions options = context.PlatformConfig.GetBuildPlayerOptions(context.BuildSetting);
 
+                
                 // 执行构建
                 var report = BuildPipeline.BuildPlayer(options);
 
@@ -43,7 +44,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                 {
                     return BuildTaskResult.CreateFailed(TaskName, $"Build failed: {report.summary.result}");
                 }
-
+                
                 Debug.Log($"[BuildPlayerTask] Player built successfully at: {options.locationPathName}");
                 return BuildTaskResult.CreateSuccess(TaskName);
             }

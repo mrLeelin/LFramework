@@ -29,11 +29,11 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             {
                 Debug.Log($"[BuildResourcesTask] Building resources...");
 
-                // BuildResourcesData 应该已经在 CreateBuildResourcesDataTask 中创建
-                var buildResourcesData = context.BuildResourcesData;
-                if (buildResourcesData == null)
+                // 直接使用 BuildSetting
+                var buildSetting = context.BuildSetting;
+                if (buildSetting == null)
                 {
-                    return BuildTaskResult.CreateFailed(TaskName, "BuildResourcesData is null. Make sure CreateBuildResourcesDataTask runs before this task.");
+                    return BuildTaskResult.CreateFailed(TaskName, "BuildSetting is null.");
                 }
 
                 // 调用预处理事件
@@ -44,13 +44,13 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                     IBuildEventHandler.HandleList(handlers, (handler) =>
                     {
                         Debug.Log($"[BuildResourcesTask] Calling {handler.GetType().Name}.OnPreprocessBuildResources");
-                        handler.OnPreprocessBuildResources(buildResourcesData);
+                        handler.OnPreprocessBuildResources(buildSetting);
                     });
                 }
 
                 // 构建资源 - 使用 BuildResourcesService
                 Debug.Log($"[BuildResourcesTask] Executing BuildResourcesService.Build...");
-                BuildResourcesService.Build(buildResourcesData);
+                BuildResourcesService.Build(buildSetting);
 
                 // 调用后处理事件
                 if (handlers != null && handlers.Count > 0)
@@ -59,7 +59,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                     IBuildEventHandler.HandleList(handlers, (handler) =>
                     {
                         Debug.Log($"[BuildResourcesTask] Calling {handler.GetType().Name}.OnPostprocessBuildResources");
-                        handler.OnPostprocessBuildResources(buildResourcesData);
+                        handler.OnPostprocessBuildResources(buildSetting);
                     });
                 }
 

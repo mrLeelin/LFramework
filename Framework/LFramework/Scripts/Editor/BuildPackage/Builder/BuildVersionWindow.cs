@@ -100,13 +100,7 @@ namespace LFramework.Editor
 
         private string GetChannelName()
         {
-            return BuildResourcesData.GetChannelName(new BuildResourcesData()
-            {
-                BuilderTarget = BuilderTarget,
-                WindowsChannel = WindowsChannel,
-                AndroidChannel = AndroidChannel,
-                IOSChannel = IOSChannel
-            });
+            return string.Empty;
         }
 
         private GameVersion BuildGameVersion()

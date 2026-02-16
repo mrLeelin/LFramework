@@ -11,8 +11,8 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// 构建资源
         /// 每个系统自己负责获取所需的配置（如 AddressableAssetSettings）
         /// </summary>
-        /// <param name="buildResourcesData">构建资源数据配置</param>
-        void Build(BuildResourcesData buildResourcesData);
+        /// <param name="buildSetting">构建设置</param>
+        void Build(BuildSetting buildSetting);
 
         /// <summary>
         /// 构建内置资源包
@@ -23,15 +23,15 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 获取资源构建路径
         /// </summary>
-        /// <param name="data">构建资源数据配置</param>
+        /// <param name="buildSetting">构建设置</param>
         /// <returns>构建路径</returns>
-        string GetBuildPath(BuildResourcesData data);
+        string GetBuildPath(BuildSetting buildSetting);
 
         /// <summary>
         /// 获取资源加载路径
         /// </summary>
-        /// <param name="data">构建资源数据配置</param>
+        /// <param name="buildSetting">构建设置</param>
         /// <returns>加载路径（通常是CDN地址或本地路径）</returns>
-        string GetLoadPath(BuildResourcesData data);
+        string GetLoadPath(BuildSetting buildSetting);
     }
 }

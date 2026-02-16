@@ -25,11 +25,11 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// 构建资源
         /// YooAssets 系统不需要 AddressableAssetSettings
         /// </summary>
-        public void Build(BuildResourcesData buildResourcesData)
+        public void Build(BuildSetting buildResourcesData)
         {
             Debug.Log("[YooAssets] 开始构建资源...");
 
-            if (buildResourcesData.IsResourcesBuildIn)
+            if (buildResourcesData.isResourcesBuildIn)
             {
                 BuildInPackage();
                 return;
@@ -55,7 +55,7 @@ namespace LFramework.Editor.Builder.BuildingResource
             // 4. 生成版本文件
             // 5. 备份构建结果
 
-            if (buildResourcesData.BuildType == BuildType.ResourcesUpdate)
+            if (buildResourcesData.buildType == BuildType.ResourcesUpdate)
             {
                 Debug.Log("[YooAssets] 开始编译增量更新资源");
                 // TODO: 实现增量更新逻辑
@@ -96,7 +96,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 获取构建路径
         /// </summary>
-        public string GetBuildPath(BuildResourcesData data)
+        public string GetBuildPath(BuildSetting data)
         {
             return SERVER_DATA_FOLDER_NAME + "/" + GetFolderNameBasedOnAppVersion(data) + "/" + GetFolderName(data);
         }
@@ -104,16 +104,16 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 获取加载路径
         /// </summary>
-        public string GetLoadPath(BuildResourcesData data)
+        public string GetLoadPath(BuildSetting data)
         {
             var path = string.Empty;
-            if (data.BuildResourcesServerModel == BuildResourcesServerModel.LocalHost)
+            if (data.cdnType == CdnType.Local)
             {
-                path += GetUrl(data.BuildResourcesServerModel);
+                path += GetUrl(data.cdnType);
             }
             else
             {
-                path += GetUrl(data.BuildResourcesServerModel) + GetFolderNameBasedOnAppVersion(data) + "/" +
+                path += GetUrl(data.cdnType) + GetFolderNameBasedOnAppVersion(data) + "/" +
                         GetReplaceVersionName(data);
             }
 
@@ -122,7 +122,7 @@ namespace LFramework.Editor.Builder.BuildingResource
 
         #region Private Helper Methods
 
-        private void GenerateUpdateFile(BuildResourcesData buildResourcesData)
+        private void GenerateUpdateFile(BuildSetting buildResourcesData)
         {
             var exportVersionPath = GetExportVersionPath(buildResourcesData);
 
@@ -133,7 +133,7 @@ namespace LFramework.Editor.Builder.BuildingResource
 
             var setting = new GameVersion
             {
-                appVersion = buildResourcesData.AppVersion,
+                appVersion = buildResourcesData.appVersion,
             };
             var json = JsonUtility.ToJson(setting);
             File.WriteAllText(exportVersionPath, json);
@@ -143,32 +143,32 @@ namespace LFramework.Editor.Builder.BuildingResource
 
         #region Path Helper Methods
 
-        private string GetChannelName(BuildResourcesData data)
+        private string GetChannelName(BuildSetting data)
         {
             string name = string.Empty;
             if (data == null) return name;
-            switch (data.BuilderTarget)
+            switch (data.builderTarget)
             {
                 case BuilderTarget.Windows:
-                    name = data.WindowsChannel.ToString();
+                    name = data.windowsChannel.ToString();
                     break;
                 case BuilderTarget.Android:
-                    name = data.AndroidChannel.ToString();
+                    name = data.androidChannel.ToString();
                     break;
                 case BuilderTarget.iOS:
-                    name = data.IOSChannel.ToString();
+                    name = data.iosChannel.ToString();
                     break;
             }
 
             return name;
         }
 
-        private string GetUrl(BuildResourcesServerModel model)
+        private string GetUrl(CdnType cdnType)
         {
             string url = "";
-            switch (model)
+            switch (cdnType)
             {
-                case BuildResourcesServerModel.LocalHost:
+                case CdnType.Local:
                     url = "http://[PrivateIpAddress]:[HostingServicePort]";
                     break;
                 default:
@@ -179,22 +179,22 @@ namespace LFramework.Editor.Builder.BuildingResource
             return url;
         }
 
-        private string GetFolderName(BuildResourcesData data)
+        private string GetFolderName(BuildSetting data)
         {
-            return GetChannelName(data) + "_" + data.ResourcesVersion + "_" +
-                   data.BuildResourcesServerModel;
+            return GetChannelName(data) + "_" + data.resourcesVersion + "_" +
+                   data.cdnType;
         }
 
-        private string GetReplaceVersionName(BuildResourcesData data)
+        private string GetReplaceVersionName(BuildSetting data)
         {
             return GetChannelName(data) + "_" + Replace_Version + "_" +
-                   data.BuildResourcesServerModel;
+                   data.cdnType;
         }
 
-        private string GetFolderNameBasedOnAppVersion(BuildResourcesData data)
+        private string GetFolderNameBasedOnAppVersion(BuildSetting data)
         {
-            return GetChannelName(data) + "_" + data.AppVersion + "_" +
-                   data.BuildResourcesServerModel;
+            return GetChannelName(data) + "_" + data.appVersion + "_" +
+                   data.cdnType;
         }
 
         private string GetExportPath()
@@ -202,23 +202,23 @@ namespace LFramework.Editor.Builder.BuildingResource
             return Application.dataPath + "/../" + SERVER_DATA_FOLDER_NAME;
         }
 
-        private string GetExportBuildPath(BuildResourcesData data)
+        private string GetExportBuildPath(BuildSetting data)
         {
             return Application.dataPath + "/../" + GetBuildPath(data);
         }
 
-        private string GetExportVersionPath(BuildResourcesData data)
+        private string GetExportVersionPath(BuildSetting data)
         {
             string path = GetExportBuildPath(data);
             return path + "/" + BACKUP_FILE_NAME;
         }
 
-        private string GetBackupPath(BuildResourcesData data)
+        private string GetBackupPath(BuildSetting data)
         {
             return Application.dataPath + "/../" + BACKUP_FOLDER_NAME + "/" + GetFolderNameBasedOnAppVersion(data);
         }
 
-        private string GetBackupSeverDataBuildPath(BuildResourcesData data)
+        private string GetBackupSeverDataBuildPath(BuildSetting data)
         {
             string path = GetBackupPath(data);
             return path + "/" + GetFolderName(data);
@@ -290,7 +290,7 @@ namespace LFramework.Editor.Builder.BuildingResource
     /// </summary>
     public class YooAssetsBuildSystem : IResourceBuildSystem
     {
-        public void Build(BuildResourcesData buildResourcesData)
+        public void Build(BuildSetting buildResourcesData)
         {
             
         }
@@ -300,12 +300,12 @@ namespace LFramework.Editor.Builder.BuildingResource
          
         }
 
-        public string GetBuildPath(BuildResourcesData data)
+        public string GetBuildPath(BuildSetting data)
         {
             return string.Empty;
         }
 
-        public string GetLoadPath(BuildResourcesData data)
+        public string GetLoadPath(BuildSetting data)
         {
             return string.Empty;
         }

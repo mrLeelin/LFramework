@@ -29,7 +29,7 @@ namespace LFramework.Editor
 {
     public static class BuildDllsHelper
     {
-        public static bool CopyDll(BuildResourcesData buildResourcesData, AddressableAssetSettings settings,
+        public static bool CopyDll(BuildSetting buildSetting, AddressableAssetSettings settings,
             GameSetting gameSetting, string backAotFolder)
         {
 #if USE_HybridCLR
@@ -41,12 +41,12 @@ namespace LFramework.Editor
                 return false;
             }
 
-            if (!CopyAotDllToProject(buildResourcesData, settings, firstHybridClrSetting, gameSetting, backAotFolder))
+            if (!CopyAotDllToProject(buildSetting, settings, firstHybridClrSetting, gameSetting, backAotFolder))
             {
                 return false;
             }
 
-            if (!CopyHotfixDllToProject(buildResourcesData, settings, firstHybridClrSetting, gameSetting))
+            if (!CopyHotfixDllToProject(buildSetting, settings, firstHybridClrSetting, gameSetting))
             {
                 return false;
             }
@@ -157,7 +157,7 @@ namespace LFramework.Editor
             hybridClrInstaller.InstallDefaultHybridCLR();
         }
 
-        private static bool CopyAotDllToProject(BuildResourcesData buildResourcesData,
+        private static bool CopyAotDllToProject(BuildResourcesData buildSetting,
             AddressableAssetSettings settings, HybridCLRSetting firstHybridClrSetting, GameSetting gameSetting,
             string backUpFolder)
         {
@@ -238,7 +238,7 @@ namespace LFramework.Editor
             return true;
         }
 
-        private static bool CopyHotfixDllToProject(BuildResourcesData buildResourcesData,
+        private static bool CopyHotfixDllToProject(BuildResourcesData buildSetting,
             AddressableAssetSettings settings, HybridCLRSetting firstHybridClrSetting, GameSetting gameSetting)
         {
             if (!GetGroupInSettings(settings, firstHybridClrSetting.codeAddressableGroupName, out var group))
@@ -253,7 +253,7 @@ namespace LFramework.Editor
             }
 
             Directory.CreateDirectory(hotfixInProjectFolder);
-            var folder = GetHybridClrDataHOtUpdateDllsFolder(buildResourcesData);
+            var folder = GetHybridClrDataHOtUpdateDllsFolder(buildSetting);
             if (!Directory.Exists(folder))
             {
                 Debug.LogError($"The hotfix dlls folder is not exist! '{folder}'");
@@ -354,9 +354,9 @@ namespace LFramework.Editor
             return Application.dataPath + "/" + firstHybridClrSetting.aotDllFolderPath;
         }
 
-        private static string GetHybridClrDataHOtUpdateDllsFolder(BuildResourcesData buildResourcesData)
+        private static string GetHybridClrDataHOtUpdateDllsFolder(BuildResourcesData buildSetting)
         {
-            return GetHybridClrDataRoot() + "/" + "HotUpdateDlls" + "/" + buildResourcesData.BuilderTarget.ToString();
+            return GetHybridClrDataRoot() + "/" + "HotUpdateDlls" + "/" + buildSetting.BuilderTarget.ToString();
         }
 
         private static string GetHybridClrDataRoot()
