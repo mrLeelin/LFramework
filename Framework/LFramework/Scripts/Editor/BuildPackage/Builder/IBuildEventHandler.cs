@@ -52,11 +52,12 @@ namespace LFramework.Editor
         /// </summary>
         /// <param name="buildSetting"></param>
         void OnPostprocessBuildResources(BuildSetting buildSetting);
-        
+
         /// <summary>
         ///  执行打包后事件。
         /// </summary>
         /// <param name="mBuildData"></param>
-        void OnPostprocessBuildApp(BuildSetting mBuildData);
+        /// <param name="outPutFolder"></param>
+        void OnPostprocessBuildApp(BuildSetting mBuildData,string outPutFolder);
     }
 }

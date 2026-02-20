@@ -7,7 +7,10 @@
       "Bash(git -C /d/Project/Unity/Demo/YooAssetsDemo/Assets/Framework log --oneline --all -- \"Framework/UnityGameFramework/Scripts/Runtime/Base/GameFrameworkComponent.cs\")",
       "Bash(git -C /d/Project/Unity/Demo/YooAssetsDemo/Assets/Framework log --all --oneline -- \"Framework/UnityGameFramework/Scripts/Runtime/Base/GameFrameworkComponent.cs\")",
       "Bash(git -C /d/Project/Unity/Demo/YooAssetsDemo/Assets/Framework show b342960:Framework/UnityGameFramework/Scripts/Runtime/Base/GameFrameworkComponent.cs)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(git log:*)",
+      "Bash(ls:*)",
+      "Bash(git status:*)"
     ]
   }
 }

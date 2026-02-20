@@ -24,7 +24,7 @@ namespace UnityGameFramework.Runtime
         private const int DefaultDpi = 96; // default windows dpi
 
         private float m_GameSpeedBeforePause = 1f;
-
+        
         [SerializeField] private bool m_EditorResourceMode = true;
 
         [SerializeField] private Language m_EditorLanguage = Language.Unspecified;
@@ -133,7 +133,7 @@ namespace UnityGameFramework.Runtime
             }
         }
 
-        
+
         /// <summary>
         /// 游戏框架组件初始化。
         /// </summary>

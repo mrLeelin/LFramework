@@ -17,13 +17,10 @@ namespace LFramework.Editor.Inspector
     {
         private SerializedProperty _allComponentTypes;
         private SerializedProperty _allSettings;
-        private SerializedProperty _gameSetting;
 
 
         private string[] _currentComponentRegisterTypes;
         private List<ComponentSetting> _componentSettings;
-        private List<GameSetting> _gameSettings;
-        private GameSetting _onceGameSetting;
 
 
         private bool _isCompileComplete;
@@ -33,11 +30,9 @@ namespace LFramework.Editor.Inspector
         {
             _allComponentTypes = serializedObject.FindProperty("allComponentTypes");
             _allSettings = serializedObject.FindProperty("allSettings");
-            _gameSetting = serializedObject.FindProperty("gameSetting");
 
             RefreshRegisterTypes();
             RefreshSettings();
-            RefreshGameSetting();
 
             _isCompileComplete = true;
         }
@@ -49,7 +44,7 @@ namespace LFramework.Editor.Inspector
 
             EditorGUILayout.Popup("ComponentRegister", 0, _currentComponentRegisterTypes);
             EditorGUILayout.Popup("Settings", 0, _componentSettings.Select(x => x.bindTypeName).ToArray());
-            
+
             if (_isCompileComplete)
             {
                 _allComponentTypes.ClearArray();
@@ -67,9 +62,6 @@ namespace LFramework.Editor.Inspector
                     _allSettings.InsertArrayElementAtIndex(i);
                     _allSettings.GetArrayElementAtIndex(i).objectReferenceValue = setting;
                 }
-
-                _gameSetting.objectReferenceValue = _onceGameSetting;
-                
             }
 
             serializedObject.ApplyModifiedProperties();
@@ -82,7 +74,6 @@ namespace LFramework.Editor.Inspector
 
             RefreshRegisterTypes();
             RefreshSettings();
-            RefreshGameSetting();
 
             _isCompileComplete = true;
         }
@@ -107,23 +98,15 @@ namespace LFramework.Editor.Inspector
 
                 _componentSettings.Add(setting);
             }
-        }
 
-        private void RefreshGameSetting()
-        {
-            _gameSettings = AssetUtilities.GetAllAssetsOfType<GameSetting>().ToList();
-            var count = _gameSettings.Count;
-            if (count != 1)
+            // 自动设置 HybridCLRSetting 到 GameSetting
+            if (GameSettingProvider.TryGetGameSetting(out var gameSetting))
             {
-                return;
-            }
-
-            _onceGameSetting = _gameSettings[0];
-
-            foreach (var hybridClrSetting in AssetUtilities.GetAllAssetsOfType<HybridCLRSetting>())
-            {
-                _onceGameSetting.hybridClrSetting = hybridClrSetting;
-                break;
+                foreach (var hybridClrSetting in AssetUtilities.GetAllAssetsOfType<HybridCLRSetting>())
+                {
+                    gameSetting.hybridClrSetting = hybridClrSetting;
+                    break;
+                }
             }
         }
     }

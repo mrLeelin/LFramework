@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using LFramework.Runtime;
+using LFramework.Runtime.Settings;
 using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEngine;
@@ -52,10 +53,9 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                 Debug.Log($"[BuildGameSettingTask] Updating GameSetting asset...");
 
                 var buildSetting = context.BuildSetting;
-                
-                // 查找 GameSetting 资源
-                var allSettings = AssetUtilities.GetAllAssetsOfType<GameSetting>();
-                var setting = allSettings.FirstOrDefault();
+
+                // 使用 GameSettingProvider 获取 GameSetting
+                var setting = GameSettingProvider.GetGameSetting();
 
                 if (setting == null)
                 {

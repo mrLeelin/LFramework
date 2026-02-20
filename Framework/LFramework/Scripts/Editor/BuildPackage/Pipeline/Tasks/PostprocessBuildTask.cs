@@ -56,7 +56,8 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                 IBuildEventHandler.HandleList(handlers, (handler) =>
                 {
                     Debug.Log($"[PostprocessBuildTask] Calling {handler.GetType().Name}.OnPostprocessBuildApp");
-                    handler.OnPostprocessBuildApp(context.BuildSetting);
+                   
+                    handler.OnPostprocessBuildApp(context.BuildSetting,context.OutputFolder);
                 });
 
                 Debug.Log($"[PostprocessBuildTask] All event handlers executed successfully.");

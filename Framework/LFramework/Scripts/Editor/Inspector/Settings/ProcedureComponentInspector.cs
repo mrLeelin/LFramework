@@ -217,14 +217,13 @@ namespace LFramework.Editor.Inspector
 
         private void RefreshGameSetting()
         {
-            var setting = AssetUtilities.GetAllAssetsOfType<GameSetting>().ToList();
-            var count = setting.Count;
-            if (count != 1)
+            if (!GameSettingProvider.TryGetGameSetting(out var gameSetting))
             {
+                Debug.LogWarning("[ProcedureComponentInspector] GameSetting not found!");
                 return;
             }
 
-            _onceGameSetting = setting[0];
+            _onceGameSetting = gameSetting;
         }
     }
 }

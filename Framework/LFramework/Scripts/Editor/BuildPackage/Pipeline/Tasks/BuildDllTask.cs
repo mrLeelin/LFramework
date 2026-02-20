@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using LFramework.Editor.Builder.BuildingResource;
 using LFramework.Runtime;
+using LFramework.Runtime.Settings;
 using Sirenix.Utilities.Editor;
 using ThirdParty.Framework.LFramework.Scripts.Editor.BuildPackage.Builder.BuildingResource;
 using UnityEditor;
@@ -40,9 +41,8 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                 var buildSetting = context.BuildSetting;
                 var settings = AddressableAssetSettingsDefaultObject.Settings;
 
-                // 获取 GameSetting
-                var allSettings = AssetUtilities.GetAllAssetsOfType<GameSetting>();
-                var gameSetting = allSettings.FirstOrDefault();
+                // 使用 GameSettingProvider 获取 GameSetting
+                var gameSetting = GameSettingProvider.GetGameSetting();
                 if (gameSetting == null)
                 {
                     return BuildTaskResult.CreateFailed(TaskName, "GameSetting not found in project!");

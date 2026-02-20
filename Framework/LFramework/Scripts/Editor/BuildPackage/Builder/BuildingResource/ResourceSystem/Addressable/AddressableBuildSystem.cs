@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using LFramework.Runtime;
+using LFramework.Runtime.Settings;
 using ThirdParty.Framework.LFramework.Scripts.Editor.BuildPackage.Builder.BuildingResource;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
@@ -30,9 +31,8 @@ namespace LFramework.Editor.Builder.BuildingResource
                 throw new Exception("[AddressableBuildSystem] AddressableAssetSettings not found!");
             }
 
-            // 获取 GameSetting
-            var allSettings = Sirenix.Utilities.Editor.AssetUtilities.GetAllAssetsOfType<GameSetting>();
-            var gameSetting = allSettings.FirstOrDefault();
+            // 使用 GameSettingProvider 获取 GameSetting
+            var gameSetting = GameSettingProvider.GetGameSetting();
             if (gameSetting == null)
             {
                 throw new Exception("[AddressableBuildSystem] GameSetting not found in project!");

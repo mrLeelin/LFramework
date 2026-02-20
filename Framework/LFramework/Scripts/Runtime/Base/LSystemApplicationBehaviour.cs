@@ -19,7 +19,6 @@ namespace LFramework.Runtime
 
         [SerializeField] private string[] allComponentTypes;
         [SerializeField] private List<ComponentSetting> allSettings;
-        [SerializeField] protected GameSetting gameSetting;
 
 
         protected virtual void Awake()
@@ -36,7 +35,24 @@ namespace LFramework.Runtime
         protected override void RegisterSetting()
         {
             base.RegisterSetting();
+
+            // 从 BaseComponentSetting 获取 GameSetting
+            var baseComponentSetting = allSettings.OfType<BaseComponentSetting>().FirstOrDefault();
+            if (baseComponentSetting == null)
+            {
+                Log.Fatal("BaseComponentSetting not found in allSettings!");
+                return;
+            }
+
+            var gameSetting = baseComponentSetting.GameSetting;
+            if (gameSetting == null)
+            {
+                Log.Fatal("GameSetting is null in BaseComponentSetting! Please assign it in the inspector.");
+                return;
+            }
+
             DiContainer.Bind<GameSetting>().FromInstance(gameSetting).AsSingle();
+            Log.Info($"[LSystemApplicationBehaviour] GameSetting bound to DI: {gameSetting.name}");
         }
 
         protected override void RegisterComponents()

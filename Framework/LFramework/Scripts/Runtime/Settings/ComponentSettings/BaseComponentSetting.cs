@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using GameFramework.Localization;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -11,6 +12,10 @@ namespace LFramework.Runtime.Settings
         menuName = "LFramework/Settings/BaseComponentSetting")]
     public sealed class BaseComponentSetting : ComponentSetting
     {
+        // GameSetting 引用
+        [SerializeField]
+        private GameSetting gameSetting;
+
         [SerializeField] private bool m_EditorResourceMode = true;
 
         [SerializeField] private Language m_EditorLanguage = Language.Unspecified;
@@ -32,5 +37,8 @@ namespace LFramework.Runtime.Settings
         [SerializeField] private bool m_RunInBackground = true;
 
         [SerializeField] private bool m_NeverSleep = true;
+
+        // 公共访问器
+        public GameSetting GameSetting => gameSetting;
     }
 }
