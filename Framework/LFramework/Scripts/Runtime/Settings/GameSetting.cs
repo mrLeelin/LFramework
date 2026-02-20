@@ -7,38 +7,6 @@ using UnityGameFramework.Runtime;
 
 namespace LFramework.Runtime
 {
-    public enum DevicePerformanceLevel
-    {
-        Low = 1,
-        Medium = 2,
-        High = 4,
-    }
-
-    /// <summary>
-    ///小游戏难度
-    /// </summary>
-    public enum TestPartyGameDifficult
-    {
-        /// <summary>
-        ///正常
-        /// </summary>
-        Multiple = 0,
-
-        /// <summary>
-        ///单机对战
-        /// </summary>
-        Single = 1,
-
-        /// <summary>
-        ///调控模式
-        /// </summary>
-        GameSave = 2,
-
-        /// <summary>
-        ///新手模式
-        /// </summary>
-        NewModel = 3,
-    }
 
     [System.Serializable]
     public class VersionStorage
@@ -60,27 +28,6 @@ namespace LFramework.Runtime
         menuName = "LFramework/HybridCLR/GameSetting")]
     public sealed class GameSetting : ScriptableObject
     {
-#if UNITY_EDITOR
-        [HideIf("@true")]
-#endif
-       
-        [FoldoutGroup("Editor")] [Header("开启打点")]
-        public bool enableAnalytics;
-
-        [FoldoutGroup("Editor")] [Header("开启打点Log")]
-        public bool enableAnalyticsLog;
-
-        [FoldoutGroup("Editor")] [Header("Editor 性能等级")]
-        public DevicePerformanceLevel devicePerformanceLevel;
-
-        [FoldoutGroup("Editor/小游戏难度测试")] [Header("测试个人的对战")]
-        public int testNumberPlayer;
-
-        [FoldoutGroup("Editor/小游戏难度测试")] public bool isUseEditorGameDifficult;
-
-        [FoldoutGroup("Editor/小游戏难度测试")] [ShowIf("isUseEditorGameDifficult")]
-        public TestPartyGameDifficult gameDifficult;
-
 
 #if UNITY_EDITOR
         
@@ -225,11 +172,7 @@ namespace LFramework.Runtime
                    $"- ResourceVersion: {resourceVersion}\n" +
                    $"- CDN Type: {cdnType}\n" +
                    $"- Channel: {channel}\n" +
-                   $"- CDN URLs: {cdnUrl}\n" +
-                   $"- DevicePerformanceLevel: {devicePerformanceLevel}\n" +
-                   $"- TestNumberPlayer: {testNumberPlayer}\n" +
-                   $"- IsUseEditorGameDifficult: {isUseEditorGameDifficult}\n" +
-                   $"- GameDifficult: {gameDifficult}";
+                   $"- CDN URLs: {cdnUrl}\n";
         }
     }
 }
