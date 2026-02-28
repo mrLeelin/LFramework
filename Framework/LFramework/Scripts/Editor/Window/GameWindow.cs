@@ -6,6 +6,7 @@ using GameFramework;
 using LFramework.Editor.Builder;
 using LFramework.Runtime;
 using LFramework.Runtime.Settings;
+using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities;
 using Sirenix.Utilities.Editor;
@@ -83,7 +84,8 @@ namespace LFramework.Editor.Window
                 .AddIcons(EditorIcons.SettingsCog);
             AddAllAssetsAtType<HybridCLRSetting>(tree, "Game Setting").AddIcons(EditorIcons.SettingsCog);
             //AddAllAssetsAtType<LubanExportConfig>(tree, "Game Setting").AddIcons(EditorIcons.SettingsCog);
-            AddAllAssetsAtType<GameSetting>(tree, "Game Setting").AddIcons(EditorIcons.SettingsCog);
+            AddGameSetting(tree)?.AddIcon(EditorIcons.SettingsCog);
+            //AddAllAssetsAtType<GameSetting>(tree, "Game Setting").AddIcons(EditorIcons.SettingsCog);
 
             tree.Add("打包", null, EditorIcons.Airplane);
             tree.AddObjectAtPath("打包/打包资源", new BuildResourcesData()).AddIcon(EditorIcons.SettingsCog);
@@ -192,6 +194,19 @@ namespace LFramework.Editor.Window
                 _gameWindowExtends.Add((IGameWindowExtend)Activator.CreateInstance(type));
             }
         }
+
+        private static IEnumerable<OdinMenuItem> AddGameSetting(OdinMenuTree tree)
+        {
+            var gameSetting = GameSettingProvider.GetGameSetting();
+
+            if (gameSetting == null)
+            {
+                return null;
+            }
+
+            return tree.AddObjectAtPath("Game Setting/GameSetting", gameSetting);
+        }
+        
 
         private static IEnumerable<OdinMenuItem> AddAllAssetsAtType<T>(OdinMenuTree tree, string menuPath)
             where T : ScriptableObject

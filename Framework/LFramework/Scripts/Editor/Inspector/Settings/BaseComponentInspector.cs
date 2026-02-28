@@ -68,6 +68,13 @@ namespace LFramework.Editor.Inspector
                 if (newGameSetting != m_GameSetting.objectReferenceValue)
                 {
                     m_GameSetting.objectReferenceValue = newGameSetting;
+
+                    // 自动设置 HybridCLRSetting
+                    if (newGameSetting != null)
+                    {
+                        AutoAssignHybridCLRSetting(newGameSetting);
+                    }
+
                     EditorUtility.SetDirty(target);
                 }
 
@@ -248,6 +255,31 @@ namespace LFramework.Editor.Inspector
             m_NeverSleep = serializedObject.FindProperty("m_NeverSleep");
 
             RefreshTypeNames();
+
+            // 自动设置 HybridCLRSetting（如果 GameSetting 已选择）
+            if (m_GameSetting.objectReferenceValue != null)
+            {
+                AutoAssignHybridCLRSetting(m_GameSetting.objectReferenceValue as GameSetting);
+            }
+        }
+
+        private void AutoAssignHybridCLRSetting(GameSetting gameSetting)
+        {
+            if (gameSetting == null) return;
+
+            // 查找项目中的 HybridCLRSetting
+            var hybridClrSettings = AssetUtilities.GetAllAssetsOfType<HybridCLRSetting>().ToList();
+
+            if (hybridClrSettings.Count > 0)
+            {
+                gameSetting.hybridClrSetting = hybridClrSettings[0];
+                EditorUtility.SetDirty(gameSetting);
+                Debug.Log($"[BaseComponentInspector] 自动设置 HybridCLRSetting: {AssetDatabase.GetAssetPath(hybridClrSettings[0])}");
+            }
+            else
+            {
+                Debug.LogWarning("[BaseComponentInspector] 未找到 HybridCLRSetting 资源");
+            }
         }
 
         private void RefreshTypeNames()

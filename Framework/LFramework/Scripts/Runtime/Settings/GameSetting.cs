@@ -26,7 +26,7 @@ namespace LFramework.Runtime
 
     [CreateAssetMenu(order = 1, fileName = "GameSetting",
         menuName = "LFramework/HybridCLR/GameSetting")]
-    public sealed class GameSetting : ScriptableObject
+    public class GameSetting : ScriptableObject
     {
 
 #if UNITY_EDITOR

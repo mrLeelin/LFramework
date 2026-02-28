@@ -98,16 +98,6 @@ namespace LFramework.Editor.Inspector
 
                 _componentSettings.Add(setting);
             }
-
-            // 自动设置 HybridCLRSetting 到 GameSetting
-            if (GameSettingProvider.TryGetGameSetting(out var gameSetting))
-            {
-                foreach (var hybridClrSetting in AssetUtilities.GetAllAssetsOfType<HybridCLRSetting>())
-                {
-                    gameSetting.hybridClrSetting = hybridClrSetting;
-                    break;
-                }
-            }
         }
     }
 }
