@@ -10,7 +10,10 @@
       "Bash(wc:*)",
       "Bash(git log:*)",
       "Bash(ls:*)",
-      "Bash(git status:*)"
+      "Bash(git status:*)",
+      "Bash(git remote:*)",
+      "Bash(git push:*)",
+      "Bash(git config:*)"
     ]
   }
 }
