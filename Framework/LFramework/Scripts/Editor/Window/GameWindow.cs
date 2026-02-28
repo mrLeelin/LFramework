@@ -85,26 +85,14 @@ namespace LFramework.Editor.Window
                 }
             }
             
-
             // Setting Selector - 新的配置管理系统
             AddAllAssetsAtType<SettingSelector>(tree, "Game Setting/Setting Selector")
                 .AddIcons(EditorIcons.SettingsCog);
 
             // 所有 GameSetting 实例
-            AddAllAssetsAtType<GameSetting>(tree, "Game Setting/GameSettings")
+            AddAllAssetsAtType<BaseSetting>(tree, "Game Setting/GameSettings")
                 .AddIcons(EditorIcons.SettingsCog);
-
-            // 所有 iOSSetting 实例
-            AddAllAssetsAtType<iOSSetting>(tree, "Game Setting/iOSSettings")
-                .AddIcons(EditorIcons.SettingsCog);
-
-            // 所有 AndroidSetting 实例
-            AddAllAssetsAtType<AndroidSetting>(tree, "Game Setting/AndroidSettings")
-                .AddIcons(EditorIcons.SettingsCog);
-
-            AddAllAssetsAtType<HybridCLRSetting>(tree, "Game Setting").AddIcons(EditorIcons.SettingsCog);
-            //AddAllAssetsAtType<LubanExportConfig>(tree, "Game Setting").AddIcons(EditorIcons.SettingsCog);
-
+            
             tree.Add("打包", null, EditorIcons.Airplane);
             tree.AddObjectAtPath("打包/打包资源", new BuildResourcesData()).AddIcon(EditorIcons.SettingsCog);
             tree.AddObjectAtPath("打包/打包App", new BuildPackageWindow()).AddIcon(EditorIcons.SettingsCog);
@@ -112,7 +100,7 @@ namespace LFramework.Editor.Window
             tree.AddObjectAtPath("Utility/OpenFolder", new OpenFolderInspector()).AddIcon(EditorIcons.ShoppingCart);
             tree.Add("游戏扩展", null, EditorIcons.SettingsCog);
             AddAllExtendItems(tree);
-            tree.SortMenuItemsByName();
+            //tree.SortMenuItemsByName();
             return tree;
         }
 

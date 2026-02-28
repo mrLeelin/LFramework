@@ -12,13 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d921946ededd49479e8875f24df0688e, type: 3}
   m_Name: GameSetting
   m_EditorClassIdentifier: 
-  enableAnalytics: 0
-  enableAnalyticsLog: 0
-  devicePerformanceLevel: 4
-  testNumberPlayer: 4
-  isUseEditorGameDifficult: 0
-  gameDifficult: 0
-  hybridClrSetting: {fileID: 11400000, guid: 7db99ec0674cf8a4dbbe601758298cf3, type: 2}
+  displayName: 
+  description: 
+  tags: []
   isRelease: 0
   isResourcesBuildIn: 1
   versionUrl: http://152.136.170.211/game/Version

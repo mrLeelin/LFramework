@@ -13,7 +13,11 @@ namespace LFramework.Editor.Settings
     {
         private const string SettingsPath = "Assets/Framework/Framework/LFramework/Assets/Settings";
 
-        [MenuItem("LFramework/Setup/Create Example Settings")]
+#if AUTO_CREATE_SETTING
+         [MenuItem("LFramework/Setup/Create Example Settings")]
+#endif
+       
+        
         public static void CreateExampleSettings()
         {
             if (!EditorUtility.DisplayDialog("创建示例配置",
@@ -195,7 +199,9 @@ namespace LFramework.Editor.Settings
             return selector;
         }
 
-        [MenuItem("LFramework/Setup/Validate All Settings")]
+#if AUTO_CREATE_SETTING
+         [MenuItem("LFramework/Setup/Validate All Settings")]
+#endif
         public static void ValidateAllSettings()
         {
             var selector = SettingManager.GetSelector();
