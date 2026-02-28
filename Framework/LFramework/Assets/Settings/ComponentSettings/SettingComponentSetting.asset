@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: SettingComponentSetting
   m_EditorClassIdentifier: 
   bindTypeName: UnityGameFramework.Runtime.SettingComponent
-  m_SettingHelperTypeName: MagicWarrior.Runtime.Es3SettingHelper
+  m_SettingHelperTypeName: 
   m_CustomSettingHelper: {fileID: 0}

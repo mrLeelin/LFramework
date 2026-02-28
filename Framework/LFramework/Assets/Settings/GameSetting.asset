@@ -16,7 +16,7 @@ MonoBehaviour:
   description: 
   tags: []
   isRelease: 0
-  isResourcesBuildIn: 1
+  isResourcesBuildIn: 0
   versionUrl: http://152.136.170.211/game/Version
   ip: http://172.16.2.159:10031
   webSocketIp: ws://172.16.2.159:8085/ws

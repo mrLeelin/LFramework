@@ -15,9 +15,6 @@ namespace LFramework.Runtime.Settings
         [Serializable]
         public class SettingEntry
         {
-            [HideInInspector]
-            public string settingTypeName;  // Setting 类型名称
-
             [InlineEditor]
             public BaseSetting setting;     // 选择的 Setting 实例
         }
@@ -31,7 +28,7 @@ namespace LFramework.Runtime.Settings
         public T GetSetting<T>() where T : BaseSetting
         {
             var typeName = typeof(T).Name;
-            var entry = selectedSettings.FirstOrDefault(e => e.settingTypeName == typeName);
+            var entry = selectedSettings.FirstOrDefault(e => e.setting.GetType().Name == typeName);
             return entry?.setting as T;
         }
 
@@ -41,7 +38,7 @@ namespace LFramework.Runtime.Settings
         public void SetSetting<T>(T setting) where T : BaseSetting
         {
             var typeName = typeof(T).Name;
-            var entry = selectedSettings.FirstOrDefault(e => e.settingTypeName == typeName);
+            var entry = selectedSettings.FirstOrDefault(e => e.setting.GetType().Name == typeName);
 
             if (entry != null)
             {
@@ -51,7 +48,6 @@ namespace LFramework.Runtime.Settings
             {
                 selectedSettings.Add(new SettingEntry
                 {
-                    settingTypeName = typeName,
                     setting = setting
                 });
             }
