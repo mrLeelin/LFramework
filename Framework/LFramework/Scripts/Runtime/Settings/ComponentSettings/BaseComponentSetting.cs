@@ -12,11 +12,6 @@ namespace LFramework.Runtime.Settings
         menuName = "LFramework/Settings/BaseComponentSetting")]
     public sealed class BaseComponentSetting : ComponentSetting
     {
-        // GameSetting 引用
-        [Title("Game Setting Reference")]
-        [InfoBox("请点击下方按钮选择要使用的 GameSetting", InfoMessageType.Warning, "IsGameSettingNull")]
-        [SerializeField]
-        private GameSetting gameSetting;
 
         [SerializeField] private bool m_EditorResourceMode = true;
 
@@ -39,9 +34,6 @@ namespace LFramework.Runtime.Settings
         [SerializeField] private bool m_RunInBackground = true;
 
         [SerializeField] private bool m_NeverSleep = true;
-
-        // 公共访问器
-        public GameSetting GameSetting => gameSetting;
         
       
     }

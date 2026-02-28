@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using LFramework.Runtime;
+using LFramework.Runtime.Settings;
 using ThirdParty.Framework.LFramework.Scripts.Editor.BuildPackage.Builder.BuildingResource;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
@@ -324,7 +325,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// 检查需要更新的内容并创建更新组
         /// </summary>
         public static void CheckForUpdateContent(string backUpPath, AddressableAssetSettings settings,
-            BuildSetting data, GameSetting gameSetting)
+            BuildSetting data, HybridCLRSetting gameSetting)
         {
             var reportPath = backUpPath + "/" + Last_Report_File_Name;
             Debug.Log($"reportPath:{reportPath}");
@@ -391,7 +392,7 @@ namespace LFramework.Editor.Builder.BuildingResource
 
                 Debug.Log("Entry : " + entry.AssetPath);
                 // 通过Update生成的资源全部打上init label
-                entry.SetLabel(gameSetting.hybridClrSetting.defaultInitLabel, true, true);
+                entry.SetLabel(gameSetting.defaultInitLabel, true, true);
 
                 // 对于图集来说size根本不准,只能图集单独创建资源组
                 if (entry.AssetPath.EndsWith(".spriteatlas"))

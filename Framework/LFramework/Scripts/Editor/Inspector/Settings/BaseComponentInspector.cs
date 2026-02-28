@@ -23,7 +23,6 @@ namespace LFramework.Editor.Inspector
 
         private SerializedProperty m_EditorResourceMode = null;
         private SerializedProperty m_EditorLanguage = null;
-        private SerializedProperty m_GameSetting = null;
         private SerializedProperty m_TextHelperTypeName = null;
         private SerializedProperty m_VersionHelperTypeName = null;
         private SerializedProperty m_LogHelperTypeName = null;
@@ -51,45 +50,7 @@ namespace LFramework.Editor.Inspector
 
             serializedObject.Update();
             var t = GetComponent<BaseComponent>();
-
-            // GameSetting 选择区域
-            EditorGUILayout.BeginVertical("box");
-            {
-                EditorGUILayout.LabelField("Game Setting Reference", EditorStyles.boldLabel);
-
-                // 使用 ObjectField 直接选择 GameSetting
-                GameSetting newGameSetting = (GameSetting)EditorGUILayout.ObjectField(
-                    "Game Setting",
-                    m_GameSetting.objectReferenceValue,
-                    typeof(GameSetting),
-                    false
-                );
-
-                if (newGameSetting != m_GameSetting.objectReferenceValue)
-                {
-                    m_GameSetting.objectReferenceValue = newGameSetting;
-
-                    // 自动设置 HybridCLRSetting
-                    if (newGameSetting != null)
-                    {
-                        AutoAssignHybridCLRSetting(newGameSetting);
-                    }
-
-                    EditorUtility.SetDirty(target);
-                }
-
-                // 显示完整路径
-                if (m_GameSetting.objectReferenceValue != null)
-                {
-                    string path = AssetDatabase.GetAssetPath(m_GameSetting.objectReferenceValue);
-                    EditorGUILayout.LabelField("Path", path, EditorStyles.miniLabel);
-                }
-                else
-                {
-                    EditorGUILayout.HelpBox("请选择一个 GameSetting 资源", MessageType.Warning);
-                }
-            }
-            EditorGUILayout.EndVertical();
+            
 
             EditorGUI.BeginDisabledGroup(EditorApplication.isPlayingOrWillChangePlaymode);
             {
@@ -243,7 +204,6 @@ namespace LFramework.Editor.Inspector
             base.OnEnable();
             m_EditorResourceMode = serializedObject.FindProperty("m_EditorResourceMode");
             m_EditorLanguage = serializedObject.FindProperty("m_EditorLanguage");
-            m_GameSetting = serializedObject.FindProperty("gameSetting");
             m_TextHelperTypeName = serializedObject.FindProperty("m_TextHelperTypeName");
             m_VersionHelperTypeName = serializedObject.FindProperty("m_VersionHelperTypeName");
             m_LogHelperTypeName = serializedObject.FindProperty("m_LogHelperTypeName");
@@ -255,31 +215,7 @@ namespace LFramework.Editor.Inspector
             m_NeverSleep = serializedObject.FindProperty("m_NeverSleep");
 
             RefreshTypeNames();
-
-            // 自动设置 HybridCLRSetting（如果 GameSetting 已选择）
-            if (m_GameSetting.objectReferenceValue != null)
-            {
-                AutoAssignHybridCLRSetting(m_GameSetting.objectReferenceValue as GameSetting);
-            }
-        }
-
-        private void AutoAssignHybridCLRSetting(GameSetting gameSetting)
-        {
-            if (gameSetting == null) return;
-
-            // 查找项目中的 HybridCLRSetting
-            var hybridClrSettings = AssetUtilities.GetAllAssetsOfType<HybridCLRSetting>().ToList();
-
-            if (hybridClrSettings.Count > 0)
-            {
-                gameSetting.hybridClrSetting = hybridClrSettings[0];
-                EditorUtility.SetDirty(gameSetting);
-                Debug.Log($"[BaseComponentInspector] 自动设置 HybridCLRSetting: {AssetDatabase.GetAssetPath(hybridClrSettings[0])}");
-            }
-            else
-            {
-                Debug.LogWarning("[BaseComponentInspector] 未找到 HybridCLRSetting 资源");
-            }
+            
         }
 
         private void RefreshTypeNames()

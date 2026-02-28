@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d921946ededd49479e8875f24df0688e, type: 3}
+  m_Name: GameSetting_Production
+  m_EditorClassIdentifier: 
+  displayName: 
+  description: 
+  tags: []
+  hybridClrSetting: {fileID: 0}
+  isRelease: 1
+  isResourcesBuildIn: 0
+  versionUrl: http://api.example.com/version
+  ip: http://api.example.com
+  webSocketIp: ws://api.example.com/ws
+  appVersion: 1.0.0.0
+  resourceVersion: 1.0.0.0
+  cdnType: 1
+  channel: Production
+  cdnUrl: http://api.example.com/cdn

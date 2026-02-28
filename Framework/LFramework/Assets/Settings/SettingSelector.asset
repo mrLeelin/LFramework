@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7fcc5788d161136419dcc2f5bca258a7, type: 3}
+  m_Name: SettingSelector
+  m_EditorClassIdentifier: 
+  selectedSettings:
+  - settingTypeName: GameSetting
+    setting: {fileID: 11400000, guid: 298649357c1554e418b6720bc71a8706, type: 2}
+  - settingTypeName: iOSSetting
+    setting: {fileID: 11400000, guid: e127e1622bbee484790ecede5863f2e2, type: 2}
+  - settingTypeName: AndroidSetting
+    setting: {fileID: 11400000, guid: 8d21766e556a3ff4b912ec29df82aa1d, type: 2}

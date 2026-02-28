@@ -26,7 +26,7 @@ namespace LFramework.Runtime
 
     [CreateAssetMenu(order = 1, fileName = "GameSetting",
         menuName = "LFramework/HybridCLR/GameSetting")]
-    public class GameSetting : ScriptableObject
+    public class GameSetting : BaseSetting
     {
 
 #if UNITY_EDITOR
@@ -63,8 +63,6 @@ namespace LFramework.Runtime
         
         
         #region Runtime
-        [HideInInspector]
-        public HybridCLRSetting hybridClrSetting;
         public bool isRelease;
 
         /// <summary>
@@ -160,6 +158,62 @@ namespace LFramework.Runtime
             return $"{channel}_{cdnType}/Version_{appVersion}";
         }
 
+        /// <summary>
+        /// 验证配置是否有效
+        /// </summary>
+        public override bool Validate(out string errorMessage)
+        {
+            // 验证 appVersion
+            if (string.IsNullOrEmpty(appVersion))
+            {
+                errorMessage = "App Version 不能为空";
+                return false;
+            }
+
+            var appVersionParts = appVersion.Split('.');
+            if (appVersionParts.Length != 4)
+            {
+                errorMessage = $"App Version 格式错误，应为 x.x.x.x 格式，当前值: {appVersion}";
+                return false;
+            }
+
+            // 验证 resourceVersion
+            if (string.IsNullOrEmpty(resourceVersion))
+            {
+                errorMessage = "Resource Version 不能为空";
+                return false;
+            }
+
+            var resVersionParts = resourceVersion.Split('.');
+            if (resVersionParts.Length != 4)
+            {
+                errorMessage = $"Resource Version 格式错误，应为 x.x.x.x 格式，当前值: {resourceVersion}";
+                return false;
+            }
+
+            // 验证 channel
+            if (string.IsNullOrEmpty(channel))
+            {
+                errorMessage = "Channel 不能为空";
+                return false;
+            }
+
+            // 验证网络配置
+            if (!isRelease && string.IsNullOrEmpty(ip))
+            {
+                errorMessage = "非 Release 模式下，IP 不能为空";
+                return false;
+            }
+
+            if (isRelease && string.IsNullOrEmpty(cdnUrl))
+            {
+                errorMessage = "Release 模式下，CDN URL 不能为空";
+                return false;
+            }
+
+            errorMessage = null;
+            return true;
+        }
 
         public override string ToString()
         {

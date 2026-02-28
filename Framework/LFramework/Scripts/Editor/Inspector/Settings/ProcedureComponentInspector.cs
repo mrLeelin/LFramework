@@ -26,7 +26,7 @@ namespace LFramework.Editor.Inspector
         
         private int m_EntranceProcedureIndex = -1;
         private int m_HotfixEntranceProcedureIndex = -1;
-        private GameSetting _onceGameSetting;
+        private HybridCLRSetting _onceGameSetting;
 
         public override void OnInspectorGUI()
         {
@@ -129,7 +129,7 @@ namespace LFramework.Editor.Inspector
             RefreshGameSetting();
             m_ProcedureTypeNames = Type.GetRuntimeTypeNames(typeof(ProcedureBase));
             m_HotfixProcedureTypeNames = Type.GetTypeNames(typeof(ProcedureBase),
-                _onceGameSetting.hybridClrSetting.hotfixAssembliesSort.ToArray());
+                _onceGameSetting.hotfixAssembliesSort.ToArray());
             ReadAvailableProcedureTypeNames();
             int oldCount = m_CurrentAvailableProcedureTypeNames.Count;
             m_CurrentAvailableProcedureTypeNames = m_CurrentAvailableProcedureTypeNames
@@ -217,7 +217,8 @@ namespace LFramework.Editor.Inspector
 
         private void RefreshGameSetting()
         {
-            if (!GameSettingProvider.TryGetGameSetting(out var gameSetting))
+            var gameSetting = SettingManager.GetSetting<HybridCLRSetting>();
+            if (gameSetting == null)
             {
                 Debug.LogWarning("[ProcedureComponentInspector] GameSetting not found!");
                 return;

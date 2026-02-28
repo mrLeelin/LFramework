@@ -41,8 +41,8 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                 var buildSetting = context.BuildSetting;
                 var settings = AddressableAssetSettingsDefaultObject.Settings;
 
-                // 使用 GameSettingProvider 获取 GameSetting
-                var gameSetting = GameSettingProvider.GetGameSetting();
+                // 使用 SettingManager 获取 GameSetting
+                var gameSetting = SettingManager.GetSetting<GameSetting>();
                 if (gameSetting == null)
                 {
                     return BuildTaskResult.CreateFailed(TaskName, "GameSetting not found in project!");

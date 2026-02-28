@@ -54,8 +54,8 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
 
                 var buildSetting = context.BuildSetting;
 
-                // 使用 GameSettingProvider 获取 GameSetting
-                var setting = GameSettingProvider.GetGameSetting();
+                // 使用 SettingManager 获取 GameSetting
+                var setting = SettingManager.GetSetting<GameSetting>();
 
                 if (setting == null)
                 {
@@ -89,6 +89,9 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                 setting.channel = GetBuildChannel(buildSetting);
                 Debug.Log($"[BuildGameSettingTask] Set channel: {setting.channel}");
 
+                // 应用平台特定的配置
+                ApplyPlatformSettings(buildSetting);
+
                 // 标记为脏并保存
                 EditorUtility.SetDirty(setting);
                 AssetDatabase.SaveAssets();
@@ -120,6 +123,101 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+        }
+
+        /// <summary>
+        /// 应用平台特定的配置
+        /// </summary>
+        /// <param name="buildSetting">构建设置</param>
+        private void ApplyPlatformSettings(BuildSetting buildSetting)
+        {
+            switch (buildSetting.builderTarget)
+            {
+                case BuilderTarget.iOS:
+                    ApplyiOSSettings();
+                    break;
+
+                case BuilderTarget.Android:
+                    ApplyAndroidSettings();
+                    break;
+
+                case BuilderTarget.Windows:
+                    // Windows 平台暂无特殊配置
+                    Debug.Log("[BuildGameSettingTask] Windows platform - no additional settings to apply.");
+                    break;
+
+                default:
+                    Debug.LogWarning($"[BuildGameSettingTask] Unsupported platform: {buildSetting.builderTarget}");
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 应用 iOS 平台配置
+        /// </summary>
+        private void ApplyiOSSettings()
+        {
+            var iosSetting = SettingManager.GetSetting<iOSSetting>();
+            if (iosSetting == null)
+            {
+                Debug.LogWarning("[BuildGameSettingTask] iOSSetting not found in SettingSelector, skipping iOS platform settings.");
+                return;
+            }
+
+            // 验证配置
+            if (!iosSetting.Validate(out var errorMessage))
+            {
+                Debug.LogError($"[BuildGameSettingTask] iOSSetting validation failed: {errorMessage}");
+                return;
+            }
+
+            // 应用配置
+            PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.iOS, iosSetting.BundleIdentifier);
+            PlayerSettings.iOS.targetOSVersionString = iosSetting.TargetOSVersion;
+            PlayerSettings.iOS.requiresFullScreen = iosSetting.RequiresFullScreen;
+
+            // 设置权限描述
+            if (!string.IsNullOrEmpty(iosSetting.CameraUsageDescription))
+            {
+                PlayerSettings.iOS.cameraUsageDescription = iosSetting.CameraUsageDescription;
+            }
+            if (!string.IsNullOrEmpty(iosSetting.LocationUsageDescription))
+            {
+                PlayerSettings.iOS.locationUsageDescription = iosSetting.LocationUsageDescription;
+            }
+
+            Debug.Log($"[BuildGameSettingTask] iOS settings applied successfully - Bundle ID: {iosSetting.BundleIdentifier}");
+        }
+
+        /// <summary>
+        /// 应用 Android 平台配置
+        /// </summary>
+        private void ApplyAndroidSettings()
+        {
+            var androidSetting = SettingManager.GetSetting<AndroidSetting>();
+            if (androidSetting == null)
+            {
+                Debug.LogWarning("[BuildGameSettingTask] AndroidSetting not found in SettingSelector, skipping Android platform settings.");
+                return;
+            }
+
+            // 验证配置
+            if (!androidSetting.Validate(out var errorMessage))
+            {
+                Debug.LogError($"[BuildGameSettingTask] AndroidSetting validation failed: {errorMessage}");
+                return;
+            }
+
+            // 应用配置
+            PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, androidSetting.BundleIdentifier);
+            PlayerSettings.Android.minSdkVersion = (AndroidSdkVersions)androidSetting.MinSdkVersion;
+            PlayerSettings.Android.targetSdkVersion = (AndroidSdkVersions)androidSetting.TargetSdkVersion;
+
+            // 设置脚本后端
+            PlayerSettings.SetScriptingBackend(BuildTargetGroup.Android,
+                androidSetting.UseIL2CPP ? ScriptingImplementation.IL2CPP : ScriptingImplementation.Mono2x);
+
+            Debug.Log($"[BuildGameSettingTask] Android settings applied successfully - Bundle ID: {androidSetting.BundleIdentifier}");
         }
     }
 }

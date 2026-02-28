@@ -11,7 +11,7 @@ namespace LFramework.Runtime.Settings
     /// </summary>
     [CreateAssetMenu(order = 1, fileName = "HybridCLRSetting",
         menuName = "LFramework/HybridCLR/HybridCLRSetting")]
-    public sealed class HybridCLRSetting : ScriptableObject
+    public sealed class HybridCLRSetting : BaseSetting
     {
 #if UNITY_EDITOR
         [FoldoutGroup("Editor Settings")]

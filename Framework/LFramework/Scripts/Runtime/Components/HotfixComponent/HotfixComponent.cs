@@ -16,6 +16,7 @@ using HybridCLR.Editor.Settings;
 #endif
 
 using LFramework.Runtime.Method;
+using LFramework.Runtime.Settings;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -32,6 +33,7 @@ namespace LFramework.Runtime
     {
         [Inject] private ProcedureComponent ProcedureComponent { get; set; }
         [Inject] private GameSetting GameSetting { get; }
+        [Inject] private HybridCLRSetting HybridClrSetting { get; }
         [Inject] private ResourceDownloadComponent ResourceDownloadComponent { get; }
 
         private Dictionary<string, Type> _allTypes;
@@ -159,14 +161,14 @@ namespace LFramework.Runtime
             Assembly mainLogicAssembly = null;
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
             {
-                if (string.Compare(GameSetting.hybridClrSetting.logicMainDllName, asm.GetName().Name,
+                if (string.Compare(HybridClrSetting.logicMainDllName, asm.GetName().Name,
                         StringComparison.Ordinal) == 0)
                 {
                     mainLogicAssembly = asm;
                 }
 
                 foreach (var hotUpdateDllName in
-                         GameSetting.hybridClrSetting.hotfixAssembliesSort.Where(hotUpdateDllName =>
+                         HybridClrSetting.hotfixAssembliesSort.Where(hotUpdateDllName =>
                              hotUpdateDllName == asm.GetName().Name))
                 {
                     _hotfixAssemblies.Add(asm);

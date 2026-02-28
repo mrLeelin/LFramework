@@ -31,8 +31,8 @@ namespace LFramework.Editor.Builder.BuildingResource
                 throw new Exception("[AddressableBuildSystem] AddressableAssetSettings not found!");
             }
 
-            // 使用 GameSettingProvider 获取 GameSetting
-            var gameSetting = GameSettingProvider.GetGameSetting();
+            // 使用 SettingManager 获取 GameSetting
+            var gameSetting = SettingManager.GetSetting<HybridCLRSetting>();
             if (gameSetting == null)
             {
                 throw new Exception("[AddressableBuildSystem] GameSetting not found in project!");
@@ -45,7 +45,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 内部构建方法
         /// </summary>
-        private void BuildInternal(BuildSetting buildResourcesData, AddressableAssetSettings settings, GameSetting gameSetting)
+        private void BuildInternal(BuildSetting buildResourcesData, AddressableAssetSettings settings, HybridCLRSetting gameSetting)
         {
             if (buildResourcesData.isResourcesBuildIn)
             {

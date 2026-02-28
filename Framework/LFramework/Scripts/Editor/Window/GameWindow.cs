@@ -65,6 +65,11 @@ namespace LFramework.Editor.Window
             {
                 { "Home", this, EditorIcons.House },
             };
+            
+            //All Component Setting
+            AddAllAssetsAtType<ComponentSetting>(tree, "Framework Setting")
+                .AddIcons(EditorIcons.SettingsCog);
+            
 
             // Framework Profiled 子菜单
             tree.Add("Framework Profiled", null, EditorIcons.Car);
@@ -79,13 +84,26 @@ namespace LFramework.Editor.Window
                     tree.AddObjectAtPath("Framework Profiled/" + name, profiled);
                 }
             }
+            
 
-            AddAllAssetsAtType<ComponentSetting>(tree, "Framework Setting")
+            // Setting Selector - 新的配置管理系统
+            AddAllAssetsAtType<SettingSelector>(tree, "Game Setting/Setting Selector")
                 .AddIcons(EditorIcons.SettingsCog);
+
+            // 所有 GameSetting 实例
+            AddAllAssetsAtType<GameSetting>(tree, "Game Setting/GameSettings")
+                .AddIcons(EditorIcons.SettingsCog);
+
+            // 所有 iOSSetting 实例
+            AddAllAssetsAtType<iOSSetting>(tree, "Game Setting/iOSSettings")
+                .AddIcons(EditorIcons.SettingsCog);
+
+            // 所有 AndroidSetting 实例
+            AddAllAssetsAtType<AndroidSetting>(tree, "Game Setting/AndroidSettings")
+                .AddIcons(EditorIcons.SettingsCog);
+
             AddAllAssetsAtType<HybridCLRSetting>(tree, "Game Setting").AddIcons(EditorIcons.SettingsCog);
             //AddAllAssetsAtType<LubanExportConfig>(tree, "Game Setting").AddIcons(EditorIcons.SettingsCog);
-            AddGameSetting(tree)?.AddIcon(EditorIcons.SettingsCog);
-            //AddAllAssetsAtType<GameSetting>(tree, "Game Setting").AddIcons(EditorIcons.SettingsCog);
 
             tree.Add("打包", null, EditorIcons.Airplane);
             tree.AddObjectAtPath("打包/打包资源", new BuildResourcesData()).AddIcon(EditorIcons.SettingsCog);
@@ -195,17 +213,6 @@ namespace LFramework.Editor.Window
             }
         }
 
-        private static IEnumerable<OdinMenuItem> AddGameSetting(OdinMenuTree tree)
-        {
-            var gameSetting = GameSettingProvider.GetGameSetting();
-
-            if (gameSetting == null)
-            {
-                return null;
-            }
-
-            return tree.AddObjectAtPath("Game Setting/GameSetting", gameSetting);
-        }
         
 
         private static IEnumerable<OdinMenuItem> AddAllAssetsAtType<T>(OdinMenuTree tree, string menuPath)

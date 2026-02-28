@@ -36,23 +36,31 @@ namespace LFramework.Runtime
         {
             base.RegisterSetting();
 
-            // 从 BaseComponentSetting 获取 GameSetting
-            var baseComponentSetting = allSettings.OfType<BaseComponentSetting>().FirstOrDefault();
-            if (baseComponentSetting == null)
+            // 使用 SettingManager 获取 SettingSelector
+            var selector = SettingManager.GetSelector();
+            if (selector == null)
             {
-                Log.Fatal("BaseComponentSetting not found in allSettings!");
+                Log.Fatal("SettingSelector not found! Please create a SettingSelector asset.");
                 return;
             }
 
-            var gameSetting = baseComponentSetting.GameSetting;
+            // 自动绑定所有 Setting 到 DI 容器
+            var allSettingsFromSelector = selector.GetAllSettings();
+            foreach (var setting in allSettingsFromSelector)
+            {
+                if (setting == null) continue;
+
+                var settingType = setting.GetType();
+                DiContainer.Bind(settingType).FromInstance(setting).AsSingle();
+                Log.Info($"[LSystemApplicationBehaviour] {settingType.Name} bound to DI: {setting.name}");
+            }
+
+            // 验证 GameSetting 是否存在
+            var gameSetting = SettingManager.GetSetting<GameSetting>();
             if (gameSetting == null)
             {
-                Log.Fatal("GameSetting is null in BaseComponentSetting! Please assign it in the inspector.");
-                return;
+                Log.Fatal("GameSetting not found in SettingSelector! Please assign it.");
             }
-
-            DiContainer.Bind<GameSetting>().FromInstance(gameSetting).AsSingle();
-            Log.Info($"[LSystemApplicationBehaviour] GameSetting bound to DI: {gameSetting.name}");
         }
 
         protected override void RegisterComponents()
