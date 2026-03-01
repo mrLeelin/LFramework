@@ -104,7 +104,12 @@ namespace GameFramework.Resource
         {
             if (_resourceHelper == null)
                 throw new GameFrameworkException("Resource helper is not set.");
-            _resourceHelper.InitializeResources((result) => callback?.Invoke(result));
+
+            var initCallBack = new ResourceInitCallBack(
+                () => callback?.Invoke(),
+                (errorMessage) => GameFrameworkLog.Error(errorMessage)
+            );
+            _resourceHelper.InitializeResources(initCallBack);
         }
 
         /// <summary>
