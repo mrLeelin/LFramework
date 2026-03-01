@@ -1,44 +1,31 @@
-﻿//------------------------------------------------------------
-// Game Framework
-// Copyright © 2013-2021 Jiang Yin. All rights reserved.
-// Homepage: https://gameframework.cn/
-// Feedback: mailto:ellan@gameframework.cn
-//------------------------------------------------------------
-
-using GameFramework.Resource;
 using UnityEngine;
 
 namespace UnityGameFramework.Runtime
 {
     /// <summary>
-    /// 资源辅助器基类。
+    /// 资源辅助器基类
     /// </summary>
-    public abstract class ResourceHelperBase : MonoBehaviour, IResourceHelper
+    public abstract class ResourceHelperBase : MonoBehaviour, GameFramework.Resource.IResourceHelper
     {
         /// <summary>
-        /// 直接从指定文件路径加载数据流。
+        /// 初始化资源系统
         /// </summary>
-        /// <param name="fileUri">文件路径。</param>
-        /// <param name="loadBytesCallbacks">加载数据流回调函数集。</param>
-        /// <param name="userData">用户自定义数据。</param>
-        public abstract void LoadBytes(string fileUri, LoadBytesCallbacks loadBytesCallbacks, object userData);
+        public abstract void InitializeResources(GameFramework.Resource.ResourceInitCallBack callback);
 
         /// <summary>
-        /// 卸载场景。
+        /// 检查资源是否存在
         /// </summary>
-        /// <param name="sceneAssetName">场景资源名称。</param>
-        /// <param name="unloadSceneCallbacks">卸载场景回调函数集。</param>
-        /// <param name="userData">用户自定义数据。</param>
-        public abstract void UnloadScene(string sceneAssetName, UnloadSceneCallbacks unloadSceneCallbacks,
-            object userData);
+        public abstract GameFramework.Resource.HasAssetResult HasAsset(string assetName);
 
         /// <summary>
-        /// 释放资源。
+        /// 释放资源
         /// </summary>
-        /// <param name="objectToRelease">要释放的资源。</param>
-        public abstract void Release(object objectToRelease);
+        public abstract void Release(object asset);
 
-        public abstract void InitializeResources(ResourceInitCallBack resourceInitCallBack);
-        public abstract HasAssetResult HasAssets(string fileUrl);
+        /// <summary>
+        /// 卸载场景
+        /// </summary>
+        public abstract void UnloadScene(string sceneAssetName,
+            GameFramework.Resource.UnloadSceneCallbacks callbacks, object userData);
     }
 }

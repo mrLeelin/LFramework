@@ -1,99 +1,47 @@
-﻿//------------------------------------------------------------
-// Game Framework
-// Copyright © 2013-2021 Jiang Yin. All rights reserved.
-// Homepage: https://gameframework.cn/
-// Feedback: mailto:ellan@gameframework.cn
-//------------------------------------------------------------
-
-using GameFramework.FileSystem;
 using System;
 
 namespace GameFramework.Resource
 {
     /// <summary>
-    /// 加载资源代理辅助器接口。
+    /// 加载资源代理辅助器接口
     /// </summary>
     public interface ILoadResourceAgentHelper
     {
         /// <summary>
-        /// 加载资源代理辅助器异步加载资源更新事件。
+        /// 获取代理是否繁忙
         /// </summary>
-        event EventHandler<LoadResourceAgentHelperUpdateEventArgs> LoadResourceAgentHelperUpdate;
+        bool IsBusy { get; }
 
         /// <summary>
-        /// 加载资源代理辅助器异步读取资源文件完成事件。
+        /// 加载资源
         /// </summary>
-        event EventHandler<LoadResourceAgentHelperReadFileCompleteEventArgs> LoadResourceAgentHelperReadFileComplete;
+        /// <param name="assetName">资源名称</param>
+        /// <param name="assetType">资源类型</param>
+        /// <param name="callbacks">加载资源回调</param>
+        /// <param name="userData">用户自定义数据</param>
+        void LoadAsset(string assetName, Type assetType,
+                       LoadAssetCallbacks callbacks, object userData);
 
         /// <summary>
-        /// 加载资源代理辅助器异步读取资源二进制流完成事件。
+        /// 加载场景
         /// </summary>
-        event EventHandler<LoadResourceAgentHelperReadBytesCompleteEventArgs> LoadResourceAgentHelperReadBytesComplete;
+        /// <param name="sceneAssetName">场景资源名称</param>
+        /// <param name="callbacks">加载场景回调</param>
+        /// <param name="userData">用户自定义数据</param>
+        void LoadScene(string sceneAssetName,
+                       LoadSceneCallbacks callbacks, object userData);
 
         /// <summary>
-        /// 加载资源代理辅助器异步将资源二进制流转换为加载对象完成事件。
+        /// 加载二进制/原始文件
         /// </summary>
-        event EventHandler<LoadResourceAgentHelperParseBytesCompleteEventArgs> LoadResourceAgentHelperParseBytesComplete;
+        /// <param name="binaryAssetName">二进制资源名称</param>
+        /// <param name="callbacks">加载二进制回调</param>
+        /// <param name="userData">用户自定义数据</param>
+        void LoadBinary(string binaryAssetName,
+                        LoadBinaryCallbacks callbacks, object userData);
 
         /// <summary>
-        /// 加载资源代理辅助器异步加载资源完成事件。
-        /// </summary>
-        event EventHandler<LoadResourceAgentHelperLoadCompleteEventArgs> LoadResourceAgentHelperLoadComplete;
-
-        /// <summary>
-        /// 加载资源代理辅助器错误事件。
-        /// </summary>
-        event EventHandler<LoadResourceAgentHelperErrorEventArgs> LoadResourceAgentHelperError;
-
-        /// <summary>
-        /// 通过加载资源代理辅助器开始异步读取资源文件。
-        /// </summary>
-        /// <param name="fullPath">要加载资源的完整路径名。</param>
-        void ReadFile(string fullPath);
-
-        /// <summary>
-        /// 通过加载资源代理辅助器开始异步读取资源文件。
-        /// </summary>
-        /// <param name="fileSystem">要加载资源的文件系统。</param>
-        /// <param name="name">要加载资源的名称。</param>
-        void ReadFile(IFileSystem fileSystem, string name);
-
-        /// <summary>
-        /// 通过加载资源代理辅助器开始异步读取资源二进制流。
-        /// </summary>
-        /// <param name="fullPath">要加载资源的完整路径名。</param>
-        void ReadBytes(string fullPath);
-
-        /// <summary>
-        /// 通过加载资源代理辅助器开始异步读取资源二进制流。
-        /// </summary>
-        /// <param name="fileSystem">要加载资源的文件系统。</param>
-        /// <param name="name">要加载资源的名称。</param>
-        void ReadBytes(IFileSystem fileSystem, string name);
-
-        /// <summary>
-        /// 通过加载资源代理辅助器开始异步将资源二进制流转换为加载对象。
-        /// </summary>
-        /// <param name="bytes">要加载资源的二进制流。</param>
-        void ParseBytes(byte[] bytes);
-
-        /// <summary>
-        /// 通过加载资源代理辅助器开始异步加载资源。
-        /// </summary>
-        /// <param name="resource">资源。</param>
-        /// <param name="assetName">要加载的资源名称。</param>
-        /// <param name="assetType">要加载资源的类型。</param>
-        /// <param name="isScene">要加载的资源是否是场景。</param>
-        void LoadAsset(object resource, string assetName, Type assetType, bool isScene);
-        
-        /// <summary>
-        /// 实例化一个资源
-        /// </summary>
-        /// <param name="assetName"></param>
-        void InstantiateAsset(string assetName);
-
-        /// <summary>
-        /// 重置加载资源代理辅助器。
+        /// 重置代理状态
         /// </summary>
         void Reset();
     }
