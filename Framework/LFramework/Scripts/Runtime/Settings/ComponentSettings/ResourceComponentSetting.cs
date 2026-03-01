@@ -1,4 +1,4 @@
-﻿
+
 using GameFramework.Resource;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -6,74 +6,220 @@ using UnityGameFramework.Runtime;
 
 namespace LFramework.Runtime.Settings
 {
-    
+    /// <summary>
+    /// 资源组件配置，支持 Addressable 和 YooAsset 两种资源模式的隔离配置
+    /// </summary>
     [CreateAssetMenu(order = 1, fileName = "ResourceComponentSetting",
         menuName = "LFramework/Settings/ResourceComponentSetting")]
     public class ResourceComponentSetting : ComponentSetting
     {
-        
-        [SerializeField]
-        private ResourceMode m_ResourceMode = ResourceMode.Package;
+        #region 通用设置
 
+        /// <summary>
+        /// 资源模式
+        /// </summary>
+        [BoxGroup("通用设置")]
+        [LabelText("资源模式")]
         [SerializeField]
-        private ReadWritePathType m_ReadWritePathType = ReadWritePathType.Unspecified;
+        private ResourceMode _resourceMode = ResourceMode.Unspecified;
 
+        /// <summary>
+        /// 资源辅助器类型名称
+        /// </summary>
+        [BoxGroup("通用设置")]
+        [LabelText("资源辅助器类型名称")]
         [SerializeField]
-        private float m_MinUnloadUnusedAssetsInterval = 60f;
+        private string _resourceHelperTypeName = "UnityGameFramework.Runtime.AddressableResourceHelper";
 
+        /// <summary>
+        /// 自定义资源辅助器
+        /// </summary>
+        [BoxGroup("通用设置")]
+        [LabelText("自定义资源辅助器")]
         [SerializeField]
-        private float m_MaxUnloadUnusedAssetsInterval = 300f;
+        private ResourceHelperBase _customResourceHelper = null;
 
+        /// <summary>
+        /// 加载资源代理辅助器类型名称
+        /// </summary>
+        [BoxGroup("通用设置")]
+        [LabelText("加载资源代理辅助器类型名称")]
         [SerializeField]
-        private float m_AssetAutoReleaseInterval = 60f;
+        private string _loadResourceAgentHelperTypeName = "UnityGameFramework.Runtime.AddressableLoadResourceAgentHelper";
 
+        /// <summary>
+        /// 自定义加载资源代理辅助器
+        /// </summary>
+        [BoxGroup("通用设置")]
+        [LabelText("自定义加载资源代理辅助器")]
         [SerializeField]
-        private int m_AssetCapacity = 64;
+        private LoadResourceAgentHelperBase _customLoadResourceAgentHelper = null;
 
+        /// <summary>
+        /// 加载资源代理辅助器数量，取值范围 1-16
+        /// </summary>
+        [BoxGroup("通用设置")]
+        [LabelText("加载资源代理辅助器数量")]
+        [Range(1, 16)]
         [SerializeField]
-        private float m_AssetExpireTime = 60f;
+        private int _loadResourceAgentHelperCount = 3;
 
-        [SerializeField]
-        private int m_AssetPriority = 0;
+        #endregion
 
-        [SerializeField]
-        private float m_ResourceAutoReleaseInterval = 60f;
+        #region 资源释放
 
+        /// <summary>
+        /// 最小卸载未使用资源间隔（秒）
+        /// </summary>
+        [BoxGroup("资源释放")]
+        [LabelText("最小卸载间隔（秒）")]
         [SerializeField]
-        private int m_ResourceCapacity = 16;
+        private float _minUnloadInterval = 60f;
 
+        /// <summary>
+        /// 最大卸载未使用资源间隔（秒）
+        /// </summary>
+        [BoxGroup("资源释放")]
+        [LabelText("最大卸载间隔（秒）")]
         [SerializeField]
-        private float m_ResourceExpireTime = 60f;
+        private float _maxUnloadInterval = 300f;
 
-        [SerializeField]
-        private int m_ResourcePriority = 0;
+        #endregion
 
-        [SerializeField]
-        private string m_UpdatePrefixUri = null;
+        #region Addressable 设置
 
+        /// <summary>
+        /// Addressable 是否自动初始化
+        /// </summary>
+        [BoxGroup("Addressable 设置")]
+        [LabelText("自动初始化")]
+        [ShowIf("_resourceMode", ResourceMode.Addressable)]
         [SerializeField]
-        private int m_GenerateReadWriteVersionListLength = 1024 * 1024;
-        
-        [SerializeField]
-        private int m_UpdateRetryCount = 3;
+        private bool _addressableAutoInitialize = true;
 
+        /// <summary>
+        /// Addressable 远程目录 URL
+        /// </summary>
+        [BoxGroup("Addressable 设置")]
+        [LabelText("远程目录 URL")]
+        [ShowIf("_resourceMode", ResourceMode.Addressable)]
         [SerializeField]
-        private Transform m_InstanceRoot = null;
+        private string _addressableRemoteCatalogUrl = string.Empty;
 
-        [SerializeField]
-        private string m_ResourceHelperTypeName = "UnityGameFramework.Runtime.DefaultResourceHelper";
+        #endregion
 
-        [SerializeField]
-        private ResourceHelperBase m_CustomResourceHelper = null;
+        #region YooAsset 设置
 
+        /// <summary>
+        /// YooAsset 资源包名称
+        /// </summary>
+        [BoxGroup("YooAsset 设置")]
+        [LabelText("资源包名称")]
+        [ShowIf("_resourceMode", ResourceMode.YooAsset)]
         [SerializeField]
-        private string m_LoadResourceAgentHelperTypeName = "UnityGameFramework.Runtime.DefaultLoadResourceAgentHelper";
+        private string _yooAssetPackageName = "DefaultPackage";
 
+        /// <summary>
+        /// YooAsset 运行模式
+        /// </summary>
+        [BoxGroup("YooAsset 设置")]
+        [LabelText("运行模式")]
+        [ShowIf("_resourceMode", ResourceMode.YooAsset)]
         [SerializeField]
-        private LoadResourceAgentHelperBase m_CustomLoadResourceAgentHelper = null;
+        private YooAssetPlayMode _yooAssetPlayMode = YooAssetPlayMode.EditorSimulateMode;
 
+        /// <summary>
+        /// YooAsset 主机服务器 URL
+        /// </summary>
+        [BoxGroup("YooAsset 设置")]
+        [LabelText("主机服务器 URL")]
+        [ShowIf("_resourceMode", ResourceMode.YooAsset)]
         [SerializeField]
-        private int m_LoadResourceAgentHelperCount = 3;
-        
+        private string _yooAssetHostServerUrl = string.Empty;
+
+        /// <summary>
+        /// YooAsset 备用主机服务器 URL
+        /// </summary>
+        [BoxGroup("YooAsset 设置")]
+        [LabelText("备用主机服务器 URL")]
+        [ShowIf("_resourceMode", ResourceMode.YooAsset)]
+        [SerializeField]
+        private string _yooAssetFallbackHostServerUrl = string.Empty;
+
+        #endregion
+
+        #region 公共属性
+
+        /// <summary>
+        /// 获取资源模式
+        /// </summary>
+        public ResourceMode ResourceMode => _resourceMode;
+
+        /// <summary>
+        /// 获取资源辅助器类型名称
+        /// </summary>
+        public string ResourceHelperTypeName => _resourceHelperTypeName;
+
+        /// <summary>
+        /// 获取自定义资源辅助器
+        /// </summary>
+        public ResourceHelperBase CustomResourceHelper => _customResourceHelper;
+
+        /// <summary>
+        /// 获取加载资源代理辅助器类型名称
+        /// </summary>
+        public string LoadResourceAgentHelperTypeName => _loadResourceAgentHelperTypeName;
+
+        /// <summary>
+        /// 获取自定义加载资源代理辅助器
+        /// </summary>
+        public LoadResourceAgentHelperBase CustomLoadResourceAgentHelper => _customLoadResourceAgentHelper;
+
+        /// <summary>
+        /// 获取加载资源代理辅助器数量
+        /// </summary>
+        public int LoadResourceAgentHelperCount => _loadResourceAgentHelperCount;
+
+        /// <summary>
+        /// 获取最小卸载间隔（秒）
+        /// </summary>
+        public float MinUnloadInterval => _minUnloadInterval;
+
+        /// <summary>
+        /// 获取最大卸载间隔（秒）
+        /// </summary>
+        public float MaxUnloadInterval => _maxUnloadInterval;
+
+        /// <summary>
+        /// 获取 Addressable 是否自动初始化
+        /// </summary>
+        public bool AddressableAutoInitialize => _addressableAutoInitialize;
+
+        /// <summary>
+        /// 获取 Addressable 远程目录 URL
+        /// </summary>
+        public string AddressableRemoteCatalogUrl => _addressableRemoteCatalogUrl;
+
+        /// <summary>
+        /// 获取 YooAsset 资源包名称
+        /// </summary>
+        public string YooAssetPackageName => _yooAssetPackageName;
+
+        /// <summary>
+        /// 获取 YooAsset 运行模式
+        /// </summary>
+        public YooAssetPlayMode YooAssetPlayMode => _yooAssetPlayMode;
+
+        /// <summary>
+        /// 获取 YooAsset 主机服务器 URL
+        /// </summary>
+        public string YooAssetHostServerUrl => _yooAssetHostServerUrl;
+
+        /// <summary>
+        /// 获取 YooAsset 备用主机服务器 URL
+        /// </summary>
+        public string YooAssetFallbackHostServerUrl => _yooAssetFallbackHostServerUrl;
+
+        #endregion
     }
 }
