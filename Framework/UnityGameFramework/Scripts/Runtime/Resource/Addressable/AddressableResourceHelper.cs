@@ -1,86 +1,79 @@
-using System.Collections;
-using System.Collections.Generic;
 using GameFramework.Resource;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
-using UnityEngine.ResourceManagement.ResourceProviders;
+using UnityEngine.SceneManagement;
 
 namespace UnityGameFramework.Runtime
 {
+    /// <summary>
+    /// Addressable 资源辅助器（平台初始化 + 查询）
+    /// </summary>
     public class AddressableResourceHelper : ResourceHelperBase
     {
-        public override void LoadBytes(string fileUri, LoadBytesCallbacks loadBytesCallbacks, object userData)
+        /// <summary>
+        /// 初始化资源系统
+        /// </summary>
+        public override void InitializeResources(ResourceInitCallBack callback)
         {
-            throw new System.NotImplementedException();
-        }
-
-        public override void UnloadScene(string sceneAssetName, UnloadSceneCallbacks unloadSceneCallbacks,
-            object userData)
-        {
-            var sceneInstance = (SceneInstance)userData;
-            Addressables.UnloadSceneAsync(sceneInstance, true).Completed += (x) =>
+            var handle = Addressables.InitializeAsync();
+            handle.Completed += (op) =>
             {
-                if (x.Status == AsyncOperationStatus.Succeeded)
+                if (op.Status == AsyncOperationStatus.Succeeded)
                 {
-                    unloadSceneCallbacks.UnloadSceneSuccessCallback(sceneAssetName, userData);
+                    callback.ResourceInitSuccessCallBack?.Invoke();
                 }
                 else
                 {
-                    unloadSceneCallbacks.UnloadSceneFailureCallback(sceneAssetName, x.OperationException.Message);
+                    callback.ResourceInitFailureCallBack?.Invoke(
+                        op.OperationException?.Message ?? "Addressable initialization failed.");
                 }
             };
         }
 
-        public override void Release(object objectToRelease)
+        /// <summary>
+        /// 检查资源是否存在
+        /// </summary>
+        public override HasAssetResult HasAsset(string assetName)
         {
-            if (objectToRelease is AsyncOperationHandle asyncOperationHandle)
-            {
-                Addressables.Release(asyncOperationHandle);
-                return;
-            }
-
-            if (objectToRelease is GameObject go)
-            {
-                if (!Addressables.ReleaseInstance(go))
-                {
-                    Log.Error("Release instance failed");
-                }
-
-                return;
-            }
-
-            if (objectToRelease is AsyncOperationHandle<GameObject> asyncOperation)
-            {
-                if (!Addressables.ReleaseInstance(asyncOperation))
-                {
-                    Log.Error("Release instance failed");
-                }
-
-                return;
-            }
-
-            Addressables.Release(objectToRelease);
+            return HasAssetResult.Exist;
         }
 
-        public override void InitializeResources(ResourceInitCallBack resourceInitCallBack)
+        /// <summary>
+        /// 释放资源
+        /// </summary>
+        public override void Release(object asset)
         {
-            Addressables.InitializeAsync(true).Completed += (x) =>
+            if (asset is AsyncOperationHandle handle)
             {
-                if (x.Status == AsyncOperationStatus.Succeeded)
-                {
-                    resourceInitCallBack.ResourceInitSuccessCallBack();
-                }
-                else
-                {
-                    resourceInitCallBack.ResourceInitFailureCallBack(x.OperationException.Message);
-                }
+                Addressables.Release(handle);
+            }
+            else if (asset is GameObject go)
+            {
+                Addressables.ReleaseInstance(go);
+            }
+            else
+            {
+                Addressables.Release(asset);
+            }
+        }
+
+        /// <summary>
+        /// 卸载场景
+        /// </summary>
+        public override void UnloadScene(string sceneAssetName,
+            UnloadSceneCallbacks callbacks, object userData)
+        {
+            var op = SceneManager.UnloadSceneAsync(sceneAssetName);
+            if (op == null)
+            {
+                callbacks.UnloadSceneFailureCallback?.Invoke(sceneAssetName, userData);
+                return;
+            }
+            op.completed += (_) =>
+            {
+                callbacks.UnloadSceneSuccessCallback?.Invoke(sceneAssetName, userData);
             };
-        }
-
-        public override HasAssetResult HasAssets(string fileUrl)
-        {
-            return HasAssetResult.Addressable;
         }
     }
 }
