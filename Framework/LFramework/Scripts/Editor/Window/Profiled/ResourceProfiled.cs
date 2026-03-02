@@ -19,8 +19,6 @@ namespace LFramework.Editor.Window
 
             EditorGUILayout.LabelField("Resource Mode", _resourceComponent.ResourceMode.ToString());
             EditorGUILayout.LabelField("Resource Helper", _resourceComponent.ResourceHelperTypeName ?? "N/A");
-            EditorGUILayout.LabelField("Agent Helper", _resourceComponent.LoadResourceAgentHelperTypeName ?? "N/A");
-            EditorGUILayout.LabelField("Agent Helper Count", _resourceComponent.LoadResourceAgentHelperCount.ToString());
             EditorGUILayout.LabelField("Min Unload Interval", $"{_resourceComponent.MinUnloadInterval:F1}s");
             EditorGUILayout.LabelField("Max Unload Interval", $"{_resourceComponent.MaxUnloadInterval:F1}s");
 

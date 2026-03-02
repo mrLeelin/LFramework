@@ -39,31 +39,6 @@ namespace LFramework.Runtime.Settings
         [SerializeField]
         private ResourceHelperBase _customResourceHelper = null;
 
-        /// <summary>
-        /// 加载资源代理辅助器类型名称
-        /// </summary>
-        [BoxGroup("通用设置")]
-        [LabelText("加载资源代理辅助器类型名称")]
-        [SerializeField]
-        private string _loadResourceAgentHelperTypeName = "UnityGameFramework.Runtime.AddressableLoadResourceAgentHelper";
-
-        /// <summary>
-        /// 自定义加载资源代理辅助器
-        /// </summary>
-        [BoxGroup("通用设置")]
-        [LabelText("自定义加载资源代理辅助器")]
-        [SerializeField]
-        private LoadResourceAgentHelperBase _customLoadResourceAgentHelper = null;
-
-        /// <summary>
-        /// 加载资源代理辅助器数量，取值范围 1-16
-        /// </summary>
-        [BoxGroup("通用设置")]
-        [LabelText("加载资源代理辅助器数量")]
-        [Range(1, 16)]
-        [SerializeField]
-        private int _loadResourceAgentHelperCount = 3;
-
         #endregion
 
         #region 资源释放
@@ -164,21 +139,6 @@ namespace LFramework.Runtime.Settings
         /// 获取自定义资源辅助器
         /// </summary>
         public ResourceHelperBase CustomResourceHelper => _customResourceHelper;
-
-        /// <summary>
-        /// 获取加载资源代理辅助器类型名称
-        /// </summary>
-        public string LoadResourceAgentHelperTypeName => _loadResourceAgentHelperTypeName;
-
-        /// <summary>
-        /// 获取自定义加载资源代理辅助器
-        /// </summary>
-        public LoadResourceAgentHelperBase CustomLoadResourceAgentHelper => _customLoadResourceAgentHelper;
-
-        /// <summary>
-        /// 获取加载资源代理辅助器数量
-        /// </summary>
-        public int LoadResourceAgentHelperCount => _loadResourceAgentHelperCount;
 
         /// <summary>
         /// 获取最小卸载间隔（秒）
