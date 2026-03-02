@@ -8,6 +8,7 @@
 using GameFramework.Resource;
 using System;
 using System.Collections.Generic;
+using GameFramework.DataProvider;
 
 namespace GameFramework.Scene
 {

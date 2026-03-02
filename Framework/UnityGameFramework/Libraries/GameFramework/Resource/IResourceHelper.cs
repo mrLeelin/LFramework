@@ -1,3 +1,5 @@
+using System;
+
 namespace GameFramework.Resource
 {
     /// <summary>

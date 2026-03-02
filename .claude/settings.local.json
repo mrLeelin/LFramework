@@ -13,7 +13,9 @@
       "Bash(git status:*)",
       "Bash(git remote:*)",
       "Bash(git push:*)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "mcp__coplay_mcp__check_compile_errors",
+      "mcp__coplay_mcp__set_unity_project_root"
     ]
   }
 }

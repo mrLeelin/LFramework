@@ -7,6 +7,7 @@
 
 using GameFramework.Resource;
 using System;
+using GameFramework.DataProvider;
 
 namespace GameFramework
 {

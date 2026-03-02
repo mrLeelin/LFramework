@@ -92,7 +92,7 @@ namespace LFramework.Runtime
             }
 
             m_SpriteCollectionBeingLoaded.Add(setSpriteObject.CollectionPath);
-            m_ResourceComponent.LoadAsset(setSpriteObject.CollectionPath, typeof(SpriteCollection),
+            m_ResourceComponent.LoadAsset(setSpriteObject.CollectionPath, typeof(SpriteCollection),0,
                 m_LoadAssetCallbacks, setSpriteObject);
         }
 
