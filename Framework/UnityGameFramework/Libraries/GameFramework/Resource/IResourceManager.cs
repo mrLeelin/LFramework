@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace GameFramework.Resource
 {
@@ -43,11 +43,6 @@ namespace GameFramework.Resource
         void SetResourceHelper(IResourceHelper resourceHelper);
 
         /// <summary>
-        /// 添加加载资源代理辅助器
-        /// </summary>
-        void AddLoadResourceAgentHelper(ILoadResourceAgentHelper agentHelper);
-
-        /// <summary>
         /// 初始化资源
         /// </summary>
         void InitResources(InitResourcesCompleteCallback callback);
@@ -87,8 +82,9 @@ namespace GameFramework.Resource
                         LoadBinaryCallbacks callbacks, object userData);
 
         /// <summary>
-        /// 关闭资源管理器
+        /// 实例化资源
         /// </summary>
-        void Shutdown();
+        void InstantiateAsset(string assetName, int priority,
+                              LoadAssetCallbacks callbacks, object userData);
     }
 }
