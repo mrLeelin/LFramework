@@ -75,5 +75,97 @@ namespace UnityGameFramework.Runtime
                 callbacks.UnloadSceneSuccessCallback?.Invoke(sceneAssetName, userData);
             };
         }
+
+        /// <summary>
+        /// 加载资源
+        /// </summary>
+        public override void LoadAsset(string assetName, System.Type assetType,
+            LoadAssetCallbacks callbacks, object userData)
+        {
+            var handle = Addressables.LoadAssetAsync<object>(assetName);
+            handle.Completed += (op) =>
+            {
+                if (op.Status == AsyncOperationStatus.Succeeded)
+                {
+                    callbacks.LoadAssetSuccessCallback?.Invoke(
+                        assetName, op.Result, 0f, userData);
+                }
+                else
+                {
+                    callbacks.LoadAssetFailureCallback?.Invoke(
+                        assetName, LoadResourceStatus.NotExist,
+                        op.OperationException?.Message ?? "Load failed.", userData);
+                }
+            };
+        }
+
+        /// <summary>
+        /// 加载场景
+        /// </summary>
+        public override void LoadScene(string sceneAssetName,
+            LoadSceneCallbacks callbacks, object userData)
+        {
+            var handle = Addressables.LoadSceneAsync(sceneAssetName);
+            handle.Completed += (op) =>
+            {
+                if (op.Status == AsyncOperationStatus.Succeeded)
+                {
+                    callbacks.LoadSceneSuccessCallback?.Invoke(
+                        sceneAssetName, 0f, userData);
+                }
+                else
+                {
+                    callbacks.LoadSceneFailureCallback?.Invoke(
+                        sceneAssetName, LoadResourceStatus.NotExist,
+                        op.OperationException?.Message ?? "Load scene failed.", userData);
+                }
+            };
+        }
+
+        /// <summary>
+        /// 加载二进制/原始文件
+        /// </summary>
+        public override void LoadBinary(string binaryAssetName,
+            LoadBinaryCallbacks callbacks, object userData)
+        {
+            var handle = Addressables.LoadAssetAsync<TextAsset>(binaryAssetName);
+            handle.Completed += (op) =>
+            {
+                if (op.Status == AsyncOperationStatus.Succeeded)
+                {
+                    callbacks.LoadBinarySuccessCallback?.Invoke(
+                        binaryAssetName, op.Result.bytes, 0f, userData);
+                }
+                else
+                {
+                    callbacks.LoadBinaryFailureCallback?.Invoke(
+                        binaryAssetName, LoadResourceStatus.NotExist,
+                        op.OperationException?.Message ?? "Load binary failed.", userData);
+                }
+            };
+        }
+
+        /// <summary>
+        /// 实例化资源
+        /// </summary>
+        public override void InstantiateAsset(string assetName,
+            LoadAssetCallbacks callbacks, object userData)
+        {
+            var handle = Addressables.InstantiateAsync(assetName);
+            handle.Completed += (op) =>
+            {
+                if (op.Status == AsyncOperationStatus.Succeeded)
+                {
+                    callbacks.LoadAssetSuccessCallback?.Invoke(
+                        assetName, op.Result, 0f, userData);
+                }
+                else
+                {
+                    callbacks.LoadAssetFailureCallback?.Invoke(
+                        assetName, LoadResourceStatus.NotExist,
+                        op.OperationException?.Message ?? "Instantiate failed.", userData);
+                }
+            };
+        }
     }
 }
