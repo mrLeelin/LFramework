@@ -1,8 +1,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using LFramework.Runtime;
+using LFramework.Runtime.Settings;
 using Sirenix.OdinInspector;
+using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEngine;
 using UnityGameFramework.Runtime;
@@ -49,6 +52,7 @@ namespace LFramework.Editor.Builder
         [Button("打包")]
         public void Build()
         {
+            
             var setting = new BuildSetting()
             {
                 builderTarget = BuilderTarget,

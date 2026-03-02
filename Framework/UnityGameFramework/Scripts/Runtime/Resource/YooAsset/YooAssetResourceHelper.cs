@@ -77,10 +77,8 @@ namespace UnityGameFramework.Runtime
                 callbacks.UnloadSceneFailureCallback?.Invoke(sceneAssetName, userData);
                 return;
             }
-            op.completed += (_) =>
-            {
-                callbacks.UnloadSceneSuccessCallback?.Invoke(sceneAssetName, userData);
-            };
+
+            op.completed += (_) => { callbacks.UnloadSceneSuccessCallback?.Invoke(sceneAssetName, userData); };
         }
 
         /// <summary>
@@ -191,23 +189,54 @@ namespace UnityGameFramework.Runtime
             switch (PlayMode)
             {
                 case YooAssetPlayMode.EditorSimulateMode:
-                    var simulateParams = new EditorSimulateModeParameters();
-                    initOperation = package.InitializeAsync(simulateParams);
+                {
+                    var buildResult = EditorSimulateModeHelper.SimulateBuild(PackageName);
+                    var packageRoot = buildResult.PackageRootDirectory;
+                    var createParameters = new EditorSimulateModeParameters();
+                    createParameters.EditorFileSystemParameters =
+                        FileSystemParameters.CreateDefaultEditorFileSystemParameters(packageRoot);
+                    initOperation = package.InitializeAsync(createParameters);
+                }
                     break;
-
                 case YooAssetPlayMode.OfflinePlayMode:
-                    var offlineParams = new OfflinePlayModeParameters();
-                    initOperation = package.InitializeAsync(offlineParams);
+                {
+                    var createParameters = new OfflinePlayModeParameters();
+                    createParameters.BuildinFileSystemParameters =
+                        FileSystemParameters.CreateDefaultBuildinFileSystemParameters();
+                    initOperation = package.InitializeAsync(createParameters);
+                }
                     break;
-
                 case YooAssetPlayMode.HostPlayMode:
-                    var hostParams = new HostPlayModeParameters();
-                    initOperation = package.InitializeAsync(hostParams);
+                {
+                    string defaultHostServer = "";//GetHostServerURL();
+                    string fallbackHostServer = "";// GetHostServerURL();
+                    IRemoteServices remoteServices = new RemoteServices(defaultHostServer, fallbackHostServer);
+                    var createParameters = new HostPlayModeParameters();
+                    createParameters.BuildinFileSystemParameters =
+                        FileSystemParameters.CreateDefaultBuildinFileSystemParameters();
+                    createParameters.CacheFileSystemParameters =
+                        FileSystemParameters.CreateDefaultCacheFileSystemParameters(remoteServices);
+                    initOperation = package.InitializeAsync(createParameters);
+                }
                     break;
-
                 case YooAssetPlayMode.WebPlayMode:
-                    var webParams = new WebPlayModeParameters();
-                    initOperation = package.InitializeAsync(webParams);
+                {
+#if UNITY_WEBGL && WEIXINMINIGAME && !UNITY_EDITOR
+                    var createParameters = new WebPlayModeParameters();
+			        string defaultHostServer = GetHostServerURL();
+                    string fallbackHostServer = GetHostServerURL();
+                    string packageRoot = $"{WeChatWASM.WX.env.USER_DATA_PATH}/__GAME_FILE_CACHE"; //注意：如果有子目录，请修改此处！
+                    IRemoteServices remoteServices = new RemoteServices(defaultHostServer, fallbackHostServer);
+                    createParameters.WebServerFileSystemParameters =
+                    WechatFileSystemCreater.CreateFileSystemParameters(packageRoot, remoteServices);
+                    initOperation = package.InitializeAsync(createParameters);
+#else
+                    var createParameters = new WebPlayModeParameters();
+                    createParameters.WebServerFileSystemParameters =
+                        FileSystemParameters.CreateDefaultWebServerFileSystemParameters();
+                    initOperation = package.InitializeAsync(createParameters);
+#endif
+                }
                     break;
             }
 

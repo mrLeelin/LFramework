@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
+using GameFramework.Resource;
 using LFramework.Editor.Builder;
 using LFramework.Editor.Builder.BuildingResource;
 using LFramework.Runtime;
@@ -23,7 +24,7 @@ namespace LFramework.Editor
         /// <summary>
         /// 资源系统类型（Addressable 或 YooAssets）
         /// </summary>
-        public ResourceSystemType resourceSystem = ResourceSystemType.Addressable;
+        public ResourceMode resourceSystem;
 
         /// <summary>
         /// 打包的目标

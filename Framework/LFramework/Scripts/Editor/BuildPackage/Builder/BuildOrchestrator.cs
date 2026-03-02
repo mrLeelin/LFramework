@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using LFramework.Editor.Builder.PlatformConfig;
 using LFramework.Editor.Builder.Pipeline;
 using LFramework.Editor.Builder.Pipeline.Pipelines;
 using LFramework.Runtime;
+using LFramework.Runtime.Settings;
+using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEngine;
 using UnityGameFramework.Runtime;
@@ -24,6 +27,7 @@ namespace LFramework.Editor.Builder
         {
             _buildSetting = buildSetting ?? throw new ArgumentNullException(nameof(buildSetting));
             _eventHandlers = eventHandlers ?? new List<IBuildEventHandler>();
+            SetResourceModel();
         }
 
         /// <summary>
@@ -81,10 +85,20 @@ namespace LFramework.Editor.Builder
 
                 case BuildType.ResourcesUpdate:
                     return new ResourceBuildPipeline();
-                
             }
 
             throw new Exception($"The SelectPipeline error. '{buildType}'");
+        }
+
+        private void SetResourceModel()
+        {
+            var resSetting = AssetUtilities.GetAllAssetsOfType<ResourceComponentSetting>().FirstOrDefault();
+            if (resSetting == null)
+            {
+                return;
+            }
+
+            _buildSetting.resourceSystem = resSetting.ResourceMode;
         }
 
         /// <summary>
@@ -98,9 +112,10 @@ namespace LFramework.Editor.Builder
                 Debug.LogError("[BuildOrchestrator] Failed to get build setting from command line.");
                 return;
             }
+
             var handlers = new List<IBuildEventHandler>();
             AppendBuilderDict(ref handlers);
-            var orchestrator = new BuildOrchestrator(buildSetting,handlers);
+            var orchestrator = new BuildOrchestrator(buildSetting, handlers);
             orchestrator.Build();
         }
 
@@ -108,11 +123,11 @@ namespace LFramework.Editor.Builder
         {
             var handlers = new List<IBuildEventHandler>();
             AppendBuilderDict(ref handlers);
-            var orchestrator = new BuildOrchestrator(buildSetting,handlers);
+            var orchestrator = new BuildOrchestrator(buildSetting, handlers);
             orchestrator.Build();
         }
 
-        
+
         /// <summary>
         /// 添加BuilderSourceType的字典
         /// </summary>
@@ -131,7 +146,7 @@ namespace LFramework.Editor.Builder
                 }
             }
         }
-        
+
 
         private static void TryAppendBuildHandler(Type type, ref List<IBuildEventHandler> handlers)
         {
@@ -147,7 +162,7 @@ namespace LFramework.Editor.Builder
 
             handlers.Add((IBuildEventHandler)Activator.CreateInstance(type));
         }
-        
+
         /// <summary>
         /// 获取打包配置文件
         /// </summary>

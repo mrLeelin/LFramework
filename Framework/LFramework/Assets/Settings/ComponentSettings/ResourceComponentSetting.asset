@@ -13,21 +13,14 @@ MonoBehaviour:
   m_Name: ResourceComponentSetting
   m_EditorClassIdentifier: 
   bindTypeName: UnityGameFramework.Runtime.ResourceComponent
-  m_ResourceMode: 4
-  m_ReadWritePathType: 0
-  m_MinUnloadUnusedAssetsInterval: 60
-  m_MaxUnloadUnusedAssetsInterval: 300
-  m_AssetAutoReleaseInterval: 60
-  m_AssetCapacity: 64
-  m_AssetExpireTime: 60
-  m_AssetPriority: 0
-  m_ResourceAutoReleaseInterval: 60
-  m_ResourceCapacity: 16
-  m_ResourceExpireTime: 60
-  m_ResourcePriority: 0
-  m_UpdatePrefixUri: 
-  m_GenerateReadWriteVersionListLength: 1048576
-  m_UpdateRetryCount: 3
-  m_InstanceRoot: {fileID: 0}
-  m_ResourceHelperTypeName: UnityGameFramework.Runtime.YooAssetResourceHelper
-  m_CustomResourceHelper: {fileID: 0}
+  _resourceMode: 2
+  _resourceHelperTypeName: UnityGameFramework.Runtime.AddressableResourceHelper
+  _customResourceHelper: {fileID: 0}
+  _minUnloadInterval: 60
+  _maxUnloadInterval: 300
+  _addressableAutoInitialize: 1
+  _addressableRemoteCatalogUrl: 
+  _yooAssetPackageName: DefaultPackage
+  _yooAssetPlayMode: 2
+  _yooAssetHostServerUrl: 
+  _yooAssetFallbackHostServerUrl: 

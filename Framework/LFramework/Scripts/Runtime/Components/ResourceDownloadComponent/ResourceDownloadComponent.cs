@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
+using GameFramework.Resource;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.AddressableAssets.ResourceLocators;
@@ -17,8 +18,9 @@ namespace LFramework.Runtime
     {
         [Inject] private GameSetting GameSetting { get; }
         [Inject] private SettingComponent SettingComponent { get; }
+        [Inject] private ResourceComponent ResourceComponent { get; }
 
-        
+
         private const string ReplaceRemote = "remote_";
         private const string ReplaceVersion = "_resource_version_";
 
@@ -32,7 +34,17 @@ namespace LFramework.Runtime
             base.AwakeComponent();
             _nextSerialID = 0;
             _activeUpdateHandler.Clear();
-            Addressables.InternalIdTransformFunc = OnInternalIdTransformFunc;
+            if (ResourceComponent.ResourceMode == ResourceMode.Addressable)
+            {
+                Addressables.InternalIdTransformFunc = OnInternalIdTransformFunc;
+            }else if (ResourceComponent.ResourceMode == ResourceMode.YooAsset)
+            {
+                
+            }
+            else
+            {
+                Log.Error($"UnSupport ResourceModel '{ResourceComponent.ResourceMode}'");
+            }
         }
 
 
