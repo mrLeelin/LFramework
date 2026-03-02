@@ -32,5 +32,29 @@ namespace GameFramework.Resource
         /// <param name="userData">用户自定义数据</param>
         void UnloadScene(string sceneAssetName,
                          UnloadSceneCallbacks callbacks, object userData);
+
+        /// <summary>
+        /// 加载资源
+        /// </summary>
+        void LoadAsset(string assetName, Type assetType,
+                       LoadAssetCallbacks callbacks, object userData);
+
+        /// <summary>
+        /// 加载场景
+        /// </summary>
+        void LoadScene(string sceneAssetName,
+                       LoadSceneCallbacks callbacks, object userData);
+
+        /// <summary>
+        /// 加载二进制/原始文件
+        /// </summary>
+        void LoadBinary(string binaryAssetName,
+                        LoadBinaryCallbacks callbacks, object userData);
+
+        /// <summary>
+        /// 实例化资源
+        /// </summary>
+        void InstantiateAsset(string assetName,
+                              LoadAssetCallbacks callbacks, object userData);
     }
 }
