@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using GameFramework;
 using GameFramework.Resource;
 using UnityEngine;
@@ -45,21 +45,6 @@ namespace UnityGameFramework.Runtime
         /// 自定义资源辅助器
         /// </summary>
         public ResourceHelperBase CustomResourceHelper { get; set; }
-
-        /// <summary>
-        /// 加载资源代理辅助器类型名称
-        /// </summary>
-        public string LoadResourceAgentHelperTypeName { get; set; }
-
-        /// <summary>
-        /// 自定义加载资源代理辅助器
-        /// </summary>
-        public LoadResourceAgentHelperBase CustomLoadResourceAgentHelper { get; set; }
-
-        /// <summary>
-        /// 加载资源代理辅助器数量
-        /// </summary>
-        public int LoadResourceAgentHelperCount { get; set; } = 3;
 
         /// <summary>
         /// YooAsset 包名称
@@ -115,21 +100,6 @@ namespace UnityGameFramework.Runtime
                 yooHelper.PlayMode = YooAssetPlayMode;
                 yooHelper.HostServerUrl = YooAssetHostServerUrl;
                 yooHelper.FallbackHostServerUrl = YooAssetFallbackHostServerUrl;
-            }
-
-            // 创建 AgentHelper
-            for (int i = 0; i < LoadResourceAgentHelperCount; i++)
-            {
-                var agentHelper = CreateComponentHelper<LoadResourceAgentHelperBase>(
-                    LoadResourceAgentHelperTypeName, CustomLoadResourceAgentHelper);
-
-                // 配置 YooAsset AgentHelper
-                if (agentHelper is YooAssetLoadResourceAgentHelper yooAgentHelper)
-                {
-                    yooAgentHelper.PackageName = YooAssetPackageName;
-                }
-
-                _resourceManager.AddLoadResourceAgentHelper(agentHelper);
             }
         }
 
@@ -215,6 +185,15 @@ namespace UnityGameFramework.Runtime
                               LoadAssetCallbacks callbacks, object userData)
         {
             _resourceManager.LoadAsset(assetName, assetType, priority, callbacks, userData);
+        }
+
+        /// <summary>
+        /// 加载资源（全参数版本）
+        /// </summary>
+        public void LoadAsset(string assetName, Type assetType,
+            LoadAssetCallbacks callbacks, object userData)
+        {
+            _resourceManager.LoadAsset(assetName, assetType, 0, callbacks, userData);
         }
 
         /// <summary>
