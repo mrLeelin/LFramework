@@ -81,10 +81,10 @@ namespace LFramework.Runtime
 
         public async void LoadHotfixAssemblies(Action<HotfixCodeResult> callBack)
         {
-            HotfixCodeResult result;
+            HotfixCodeResult result = default;
 #if UNITY_EDITOR
             result = LoadEditorHotfixAssemblies();
-#else
+#elif USE_HybridCLR
             result = await LoadAotAssemblies();
             if (result.ResultType == LoadAssemblyResultType.Successful)
             {

@@ -100,6 +100,16 @@ namespace UnityGameFramework.Runtime
         }
 
         /// <summary>
+        /// 加载资源（V2 版本，返回 IResourceHandle）
+        /// </summary>
+        public override void LoadAssetV2(string assetName, System.Type assetType,
+            LoadAssetCallbacksV2 callbacks, object userData)
+        {
+            throw new System.NotImplementedException(
+                "AddressableResourceHelper does not support LoadAssetV2 yet.");
+        }
+
+        /// <summary>
         /// 加载场景
         /// </summary>
         public override void LoadScene(string sceneAssetName,

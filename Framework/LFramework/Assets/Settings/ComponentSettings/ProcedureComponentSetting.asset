@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: ProcedureComponentSetting
   m_EditorClassIdentifier: 
   bindTypeName: UnityGameFramework.Runtime.ProcedureComponent
-  m_AvailableProcedureTypeNames: []
-  m_EntranceProcedureTypeName: 
+  m_AvailableProcedureTypeNames:
+  - LaunchState
+  m_EntranceProcedureTypeName: LaunchState
   m_EntranceHotfixProcedureTypeName: 

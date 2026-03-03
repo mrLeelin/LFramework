@@ -35,6 +35,12 @@ namespace UnityGameFramework.Runtime
             GameFramework.Resource.LoadAssetCallbacks callbacks, object userData);
 
         /// <summary>
+        /// 加载资源（V2 版本，返回 IResourceHandle）
+        /// </summary>
+        public abstract void LoadAssetV2(string assetName, System.Type assetType,
+            GameFramework.Resource.LoadAssetCallbacksV2 callbacks, object userData);
+
+        /// <summary>
         /// 加载场景
         /// </summary>
         public abstract void LoadScene(string sceneAssetName,

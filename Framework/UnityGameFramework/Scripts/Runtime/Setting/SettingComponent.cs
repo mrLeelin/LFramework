@@ -65,6 +65,7 @@ namespace UnityGameFramework.Runtime
             transform.localScale = Vector3.one;
 
             m_SettingManager.SetSettingHelper(settingHelper);
+            
         }
 
         public override void StartComponent()

@@ -27,9 +27,7 @@ namespace LFramework.Editor.Window
                 EditorGUILayout.Space();
                 EditorGUILayout.LabelField("YooAsset Settings", EditorStyles.boldLabel);
                 EditorGUILayout.LabelField("Package Name", _resourceComponent.YooAssetPackageName ?? "N/A");
-                EditorGUILayout.LabelField("Play Mode", _resourceComponent.YooAssetPlayMode.ToString());
-                EditorGUILayout.LabelField("Host Server URL", _resourceComponent.YooAssetHostServerUrl ?? "N/A");
-                EditorGUILayout.LabelField("Fallback Server URL", _resourceComponent.YooAssetFallbackHostServerUrl ?? "N/A");
+                EditorGUILayout.LabelField("Play Mode", _resourceComponent.YooAssetsPlayModel.ToString());
             }
         }
     }

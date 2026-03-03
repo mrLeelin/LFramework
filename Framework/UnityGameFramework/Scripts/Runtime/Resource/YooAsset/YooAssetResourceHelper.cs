@@ -49,16 +49,7 @@ namespace UnityGameFramework.Runtime
         /// 二进制资源名称 → RawFileHandle 映射
         /// </summary>
         private readonly Dictionary<string, RawFileHandle> _rawFileHandles = new Dictionary<string, RawFileHandle>();
-
-        /// <summary>
-        /// 资源服务器地址
-        /// </summary>
-        public string HostServerUrl { get; set; }
-
-        /// <summary>
-        /// 备用服务器地址
-        /// </summary>
-        public string FallbackHostServerUrl { get; set; }
+    
 
         /// <summary>
         /// 初始化资源系统
@@ -314,12 +305,20 @@ namespace UnityGameFramework.Runtime
 
             if (handle.Status == EOperationStatus.Succeed)
             {
-                var instance = handle.InstantiateAsync();
+                var instantiateOp = handle.InstantiateAsync();
+
+                // 等待实例化完成
+                while (!instantiateOp.IsDone)
+                {
+                    yield return null;
+                }
 
                 // 保存实例化对象到原始资源的映射
-                if (instance != null && handle.AssetObject != null)
+                if (instantiateOp.Status == EOperationStatus.Succeed &&
+                    instantiateOp.Result != null &&
+                    handle.AssetObject != null)
                 {
-                    int instanceId = instance.GetInstanceID();
+                    int instanceId = instantiateOp.Result.GetInstanceID();
                     int assetInstanceId = handle.AssetObject.GetInstanceID();
 
                     // 保存实例化对象的映射
@@ -339,7 +338,7 @@ namespace UnityGameFramework.Runtime
                     }
                 }
 
-                callbacks.LoadAssetSuccessCallback?.Invoke(assetName, instance, 0f, userData);
+                callbacks.LoadAssetSuccessCallback?.Invoke(assetName, instantiateOp.Result, 0f, userData);
             }
             else
             {
@@ -423,6 +422,42 @@ namespace UnityGameFramework.Runtime
             {
                 callback?.ResourceInitFailureCallBack?.Invoke(
                     "Unknown YooAsset play mode, initialization failed.");
+            }
+        }
+
+        /// <summary>
+        /// 加载资源（V2 版本，返回 IResourceHandle）
+        /// </summary>
+        public override void LoadAssetV2(string assetName, Type assetType,
+            LoadAssetCallbacksV2 callbacks, object userData)
+        {
+            var package = YooAssets.GetPackage(PackageName);
+            var handle = package.LoadAssetAsync(assetName, assetType);
+            StartCoroutine(WaitForAssetLoadV2(handle, assetName, callbacks, userData));
+        }
+
+        private IEnumerator WaitForAssetLoadV2(AssetHandle handle, string assetName,
+            LoadAssetCallbacksV2 callbacks, object userData)
+        {
+            while (!handle.IsDone)
+            {
+                callbacks.LoadAssetUpdateCallback?.Invoke(assetName, handle.Progress, userData);
+                yield return null;
+            }
+
+            if (handle.Status == EOperationStatus.Succeed)
+            {
+                // 创建 IResourceHandle 包装
+                var resourceHandle = new YooAssetResourceHandle(handle, assetName);
+
+                callbacks.LoadAssetSuccessCallback?.Invoke(
+                    assetName, resourceHandle, 0f, userData);
+            }
+            else
+            {
+                callbacks.LoadAssetFailureCallback?.Invoke(
+                    assetName, LoadResourceStatus.NotExist,
+                    handle.LastError ?? "Load failed.", userData);
             }
         }
 

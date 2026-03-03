@@ -24,49 +24,54 @@ namespace UnityGameFramework.Runtime
         /// <summary>
         /// 资源模式
         /// </summary>
-        public ResourceMode ResourceMode { get; set; } = ResourceMode.Unspecified;
-
-        /// <summary>
-        /// 最小卸载间隔（秒）
-        /// </summary>
-        public float MinUnloadInterval { get; set; } = 60f;
-
-        /// <summary>
-        /// 最大卸载间隔（秒）
-        /// </summary>
-        public float MaxUnloadInterval { get; set; } = 300f;
+        [SerializeField] private ResourceMode _resourceMode;
 
         /// <summary>
         /// 资源辅助器类型名称
         /// </summary>
-        public string ResourceHelperTypeName { get; set; }
+        [SerializeField]
+        private string m_ResourceHelperTypeName = "UnityGameFramework.Runtime.AddressableResourceHelper";
+
+        [SerializeField] private ResourceHelperBase m_CustomResourceHelper = null;
 
         /// <summary>
-        /// 自定义资源辅助器
+        /// 最小卸载间隔（秒）
         /// </summary>
-        public ResourceHelperBase CustomResourceHelper { get; set; }
+        [SerializeField] private float _minUnloadInterval;
+
+        /// <summary>
+        /// 最大卸载间隔（秒）
+        /// </summary>
+        [SerializeField] private float _maxUnloadInterval;
+
 
         /// <summary>
         /// YooAsset 包名称
         /// </summary>
-        public string YooAssetPackageName { get; set; } = "DefaultPackage";
+        [SerializeField] private string _yooAssetPackageName;
 
         /// <summary>
         /// YooAsset 运行模式
         /// </summary>
-        public YooAssetPlayMode YooAssetPlayMode { get; set; } = YooAssetPlayMode.EditorSimulateMode;
+        [SerializeField] private YooAssetPlayMode _yooAssetPlayMode;
 
-        /// <summary>
-        /// YooAsset 资源服务器地址
-        /// </summary>
-        public string YooAssetHostServerUrl { get; set; }
-
-        /// <summary>
-        /// YooAsset 备用服务器地址
-        /// </summary>
-        public string YooAssetFallbackHostServerUrl { get; set; }
 
         // ─── 生命周期 ───
+
+        /// <summary>
+        ///  Resource Mode
+        /// </summary>
+        public ResourceMode ResourceMode => _resourceMode;
+
+        public string ResourceHelperTypeName => m_ResourceHelperTypeName;
+
+        public float MinUnloadInterval => _minUnloadInterval;
+
+        public float MaxUnloadInterval => _maxUnloadInterval;
+
+        public string YooAssetPackageName => _yooAssetPackageName;
+
+        public YooAssetPlayMode YooAssetsPlayModel => _yooAssetPlayMode;
 
         /// <summary>
         /// 初始化组件
@@ -74,7 +79,7 @@ namespace UnityGameFramework.Runtime
         public override void AwakeComponent()
         {
             _resourceManager = GameFrameworkEntry.GetModule<IResourceManager>();
-            _resourceManager.SetResourceMode(ResourceMode);
+            _resourceManager.SetResourceMode(_resourceMode);
         }
 
         /// <summary>
@@ -89,17 +94,20 @@ namespace UnityGameFramework.Runtime
             CreateInstance();
 
             // 创建 ResourceHelper
-            _resourceHelper = CreateComponentHelper<ResourceHelperBase>(
-                ResourceHelperTypeName, CustomResourceHelper);
+            _resourceHelper = Helper.CreateHelper(m_ResourceHelperTypeName, m_CustomResourceHelper);
+
+            _resourceHelper.name = "Setting Helper";
+            Transform transform = _resourceHelper.transform;
+            transform.SetParent(Instance);
+            transform.localScale = Vector3.one;
+
             _resourceManager.SetResourceHelper(_resourceHelper);
 
             // 配置 YooAsset ResourceHelper
             if (_resourceHelper is YooAssetResourceHelper yooHelper)
             {
-                yooHelper.PackageName = YooAssetPackageName;
-                yooHelper.PlayMode = YooAssetPlayMode;
-                yooHelper.HostServerUrl = YooAssetHostServerUrl;
-                yooHelper.FallbackHostServerUrl = YooAssetFallbackHostServerUrl;
+                yooHelper.PackageName = _yooAssetPackageName;
+                yooHelper.PlayMode = _yooAssetPlayMode;
             }
         }
 
@@ -117,10 +125,11 @@ namespace UnityGameFramework.Runtime
                     _unloadOperation = null;
                     _lastUnloadTime = 0f;
                 }
+
                 return;
             }
 
-            if (_forceUnloadUnusedAssets || _lastUnloadTime >= MaxUnloadInterval)
+            if (_forceUnloadUnusedAssets || _lastUnloadTime >= _maxUnloadInterval)
             {
                 UnloadUnusedAssets();
             }
@@ -170,6 +179,12 @@ namespace UnityGameFramework.Runtime
             _resourceManager.LoadAsset(assetName, assetType, DefaultPriority, callbacks, null);
         }
 
+        public void InstantiateAsset(string assetName, LoadAssetCallbacks callbacks) =>
+            _resourceManager.InstantiateAsset(assetName, callbacks, null);
+
+        public void InstantiateAsset(string assetName, LoadAssetCallbacks callbacks, object userData) =>
+            _resourceManager.InstantiateAsset(assetName, callbacks, userData);
+
         /// <summary>
         /// 加载资源（指定优先级）
         /// </summary>
@@ -182,7 +197,7 @@ namespace UnityGameFramework.Runtime
         /// 加载资源（全参数版本）
         /// </summary>
         public void LoadAsset(string assetName, Type assetType, int priority,
-                              LoadAssetCallbacks callbacks, object userData)
+            LoadAssetCallbacks callbacks, object userData)
         {
             _resourceManager.LoadAsset(assetName, assetType, priority, callbacks, userData);
         }
@@ -194,6 +209,15 @@ namespace UnityGameFramework.Runtime
             LoadAssetCallbacks callbacks, object userData)
         {
             _resourceManager.LoadAsset(assetName, assetType, 0, callbacks, userData);
+        }
+
+        /// <summary>
+        /// 加载资源（V2 版本，返回 IResourceHandle）
+        /// </summary>
+        public void LoadAssetV2(string assetName, Type assetType,
+            LoadAssetCallbacksV2 callbacks, object userData)
+        {
+            _resourceManager.LoadAssetV2(assetName, assetType, callbacks, userData);
         }
 
         /// <summary>
@@ -216,7 +240,7 @@ namespace UnityGameFramework.Runtime
         /// 加载场景（全参数版本）
         /// </summary>
         public void LoadScene(string sceneAssetName, int priority,
-                              LoadSceneCallbacks callbacks, object userData)
+            LoadSceneCallbacks callbacks, object userData)
         {
             _resourceManager.LoadScene(sceneAssetName, priority, callbacks, userData);
         }
@@ -233,7 +257,7 @@ namespace UnityGameFramework.Runtime
         /// 加载二进制/原始文件
         /// </summary>
         public void LoadBinary(string binaryAssetName,
-                               LoadBinaryCallbacks callbacks, object userData)
+            LoadBinaryCallbacks callbacks, object userData)
         {
             _resourceManager.LoadBinary(binaryAssetName, callbacks, userData);
         }
@@ -257,38 +281,5 @@ namespace UnityGameFramework.Runtime
         }
 
         // ─── 辅助方法 ───
-
-        /// <summary>
-        /// 创建组件辅助器
-        /// </summary>
-        private T CreateComponentHelper<T>(string typeName, T customHelper) where T : MonoBehaviour
-        {
-            if (customHelper != null)
-            {
-                return customHelper;
-            }
-
-            if (string.IsNullOrEmpty(typeName))
-            {
-                throw new GameFrameworkException(
-                    $"Helper type name for '{typeof(T).Name}' is not set.");
-            }
-
-            Type helperType = Type.GetType(typeName);
-            if (helperType == null)
-            {
-                throw new GameFrameworkException(
-                    $"Can not find helper type '{typeName}'.");
-            }
-
-            if (Instance == null)
-            {
-                CreateInstance();
-            }
-
-            var helperGo = new GameObject($"[{helperType.Name}]");
-            helperGo.transform.SetParent(Instance);
-            return helperGo.AddComponent(helperType) as T;
-        }
     }
 }

@@ -11,7 +11,8 @@ using Zenject;
 
 namespace LFramework.Runtime
 {
-    public abstract class LSystemApplicationBehaviour : UnitySystemApplicationBehaviour
+    
+    public class LSystemApplicationBehaviour : UnitySystemApplicationBehaviour
     {
         [Inject] private DebuggerComponent DebuggerComponent { get; }
         [Inject] private EventComponent EventComponent { get; }

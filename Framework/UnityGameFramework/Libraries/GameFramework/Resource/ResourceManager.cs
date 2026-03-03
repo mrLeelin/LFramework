@@ -126,6 +126,22 @@ namespace GameFramework.Resource
         }
 
         /// <summary>
+        /// 加载资源（V2 版本，返回 IResourceHandle）
+        /// </summary>
+        public void LoadAssetV2(string assetName, Type assetType,
+                                LoadAssetCallbacksV2 callbacks, object userData)
+        {
+            if (string.IsNullOrEmpty(assetName))
+                throw new GameFrameworkException("Asset name is invalid.");
+            if (callbacks == null)
+                throw new GameFrameworkException("Load asset callbacks is invalid.");
+            if (_resourceHelper == null)
+                throw new GameFrameworkException("Resource helper is not set.");
+
+            _resourceHelper.LoadAssetV2(assetName, assetType, callbacks, userData);
+        }
+
+        /// <summary>
         /// 卸载资源
         /// </summary>
         public void UnloadAsset(object asset)
@@ -183,7 +199,7 @@ namespace GameFramework.Resource
         /// <summary>
         /// 实例化资源
         /// </summary>
-        public void InstantiateAsset(string assetName, int priority, LoadAssetCallbacks callbacks, object userData)
+        public void InstantiateAsset(string assetName, LoadAssetCallbacks callbacks, object userData)
         {
             if (string.IsNullOrEmpty(assetName))
                 throw new GameFrameworkException("Asset name is invalid.");

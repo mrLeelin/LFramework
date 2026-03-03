@@ -622,7 +622,7 @@ namespace GameFramework.Entity
             {
                 int serialId = ++m_Serial;
                 m_EntitiesBeingLoaded.Add(entityId, serialId);
-                m_ResourceManager.InstantiateAsset(entityAssetName, priority, m_LoadAssetCallbacks,
+                m_ResourceManager.InstantiateAsset(entityAssetName, m_LoadAssetCallbacks,
                     ShowEntityInfo.Create(serialId, entityId, entityGroup, userData));
                 return;
             }
