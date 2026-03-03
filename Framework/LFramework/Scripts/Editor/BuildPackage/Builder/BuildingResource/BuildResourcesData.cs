@@ -19,7 +19,6 @@ namespace LFramework.Editor.Builder
         public BuildResourcesData()
         {
             BuilderTarget = BuilderTarget.Windows;
-            ResourceSystem = BuildingResource.ResourceSystemType.Addressable; // 默认使用 Addressable
 #if UNITY_ANDROID
             BuilderTarget = BuilderTarget.Android;
 #elif UNITY_IOS

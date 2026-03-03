@@ -1,4 +1,5 @@
 using System;
+using GameFramework.Resource;
 
 namespace LFramework.Editor.Builder.BuildingResource
 {
@@ -14,14 +15,14 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <param name="type">资源系统类型</param>
         /// <returns>资源构建系统实例</returns>
         /// <exception cref="ArgumentException">不支持的资源系统类型</exception>
-        public static IResourceBuildSystem Create(ResourceSystemType type)
+        public static IResourceBuildSystem Create(ResourceMode type)
         {
             switch (type)
             {
-                case ResourceSystemType.Addressable:
+                case ResourceMode.Addressable:
                     return new AddressableBuildSystem();
 
-                case ResourceSystemType.YooAssets:
+                case ResourceMode.YooAsset:
 #if YOOASSET_SUPPORT
                     return new YooAssetsBuildSystem();
 #else
@@ -38,14 +39,14 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// </summary>
         /// <param name="type">资源系统类型</param>
         /// <returns>是否受支持</returns>
-        public static bool IsSupported(ResourceSystemType type)
+        public static bool IsSupported(ResourceMode type)
         {
             switch (type)
             {
-                case ResourceSystemType.Addressable:
+                case ResourceMode.Addressable:
                     return true;
 
-                case ResourceSystemType.YooAssets:
+                case ResourceMode.YooAsset:
 #if YOOASSET_SUPPORT
                     return true;
 #else
@@ -62,14 +63,14 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// </summary>
         /// <param name="type">资源系统类型</param>
         /// <returns>显示名称</returns>
-        public static string GetDisplayName(ResourceSystemType type)
+        public static string GetDisplayName(ResourceMode type)
         {
             switch (type)
             {
-                case ResourceSystemType.Addressable:
+                case ResourceMode.Addressable:
                     return "Addressable (Unity官方)";
 
-                case ResourceSystemType.YooAssets:
+                case ResourceMode.YooAsset:
 #if YOOASSET_SUPPORT
                     return "YooAssets (第三方)";
 #else

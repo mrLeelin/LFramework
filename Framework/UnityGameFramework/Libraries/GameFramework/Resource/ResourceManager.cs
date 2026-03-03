@@ -183,8 +183,7 @@ namespace GameFramework.Resource
         /// <summary>
         /// 实例化资源
         /// </summary>
-        public void InstantiateAsset(string assetName, int priority,
-                                     LoadAssetCallbacks callbacks, object userData)
+        public void InstantiateAsset(string assetName, int priority, LoadAssetCallbacks callbacks, object userData)
         {
             if (string.IsNullOrEmpty(assetName))
                 throw new GameFrameworkException("Asset name is invalid.");
