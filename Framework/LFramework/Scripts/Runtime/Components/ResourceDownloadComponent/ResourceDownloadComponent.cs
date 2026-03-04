@@ -37,6 +37,7 @@ namespace LFramework.Runtime
             if (ResourceComponent.ResourceMode == ResourceMode.Addressable)
             {
                 Addressables.InternalIdTransformFunc = OnInternalIdTransformFunc;
+                
             }else if (ResourceComponent.ResourceMode == ResourceMode.YooAsset)
             {
                 

@@ -54,28 +54,7 @@ namespace LFramework.Runtime.Settings
         private float _maxUnloadInterval = 300f;
 
         #endregion
-
-        #region Addressable 设置
-
-        /// <summary>
-        /// Addressable 是否自动初始化
-        /// </summary>
-        [BoxGroup("Addressable 设置")]
-        [LabelText("自动初始化")]
-        [ShowIf("_resourceMode", ResourceMode.Addressable)]
-        [SerializeField]
-        private bool _addressableAutoInitialize = true;
-
-        /// <summary>
-        /// Addressable 远程目录 URL
-        /// </summary>
-        [BoxGroup("Addressable 设置")]
-        [LabelText("远程目录 URL")]
-        [ShowIf("_resourceMode", ResourceMode.Addressable)]
-        [SerializeField]
-        private string _addressableRemoteCatalogUrl = string.Empty;
-
-        #endregion
+        
 
         #region YooAsset 设置
 

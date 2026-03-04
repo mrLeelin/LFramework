@@ -1,3 +1,4 @@
+using GameFramework.Resource;
 using LFramework.Runtime.Settings;
 using UnityEditor;
 using UnityGameFramework.Editor;
@@ -11,8 +12,6 @@ namespace LFramework.Editor.Inspector
         private SerializedProperty m_ResourceMode = null;
         private SerializedProperty m_MinUnloadInterval = null;
         private SerializedProperty m_MaxUnloadInterval = null;
-        private SerializedProperty m_AddressableAutoInitialize = null;
-        private SerializedProperty m_AddressableRemoteCatalogUrl = null;
         private SerializedProperty m_YooAssetPackageName = null;
         private SerializedProperty m_YooAssetPlayMode = null;
 
@@ -34,15 +33,14 @@ namespace LFramework.Editor.Inspector
                 EditorGUILayout.PropertyField(m_MinUnloadInterval);
                 EditorGUILayout.PropertyField(m_MaxUnloadInterval);
 
-                EditorGUILayout.Space();
-                EditorGUILayout.LabelField("Addressable Settings", EditorStyles.boldLabel);
-                EditorGUILayout.PropertyField(m_AddressableAutoInitialize);
-                EditorGUILayout.PropertyField(m_AddressableRemoteCatalogUrl);
-
-                EditorGUILayout.Space();
-                EditorGUILayout.LabelField("YooAsset Settings", EditorStyles.boldLabel);
-                EditorGUILayout.PropertyField(m_YooAssetPackageName);
-                EditorGUILayout.PropertyField(m_YooAssetPlayMode);
+                if (m_ResourceMode.enumValueIndex == (int)ResourceMode.YooAsset)
+                {
+                    EditorGUILayout.Space();
+                    EditorGUILayout.LabelField("YooAsset Settings", EditorStyles.boldLabel);
+                    EditorGUILayout.PropertyField(m_YooAssetPackageName);
+                    EditorGUILayout.PropertyField(m_YooAssetPlayMode);
+                }
+                
             }
             EditorGUI.EndDisabledGroup();
 
@@ -63,8 +61,6 @@ namespace LFramework.Editor.Inspector
             m_ResourceMode = serializedObject.FindProperty("_resourceMode");
             m_MinUnloadInterval = serializedObject.FindProperty("_minUnloadInterval");
             m_MaxUnloadInterval = serializedObject.FindProperty("_maxUnloadInterval");
-            m_AddressableAutoInitialize = serializedObject.FindProperty("_addressableAutoInitialize");
-            m_AddressableRemoteCatalogUrl = serializedObject.FindProperty("_addressableRemoteCatalogUrl");
             m_YooAssetPackageName = serializedObject.FindProperty("_yooAssetPackageName");
             m_YooAssetPlayMode = serializedObject.FindProperty("_yooAssetPlayMode");
 

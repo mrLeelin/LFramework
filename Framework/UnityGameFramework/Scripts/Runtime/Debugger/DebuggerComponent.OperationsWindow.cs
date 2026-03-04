@@ -37,12 +37,12 @@ namespace UnityGameFramework.Runtime
                     {
                         if (GUILayout.Button("Unload Unused Assets", GUILayout.Height(30f)))
                         {
-                            resourceCompoent.ForceUnloadUnusedAssets();
+                            resourceCompoent.ForceUnloadUnusedAssets(false);
                         }
 
                         if (GUILayout.Button("Unload Unused Assets and Garbage Collect", GUILayout.Height(30f)))
                         {
-                            resourceCompoent.ForceUnloadUnusedAssets();
+                            resourceCompoent.ForceUnloadUnusedAssets(true);
                         }
                     }
 

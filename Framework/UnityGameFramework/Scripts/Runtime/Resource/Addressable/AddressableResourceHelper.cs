@@ -1,7 +1,11 @@
 using GameFramework.Resource;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.AddressableAssets.ResourceLocators;
 using UnityEngine.ResourceManagement.AsyncOperations;
+using UnityEngine.ResourceManagement.ResourceLocations;
+using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 
 namespace UnityGameFramework.Runtime
@@ -70,10 +74,8 @@ namespace UnityGameFramework.Runtime
                 callbacks.UnloadSceneFailureCallback?.Invoke(sceneAssetName, userData);
                 return;
             }
-            op.completed += (_) =>
-            {
-                callbacks.UnloadSceneSuccessCallback?.Invoke(sceneAssetName, userData);
-            };
+
+            op.completed += (_) => { callbacks.UnloadSceneSuccessCallback?.Invoke(sceneAssetName, userData); };
         }
 
         /// <summary>
@@ -177,5 +179,6 @@ namespace UnityGameFramework.Runtime
                 }
             };
         }
+        
     }
 }

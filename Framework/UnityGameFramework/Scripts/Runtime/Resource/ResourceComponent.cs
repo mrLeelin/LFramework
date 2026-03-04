@@ -16,9 +16,10 @@ namespace UnityGameFramework.Runtime
         private ResourceHelperBase _resourceHelper;
 
         private bool _forceUnloadUnusedAssets;
-        private AsyncOperation _unloadOperation;
-        private float _lastUnloadTime;
-
+        private float m_LastUnloadUnusedAssetsOperationElapseSeconds = 0f;
+        private AsyncOperation m_AsyncOperation = null;
+        private bool m_PerformGCCollect = false;
+        private bool m_PreorderUnloadUnusedAssets = false;
         // ─── 配置属性（由 Setting 注入） ───
 
         /// <summary>
@@ -96,7 +97,7 @@ namespace UnityGameFramework.Runtime
             // 创建 ResourceHelper
             _resourceHelper = Helper.CreateHelper(m_ResourceHelperTypeName, m_CustomResourceHelper);
 
-            _resourceHelper.name = "Setting Helper";
+            _resourceHelper.name = "Resource Helper";
             Transform transform = _resourceHelper.transform;
             transform.SetParent(Instance);
             transform.localScale = Vector3.one;
@@ -116,22 +117,30 @@ namespace UnityGameFramework.Runtime
         /// </summary>
         public override void UpdateComponent(float elapseSeconds, float realElapseSeconds)
         {
-            _lastUnloadTime += realElapseSeconds;
+            m_LastUnloadUnusedAssetsOperationElapseSeconds += Time.unscaledDeltaTime;
 
-            if (_unloadOperation != null)
+            if (m_AsyncOperation == null && (_forceUnloadUnusedAssets ||
+                                             m_LastUnloadUnusedAssetsOperationElapseSeconds >=
+                                             _maxUnloadInterval || m_PreorderUnloadUnusedAssets &&
+                                             m_LastUnloadUnusedAssetsOperationElapseSeconds >=
+                                             _minUnloadInterval))
             {
-                if (_unloadOperation.isDone)
-                {
-                    _unloadOperation = null;
-                    _lastUnloadTime = 0f;
-                }
-
-                return;
+                Log.Info("Unload unused assets...");
+                _forceUnloadUnusedAssets = false;
+                m_PreorderUnloadUnusedAssets = false;
+                m_LastUnloadUnusedAssetsOperationElapseSeconds = 0f;
+                m_AsyncOperation = Resources.UnloadUnusedAssets();
             }
 
-            if (_forceUnloadUnusedAssets || _lastUnloadTime >= _maxUnloadInterval)
+            if (m_AsyncOperation != null && m_AsyncOperation.isDone)
             {
-                UnloadUnusedAssets();
+                m_AsyncOperation = null;
+                if (m_PerformGCCollect)
+                {
+                    Log.Info("GC.Collect...");
+                    m_PerformGCCollect = false;
+                    GC.Collect();
+                }
             }
         }
 
@@ -179,9 +188,20 @@ namespace UnityGameFramework.Runtime
             _resourceManager.LoadAsset(assetName, assetType, DefaultPriority, callbacks, null);
         }
 
+        /// <summary>
+        /// 实例化资源
+        /// </summary>
+        /// <param name="assetName"></param>
+        /// <param name="callbacks"></param>
         public void InstantiateAsset(string assetName, LoadAssetCallbacks callbacks) =>
             _resourceManager.InstantiateAsset(assetName, callbacks, null);
 
+        /// <summary>
+        /// 实例化资源
+        /// </summary>
+        /// <param name="assetName"></param>
+        /// <param name="callbacks"></param>
+        /// <param name="userData"></param>
         public void InstantiateAsset(string assetName, LoadAssetCallbacks callbacks, object userData) =>
             _resourceManager.InstantiateAsset(assetName, callbacks, userData);
 
@@ -229,6 +249,33 @@ namespace UnityGameFramework.Runtime
         }
 
         /// <summary>
+        /// 预订执行释放未被使用的资源。
+        /// </summary>
+        /// <param name="performGCCollect">是否使用垃圾回收。</param>
+        public void UnloadUnusedAssets(bool performGCCollect)
+        {
+            m_PreorderUnloadUnusedAssets = true;
+            if (performGCCollect)
+            {
+                m_PerformGCCollect = performGCCollect;
+            }
+        }
+
+        /// <summary>
+        /// 强制执行释放未被使用的资源。
+        /// </summary>
+        /// <param name="performGCCollect">是否使用垃圾回收。</param>
+        public void ForceUnloadUnusedAssets(bool performGCCollect)
+        {
+            _forceUnloadUnusedAssets = true;
+            if (performGCCollect)
+            {
+                m_PerformGCCollect = performGCCollect;
+            }
+        }
+
+
+        /// <summary>
         /// 加载场景
         /// </summary>
         public void LoadScene(string sceneAssetName, LoadSceneCallbacks callbacks)
@@ -262,23 +309,6 @@ namespace UnityGameFramework.Runtime
             _resourceManager.LoadBinary(binaryAssetName, callbacks, userData);
         }
 
-        /// <summary>
-        /// 卸载未使用资源
-        /// </summary>
-        public void UnloadUnusedAssets()
-        {
-            _forceUnloadUnusedAssets = false;
-            _lastUnloadTime = 0f;
-            _unloadOperation = Resources.UnloadUnusedAssets();
-        }
-
-        /// <summary>
-        /// 强制卸载未使用资源
-        /// </summary>
-        public void ForceUnloadUnusedAssets()
-        {
-            _forceUnloadUnusedAssets = true;
-        }
 
         // ─── 辅助方法 ───
     }
