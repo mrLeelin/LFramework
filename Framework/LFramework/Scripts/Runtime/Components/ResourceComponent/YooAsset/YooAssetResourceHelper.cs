@@ -4,24 +4,16 @@ using System.Collections.Generic;
 using GameFramework.Resource;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityGameFramework.Runtime;
 using YooAsset;
 
-namespace UnityGameFramework.Runtime
+namespace LFramework.Runtime
 {
     /// <summary>
     /// YooAsset 资源辅助器（平台初始化 + 查询）
     /// </summary>
     public class YooAssetResourceHelper : ResourceHelperBase
     {
-        /// <summary>
-        /// YooAsset 包名称（通过 ResourceComponentSetting 配置）
-        /// </summary>
-        public string PackageName { get; set; } = "DefaultPackage";
-
-        /// <summary>
-        /// YooAsset 运行模式
-        /// </summary>
-        public YooAssetPlayMode PlayMode { get; set; } = YooAssetPlayMode.EditorSimulateMode;
 
         // ========== 资源 Handle 映射表（用于正确释放资源） ==========
 
@@ -57,8 +49,8 @@ namespace UnityGameFramework.Runtime
         public override void InitializeResources(ResourceInitCallBack callback)
         {
             YooAssets.Initialize();
-            var package = YooAssets.TryGetPackage(PackageName)
-                          ?? YooAssets.CreatePackage(PackageName);
+            var package = YooAssets.TryGetPackage(ResourceComponent.YooAssetPackageName)
+                          ?? YooAssets.CreatePackage(ResourceComponent.YooAssetPackageName);
             YooAssets.SetDefaultPackage(package);
 
             InitializePackageAsync(package, callback);
@@ -69,7 +61,7 @@ namespace UnityGameFramework.Runtime
         /// </summary>
         public override HasAssetResult HasAsset(string assetName)
         {
-            var package = YooAssets.GetPackage(PackageName);
+            var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
             if (package == null) return HasAssetResult.NotReady;
             return package.CheckLocationValid(assetName)
                 ? HasAssetResult.Exist
@@ -172,7 +164,7 @@ namespace UnityGameFramework.Runtime
         public override void LoadAsset(string assetName, Type assetType,
             LoadAssetCallbacks callbacks, object userData)
         {
-            var package = YooAssets.GetPackage(PackageName);
+            var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
             var handle = package.LoadAssetAsync(assetName, assetType);
             StartCoroutine(WaitForAssetLoad(handle, assetName, callbacks, userData));
         }
@@ -225,7 +217,7 @@ namespace UnityGameFramework.Runtime
         public override void LoadScene(string sceneAssetName,
             LoadSceneCallbacks callbacks, object userData)
         {
-            var package = YooAssets.GetPackage(PackageName);
+            var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
             var handle = package.LoadSceneAsync(sceneAssetName);
             StartCoroutine(WaitForSceneLoad(handle, sceneAssetName, callbacks, userData));
         }
@@ -261,7 +253,7 @@ namespace UnityGameFramework.Runtime
         public override void LoadBinary(string binaryAssetName,
             LoadBinaryCallbacks callbacks, object userData)
         {
-            var package = YooAssets.GetPackage(PackageName);
+            var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
             var handle = package.LoadRawFileAsync(binaryAssetName);
 
             handle.Completed += (op) =>
@@ -289,7 +281,7 @@ namespace UnityGameFramework.Runtime
         public override void InstantiateAsset(string assetName,
             LoadAssetCallbacks callbacks, object userData)
         {
-            var package = YooAssets.GetPackage(PackageName);
+            var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
             var handle = package.LoadAssetAsync<GameObject>(assetName);
             StartCoroutine(WaitForInstantiateAsset(handle, assetName, callbacks, userData));
         }
@@ -351,11 +343,11 @@ namespace UnityGameFramework.Runtime
         {
             InitializationOperation initOperation = null;
 
-            switch (PlayMode)
+            switch (ResourceComponent.YooAssetsPlayModel)
             {
                 case YooAssetPlayMode.EditorSimulateMode:
                 {
-                    var buildResult = EditorSimulateModeHelper.SimulateBuild(PackageName);
+                    var buildResult = EditorSimulateModeHelper.SimulateBuild(ResourceComponent.YooAssetPackageName);
                     var packageRoot = buildResult.PackageRootDirectory;
                     var createParameters = new EditorSimulateModeParameters();
                     createParameters.EditorFileSystemParameters =
@@ -431,7 +423,7 @@ namespace UnityGameFramework.Runtime
         public override void LoadAssetV2(string assetName, Type assetType,
             LoadAssetCallbacksV2 callbacks, object userData)
         {
-            var package = YooAssets.GetPackage(PackageName);
+            var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
             var handle = package.LoadAssetAsync(assetName, assetType);
             StartCoroutine(WaitForAssetLoadV2(handle, assetName, callbacks, userData));
         }

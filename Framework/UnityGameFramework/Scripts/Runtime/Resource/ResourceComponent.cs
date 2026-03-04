@@ -91,25 +91,16 @@ namespace UnityGameFramework.Runtime
             // 设置路径
             _resourceManager.SetReadOnlyPath(Application.streamingAssetsPath);
             _resourceManager.SetReadWritePath(Application.persistentDataPath);
-
             CreateInstance();
-
             // 创建 ResourceHelper
             _resourceHelper = Helper.CreateHelper(m_ResourceHelperTypeName, m_CustomResourceHelper);
-
+            _resourceHelper.SetResourceComponent(this);
             _resourceHelper.name = "Resource Helper";
             Transform transform = _resourceHelper.transform;
             transform.SetParent(Instance);
             transform.localScale = Vector3.one;
-
             _resourceManager.SetResourceHelper(_resourceHelper);
-
-            // 配置 YooAsset ResourceHelper
-            if (_resourceHelper is YooAssetResourceHelper yooHelper)
-            {
-                yooHelper.PackageName = _yooAssetPackageName;
-                yooHelper.PlayMode = _yooAssetPlayMode;
-            }
+            
         }
 
         /// <summary>

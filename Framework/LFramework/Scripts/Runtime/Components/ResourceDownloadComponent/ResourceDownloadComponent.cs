@@ -21,9 +21,6 @@ namespace LFramework.Runtime
         [Inject] private ResourceComponent ResourceComponent { get; }
 
 
-        private const string ReplaceRemote = "remote_";
-        private const string ReplaceVersion = "_resource_version_";
-
 
         private int _nextSerialID;
         private readonly Dictionary<int, IResourceDownloadHandler> _activeUpdateHandler = new();
@@ -34,18 +31,6 @@ namespace LFramework.Runtime
             base.AwakeComponent();
             _nextSerialID = 0;
             _activeUpdateHandler.Clear();
-            if (ResourceComponent.ResourceMode == ResourceMode.Addressable)
-            {
-                Addressables.InternalIdTransformFunc = OnInternalIdTransformFunc;
-                
-            }else if (ResourceComponent.ResourceMode == ResourceMode.YooAsset)
-            {
-                
-            }
-            else
-            {
-                Log.Error($"UnSupport ResourceModel '{ResourceComponent.ResourceMode}'");
-            }
         }
 
 
@@ -189,96 +174,7 @@ namespace LFramework.Runtime
             handler.DownloadSuccessfulEventHandler += OnUpdateAssetsSuccessful;
             return handler;
         }
-
-        private string OnInternalIdTransformFunc(IResourceLocation location)
-        {
-            /*
-            if (!GameSetting.isRelease)
-            {
-                Log.Debug("OnInternalIdTransformFunc , location = " + location.PrimaryKey);
-            }
-            */
-
-            if (GameSetting.cdnType == CdnType.Local)
-            {
-                return location.InternalId;
-            }
-
-            if (location.ResourceType == typeof(IAssetBundleResource) && location.InternalId.StartsWith(ReplaceRemote))
-            {
-                // 远程AssetBundle
-                return ReplaceUrl(location.InternalId);
-            }
-
-            if (location.ResourceType == typeof(ContentCatalogData) && location.InternalId.StartsWith(ReplaceRemote))
-            {
-                // 远程catalog文件
-                return ReplaceUrl(location.InternalId);
-            }
-
-            if (location.PrimaryKey == "AddressablesMainContentCatalogRemoteHash")
-            {
-                //Log.Info($"LoadFunc , key = {location.PrimaryKey}");
-                // 远程catalog文件hash
-                return ReplaceUrl(location.InternalId);
-            }
-
-            return location.InternalId;
-
-            /*
-            var cdnType = GameSetting.cdnType;
-            if (location.Data is AssetBundleRequestOptions)
-            {
-                if (location.InternalId.StartsWith("remote"))
-                {
-                    return $"{ConstUrl.GetCdnUrl(cdnType)}{location.PrimaryKey}";
-                }
-            }
-
-            if (location.InternalId.Contains("/catalog"))
-            {
-                if (GameSetting.cdnType != CdnType.Local)
-                {
-                    if (location.InternalId.StartsWith("http"))
-                    {
-                        if (location.InternalId.EndsWith(".json"))
-                        {
-                            return $"{ConstUrl.GetCdnUrl(cdnType)}{location.PrimaryKey}";
-                        }
-                        else if (location.InternalId.EndsWith(".hash"))
-                        {
-                            return $"{ConstUrl.GetCdnUrl(cdnType)}{location.PrimaryKey}";
-                        }
-                    }
-                    /===
-                    else if (location.InternalId.EndsWith(".hash"))
-                    {
-                        return Regex.Replace(location.InternalId, @"/catalog_.*\.hash",
-                            string.Format("/catalog_{0}.hash", 0));
-                    }
-                    ====/
-                }
-            }
-    */
-
-            return location.InternalId;
-        }
-
-        private string ReplaceUrl(string internalId)
-        {
-            var newUrl = GameSetting.GetCdnUrl();
-            // 是AssetBundle并且是http网络请求
-            var addressKey = internalId.Replace(ReplaceRemote, newUrl)
-                .Replace(ReplaceVersion, GameSetting.GetResourceVersion(SettingComponent));
-            /*
-            if (!GameSetting.isRelease)
-            {
-                Log.Debug($"replace url , internalId={internalId} addressKey={addressKey}");
-            }
-            */
-
-            return addressKey;
-        }
+        
 
         private void OnRemoveHandleAction(ResourceDownloadHandler obj)
         {

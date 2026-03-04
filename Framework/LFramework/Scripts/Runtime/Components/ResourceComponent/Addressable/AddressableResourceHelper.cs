@@ -1,4 +1,6 @@
+using System;
 using GameFramework.Resource;
+using LFramework.Runtime.Settings;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
@@ -7,14 +9,26 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceLocations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
+using UnityGameFramework.Runtime;
 
-namespace UnityGameFramework.Runtime
+namespace LFramework.Runtime
 {
     /// <summary>
     /// Addressable 资源辅助器（平台初始化 + 查询）
     /// </summary>
     public class AddressableResourceHelper : ResourceHelperBase
     {
+        private SettingComponent _settingComponent;
+        private const string ReplaceRemote = "remote_";
+        private const string ReplaceVersion = "_resource_version_";
+
+        
+        private void Awake()
+        {
+            _settingComponent = LFrameworkAspect.Instance.Get<SettingComponent>();
+            Addressables.InternalIdTransformFunc = OnInternalIdTransformFunc;
+        }
+
         /// <summary>
         /// 初始化资源系统
         /// </summary>
@@ -179,6 +193,96 @@ namespace UnityGameFramework.Runtime
                 }
             };
         }
-        
+
+        private string OnInternalIdTransformFunc(IResourceLocation location)
+        {
+            /*
+            if (!GameSetting.isRelease)
+            {
+                Log.Debug("OnInternalIdTransformFunc , location = " + location.PrimaryKey);
+            }
+            */
+            var setting = SettingManager.GetSetting<GameSetting>();
+
+            if (setting.cdnType == CdnType.Local)
+            {
+                return location.InternalId;
+            }
+
+            if (location.ResourceType == typeof(IAssetBundleResource) && location.InternalId.StartsWith(ReplaceRemote))
+            {
+                // 远程AssetBundle
+                return ReplaceUrl(location.InternalId, setting);
+            }
+
+            if (location.ResourceType == typeof(ContentCatalogData) && location.InternalId.StartsWith(ReplaceRemote))
+            {
+                // 远程catalog文件
+                return ReplaceUrl(location.InternalId, setting);
+            }
+
+            if (location.PrimaryKey == "AddressablesMainContentCatalogRemoteHash")
+            {
+                //Log.Info($"LoadFunc , key = {location.PrimaryKey}");
+                // 远程catalog文件hash
+                return ReplaceUrl(location.InternalId, setting);
+            }
+
+            return location.InternalId;
+
+            /*
+            var cdnType = GameSetting.cdnType;
+            if (location.Data is AssetBundleRequestOptions)
+            {
+                if (location.InternalId.StartsWith("remote"))
+                {
+                    return $"{ConstUrl.GetCdnUrl(cdnType)}{location.PrimaryKey}";
+                }
+            }
+
+            if (location.InternalId.Contains("/catalog"))
+            {
+                if (GameSetting.cdnType != CdnType.Local)
+                {
+                    if (location.InternalId.StartsWith("http"))
+                    {
+                        if (location.InternalId.EndsWith(".json"))
+                        {
+                            return $"{ConstUrl.GetCdnUrl(cdnType)}{location.PrimaryKey}";
+                        }
+                        else if (location.InternalId.EndsWith(".hash"))
+                        {
+                            return $"{ConstUrl.GetCdnUrl(cdnType)}{location.PrimaryKey}";
+                        }
+                    }
+                    /===
+                    else if (location.InternalId.EndsWith(".hash"))
+                    {
+                        return Regex.Replace(location.InternalId, @"/catalog_.*\.hash",
+                            string.Format("/catalog_{0}.hash", 0));
+                    }
+                    ====/
+                }
+            }
+    */
+
+            return location.InternalId;
+        }
+
+        private string ReplaceUrl(string internalId, GameSetting setting)
+        {
+            var newUrl = setting.GetCdnUrl();
+            // 是AssetBundle并且是http网络请求
+            var addressKey = internalId.Replace(ReplaceRemote, newUrl)
+                .Replace(ReplaceVersion, setting.GetResourceVersion(_settingComponent));
+            /*
+            if (!GameSetting.isRelease)
+            {
+                Log.Debug($"replace url , internalId={internalId} addressKey={addressKey}");
+            }
+            */
+
+            return addressKey;
+        }
     }
 }

@@ -1,6 +1,7 @@
+using UnityGameFramework.Runtime;
 using YooAsset;
 
-namespace UnityGameFramework.Runtime
+namespace LFramework.Runtime
 {
     /// <summary>
     /// YooAsset 资源句柄包装
