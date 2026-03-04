@@ -51,7 +51,7 @@ namespace LFramework.Runtime
 
             foreach (var handler in _activeUpdateHandler.Values)
             {
-                var impl = handler as ResourceDownloadHandler;
+                var impl = handler as ResourceDownloadHandlerBase;
                 impl.OnUpdate(elapseSeconds, realElapseSeconds);
             }
         }
@@ -66,7 +66,7 @@ namespace LFramework.Runtime
                 return h.SerialID;
             }
 
-            var handle = CreateDownloadHandler(name, labels, mergeMode, autoReleaseHandle);
+            var handle = CreateAddressableHandler(name, labels, mergeMode, autoReleaseHandle);
             return handle.SerialID;
         }
 
@@ -80,11 +80,38 @@ namespace LFramework.Runtime
                 return h.SerialID;
             }
 
-            var handle = CreateDownloadHandler(name, labels, mergeMode, autoReleaseHandle);
+            var handle = CreateAddressableHandler(name, labels, mergeMode, autoReleaseHandle);
             handle.CheckAndLoadAsync();
             return handle.SerialID;
         }
 
+
+        public int AddYooAssetHandler(string name, List<string> labels,
+            string packageName, bool autoReleaseHandle = true)
+        {
+            var h = GetHandler(name);
+            if (h != null)
+            {
+                return h.SerialID;
+            }
+
+            var handle = CreateYooAssetHandler(name, labels, packageName, autoReleaseHandle);
+            handle.CheckAndLoadAsync();
+            return handle.SerialID;
+        }
+
+        public int AddYooAssetHandlerNotRun(string name, List<string> labels,
+            string packageName, bool autoReleaseHandle = true)
+        {
+            var h = GetHandler(name);
+            if (h != null)
+            {
+                return h.SerialID;
+            }
+
+            var handle = CreateYooAssetHandler(name, labels, packageName, autoReleaseHandle);
+            return handle.SerialID;
+        }
 
         public IResourceDownloadHandler GetHandler(int serialID)
         {
@@ -118,7 +145,7 @@ namespace LFramework.Runtime
 
         public bool RemoveHandlerInternal(int serialID)
         {
-            if (GetHandler(serialID) is not ResourceDownloadHandler handler)
+            if (GetHandler(serialID) is not ResourceDownloadHandlerBase handler)
             {
                 return false;
             }
@@ -161,22 +188,35 @@ namespace LFramework.Runtime
             Addressables.DownloadDependenciesAsync((IEnumerable)keys, Addressables.MergeMode.Union, true);
         }
 
-        private ResourceDownloadHandler CreateDownloadHandler(string name, List<string> labels,
+        private AddressableDownloadHandler CreateAddressableHandler(string name, List<string> labels,
             Addressables.MergeMode mergeMode = Addressables.MergeMode.Union,
             bool autoReleaseHandle = true)
         {
-            //不可以重复添加下载器
             var serialID = GetNextSerialID();
-            var handler = new ResourceDownloadHandler(name, labels, mergeMode, serialID, autoReleaseHandle);
-            _activeUpdateHandler.Add(serialID, handler);
+            var handler = new AddressableDownloadHandler(name, labels, mergeMode, serialID, autoReleaseHandle);
+            RegisterHandler(handler);
+            return handler;
+        }
+
+        private YooAssetDownloadHandler CreateYooAssetHandler(string name, List<string> labels,
+            string packageName, bool autoReleaseHandle)
+        {
+            var serialID = GetNextSerialID();
+            var handler = new YooAssetDownloadHandler(name, labels, packageName, serialID, autoReleaseHandle);
+            RegisterHandler(handler);
+            return handler;
+        }
+
+        private void RegisterHandler(ResourceDownloadHandlerBase handler)
+        {
+            _activeUpdateHandler.Add(handler.SerialID, handler);
             handler.RemoveHandleAction += OnRemoveHandleAction;
             handler.DownloadFailureEventHandler += OnUpdateAssetsFailure;
             handler.DownloadSuccessfulEventHandler += OnUpdateAssetsSuccessful;
-            return handler;
         }
         
 
-        private void OnRemoveHandleAction(ResourceDownloadHandler obj)
+        private void OnRemoveHandleAction(ResourceDownloadHandlerBase obj)
         {
             RemoveHandler(obj.SerialID);
         }

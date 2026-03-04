@@ -2,8 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Cysharp.Threading.Tasks;
-using GameFramework;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.AddressableAssets.ResourceLocators;
@@ -13,78 +11,24 @@ using UnityGameFramework.Runtime;
 namespace LFramework.Runtime
 {
     /// <summary>
-    /// 资源更新处理类
+    /// 基于 Unity Addressables 的资源下载处理器实现类
     /// </summary>
-    public class ResourceDownloadHandler : IResourceDownloadHandler
+    public class AddressableDownloadHandler : ResourceDownloadHandlerBase
     {
-        private readonly string _handlerName;
-        private readonly List<string> _updateLabels;
         private readonly Addressables.MergeMode _addressableMergeMode;
-        private readonly int _serialID;
-        private readonly bool _autoReleaseHandle;
-        private float _lastUpdateTime;
-        private long _lastDownloadedBytes;
-        private float _downloadSpeed;
-
         private AsyncOperationHandle<List<string>> _checkCatalogHandle;
         private AsyncOperationHandle<List<IResourceLocator>> _updateCatalogHandle;
-        private long _totalDownloadSize;
         private AsyncOperationHandle _downloadHandle;
-        private EventHandler<ResourcesDownloadFailureEvent> _downloadFailureEventHandler;
-        private EventHandler<ResourcesDownloadSuccessfulEvent> _downloadSuccessfulEventHandler;
-        private EventHandler<ResourcesDownloadUpdateEvent> _downloadUpdateEventHandler;
-        private EventHandler<ResourceDownloadStepEvent> _downloadStepEventHandler;
-        public GameFrameworkAction<ResourceDownloadHandler> RemoveHandleAction;
+        private const int MaxRetryCount = 5;
 
-        public string Name => _handlerName;
-        public int SerialID => _serialID;
-
-        public float DownloadSpeed => _downloadSpeed;
-
-        public event EventHandler<ResourceDownloadStepEvent> DownloadStepEventHandler
+        public AddressableDownloadHandler(string name, List<string> updateLabels,
+            Addressables.MergeMode mergeMode, int serialID, bool autoReleaseHandle)
+            : base(name, updateLabels, serialID, autoReleaseHandle)
         {
-            add => _downloadStepEventHandler += value;
-            remove => _downloadStepEventHandler -= value;
-        }
-
-        public event EventHandler<ResourcesDownloadFailureEvent> DownloadFailureEventHandler
-        {
-            add => _downloadFailureEventHandler += value;
-            remove => _downloadFailureEventHandler -= value;
-        }
-
-        public event EventHandler<ResourcesDownloadSuccessfulEvent> DownloadSuccessfulEventHandler
-        {
-            add => _downloadSuccessfulEventHandler += value;
-            remove => _downloadSuccessfulEventHandler -= value;
-        }
-
-        public event EventHandler<ResourcesDownloadUpdateEvent> DownloadUpdateEventHandler
-        {
-            add => _downloadUpdateEventHandler += value;
-            remove => _downloadUpdateEventHandler -= value;
-        }
-
-
-        public ResourceDownloadHandler(string name, List<string> updateLabels, Addressables.MergeMode mergeMode,
-            int serialID, bool autoReleaseHandle)
-        {
-            _serialID = serialID;
-            _handlerName = name;
-            _updateLabels = updateLabels;
             _addressableMergeMode = mergeMode;
-            if (updateLabels == null || _updateLabels.Count == 0)
-            {
-                Log.Fatal($"The '{name}' update labels is null.");
-            }
-
-            _totalDownloadSize = 0L;
-            _autoReleaseHandle = autoReleaseHandle;
-            _downloadSpeed = 0F;
-            _lastDownloadedBytes = 0L;
         }
 
-        public void OnUpdate(float elapseSeconds, float realElapseSeconds)
+        public override void OnUpdate(float elapseSeconds, float realElapseSeconds)
         {
             if (_checkCatalogHandle.IsValid() && !_checkCatalogHandle.IsDone)
             {
@@ -121,7 +65,7 @@ namespace LFramework.Runtime
             SendProgress(progress * 0.9f + 0.1f, downloadSize);
         }
 
-        public async void CheckAndLoadAsync()
+        public override async void CheckAndLoadAsync()
         {
             try
             {
@@ -178,30 +122,6 @@ namespace LFramework.Runtime
             }
 
             DownLoad(firstDownloadKeys);
-
-            //暂时先去掉移动网络区分
-            /*
-
-            if (Application.internetReachability == NetworkReachability.ReachableViaLocalAreaNetwork)
-            {
-                Log.Info("Use local area net work to download.");
-                DownLoad(firstDownloadKeys);
-            }
-            else
-            {
-                //使用移动网络下载
-                Log.Info("Use mobile network to download.");
-                var mb = ByteToMbFloat(_totalDownloadSize);
-                if (mb > 10f)
-                {
-                    MobileBigDownloadPopUp(_totalDownloadSize, firstDownloadKeys);
-                }
-                else
-                {
-                    DownLoad(firstDownloadKeys);
-                }
-            }
-            */
         }
 
         /// <summary>
@@ -318,8 +238,6 @@ namespace LFramework.Runtime
             return UpdateResultType.Successful;
         }
 
-        private const int MaxRetryCount = 5;
-
         private async void DownLoad(List<string> downloadKeys)
         {
             int retryCount = 0;
@@ -369,120 +287,6 @@ namespace LFramework.Runtime
         private List<string> GetInitDownedKeys()
         {
             return _updateLabels;
-        }
-
-        private void SendProgress(float progress, float downloadSize = 0)
-        {
-            if (_downloadUpdateEventHandler != null)
-            {
-                ResourcesDownloadUpdateEvent arg;
-                if (downloadSize > 0)
-                {
-                    arg = ResourcesDownloadUpdateEvent.Create(progress, ByteToMb(downloadSize),
-                        ByteToMb(_totalDownloadSize), _downloadSpeed);
-                }
-                else
-                {
-                    arg = ResourcesDownloadUpdateEvent.Create(progress);
-                }
-
-                _downloadUpdateEventHandler(this, arg);
-                ReferencePool.Release(arg);
-            }
-        }
-
-
-        private void DownloadSuccessful()
-        {
-            if (_downloadSuccessfulEventHandler != null)
-            {
-                var arg = ResourcesDownloadSuccessfulEvent.Create(this._serialID);
-                _downloadSuccessfulEventHandler(this, arg);
-                ReferencePool.Release(arg);
-            }
-
-
-            if (_autoReleaseHandle)
-            {
-                RemoveHandleAction(this);
-            }
-        }
-
-        private void ExceptionFailure(UpdateResultType resultType)
-        {
-            if (_downloadFailureEventHandler != null)
-            {
-                var arg = ResourcesDownloadFailureEvent.Create(this._serialID, resultType);
-                _downloadFailureEventHandler(this, arg);
-                ReferencePool.Release(arg);
-            }
-
-            if (_autoReleaseHandle)
-            {
-                RemoveHandleAction(this);
-            }
-        }
-
-        private void StepEvent(ResourceDownloadStep step, object customData = null)
-        {
-            if (_downloadStepEventHandler != null)
-            {
-                var arg = ResourceDownloadStepEvent.Create(this._serialID, step, customData);
-                _downloadStepEventHandler(this, arg);
-                ReferencePool.Release(arg);
-            }
-        }
-
-        private void CalculateSpeed(long downloadSize)
-        {
-            var currentTime = Time.time;
-            var timeDelta = currentTime - _lastUpdateTime;
-            if (timeDelta <= 0.5f) // 每 0.5 秒计算一次
-            {
-                return;
-            }
-
-            var downloadedBytes = downloadSize;
-            var bytesDelta = downloadedBytes - _lastDownloadedBytes;
-            _downloadSpeed = bytesDelta / timeDelta; // 计算速度 (B/s)
-            //Debug.Log($"下载速度: {speed / 1024:F2} KB/s");
-            _lastDownloadedBytes = downloadedBytes;
-            _lastUpdateTime = currentTime;
-        }
-
-        /*
-         //暂时先去掉移动网络区分
-        private void MobileBigDownloadPopUp(float size, List<string> firstDownloadKeys)
-        {
-            RuntimeOneBtnTips.RuntimeShowTips(
-                TbRuntimeLocalLanguageData.Instance.GetText("need_download_title")
-                , TbRuntimeLocalLanguageData.Instance.GetText("need_download_describe",
-                    ByteToMb(size)),
-                TbRuntimeLocalLanguageData.Instance.GetText("sure")
-                , () => { DownLoad(firstDownloadKeys); });
-        }
-        */
-
-        private void LogInfo(string message)
-        {
-            Log.Info($"Name '{_handlerName}' Message '{message}'");
-        }
-
-        private void LogError(string message)
-        {
-            Log.Error($"Name '{_handlerName}' Message '{message}'");
-        }
-
-        private static float ByteToMbFloat(float bytes)
-        {
-            var v = bytes * 1.0f / 1024 / 1024;
-            return v;
-        }
-
-        private static string ByteToMb(float bytes)
-        {
-            var v = ByteToMbFloat(bytes);
-            return $"{v:F2} MB";
         }
     }
 }
