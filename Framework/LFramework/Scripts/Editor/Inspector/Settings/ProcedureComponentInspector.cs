@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using GameFramework;
 using GameFramework.Procedure;
 using LFramework.Runtime;
 using LFramework.Runtime.Settings;
@@ -8,12 +10,15 @@ using UnityEditor;
 using UnityEngine;
 using UnityGameFramework.Editor;
 using UnityGameFramework.Runtime;
+using Type = UnityGameFramework.Editor.Type;
 
 namespace LFramework.Editor.Inspector
 {
     [CustomEditor(typeof(ProcedureComponentSetting))]
     internal sealed class ProcedureComponentInspector : ComponentSettingInspector
     {
+        private const string SessionStateKeyPrefix = "ProcedureComponentInspector.AssemblyFoldout.";
+
         private SerializedProperty m_AvailableProcedureTypeNames = null;
         private SerializedProperty m_EntranceProcedureTypeName = null;
         private SerializedProperty m_HotfixEntranceProcedureTypeName = null;
@@ -23,7 +28,7 @@ namespace LFramework.Editor.Inspector
 
         private List<string> m_CurrentAvailableProcedureTypeNames = null;
         private List<string> m_CurrentAvailableHotfixProcedureTypeNames = null;
-        
+
         private int m_EntranceProcedureIndex = -1;
         private int m_HotfixEntranceProcedureIndex = -1;
         private HybridCLRSetting _onceGameSetting;
@@ -47,23 +52,7 @@ namespace LFramework.Editor.Inspector
                 {
                     EditorGUILayout.BeginVertical("box");
                     {
-                        foreach (string procedureTypeName in m_ProcedureTypeNames)
-                        {
-                            bool selected = m_CurrentAvailableProcedureTypeNames.Contains(procedureTypeName);
-                            if (selected != EditorGUILayout.ToggleLeft(procedureTypeName, selected))
-                            {
-                                if (!selected)
-                                {
-                                    m_CurrentAvailableProcedureTypeNames.Add(procedureTypeName);
-                                    WriteAvailableProcedureTypeNames();
-                                }
-                                else if (procedureTypeName != m_EntranceProcedureTypeName.stringValue)
-                                {
-                                    m_CurrentAvailableProcedureTypeNames.Remove(procedureTypeName);
-                                    WriteAvailableProcedureTypeNames();
-                                }
-                            }
-                        }
+                        DrawProceduresByAssembly(m_ProcedureTypeNames, "Runtime");
                     }
                     EditorGUILayout.EndVertical();
                 }
@@ -89,7 +78,8 @@ namespace LFramework.Editor.Inspector
                     EditorGUILayout.HelpBox("Select available procedures first.", MessageType.Info);
                 }
 
-                if (m_CurrentAvailableHotfixProcedureTypeNames != null && m_CurrentAvailableHotfixProcedureTypeNames.Count > 0)
+                if (m_CurrentAvailableHotfixProcedureTypeNames != null &&
+                    m_CurrentAvailableHotfixProcedureTypeNames.Count > 0)
                 {
                     EditorGUILayout.Separator();
 
@@ -98,7 +88,8 @@ namespace LFramework.Editor.Inspector
                     if (selectedIndex != m_HotfixEntranceProcedureIndex)
                     {
                         m_HotfixEntranceProcedureIndex = selectedIndex;
-                        m_HotfixEntranceProcedureTypeName.stringValue = m_CurrentAvailableHotfixProcedureTypeNames[selectedIndex];
+                        m_HotfixEntranceProcedureTypeName.stringValue =
+                            m_CurrentAvailableHotfixProcedureTypeNames[selectedIndex];
                     }
                 }
             }
@@ -128,8 +119,8 @@ namespace LFramework.Editor.Inspector
         {
             RefreshGameSetting();
             m_ProcedureTypeNames = Type.GetRuntimeTypeNames(typeof(ProcedureBase));
-            m_HotfixProcedureTypeNames = Type.GetTypeNames(typeof(ProcedureBase),
-                _onceGameSetting.hotfixAssembliesSort.ToArray());
+            m_HotfixProcedureTypeNames =
+                Type.GetTypeNames(typeof(ProcedureBase), _onceGameSetting.hotfixAssembliesSort.ToArray());
             ReadAvailableProcedureTypeNames();
             int oldCount = m_CurrentAvailableProcedureTypeNames.Count;
             m_CurrentAvailableProcedureTypeNames = m_CurrentAvailableProcedureTypeNames
@@ -153,7 +144,8 @@ namespace LFramework.Editor.Inspector
             if (m_CurrentAvailableHotfixProcedureTypeNames.Count != oldCount)
             {
                 WriteAvailableProcedureTypeNames();
-            }else if (!string.IsNullOrEmpty(m_HotfixEntranceProcedureTypeName.stringValue))
+            }
+            else if (!string.IsNullOrEmpty(m_HotfixEntranceProcedureTypeName.stringValue))
             {
                 m_HotfixEntranceProcedureIndex =
                     m_CurrentAvailableHotfixProcedureTypeNames.IndexOf(m_HotfixEntranceProcedureTypeName.stringValue);
@@ -203,8 +195,9 @@ namespace LFramework.Editor.Inspector
                     m_EntranceProcedureTypeName.stringValue = null;
                 }
             }
-            
-            if (m_CurrentAvailableHotfixProcedureTypeNames != null &&!string.IsNullOrEmpty(m_HotfixEntranceProcedureTypeName.stringValue))
+
+            if (m_CurrentAvailableHotfixProcedureTypeNames != null &&
+                !string.IsNullOrEmpty(m_HotfixEntranceProcedureTypeName.stringValue))
             {
                 m_HotfixEntranceProcedureIndex =
                     m_CurrentAvailableHotfixProcedureTypeNames.IndexOf(m_HotfixEntranceProcedureTypeName.stringValue);
@@ -225,6 +218,115 @@ namespace LFramework.Editor.Inspector
             }
 
             _onceGameSetting = gameSetting;
+        }
+
+        /// <summary>
+        /// 按程序集分组 procedure 类型名称
+        /// </summary>
+        private Dictionary<string, List<string>> GroupProceduresByAssembly(string[] typeNames)
+        {
+            var groups = new Dictionary<string, List<string>>();
+
+            foreach (string typeName in typeNames)
+            {
+                string assemblyName = GetAssemblyName(typeName);
+
+                if (!groups.ContainsKey(assemblyName))
+                {
+                    groups[assemblyName] = new List<string>();
+                }
+
+                groups[assemblyName].Add(typeName);
+            }
+
+            return groups;
+        }
+
+        /// <summary>
+        /// 获取类型的程序集名称
+        /// </summary>
+        private string GetAssemblyName(string typeName)
+        {
+            try
+            {
+                System.Type type = Utility.Assembly.GetType(typeName);
+                if (type != null)
+                {
+                    return type.Assembly.GetName().Name;
+                }
+            }
+            catch
+            {
+                // 类型解析失败
+            }
+
+            return "Unknown Assembly";
+        }
+
+        /// <summary>
+        /// 对程序集名称进行排序（Runtime 程序集优先）
+        /// </summary>
+        private List<string> SortAssemblyNames(IEnumerable<string> assemblyNames)
+        {
+            var sorted = assemblyNames.OrderBy(name =>
+            {
+                // Runtime 程序集优先级最高
+                if (name.Contains("Runtime"))
+                    return 0;
+                // Unknown Assembly 优先级最低
+                if (name == "Unknown Assembly")
+                    return 2;
+                // 其他程序集
+                return 1;
+            }).ThenBy(name => name).ToList();
+
+            return sorted;
+        }
+
+        /// <summary>
+        /// 绘制按程序集分组的 procedures
+        /// </summary>
+        private void DrawProceduresByAssembly(string[] procedureTypeNames, string category)
+        {
+            var groups = GroupProceduresByAssembly(procedureTypeNames);
+            var sortedAssemblies = SortAssemblyNames(groups.Keys);
+
+            foreach (string assemblyName in sortedAssemblies)
+            {
+                string sessionKey = SessionStateKeyPrefix + category + "." + assemblyName;
+                bool foldout = SessionState.GetBool(sessionKey, true);
+
+                bool newFoldout = EditorGUILayout.Foldout(foldout, assemblyName, true);
+                if (newFoldout != foldout)
+                {
+                    SessionState.SetBool(sessionKey, newFoldout);
+                }
+
+                if (newFoldout)
+                {
+                    EditorGUI.indentLevel++;
+
+                    foreach (string procedureTypeName in groups[assemblyName])
+                    {
+                        bool selected = m_CurrentAvailableProcedureTypeNames.Contains(procedureTypeName);
+                        if (selected != EditorGUILayout.ToggleLeft(procedureTypeName, selected))
+                        {
+                            if (!selected)
+                            {
+                                m_CurrentAvailableProcedureTypeNames.Add(procedureTypeName);
+                                WriteAvailableProcedureTypeNames();
+                            }
+                            else if (procedureTypeName != m_EntranceProcedureTypeName.stringValue)
+                            {
+                                m_CurrentAvailableProcedureTypeNames.Remove(procedureTypeName);
+                                WriteAvailableProcedureTypeNames();
+                            }
+                        }
+                    }
+
+                    EditorGUI.indentLevel--;
+                }
+            }
         }
     }
 }
