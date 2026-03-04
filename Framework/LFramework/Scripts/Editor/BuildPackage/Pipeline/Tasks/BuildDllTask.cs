@@ -3,10 +3,8 @@ using System.Linq;
 using LFramework.Editor.Builder.BuildingResource;
 using LFramework.Runtime;
 using LFramework.Runtime.Settings;
-using Sirenix.Utilities.Editor;
 using ThirdParty.Framework.LFramework.Scripts.Editor.BuildPackage.Builder.BuildingResource;
 using UnityEditor;
-using UnityEditor.AddressableAssets;
 using UnityEngine;
 
 namespace LFramework.Editor.Builder.Pipeline.Tasks
@@ -39,14 +37,6 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                 Debug.Log($"[BuildDllTask] Building hot-fix DLL files...");
 
                 var buildSetting = context.BuildSetting;
-                var settings = AddressableAssetSettingsDefaultObject.Settings;
-
-                // 使用 SettingManager 获取 GameSetting
-                var gameSetting = SettingManager.GetSetting<GameSetting>();
-                if (gameSetting == null)
-                {
-                    return BuildTaskResult.CreateFailed(TaskName, "GameSetting not found in project!");
-                }
 
                 // 获取备份路径
                 string backupPath = GetBackupPath(buildSetting);
@@ -61,7 +51,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                 AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
 
                 // 复制 DLL
-                if (!BuildDllsHelper.CopyDll(buildSetting, settings, gameSetting, backupPath))
+                if (!BuildDllsHelper.CopyDll(buildSetting,SettingManager.GetSetting<HybridCLRSetting>(), backupPath))
                 {
                     return BuildTaskResult.CreateFailed(TaskName, "Copy DLL failed.");
                 }

@@ -13,45 +13,42 @@ using HybridCLR.Editor.Meta;
 using HybridCLR.Editor.Settings;
 #endif
 
+using GameFramework.Resource;
 using LFramework.Editor;
 using LFramework.Editor.Builder;
+using LFramework.Editor.Builder.BuildingResource;
 using LFramework.Runtime;
 using LFramework.Runtime.Settings;
 using Sirenix.Utilities.Editor;
 using UnityEditor;
-using UnityEditor.AddressableAssets;
-using UnityEditor.AddressableAssets.Settings;
-using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEngine;
 using UnityGameFramework.Runtime;
+
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("LFramework.Editor.Tests")]
 
 namespace LFramework.Editor
 {
     public static class BuildDllsHelper
     {
-        public static bool CopyDll(BuildSetting buildSetting, AddressableAssetSettings settings,
-            GameSetting gameSetting, string backAotFolder)
+        public static bool CopyDll(BuildSetting buildSetting, HybridCLRSetting hybridClrSetting,string backAotFolder)
         {
 #if USE_HybridCLR
-            var hybridClrSettings = AssetUtilities.GetAllAssetsOfType<HybridCLRSetting>();
-            var firstHybridClrSetting = hybridClrSettings.FirstOrDefault();
-            if (firstHybridClrSetting == null)
-            {
-                Log.Error("HybridCLRSettings not found in project!");
-                return false;
-            }
-
-            if (!CopyAotDllToProject(buildSetting, settings, firstHybridClrSetting, gameSetting, backAotFolder))
+            var registrar = CreateRegistrar(buildSetting.resourceSystem);
+            if (registrar == null)
             {
                 return false;
             }
 
-            if (!CopyHotfixDllToProject(buildSetting, settings, firstHybridClrSetting, gameSetting))
+            if (!CopyAotDllToProject(registrar, hybridClrSetting, backAotFolder))
+            {
+                return false;
+            }
+
+            if (!CopyHotfixDllToProject(buildSetting, registrar, hybridClrSetting))
             {
                 return false;
             }
 #endif
-  
 
             return true;
         }
@@ -83,6 +80,28 @@ namespace LFramework.Editor
         }
 
 #if USE_HybridCLR
+        /// <summary>
+        /// 根据 ResourceMode 创建对应的 DLL 资源注册器
+        /// </summary>
+        internal static IDllResourceRegistrar CreateRegistrar(ResourceMode mode)
+        {
+            switch (mode)
+            {
+                case ResourceMode.Addressable:
+                    return new AddressableDllRegistrar();
+                case ResourceMode.YooAsset:
+#if YOOASSET_SUPPORT
+                    return new YooAssetDllRegistrar();
+#else
+                    Log.Error("YooAsset support is not enabled. Define YOOASSET_SUPPORT in Player Settings.");
+                    return null;
+#endif
+                default:
+                    Log.Error($"Unsupported resource system: {mode}");
+                    return null;
+            }
+        }
+
         /// <summary>
         /// 调用AotGenericReferenceWriter，生成AOT泛型文件
         /// </summary>
@@ -157,15 +176,9 @@ namespace LFramework.Editor
             hybridClrInstaller.InstallDefaultHybridCLR();
         }
 
-        private static bool CopyAotDllToProject(BuildResourcesData buildSetting,
-            AddressableAssetSettings settings, HybridCLRSetting firstHybridClrSetting, GameSetting gameSetting,
+        private static bool CopyAotDllToProject(IDllResourceRegistrar registrar, HybridCLRSetting firstHybridClrSetting,
             string backUpFolder)
         {
-            if (!GetGroupInSettings(settings, firstHybridClrSetting.aotAddressableGroupName, out var group))
-            {
-                return false;
-            }
-
             var aotInProjectFolder = GetAotPathInProject(firstHybridClrSetting);
             if (Directory.Exists(aotInProjectFolder))
             {
@@ -222,30 +235,18 @@ namespace LFramework.Editor
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            foreach (var path in targetFilesPath)
-            {
-                // 添加资源到 Addressable
-                var assetsGuid = AssetDatabase.AssetPathToGUID(FullPathToUnityPath(path));
-                var entry = settings.CreateOrMoveEntry(assetsGuid, group);
-                entry.SetLabel(gameSetting.hybridClrSetting.defaultAotDllLabel, true);
-                entry.SetLabel(gameSetting.hybridClrSetting.defaultInitLabel, true);
-                settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryMoved, entry, true);
-            }
 
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-
-            return true;
-        }
-
-        private static bool CopyHotfixDllToProject(BuildResourcesData buildSetting,
-            AddressableAssetSettings settings, HybridCLRSetting firstHybridClrSetting, GameSetting gameSetting)
-        {
-            if (!GetGroupInSettings(settings, firstHybridClrSetting.codeAddressableGroupName, out var group))
+            if (!registrar.RegisterAotDlls(targetFilesPath, firstHybridClrSetting))
             {
                 return false;
             }
 
+            return true;
+        }
+
+        private static bool CopyHotfixDllToProject(BuildSetting buildSetting,
+            IDllResourceRegistrar registrar, HybridCLRSetting firstHybridClrSetting)
+        {
             var hotfixInProjectFolder = GetHotfixPathInProject(firstHybridClrSetting);
             if (Directory.Exists(hotfixInProjectFolder))
             {
@@ -285,18 +286,12 @@ namespace LFramework.Editor
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            foreach (var path in targetFilesPath)
+
+            if (!registrar.RegisterHotfixDlls(targetFilesPath, firstHybridClrSetting))
             {
-                // 添加资源到 Addressable
-                var assetsGuid = AssetDatabase.AssetPathToGUID(FullPathToUnityPath(path));
-                var entry = settings.CreateOrMoveEntry(assetsGuid, group);
-                entry.SetLabel(gameSetting.hybridClrSetting.defaultInitLabel, true);
-                entry.SetLabel(gameSetting.hybridClrSetting.defaultCodeDllLabel, true);
-                settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryMoved, entry, true);
+                return false;
             }
 
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
             return true;
         }
 
@@ -331,19 +326,6 @@ namespace LFramework.Editor
             return "Assets/" + fullFilePath.Replace(Application.dataPath + "/", "");
         }
 
-        private static bool GetGroupInSettings(AddressableAssetSettings settings, string groupName,
-            out AddressableAssetGroup group)
-        {
-            group = settings.FindGroup(groupName);
-            if (group == null)
-            {
-                AddressableHelper.GenerateDefaultGroup(groupName, settings, null, out group, out var groupSchema);
-                groupSchema.BundleMode = BundledAssetGroupSchema.BundlePackingMode.PackSeparately;
-            }
-
-            return true;
-        }
-
         private static string GetHotfixPathInProject(HybridCLRSetting fHybridClrSetting)
         {
             return Application.dataPath + "/" + fHybridClrSetting.hotfixDllFolderPath;
@@ -354,9 +336,9 @@ namespace LFramework.Editor
             return Application.dataPath + "/" + firstHybridClrSetting.aotDllFolderPath;
         }
 
-        private static string GetHybridClrDataHOtUpdateDllsFolder(BuildResourcesData buildSetting)
+        private static string GetHybridClrDataHOtUpdateDllsFolder(BuildSetting buildSetting)
         {
-            return GetHybridClrDataRoot() + "/" + "HotUpdateDlls" + "/" + buildSetting.BuilderTarget.ToString();
+            return GetHybridClrDataRoot() + "/" + "HotUpdateDlls" + "/" + buildSetting.builderTarget.ToString();
         }
 
         private static string GetHybridClrDataRoot()
@@ -375,5 +357,4 @@ namespace LFramework.Editor
         }
 #endif
     }
-
 }

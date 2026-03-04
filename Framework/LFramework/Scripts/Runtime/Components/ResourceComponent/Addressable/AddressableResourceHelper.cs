@@ -21,10 +21,11 @@ namespace LFramework.Runtime
         private SettingComponent _settingComponent;
         private const string ReplaceRemote = "remote_";
         private const string ReplaceVersion = "_resource_version_";
-
+        private GameSetting _gameSetting;
         
         private void Awake()
         {
+            _gameSetting = SettingManager.GetSetting<GameSetting>();
             _settingComponent = LFrameworkAspect.Instance.Get<SettingComponent>();
             Addressables.InternalIdTransformFunc = OnInternalIdTransformFunc;
         }
@@ -202,9 +203,9 @@ namespace LFramework.Runtime
                 Log.Debug("OnInternalIdTransformFunc , location = " + location.PrimaryKey);
             }
             */
-            var setting = SettingManager.GetSetting<GameSetting>();
+         
 
-            if (setting.cdnType == CdnType.Local)
+            if (_gameSetting.cdnType == CdnType.Local)
             {
                 return location.InternalId;
             }
@@ -212,20 +213,20 @@ namespace LFramework.Runtime
             if (location.ResourceType == typeof(IAssetBundleResource) && location.InternalId.StartsWith(ReplaceRemote))
             {
                 // 远程AssetBundle
-                return ReplaceUrl(location.InternalId, setting);
+                return ReplaceUrl(location.InternalId, _gameSetting);
             }
 
             if (location.ResourceType == typeof(ContentCatalogData) && location.InternalId.StartsWith(ReplaceRemote))
             {
                 // 远程catalog文件
-                return ReplaceUrl(location.InternalId, setting);
+                return ReplaceUrl(location.InternalId, _gameSetting);
             }
 
             if (location.PrimaryKey == "AddressablesMainContentCatalogRemoteHash")
             {
                 //Log.Info($"LoadFunc , key = {location.PrimaryKey}");
                 // 远程catalog文件hash
-                return ReplaceUrl(location.InternalId, setting);
+                return ReplaceUrl(location.InternalId, _gameSetting);
             }
 
             return location.InternalId;
@@ -273,8 +274,7 @@ namespace LFramework.Runtime
         {
             var newUrl = setting.GetCdnUrl();
             // 是AssetBundle并且是http网络请求
-            var addressKey = internalId.Replace(ReplaceRemote, newUrl)
-                .Replace(ReplaceVersion, setting.GetResourceVersion(_settingComponent));
+            var addressKey = internalId.Replace(ReplaceRemote, newUrl).Replace(ReplaceVersion, setting.GetResourceVersion(_settingComponent));
             /*
             if (!GameSetting.isRelease)
             {
