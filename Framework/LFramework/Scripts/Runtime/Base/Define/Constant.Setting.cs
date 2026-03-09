@@ -14,8 +14,6 @@
             public const string MusicVolume = "Setting.MusicVolume";
             public const string SoundMuted = "Setting.SoundMuted";
             public const string SoundVolume = "Setting.SoundVolume";
-            public const string DevicePerformance = "Setting.DevicePerformance";
-            public const string VibrationMuted = "Setting.VibrationMuted";
         }
     }
 }

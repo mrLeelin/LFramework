@@ -1,5 +1,6 @@
 ﻿using GameFramework;
 using GameFramework.DataTable;
+using LFramework.Runtime;
 using UnityEditor;
 using UnityGameFramework.Runtime;
 
@@ -9,25 +10,24 @@ namespace LFramework.Editor.Window
     {
         internal override bool CanDraw { get; } = true;
 
+        private TableComponent _tableComponent;
       
         internal override void Draw()
         {
-            /*
-            GetComponent(ref _dataTableComponent);
+            
+            GetComponent(ref _tableComponent);
 
-            EditorGUILayout.LabelField("Data Table Count", _dataTableComponent.Count.ToString());
-            EditorGUILayout.LabelField("Cached Bytes Size", _dataTableComponent.CachedBytesSize.ToString());
-            DataTableBase[] dataTables = _dataTableComponent.GetAllDataTables();
-            foreach (DataTableBase dataTable in dataTables)
+            EditorGUILayout.LabelField("Data Table Count", _tableComponent.GetAllDataTables().Length.ToString());
+            foreach (TableBase dataTable in _tableComponent.GetAllDataTables())
             {
                 DrawDataTable(dataTable);
             }
-            */
+            
         }
 
-        private void DrawDataTable(DataTableBase dataTable)
+        private void DrawDataTable(TableBase dataTable)
         {
-            EditorGUILayout.LabelField(dataTable.FullName, Utility.Text.Format("{0} Rows", dataTable.Count));
+            EditorGUILayout.LabelField(dataTable.Name);
         }
     }
 }

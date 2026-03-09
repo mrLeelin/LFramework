@@ -87,7 +87,7 @@ namespace LFramework.Runtime
 
 
         public int AddYooAssetHandler(string name, List<string> labels,
-            string packageName, bool autoReleaseHandle = true)
+            string packageName, bool autoReleaseHandle = true, bool checkDownloadedTags = false)
         {
             var h = GetHandler(name);
             if (h != null)
@@ -95,13 +95,13 @@ namespace LFramework.Runtime
                 return h.SerialID;
             }
 
-            var handle = CreateYooAssetHandler(name, labels, packageName, autoReleaseHandle);
+            var handle = CreateYooAssetHandler(name, labels, packageName, autoReleaseHandle, checkDownloadedTags);
             handle.CheckAndLoadAsync();
             return handle.SerialID;
         }
 
         public int AddYooAssetHandlerNotRun(string name, List<string> labels,
-            string packageName, bool autoReleaseHandle = true)
+            string packageName, bool autoReleaseHandle = true, bool checkDownloadedTags = false)
         {
             var h = GetHandler(name);
             if (h != null)
@@ -109,7 +109,7 @@ namespace LFramework.Runtime
                 return h.SerialID;
             }
 
-            var handle = CreateYooAssetHandler(name, labels, packageName, autoReleaseHandle);
+            var handle = CreateYooAssetHandler(name, labels, packageName, autoReleaseHandle, checkDownloadedTags);
             return handle.SerialID;
         }
 
@@ -199,10 +199,11 @@ namespace LFramework.Runtime
         }
 
         private YooAssetDownloadHandler CreateYooAssetHandler(string name, List<string> labels,
-            string packageName, bool autoReleaseHandle)
+            string packageName, bool autoReleaseHandle, bool checkDownloadedTags = false)
         {
             var serialID = GetNextSerialID();
-            var handler = new YooAssetDownloadHandler(name, labels, packageName, serialID, autoReleaseHandle);
+            var handler = new YooAssetDownloadHandler(name, labels, packageName, serialID, 
+                autoReleaseHandle, checkDownloadedTags);
             RegisterHandler(handler);
             return handler;
         }

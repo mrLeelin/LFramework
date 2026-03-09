@@ -13,25 +13,5 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// </summary>
         /// <param name="buildSetting">构建设置</param>
         void Build(BuildSetting buildSetting);
-
-        /// <summary>
-        /// 构建内置资源包
-        /// 将资源打包到应用程序内部，不支持热更新
-        /// </summary>
-        void BuildInPackage();
-
-        /// <summary>
-        /// 获取资源构建路径
-        /// </summary>
-        /// <param name="buildSetting">构建设置</param>
-        /// <returns>构建路径</returns>
-        string GetBuildPath(BuildSetting buildSetting);
-
-        /// <summary>
-        /// 获取资源加载路径
-        /// </summary>
-        /// <param name="buildSetting">构建设置</param>
-        /// <returns>加载路径（通常是CDN地址或本地路径）</returns>
-        string GetLoadPath(BuildSetting buildSetting);
     }
 }

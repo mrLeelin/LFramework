@@ -82,6 +82,11 @@ namespace LFramework.Runtime.Settings
         /// 资源模式
         /// </summary>
         public ResourceMode ResourceMode => _resourceMode;
-        
+
+        /// <summary>
+        /// YooAssets DefaultPackageName
+        /// </summary>
+        public string YooAssetPackageName => _yooAssetPackageName;
+
     }
 }

@@ -39,7 +39,7 @@ namespace LFramework.Runtime
         private readonly DataProvider<TableBase> _dataProvider;
         private readonly string _name;
 
-        internal string Name => string.IsNullOrEmpty(_name) ? Type.FullName : _name;
+        public string Name => string.IsNullOrEmpty(_name) ? Type.FullName : _name;
 
         internal Type Type => GetType();
 
