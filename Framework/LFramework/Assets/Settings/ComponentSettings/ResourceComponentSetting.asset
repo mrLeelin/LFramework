@@ -14,11 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   bindTypeName: UnityGameFramework.Runtime.ResourceComponent
   _resourceMode: 2
-  m_ResourceHelperTypeName: UnityGameFramework.Runtime.YooAssetResourceHelper
+  m_ResourceHelperTypeName: LFramework.Runtime.YooAssetResourceHelper
   m_CustomResourceHelper: {fileID: 0}
   _minUnloadInterval: 60
   _maxUnloadInterval: 300
-  _addressableAutoInitialize: 1
-  _addressableRemoteCatalogUrl: 
   _yooAssetPackageName: DefaultPackage
   _yooAssetPlayMode: 1
