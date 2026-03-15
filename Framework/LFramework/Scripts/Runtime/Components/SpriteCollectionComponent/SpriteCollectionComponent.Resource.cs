@@ -134,7 +134,7 @@ namespace LFramework.Runtime
 
             m_SpriteCollectionBeingLoaded.Add(setSpriteObject.CollectionPath);
             SpriteCollection collection =
-                await m_ResourceComponent.LoadAssetAsync<SpriteCollection>(setSpriteObject.CollectionPath);
+                await m_ResourceComponent.LoadAssetHandle<SpriteCollection>(setSpriteObject.CollectionPath);
             m_SpriteCollectionPool.Register(
                 SpriteCollectionItemObject.Create(setSpriteObject.CollectionPath, collection, m_ResourceComponent),
                 false);

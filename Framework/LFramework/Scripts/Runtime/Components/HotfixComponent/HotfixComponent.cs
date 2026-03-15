@@ -8,19 +8,12 @@ using Cysharp.Threading.Tasks;
 
 #if USE_HybridCLR
 using HybridCLR;
-
 #endif
 
-#if UNITY_EDITOR && USE_HybridCLR
-using HybridCLR.Editor.Settings;
-#endif
 
 using LFramework.Runtime.Method;
 using LFramework.Runtime.Settings;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
-using UnityEngine.ResourceManagement.AsyncOperations;
-using UnityEngine.ResourceManagement.ResourceLocations;
 using UnityGameFramework.Runtime;
 using Zenject;
 
@@ -35,6 +28,7 @@ namespace LFramework.Runtime
         [Inject] private GameSetting GameSetting { get; }
         [Inject] private HybridCLRSetting HybridClrSetting { get; }
         [Inject] private ResourceDownloadComponent ResourceDownloadComponent { get; }
+        [Inject] private ResourceComponent ResourceComponent { get; }
 
         private Dictionary<string, Type> _allTypes;
         private readonly List<Assembly> _hotfixAssemblies = new();
@@ -88,7 +82,7 @@ namespace LFramework.Runtime
             result = await LoadAotAssemblies();
             if (result.ResultType == LoadAssemblyResultType.Successful)
             {
-                result = await LoadHotfixAssemblies();
+                result = await LoadHotfixAssembliesInternal();
             }
 #endif
             if (result.ResultType != LoadAssemblyResultType.Successful)
@@ -119,12 +113,19 @@ namespace LFramework.Runtime
             }
 
             ParseHotfixAssembly();
-            IStaticMethod start = new StaticMethod(_mainLogicAssembly, "LFramework.Hotfix.Entry", "HotfixEntryStart");
-            start.Run();
             callBack(new HotfixCodeResult()
             {
                 ResultType = LoadAssemblyResultType.Successful
             });
+        }
+
+        /// <summary>
+        /// 进入热更程序集
+        /// </summary>
+        public void EnterHotfixAssembly()
+        {
+            IStaticMethod start = new StaticMethod(_mainLogicAssembly, "LFramework.Hotfix.Entry", "HotfixEntryStart");
+            start.Run();
         }
 
         #endregion
@@ -173,7 +174,7 @@ namespace LFramework.Runtime
                 {
                     _hotfixAssemblies.Add(asm);
                 }
-                
+
             }
 
             _mainLogicAssembly = mainLogicAssembly;
@@ -191,71 +192,24 @@ namespace LFramework.Runtime
         /// <returns></returns>
         private async UniTask<HotfixCodeResult> LoadAotAssemblies()
         {
-            var result = await LoadAssembliesFormLabel(GameSetting.hybridClrSetting.defaultAotDllLabel);
-            if (result.Item1.ResultType != LoadAssemblyResultType.Successful)
-            {
-                return result.Item1;
-            }
-
-            if (result.Item2 == null || result.Item2.Count == 0)
-            {
-                return result.Item1;
-            }
-
-            return await LoadAotLocations(result.Item2);
-        }
-        
-        
-        private async UniTask<HotfixCodeResult> LoadAotLocations(IList<IResourceLocation> locations)
-        {
-            /*
-            foreach (var location in locations)
-            {
-                if (!location.InternalId.EndsWith(".dll.bytes")) // 再次确认是 .dll.bytes 文件
-                {
-                    Log.Fatal($"The load aot locations failed. {{not dll file '{location.InternalId}'}}");
-                    return LoadAssemblyResultType.LoadAotError;
-                }
-            }
-            */
-
-            var dlls = new List<TextAsset>();
-            var status = AsyncOperationStatus.Failed;
-            var loadedHandle = Addressables.LoadAssetsAsync<TextAsset>(locations, null, false);
+            List<TextAsset> dlls;
             try
             {
-                await loadedHandle.Task;
-                status = loadedHandle.Status;
-                dlls.AddRange(loadedHandle.Result);
+                var handle = ResourceComponent.LoadAssetsByTagHandle<TextAsset>(HybridClrSetting.defaultAotDllLabel);
+                dlls = await handle;
+                handle.Release();
             }
             catch (Exception e)
             {
-                status = AsyncOperationStatus.Failed;
-                Log.Error($"The load aot dlls failed. {loadedHandle.OperationException}");
+                Log.Error($"The load aot dlls failed. {e.Message}");
                 return new HotfixCodeResult()
                 {
                     ResultType = LoadAssemblyResultType.LoadAotError,
-                    Message = loadedHandle.OperationException.Message
-                };
-            }
-            finally
-            {
-                Addressables.Release(loadedHandle);
-            }
-
-            if (status != AsyncOperationStatus.Succeeded)
-            {
-                Log.Error(
-                    $"The Aot dll loaded error. count is '{dlls.Count}'  message '{loadedHandle.OperationException.Message}';");
-                return new HotfixCodeResult()
-                {
-                    ResultType = LoadAssemblyResultType.LoadAotError,
-                    Message = loadedHandle.OperationException.Message
+                    Message = e.Message
                 };
             }
 
-            Log.Info($"The Aot dll loaded successfully. count is '{dlls.Count}';");
-            if (dlls.Count == 0)
+            if (dlls == null || dlls.Count == 0)
             {
                 return new HotfixCodeResult()
                 {
@@ -263,6 +217,8 @@ namespace LFramework.Runtime
                     Message = "The aot count is zero."
                 };
             }
+
+            Log.Info($"The Aot dll loaded successfully. count is '{dlls.Count}';");
 
             foreach (var dll in dlls)
             {
@@ -291,77 +247,47 @@ namespace LFramework.Runtime
             };
         }
 #endif
-        
 
 
 #if USE_HybridCLR
-        
+
         /// <summary>
         /// 加载热更代码
         /// </summary>
         /// <returns></returns>
-        private async UniTask<HotfixCodeResult> LoadHotfixAssemblies()
+        private async UniTask<HotfixCodeResult> LoadHotfixAssembliesInternal()
         {
-            var result = await LoadAssembliesFormLabel(GameSetting.hybridClrSetting.defaultCodeDllLabel);
-            if (result.Item1.ResultType != LoadAssemblyResultType.Successful)
-            {
-                return result.Item1;
-            }
-
-            if (result.Item2 == null || result.Item2.Count == 0)
-            {
-                return result.Item1;
-            }
-
-            return await LoadHotfixLocations(result.Item2);
-        }
-        
-        private async UniTask<HotfixCodeResult> LoadHotfixLocations(IList<IResourceLocation> locations)
-        {
-            var dlls = new List<TextAsset>();
-            var status = AsyncOperationStatus.Failed;
-            var loadedHandle = Addressables.LoadAssetsAsync<TextAsset>(locations, null, false);
+            List<TextAsset> dlls;
+            ResourceBatchHandle<TextAsset> handle = null;
             try
             {
-                await loadedHandle.Task;
-                status = loadedHandle.Status;
-                dlls.AddRange(loadedHandle.Result);
+                handle = ResourceComponent.LoadAssetsByTagHandle<TextAsset>(HybridClrSetting.defaultCodeDllLabel);
+                dlls = await handle;
             }
             catch (Exception e)
             {
-                status = AsyncOperationStatus.Failed;
-                Log.Error($"The load Hotfix dlls failed. {loadedHandle.OperationException}");
+                Log.Error($"The load Hotfix dlls failed. {e.Message}");
                 return new HotfixCodeResult()
                 {
-                    ResultType = LoadAssemblyResultType.LoadAotError,
-                    Message = loadedHandle.OperationException.Message
+                    ResultType = LoadAssemblyResultType.HotfixError,
+                    Message = e.Message
                 };
             }
             finally
             {
-                Addressables.Release(loadedHandle);
+                handle?.Release();
             }
 
-            if (status != AsyncOperationStatus.Succeeded)
-            {
-                Log.Error(
-                    $"The Hotfix dll loaded error. count is '{dlls.Count}'  message '{loadedHandle.OperationException.Message}';");
-                return new HotfixCodeResult()
-                {
-                    ResultType = LoadAssemblyResultType.HotfixError,
-                    Message = loadedHandle.OperationException.Message
-                };
-            }
-
-            Log.Info($"The Aot dll loaded successfully. count is '{dlls.Count}';");
-            if (dlls.Count == 0)
+            if (dlls == null || dlls.Count == 0)
             {
                 return new HotfixCodeResult()
                 {
                     ResultType = LoadAssemblyResultType.HotfixError,
-                    Message = "The aot count is zero."
+                    Message = "The hotfix dll count is zero."
                 };
             }
+
+            Log.Info($"The Hotfix dll loaded successfully. count is '{dlls.Count}';");
 
             SortHotfixDll(dlls);
             try
@@ -370,7 +296,7 @@ namespace LFramework.Runtime
                 {
                     var hotfixAssembly = Assembly.Load(AESUtility.Decrypt(dll.bytes));
                     _hotfixAssemblies.Add(hotfixAssembly);
-                    if (string.Compare(GameSetting.hybridClrSetting.logicMainDllName, hotfixAssembly.GetName().Name,
+                    if (string.Compare(HybridClrSetting.logicMainDllName, hotfixAssembly.GetName().Name,
                             StringComparison.Ordinal) == 0)
                     {
                         _mainLogicAssembly = hotfixAssembly;
@@ -395,10 +321,10 @@ namespace LFramework.Runtime
 
         private void SortHotfixDll(List<TextAsset> dlls)
         {
-            if (dlls.Count != GameSetting.hybridClrSetting.hotfixAssembliesSort.Count)
+            if (dlls.Count != HybridClrSetting.hotfixAssembliesSort.Count)
             {
                 Log.Fatal("The hotfix dlls count is not match with setting. " +
-                          $"Expected: {GameSetting.hybridClrSetting.hotfixAssembliesSort.Count}, " +
+                          $"Expected: {HybridClrSetting.hotfixAssembliesSort.Count}, " +
                           $"Actual: {dlls.Count}");
             }
 
@@ -412,8 +338,8 @@ namespace LFramework.Runtime
                 var xName = x.name.Replace(".dll", "");
                 var yName = y.name.Replace(".dll", "");
                 Log.Info("The hotfix sort dll name is " + xName + " - " + yName);
-                var xIndex = GameSetting.hybridClrSetting.hotfixAssembliesSort.IndexOf(xName);
-                var yIndex = GameSetting.hybridClrSetting.hotfixAssembliesSort.IndexOf(yName);
+                var xIndex = HybridClrSetting.hotfixAssembliesSort.IndexOf(xName);
+                var yIndex = HybridClrSetting.hotfixAssembliesSort.IndexOf(yName);
                 if (xIndex < 0 || yIndex < 0)
                 {
                     Log.Fatal($"The hotfix dlls sort failed. {x.name} or {y.name} not in setting.");
@@ -428,60 +354,14 @@ namespace LFramework.Runtime
             }
         }
 
-         private async UniTask<(HotfixCodeResult, IList<IResourceLocation>)> LoadAssembliesFormLabel(string label)
-        {
-            var handle = Addressables.LoadResourceLocationsAsync(label);
-            IList<IResourceLocation> locations = null;
-            AsyncOperationStatus status = AsyncOperationStatus.Failed;
-            try
-            {
-                await handle.Task;
-                locations = handle.Result;
-                status = handle.Status;
-            }
-            catch (Exception e)
-            {
-                status = AsyncOperationStatus.Failed;
-                Log.Error($"The load aot locations failed. {e.Message}");
-                return (new HotfixCodeResult()
-                {
-                    ResultType = LoadAssemblyResultType.LoadAotError,
-                    Message = e.Message
-                }, null);
-            }
-            finally
-            {
-                Addressables.Release(handle);
-            }
-
-            if (status != AsyncOperationStatus.Succeeded)
-            {
-                return (new HotfixCodeResult()
-                {
-                    ResultType = LoadAssemblyResultType.LoadAotError,
-                    Message = handle.OperationException.Message
-                }, null);
-            }
-
-            return (new HotfixCodeResult()
-            {
-                ResultType = LoadAssemblyResultType.Successful
-            }, locations);
-        }
-
 #endif
-        
 
-
-        
-       
 
         /// <summary>
         /// 添加流程
         /// </summary>
         private void ParseAttributes(Dictionary<string, Type> types)
         {
-            // var baseAttributeTypes = GetBaseAttributes(types);
             _allAttributeTypes.Clear();
 
             foreach (var type in types.Values)
@@ -491,26 +371,6 @@ namespace LFramework.Runtime
                     _allAttributeTypes.Add(customAttributeData.GetType(), type);
                 }
             }
-
-            /*
-            foreach (var baseAttributeType in baseAttributeTypes)
-            {
-                foreach (var type in types.Values)
-                {
-                    if (type.IsAbstract)
-                    {
-                        continue;
-                    }
-
-                    if (type.GetCustomAttribute(baseAttributeType) == null)
-                    {
-                        continue;
-                    }
-
-                    _allAttributeTypes.Add(baseAttributeType, type);
-                }
-            }
-            */
         }
 
         /// <summary>

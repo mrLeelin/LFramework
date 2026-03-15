@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
+using GameFramework;
 using GameFramework.Resource;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -41,7 +43,7 @@ namespace LFramework.Runtime
         /// 二进制资源名称 → RawFileHandle 映射
         /// </summary>
         private readonly Dictionary<string, RawFileHandle> _rawFileHandles = new Dictionary<string, RawFileHandle>();
-    
+
 
         /// <summary>
         /// 初始化资源系统
@@ -75,7 +77,6 @@ namespace LFramework.Runtime
         {
             if (asset == null) return;
 
-            // 获取资源的 InstanceID
             int instanceId = -1;
             if (asset is UnityEngine.Object unityObj)
             {
@@ -83,16 +84,14 @@ namespace LFramework.Runtime
             }
             else
             {
-                // 非 Unity 对象，无法释放
                 return;
             }
 
             // 检查是否是实例化对象
             if (_instanceToAssetMap.TryGetValue(instanceId, out int assetInstanceId))
             {
-                // 这是一个实例化对象，释放实例化对象的映射
                 _instanceToAssetMap.Remove(instanceId);
-                instanceId = assetInstanceId; // 使用原始资源的 InstanceID
+                instanceId = assetInstanceId;
             }
 
             // 查找并释放 Handle
@@ -103,7 +102,6 @@ namespace LFramework.Runtime
 
                 if (refCount <= 0)
                 {
-                    // 引用计数归零，释放所有 Handle
                     if (_assetHandles.TryGetValue(instanceId, out var handles))
                     {
                         foreach (var h in handles)
@@ -124,7 +122,6 @@ namespace LFramework.Runtime
         {
             if (string.IsNullOrEmpty(binaryAssetName)) return;
 
-            // 查找并释放 RawFileHandle
             if (_rawFileHandles.TryGetValue(binaryAssetName, out RawFileHandle handle))
             {
                 handle.Release();
@@ -147,7 +144,6 @@ namespace LFramework.Runtime
 
             op.completed += (_) =>
             {
-                // 释放场景 Handle
                 if (_sceneHandles.TryGetValue(sceneAssetName, out SceneHandle handle))
                 {
                     handle.UnloadAsync();
@@ -180,13 +176,11 @@ namespace LFramework.Runtime
 
             if (handle.Status == EOperationStatus.Succeed)
             {
-                // 保存 Handle 映射关系
                 var asset = handle.AssetObject;
                 if (asset != null)
                 {
                     int instanceId = asset.GetInstanceID();
 
-                    // 将 Handle 添加到列表中（支持同一资源多次加载）
                     if (_assetHandles.TryGetValue(instanceId, out var handles))
                     {
                         handles.Add(handle);
@@ -194,7 +188,6 @@ namespace LFramework.Runtime
                     }
                     else
                     {
-                        // 新资源，创建 Handle 列表并初始化引用计数
                         _assetHandles[instanceId] = new List<AssetHandle> { handle };
                         _handleRefCounts[instanceId] = 1;
                     }
@@ -233,7 +226,6 @@ namespace LFramework.Runtime
 
             if (handle.Status == EOperationStatus.Succeed)
             {
-                // 保存场景 Handle 映射
                 _sceneHandles[sceneAssetName] = handle;
 
                 callbacks.LoadSceneSuccessCallback?.Invoke(
@@ -260,7 +252,6 @@ namespace LFramework.Runtime
             {
                 if (op.Status == EOperationStatus.Succeed)
                 {
-                    // 保存 RawFileHandle 映射
                     _rawFileHandles[binaryAssetName] = handle;
 
                     callbacks.LoadBinarySuccessCallback?.Invoke(
@@ -299,13 +290,11 @@ namespace LFramework.Runtime
             {
                 var instantiateOp = handle.InstantiateAsync();
 
-                // 等待实例化完成
                 while (!instantiateOp.IsDone)
                 {
                     yield return null;
                 }
 
-                // 保存实例化对象到原始资源的映射
                 if (instantiateOp.Status == EOperationStatus.Succeed &&
                     instantiateOp.Result != null &&
                     handle.AssetObject != null)
@@ -313,10 +302,8 @@ namespace LFramework.Runtime
                     int instanceId = instantiateOp.Result.GetInstanceID();
                     int assetInstanceId = handle.AssetObject.GetInstanceID();
 
-                    // 保存实例化对象的映射
                     _instanceToAssetMap[instanceId] = assetInstanceId;
 
-                    // 增加原始资源的引用计数并保存 Handle
                     if (_assetHandles.TryGetValue(assetInstanceId, out var handles))
                     {
                         handles.Add(handle);
@@ -324,7 +311,6 @@ namespace LFramework.Runtime
                     }
                     else
                     {
-                        // 如果原始资源还没有被加载，创建 Handle 列表
                         _assetHandles[assetInstanceId] = new List<AssetHandle> { handle };
                         _handleRefCounts[assetInstanceId] = 1;
                     }
@@ -337,6 +323,208 @@ namespace LFramework.Runtime
                 callbacks.LoadAssetFailureCallback?.Invoke(assetName, LoadResourceStatus.NotExist,
                     handle.LastError ?? "Instantiate failed.", userData);
             }
+        }
+
+        // ─── Handle 异步 API 实现 ───
+
+        /// <summary>
+        /// 异步加载资源（返回 Handle）
+        /// </summary>
+        public override ResourceAssetHandle<T> LoadAssetHandle<T>(string assetName)
+        {
+            var resourceHandle = ReferencePool.Acquire<ResourceAssetHandle<T>>();
+            resourceHandle.MarkFromPool();
+            LoadAssetHandleAsync(resourceHandle, assetName);
+            return resourceHandle;
+        }
+
+        private async void LoadAssetHandleAsync<T>(ResourceAssetHandle<T> handle, string assetName)
+            where T : UnityEngine.Object
+        {
+            try
+            {
+                var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
+                var op = package.LoadAssetAsync<T>(assetName);
+                while (!op.IsDone)
+                {
+                    handle.SetProgress(op.Progress);
+                    await UniTask.Yield();
+                }
+                if (op.Status == EOperationStatus.Succeed)
+                {
+                    handle.RegisterReleaseAction(() => op.Release());
+                    handle.SetResult(op.AssetObject as T);
+                }
+                else
+                {
+                    handle.SetError(op.LastError ?? $"Load asset '{assetName}' failed.");
+                }
+            }
+            catch (Exception ex) { handle.SetError(ex.Message); }
+        }
+
+        /// <summary>
+        /// 异步实例化资源（返回 Handle）
+        /// </summary>
+        public override ResourceAssetHandle<GameObject> InstantiateAssetHandle(string assetName)
+        {
+            var resourceHandle = ReferencePool.Acquire<ResourceAssetHandle<GameObject>>();
+            resourceHandle.MarkFromPool();
+            InstantiateAssetHandleAsync(resourceHandle, assetName);
+            return resourceHandle;
+        }
+
+        private async void InstantiateAssetHandleAsync(ResourceAssetHandle<GameObject> handle, string assetName)
+        {
+            try
+            {
+                var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
+                var assetOp = package.LoadAssetAsync<GameObject>(assetName);
+                while (!assetOp.IsDone)
+                {
+                    handle.SetProgress(assetOp.Progress * 0.5f);
+                    await UniTask.Yield();
+                }
+                if (assetOp.Status != EOperationStatus.Succeed)
+                {
+                    handle.SetError(assetOp.LastError ?? $"Load asset '{assetName}' for instantiate failed.");
+                    return;
+                }
+                var instOp = assetOp.InstantiateAsync();
+                while (!instOp.IsDone)
+                {
+                    handle.SetProgress(0.5f + instOp.Progress * 0.5f);
+                    await UniTask.Yield();
+                }
+                if (instOp.Status == EOperationStatus.Succeed && instOp.Result != null)
+                {
+                    var instance = instOp.Result;
+                    handle.RegisterReleaseAction(() =>
+                    {
+                        if (instance != null) UnityEngine.Object.Destroy(instance);
+                        assetOp.Release();
+                    });
+                    handle.SetResult(instance);
+                }
+                else
+                {
+                    assetOp.Release();
+                    handle.SetError($"Instantiate asset '{assetName}' failed.");
+                }
+            }
+            catch (Exception ex) { handle.SetError(ex.Message); }
+        }
+
+        /// <summary>
+        /// 异步加载场景（返回 Handle）
+        /// </summary>
+        public override ResourceSceneHandle LoadSceneHandle(string sceneAssetName)
+        {
+            var resourceHandle = ReferencePool.Acquire<ResourceSceneHandle>();
+            resourceHandle.MarkFromPool();
+            resourceHandle.SetSceneName(sceneAssetName);
+            LoadSceneHandleAsync(resourceHandle, sceneAssetName);
+            return resourceHandle;
+        }
+
+        private async void LoadSceneHandleAsync(ResourceSceneHandle handle, string sceneAssetName)
+        {
+            try
+            {
+                var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
+                var op = package.LoadSceneAsync(sceneAssetName);
+                while (!op.IsDone)
+                {
+                    handle.SetProgress(op.Progress);
+                    await UniTask.Yield();
+                }
+                if (op.Status == EOperationStatus.Succeed)
+                {
+                    handle.RegisterReleaseAction(() => op.UnloadAsync());
+                    handle.SetCompleted();
+                }
+                else
+                {
+                    handle.SetError(op.LastError ?? $"Load scene '{sceneAssetName}' failed.");
+                }
+            }
+            catch (Exception ex) { handle.SetError(ex.Message); }
+        }
+
+        /// <summary>
+        /// 异步加载二进制/原始文件（返回 Handle）
+        /// </summary>
+        public override ResourceRawFileHandle LoadRawFileHandle(string binaryAssetName)
+        {
+            var resourceHandle = ReferencePool.Acquire<ResourceRawFileHandle>();
+            resourceHandle.MarkFromPool();
+            LoadRawFileHandleAsync(resourceHandle, binaryAssetName);
+            return resourceHandle;
+        }
+
+        private async void LoadRawFileHandleAsync(ResourceRawFileHandle handle, string binaryAssetName)
+        {
+            try
+            {
+                var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
+                var op = package.LoadRawFileAsync(binaryAssetName);
+                while (!op.IsDone)
+                {
+                    handle.SetProgress(op.Progress);
+                    await UniTask.Yield();
+                }
+                if (op.Status == EOperationStatus.Succeed)
+                {
+                    handle.RegisterReleaseAction(() => op.Release());
+                    handle.SetResult(op.GetRawFileData());
+                }
+                else
+                {
+                    handle.SetError(op.LastError ?? $"Load binary '{binaryAssetName}' failed.");
+                }
+            }
+            catch (Exception ex) { handle.SetError(ex.Message); }
+        }
+
+        /// <summary>
+        /// 异步批量加载资源（通过标签，返回 Handle）
+        /// </summary>
+        public override ResourceBatchHandle<T> LoadAssetsByTagHandle<T>(string tag)
+        {
+            var resourceHandle = ReferencePool.Acquire<ResourceBatchHandle<T>>();
+            resourceHandle.MarkFromPool();
+            LoadAssetsByTagHandleAsync(resourceHandle, tag);
+            return resourceHandle;
+        }
+
+        private async void LoadAssetsByTagHandleAsync<T>(ResourceBatchHandle<T> handle, string tag)
+            where T : UnityEngine.Object
+        {
+            try
+            {
+                var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
+                var op = package.LoadAllAssetsAsync<T>(tag);
+                while (!op.IsDone)
+                {
+                    handle.SetProgress(op.Progress);
+                    await UniTask.Yield();
+                }
+                if (op.Status == EOperationStatus.Succeed)
+                {
+                    var result = new List<T>();
+                    foreach (var obj in op.AllAssetObjects)
+                    {
+                        if (obj is T typedObj) result.Add(typedObj);
+                    }
+                    handle.RegisterReleaseAction(() => op.Release());
+                    handle.SetResult(result);
+                }
+                else
+                {
+                    handle.SetError(op.LastError ?? $"Load assets by tag '{tag}' failed.");
+                }
+            }
+            catch (Exception ex) { handle.SetError(ex.Message); }
         }
 
         private async void InitializePackageAsync(ResourcePackage package, ResourceInitCallBack callback)
@@ -365,8 +553,8 @@ namespace LFramework.Runtime
                     break;
                 case YooAssetPlayMode.HostPlayMode:
                 {
-                    string defaultHostServer = "";//GetHostServerURL();
-                    string fallbackHostServer = "";// GetHostServerURL();
+                    string defaultHostServer = "";
+                    string fallbackHostServer = "";
                     IRemoteServices remoteServices = new RemoteServices(defaultHostServer, fallbackHostServer);
                     var createParameters = new HostPlayModeParameters();
                     createParameters.BuildinFileSystemParameters =
@@ -382,7 +570,7 @@ namespace LFramework.Runtime
                     var createParameters = new WebPlayModeParameters();
 			        string defaultHostServer = GetHostServerURL();
                     string fallbackHostServer = GetHostServerURL();
-                    string packageRoot = $"{WeChatWASM.WX.env.USER_DATA_PATH}/__GAME_FILE_CACHE"; //注意：如果有子目录，请修改此处！
+                    string packageRoot = $"{WeChatWASM.WX.env.USER_DATA_PATH}/__GAME_FILE_CACHE";
                     IRemoteServices remoteServices = new RemoteServices(defaultHostServer, fallbackHostServer);
                     createParameters.WebServerFileSystemParameters =
                     WechatFileSystemCreater.CreateFileSystemParameters(packageRoot, remoteServices);
@@ -414,42 +602,6 @@ namespace LFramework.Runtime
             {
                 callback?.ResourceInitFailureCallBack?.Invoke(
                     "Unknown YooAsset play mode, initialization failed.");
-            }
-        }
-
-        /// <summary>
-        /// 加载资源（V2 版本，返回 IResourceHandle）
-        /// </summary>
-        public override void LoadAssetV2(string assetName, Type assetType,
-            LoadAssetCallbacksV2 callbacks, object userData)
-        {
-            var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
-            var handle = package.LoadAssetAsync(assetName, assetType);
-            StartCoroutine(WaitForAssetLoadV2(handle, assetName, callbacks, userData));
-        }
-
-        private IEnumerator WaitForAssetLoadV2(AssetHandle handle, string assetName,
-            LoadAssetCallbacksV2 callbacks, object userData)
-        {
-            while (!handle.IsDone)
-            {
-                callbacks.LoadAssetUpdateCallback?.Invoke(assetName, handle.Progress, userData);
-                yield return null;
-            }
-
-            if (handle.Status == EOperationStatus.Succeed)
-            {
-                // 创建 IResourceHandle 包装
-                var resourceHandle = new YooAssetResourceHandle(handle, assetName);
-
-                callbacks.LoadAssetSuccessCallback?.Invoke(
-                    assetName, resourceHandle, 0f, userData);
-            }
-            else
-            {
-                callbacks.LoadAssetFailureCallback?.Invoke(
-                    assetName, LoadResourceStatus.NotExist,
-                    handle.LastError ?? "Load failed.", userData);
             }
         }
 

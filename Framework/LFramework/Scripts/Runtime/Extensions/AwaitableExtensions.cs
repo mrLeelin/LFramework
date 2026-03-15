@@ -1,11 +1,8 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using GameFramework;
 using GameFramework.Event;
-using GameFramework.Resource;
 using UnityEngine;
 using UnityGameFramework.Runtime;
 
@@ -223,37 +220,7 @@ namespace LFramework.Runtime
 
         #region Assets
 
-         /// <summary>
-        /// 加载资源（可等待）
-        /// </summary>
-        public static UniTask<T> LoadAssetAsync<T>(this ResourceComponent resourceComponent, string assetName)
-            where T : UnityEngine.Object
-        {
-            UniTaskCompletionSource<T> loadAssetTcs = new UniTaskCompletionSource<T>();
-            resourceComponent.LoadAsset(assetName, typeof(T), new LoadAssetCallbacks(
-                (tempAssetName, asset, duration, userdata) =>
-                {
-                    var source = loadAssetTcs;
-                    loadAssetTcs = null;
-                    T tAsset = asset as T;
-                    if (tAsset != null)
-                    {
-                        source.TrySetResult(tAsset);
-                    }
-                    else
-                    {
-                        source.TrySetException(new GameFrameworkException(
-                            $"Load asset failure load type is {asset.GetType()} but asset type is {typeof(T)}."));
-                    }
-                },
-                (tempAssetName, status, errorMessage, userdata) =>
-                {
-                    loadAssetTcs.TrySetException(new GameFrameworkException(errorMessage));
-                }
-            ));
-
-            return loadAssetTcs.Task;
-        }
+        // LoadAssetAsync 已迁移到 ResourceComponent.LoadAssetHandle<T>()，请使用新的 Handle API
 
         #endregion
     }

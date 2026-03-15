@@ -11,11 +11,7 @@ namespace LFramework.Runtime.LaunchPipeline
     /// </summary>
     public class LaunchContext
     {
-        /// <summary>
-        /// 游戏设置（只读，构造时传入）。
-        /// </summary>
-        public GameSetting GameSetting { get; private set; }
-
+        
         /// <summary>
         /// 自定义数据字典，用于任务之间传递额外数据。
         /// </summary>
@@ -34,11 +30,9 @@ namespace LFramework.Runtime.LaunchPipeline
         /// <summary>
         /// 构造函数。
         /// </summary>
-        /// <param name="gameSetting">游戏设置实例。</param>
         /// <param name="cancellationToken">可选的取消令牌。</param>
-        public LaunchContext(GameSetting gameSetting, CancellationToken cancellationToken = default)
+        public LaunchContext(CancellationToken cancellationToken = default)
         {
-            GameSetting = gameSetting;
             CancellationToken = cancellationToken;
             CustomData = new Dictionary<string, object>();
         }

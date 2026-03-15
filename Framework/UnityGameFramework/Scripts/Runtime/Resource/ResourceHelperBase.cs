@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace UnityGameFramework.Runtime
@@ -11,7 +12,7 @@ namespace UnityGameFramework.Runtime
         /// 资源组件
         /// </summary>
         protected ResourceComponent ResourceComponent { get; private set; }
-        
+
         /// <summary>
         /// 初始化资源系统
         /// </summary>
@@ -38,11 +39,6 @@ namespace UnityGameFramework.Runtime
         public abstract void LoadAsset(string assetName, System.Type assetType, GameFramework.Resource.LoadAssetCallbacks callbacks, object userData);
 
         /// <summary>
-        /// 加载资源（V2 版本，返回 IResourceHandle）
-        /// </summary>
-        public abstract void LoadAssetV2(string assetName, System.Type assetType, GameFramework.Resource.LoadAssetCallbacksV2 callbacks, object userData);
-
-        /// <summary>
         /// 加载场景
         /// </summary>
         public abstract void LoadScene(string sceneAssetName, GameFramework.Resource.LoadSceneCallbacks callbacks, object userData);
@@ -57,6 +53,36 @@ namespace UnityGameFramework.Runtime
         /// </summary>
         public abstract void InstantiateAsset(string assetName, GameFramework.Resource.LoadAssetCallbacks callbacks, object userData);
 
+        // ─── Handle 异步 API ───
+
+        /// <summary>
+        /// 异步加载资源（返回 Handle）
+        /// </summary>
+        public abstract ResourceAssetHandle<T> LoadAssetHandle<T>(string assetName) where T : UnityEngine.Object;
+
+        /// <summary>
+        /// 异步实例化资源（返回 Handle）
+        /// </summary>
+        public abstract ResourceAssetHandle<GameObject> InstantiateAssetHandle(string assetName);
+
+        /// <summary>
+        /// 异步加载场景（返回 Handle）
+        /// </summary>
+        public abstract ResourceSceneHandle LoadSceneHandle(string sceneAssetName);
+
+        /// <summary>
+        /// 异步加载二进制/原始文件（返回 Handle）
+        /// </summary>
+        public abstract ResourceRawFileHandle LoadRawFileHandle(string binaryAssetName);
+
+        /// <summary>
+        /// 异步批量加载资源（通过标签，返回 Handle）
+        /// </summary>
+        public abstract ResourceBatchHandle<T> LoadAssetsByTagHandle<T>(string tag) where T : UnityEngine.Object;
+
+        /// <summary>
+        /// 设置资源组件引用
+        /// </summary>
         public void SetResourceComponent(ResourceComponent resourceComponent)
         {
             ResourceComponent = resourceComponent;

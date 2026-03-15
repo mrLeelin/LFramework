@@ -59,12 +59,6 @@ namespace GameFramework.Resource
                        LoadAssetCallbacks callbacks, object userData);
 
         /// <summary>
-        /// 加载资源（V2 版本，返回 IResourceHandle）
-        /// </summary>
-        void LoadAssetV2(string assetName, Type assetType,
-                         LoadAssetCallbacksV2 callbacks, object userData);
-
-        /// <summary>
         /// 卸载资源
         /// </summary>
         void UnloadAsset(object asset);

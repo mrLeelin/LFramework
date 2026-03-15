@@ -222,13 +222,46 @@ namespace UnityGameFramework.Runtime
             _resourceManager.LoadAsset(assetName, assetType, 0, callbacks, userData);
         }
 
+        // ─── Handle 异步 API ───
+
         /// <summary>
-        /// 加载资源（V2 版本，返回 IResourceHandle）
+        /// 异步加载资源（返回 Handle，可直接 await）
         /// </summary>
-        public void LoadAssetV2(string assetName, Type assetType,
-            LoadAssetCallbacksV2 callbacks, object userData)
+        public ResourceAssetHandle<T> LoadAssetHandle<T>(string assetName) where T : UnityEngine.Object
         {
-            _resourceManager.LoadAssetV2(assetName, assetType, callbacks, userData);
+            return _resourceHelper.LoadAssetHandle<T>(assetName);
+        }
+
+        /// <summary>
+        /// 异步实例化资源（返回 Handle，可直接 await）
+        /// </summary>
+        public ResourceAssetHandle<UnityEngine.GameObject> InstantiateAssetHandle(string assetName)
+        {
+            return _resourceHelper.InstantiateAssetHandle(assetName);
+        }
+
+        /// <summary>
+        /// 异步加载场景（返回 Handle，可直接 await）
+        /// </summary>
+        public ResourceSceneHandle LoadSceneHandle(string sceneAssetName)
+        {
+            return _resourceHelper.LoadSceneHandle(sceneAssetName);
+        }
+
+        /// <summary>
+        /// 异步加载二进制/原始文件（返回 Handle，可直接 await）
+        /// </summary>
+        public ResourceRawFileHandle LoadRawFileHandle(string binaryAssetName)
+        {
+            return _resourceHelper.LoadRawFileHandle(binaryAssetName);
+        }
+
+        /// <summary>
+        /// 异步批量加载资源（通过标签，返回 Handle，可直接 await）
+        /// </summary>
+        public ResourceBatchHandle<T> LoadAssetsByTagHandle<T>(string tag) where T : UnityEngine.Object
+        {
+            return _resourceHelper.LoadAssetsByTagHandle<T>(tag);
         }
 
         /// <summary>

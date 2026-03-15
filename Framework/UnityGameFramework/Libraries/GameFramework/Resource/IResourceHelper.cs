@@ -40,11 +40,6 @@ namespace GameFramework.Resource
         void LoadAsset(string assetName, Type assetType, LoadAssetCallbacks callbacks, object userData);
 
         /// <summary>
-        /// 加载资源（V2 版本，返回 IResourceHandle）
-        /// </summary>
-        void LoadAssetV2(string assetName, Type assetType, LoadAssetCallbacksV2 callbacks, object userData);
-
-        /// <summary>
         /// 加载场景
         /// </summary>
         void LoadScene(string sceneAssetName, LoadSceneCallbacks callbacks, object userData);

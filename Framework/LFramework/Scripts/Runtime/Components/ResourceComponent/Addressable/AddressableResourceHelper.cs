@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
+using GameFramework;
 using GameFramework.Resource;
 using LFramework.Runtime.Settings;
 using UnityEditor;
@@ -22,7 +25,7 @@ namespace LFramework.Runtime
         private const string ReplaceRemote = "remote_";
         private const string ReplaceVersion = "_resource_version_";
         private GameSetting _gameSetting;
-        
+
         private void Awake()
         {
             _gameSetting = SettingManager.GetSetting<GameSetting>();
@@ -117,16 +120,6 @@ namespace LFramework.Runtime
         }
 
         /// <summary>
-        /// 加载资源（V2 版本，返回 IResourceHandle）
-        /// </summary>
-        public override void LoadAssetV2(string assetName, System.Type assetType,
-            LoadAssetCallbacksV2 callbacks, object userData)
-        {
-            throw new System.NotImplementedException(
-                "AddressableResourceHelper does not support LoadAssetV2 yet.");
-        }
-
-        /// <summary>
         /// 加载场景
         /// </summary>
         public override void LoadScene(string sceneAssetName,
@@ -195,16 +188,186 @@ namespace LFramework.Runtime
             };
         }
 
+        // ─── Handle 异步 API 实现 ───
+
+        /// <summary>
+        /// 异步加载资源（返回 Handle）
+        /// </summary>
+        public override ResourceAssetHandle<T> LoadAssetHandle<T>(string assetName)
+        {
+            var resourceHandle = ReferencePool.Acquire<ResourceAssetHandle<T>>();
+            resourceHandle.MarkFromPool();
+            LoadAssetHandleAsync(resourceHandle, assetName);
+            return resourceHandle;
+        }
+
+        private async void LoadAssetHandleAsync<T>(ResourceAssetHandle<T> handle, string assetName)
+            where T : UnityEngine.Object
+        {
+            try
+            {
+                var op = Addressables.LoadAssetAsync<T>(assetName);
+                while (!op.IsDone)
+                {
+                    handle.SetProgress(op.PercentComplete);
+                    await UniTask.Yield();
+                }
+                if (op.Status == AsyncOperationStatus.Succeeded)
+                {
+                    handle.RegisterReleaseAction(() => Addressables.Release(op));
+                    handle.SetResult(op.Result);
+                }
+                else
+                {
+                    handle.SetError(op.OperationException?.Message ?? $"Load asset '{assetName}' failed.");
+                    Addressables.Release(op);
+                }
+            }
+            catch (Exception ex) { handle.SetError(ex.Message); }
+        }
+
+        /// <summary>
+        /// 异步实例化资源（返回 Handle）
+        /// </summary>
+        public override ResourceAssetHandle<GameObject> InstantiateAssetHandle(string assetName)
+        {
+            var resourceHandle = ReferencePool.Acquire<ResourceAssetHandle<GameObject>>();
+            resourceHandle.MarkFromPool();
+            InstantiateAssetHandleAsync(resourceHandle, assetName);
+            return resourceHandle;
+        }
+
+        private async void InstantiateAssetHandleAsync(ResourceAssetHandle<GameObject> handle, string assetName)
+        {
+            try
+            {
+                var op = Addressables.InstantiateAsync(assetName);
+                while (!op.IsDone)
+                {
+                    handle.SetProgress(op.PercentComplete);
+                    await UniTask.Yield();
+                }
+                if (op.Status == AsyncOperationStatus.Succeeded)
+                {
+                    handle.RegisterReleaseAction(() => Addressables.ReleaseInstance(op.Result));
+                    handle.SetResult(op.Result);
+                }
+                else
+                {
+                    handle.SetError(op.OperationException?.Message ?? $"Instantiate asset '{assetName}' failed.");
+                }
+            }
+            catch (Exception ex) { handle.SetError(ex.Message); }
+        }
+
+        /// <summary>
+        /// 异步加载场景（返回 Handle）
+        /// </summary>
+        public override ResourceSceneHandle LoadSceneHandle(string sceneAssetName)
+        {
+            var resourceHandle = ReferencePool.Acquire<ResourceSceneHandle>();
+            resourceHandle.MarkFromPool();
+            resourceHandle.SetSceneName(sceneAssetName);
+            LoadSceneHandleAsync(resourceHandle, sceneAssetName);
+            return resourceHandle;
+        }
+
+        private async void LoadSceneHandleAsync(ResourceSceneHandle handle, string sceneAssetName)
+        {
+            try
+            {
+                var op = Addressables.LoadSceneAsync(sceneAssetName);
+                while (!op.IsDone)
+                {
+                    handle.SetProgress(op.PercentComplete);
+                    await UniTask.Yield();
+                }
+                if (op.Status == AsyncOperationStatus.Succeeded)
+                {
+                    handle.RegisterReleaseAction(() => Addressables.Release(op));
+                    handle.SetCompleted();
+                }
+                else
+                {
+                    handle.SetError(op.OperationException?.Message ?? $"Load scene '{sceneAssetName}' failed.");
+                }
+            }
+            catch (Exception ex) { handle.SetError(ex.Message); }
+        }
+
+        /// <summary>
+        /// 异步加载二进制/原始文件（返回 Handle）
+        /// </summary>
+        public override ResourceRawFileHandle LoadRawFileHandle(string binaryAssetName)
+        {
+            var resourceHandle = ReferencePool.Acquire<ResourceRawFileHandle>();
+            resourceHandle.MarkFromPool();
+            LoadRawFileHandleAsync(resourceHandle, binaryAssetName);
+            return resourceHandle;
+        }
+
+        private async void LoadRawFileHandleAsync(ResourceRawFileHandle handle, string binaryAssetName)
+        {
+            try
+            {
+                var op = Addressables.LoadAssetAsync<TextAsset>(binaryAssetName);
+                while (!op.IsDone)
+                {
+                    handle.SetProgress(op.PercentComplete);
+                    await UniTask.Yield();
+                }
+                if (op.Status == AsyncOperationStatus.Succeeded)
+                {
+                    handle.RegisterReleaseAction(() => Addressables.Release(op));
+                    handle.SetResult(op.Result.bytes);
+                }
+                else
+                {
+                    handle.SetError(op.OperationException?.Message ?? $"Load binary '{binaryAssetName}' failed.");
+                    Addressables.Release(op);
+                }
+            }
+            catch (Exception ex) { handle.SetError(ex.Message); }
+        }
+
+        /// <summary>
+        /// 异步批量加载资源（通过标签，返回 Handle）
+        /// </summary>
+        public override ResourceBatchHandle<T> LoadAssetsByTagHandle<T>(string tag)
+        {
+            var resourceHandle = ReferencePool.Acquire<ResourceBatchHandle<T>>();
+            resourceHandle.MarkFromPool();
+            LoadAssetsByTagHandleAsync(resourceHandle, tag);
+            return resourceHandle;
+        }
+
+        private async void LoadAssetsByTagHandleAsync<T>(ResourceBatchHandle<T> handle, string tag)
+            where T : UnityEngine.Object
+        {
+            try
+            {
+                var op = Addressables.LoadAssetsAsync<T>(tag, null);
+                while (!op.IsDone)
+                {
+                    handle.SetProgress(op.PercentComplete);
+                    await UniTask.Yield();
+                }
+                if (op.Status == AsyncOperationStatus.Succeeded)
+                {
+                    handle.RegisterReleaseAction(() => Addressables.Release(op));
+                    handle.SetResult(new List<T>(op.Result));
+                }
+                else
+                {
+                    handle.SetError(op.OperationException?.Message ?? $"Load assets by tag '{tag}' failed.");
+                    Addressables.Release(op);
+                }
+            }
+            catch (Exception ex) { handle.SetError(ex.Message); }
+        }
+
         private string OnInternalIdTransformFunc(IResourceLocation location)
         {
-            /*
-            if (!GameSetting.isRelease)
-            {
-                Log.Debug("OnInternalIdTransformFunc , location = " + location.PrimaryKey);
-            }
-            */
-         
-
             if (_gameSetting.cdnType == CdnType.Local)
             {
                 return location.InternalId;
@@ -212,60 +375,18 @@ namespace LFramework.Runtime
 
             if (location.ResourceType == typeof(IAssetBundleResource) && location.InternalId.StartsWith(ReplaceRemote))
             {
-                // 远程AssetBundle
                 return ReplaceUrl(location.InternalId, _gameSetting);
             }
 
             if (location.ResourceType == typeof(ContentCatalogData) && location.InternalId.StartsWith(ReplaceRemote))
             {
-                // 远程catalog文件
                 return ReplaceUrl(location.InternalId, _gameSetting);
             }
 
             if (location.PrimaryKey == "AddressablesMainContentCatalogRemoteHash")
             {
-                //Log.Info($"LoadFunc , key = {location.PrimaryKey}");
-                // 远程catalog文件hash
                 return ReplaceUrl(location.InternalId, _gameSetting);
             }
-
-            return location.InternalId;
-
-            /*
-            var cdnType = GameSetting.cdnType;
-            if (location.Data is AssetBundleRequestOptions)
-            {
-                if (location.InternalId.StartsWith("remote"))
-                {
-                    return $"{ConstUrl.GetCdnUrl(cdnType)}{location.PrimaryKey}";
-                }
-            }
-
-            if (location.InternalId.Contains("/catalog"))
-            {
-                if (GameSetting.cdnType != CdnType.Local)
-                {
-                    if (location.InternalId.StartsWith("http"))
-                    {
-                        if (location.InternalId.EndsWith(".json"))
-                        {
-                            return $"{ConstUrl.GetCdnUrl(cdnType)}{location.PrimaryKey}";
-                        }
-                        else if (location.InternalId.EndsWith(".hash"))
-                        {
-                            return $"{ConstUrl.GetCdnUrl(cdnType)}{location.PrimaryKey}";
-                        }
-                    }
-                    /===
-                    else if (location.InternalId.EndsWith(".hash"))
-                    {
-                        return Regex.Replace(location.InternalId, @"/catalog_.*\.hash",
-                            string.Format("/catalog_{0}.hash", 0));
-                    }
-                    ====/
-                }
-            }
-    */
 
             return location.InternalId;
         }
@@ -273,15 +394,7 @@ namespace LFramework.Runtime
         private string ReplaceUrl(string internalId, GameSetting setting)
         {
             var newUrl = setting.GetCdnUrl();
-            // 是AssetBundle并且是http网络请求
             var addressKey = internalId.Replace(ReplaceRemote, newUrl).Replace(ReplaceVersion, setting.GetResourceVersion(_settingComponent));
-            /*
-            if (!GameSetting.isRelease)
-            {
-                Log.Debug($"replace url , internalId={internalId} addressKey={addressKey}");
-            }
-            */
-
             return addressKey;
         }
     }

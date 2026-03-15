@@ -24,12 +24,6 @@ namespace LFramework.Runtime.LaunchPipeline
         /// </summary>
         /// <returns>启动任务列表</returns>
         List<ILaunchTask> GetTasks();
-
-        /// <summary>
-        /// 异步执行管线
-        /// </summary>
-        /// <param name="context">启动管线上下文</param>
-        /// <returns>true 表示执行成功,false 表示执行失败</returns>
-        UniTask<bool> ExecuteAsync(LaunchContext context);
+        
     }
 }
