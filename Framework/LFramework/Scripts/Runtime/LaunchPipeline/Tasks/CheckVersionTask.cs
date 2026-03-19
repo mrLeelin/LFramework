@@ -69,6 +69,7 @@ namespace LFramework.Runtime.LaunchPipeline
                 // 1. 构造版本检查 URL
                 var url = $"{_gameSetting.versionUrl}/{_gameSetting.GetVersionRootDir()}";
                 Log.Info("[CheckVersionTask] 版本检查 URL: {0}", url);
+                context.ProgressReporter.ReportProgress(0.1f, "正在请求版本信息...");
 
                 // 2. 使用 UniTaskCompletionSource 将事件回调转换为异步等待
                 var tcs = new UniTaskCompletionSource<byte[]>();
@@ -108,6 +109,7 @@ namespace LFramework.Runtime.LaunchPipeline
                 }
 
                 // 3. 检查响应数据
+                context.ProgressReporter.ReportProgress(0.5f, "正在解析版本数据...");
                 if (bytes == null || bytes.Length == 0)
                 {
                     Log.Error("[CheckVersionTask] 响应数据为空");
@@ -167,6 +169,7 @@ namespace LFramework.Runtime.LaunchPipeline
                     clientVersionInfo, remoteVersionInfo);
 
                 // 7. 版本比较
+                context.ProgressReporter.ReportProgress(0.8f, "正在比较版本...");
                 var (result, errorMessage) = GameVersion.IsNeedUpdate(
                     remoteVersionInfo, clientVersionInfo, remoteVersionConfig, clientVersionConfig);
 

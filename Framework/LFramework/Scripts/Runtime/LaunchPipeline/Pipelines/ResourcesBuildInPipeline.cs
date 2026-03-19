@@ -9,14 +9,15 @@ namespace LFramework.Runtime.LaunchPipeline
 
         public List<ILaunchTask> GetTasks()
         {
-            return new List<ILaunchTask>
+            var list = new List<ILaunchTask>
             {
                 new InitResourceTask(),
-
+                new UpdateYooPackageManifestTask(),
                 new LoadAssemblyTask(),
-                
                 new HotfixEntryTask()
             };
+
+            return list;
         }
     }
 }

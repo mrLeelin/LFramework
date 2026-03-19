@@ -56,6 +56,11 @@ namespace LFramework.Runtime.LaunchPipeline
         private string _errorMessage;
 
         /// <summary>
+        /// 当前执行的启动上下文引用，用于在事件回调中汇报进度
+        /// </summary>
+        private LaunchContext _context;
+
+        /// <summary>
         /// 任务名称
         /// </summary>
         public string TaskName => "DownloadResource";
@@ -88,7 +93,9 @@ namespace LFramework.Runtime.LaunchPipeline
             IResourceDownloadHandler handler = null;
             try
             {
+                _context = context;
                 Log.Info("[DownloadResourceTask] 开始下载热更资源");
+                context.ProgressReporter.ReportProgress(0f, "正在准备下载...");
 
                 // 1. 从上下文获取下载配置
                 var labels = GetDownloadLabels(context);
@@ -119,6 +126,7 @@ namespace LFramework.Runtime.LaunchPipeline
                 _errorMessage = null;
                 handler.DownloadSuccessfulEventHandler += OnDownloadSuccessful;
                 handler.DownloadFailureEventHandler += OnDownloadFailure;
+                handler.DownloadUpdateEventHandler += OnDownloadUpdate;
 
                 // 4. 启动下载
                 handler.CheckAndLoadAsync();
@@ -150,9 +158,12 @@ namespace LFramework.Runtime.LaunchPipeline
                 {
                     handler.DownloadSuccessfulEventHandler -= OnDownloadSuccessful;
                     handler.DownloadFailureEventHandler -= OnDownloadFailure;
+                    handler.DownloadUpdateEventHandler -= OnDownloadUpdate;
                     _resourceDownloadComponent.RemoveHandler(_handlerSerialId);
                     Log.Info("[DownloadResourceTask] 下载处理器已清理，SerialID: {0}", _handlerSerialId);
                 }
+
+                _context = null;
             }
         }
 
@@ -171,6 +182,17 @@ namespace LFramework.Runtime.LaunchPipeline
         {
             _errorMessage = $"资源下载失败，错误类型: {e.UpdateResultType}";
             _tcs?.TrySetResult(false);
+        }
+
+        /// <summary>
+        /// 下载进度更新回调
+        /// </summary>
+        private void OnDownloadUpdate(object sender, ResourcesDownloadUpdateEvent e)
+        {
+            var message = string.IsNullOrEmpty(e.TotalDownloadSize)
+                ? $"正在下载资源 {e.Progress:P0}"
+                : $"正在下载资源 {e.DownloadSize}/{e.TotalDownloadSize}";
+            _context?.ProgressReporter.ReportProgress(e.Progress, message);
         }
 
         /// <summary>

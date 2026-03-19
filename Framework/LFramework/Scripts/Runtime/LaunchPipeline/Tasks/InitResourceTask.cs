@@ -50,6 +50,7 @@ namespace LFramework.Runtime.LaunchPipeline
             try
             {
                 Log.Info("[InitResourceTask] 开始初始化资源系统");
+                context.ProgressReporter.ReportProgress(0f, "正在初始化资源系统...");
 
                 var tcs = new UniTaskCompletionSource();
                 _resourceComponent.InitResources(() => { tcs.TrySetResult(); });

@@ -26,11 +26,7 @@ namespace LFramework.Hotfix
 
         [Inject] private HotfixComponent HotfixComponent { get; }
         private readonly GameFrameworkLinkedList<GameFrameworkComponent> _hotfixComponents = new();
-        
-        
-       
 
-     
 
         public LSystemApplication()
         {
@@ -99,11 +95,14 @@ namespace LFramework.Hotfix
         }
 
 
-
-      
         public void RegisterHotfixComponents(HotfixComponent hotfixComponent)
         {
-            foreach (var type in GetHotfixComponentTypes(hotfixComponent))
+            if (!GetHotfixComponentTypes(hotfixComponent, out var hotfixTypes))
+            {
+                return;
+            }
+
+            foreach (var type in hotfixTypes)
             {
                 if (type == null)
                 {
@@ -189,16 +188,27 @@ namespace LFramework.Hotfix
                 component.SetUpComponent();
             }
         }
-        
+
         /// <summary>
         /// 获取热更Components
         /// </summary>
         /// <param name="hotfixComponent"></param>
+        /// <param name="result"></param>
         /// <returns></returns>
-        private GameFrameworkLinkedListRange<Type> GetHotfixComponentTypes(HotfixComponent hotfixComponent)
+        private bool GetHotfixComponentTypes(HotfixComponent hotfixComponent,
+            out GameFrameworkLinkedListRange<Type> result)
         {
-            var result = hotfixComponent.GetTypesFromAttribute<HotfixComponentAttribute>();
-            return result ?? default;
+            var attributes = hotfixComponent.GetTypesFromAttribute<HotfixComponentAttribute>();
+            if (attributes.HasValue)
+            {
+                result = attributes.Value;
+            }
+            else
+            {
+                result = default;
+            }
+
+            return attributes.HasValue;
         }
     }
 }

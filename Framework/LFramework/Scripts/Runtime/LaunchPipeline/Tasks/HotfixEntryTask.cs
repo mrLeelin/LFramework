@@ -46,6 +46,7 @@ namespace LFramework.Runtime.LaunchPipeline
             try
             {
                 Log.Info("[HotfixEntryTask] 开始进入热更程序集");
+                context.ProgressReporter.ReportProgress(0f, "正在进入热更程序集...");
 
                 _hotfixComponent.EnterHotfixAssembly();
 

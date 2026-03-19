@@ -17,7 +17,7 @@ namespace LFramework.Hotfix
         public static void HotfixEntryStart()
         {
             Log.Info("Enter Hotfix Entry");
-            var application =SingletonManager.AddSingleton<LSystemApplication>();
+            var application = SingletonManager.AddSingleton<LSystemApplication>();
             LSystemApplication.ClearReflectionCache();
             var procedureComponent = LFrameworkAspect.Instance.Get<ProcedureComponent>();
             if (procedureComponent == null)
@@ -32,26 +32,38 @@ namespace LFramework.Hotfix
                 Log.Fatal("HotfixComponent is null.");
                 return;
             }
+
             application.RegisterHotfixComponents(hotfixComponent);
             AddHotfixProcedure(procedureComponent, hotfixComponent);
             RegisterPreloadInjects(hotfixComponent);
             var entranceProcedure = procedureComponent.EntranceHotfixProcedureTypeName;
-            var hotfixEntranceProcedureType = hotfixComponent.GetHotfixAssemblyType(entranceProcedure);
-            procedureComponent.ForceChangedProcedure(hotfixEntranceProcedureType);
-            Log.Info($"Enter Hotfix Force Changed Procedure. '{hotfixEntranceProcedureType?.FullName}'");
+            var dict =  hotfixComponent.GetHotfixAssemblyAllTypes();
+            if (dict.TryGetValue(entranceProcedure,out var hotfixEntranceProcedureType))
+            {
+                procedureComponent.ForceChangedProcedure(hotfixEntranceProcedureType);
+                Log.Info($"Enter Hotfix Force Changed Procedure. '{hotfixEntranceProcedureType?.FullName}'");
+            }
+            else
+            {
+                Log.Error($"Enter Hotfix Force Change procedure error. '{entranceProcedure}' is not exist.");   
+            }
         }
 
-      
-        
 
         /// <summary>
         /// 获取热更的Procedure 类
         /// </summary>
         /// <returns></returns>
-        private static GameFrameworkLinkedListRange<Type> GetHotfixProcedureTypes(HotfixComponent hotfixComponent)
+        private static bool GetHotfixProcedureTypes(HotfixComponent hotfixComponent,
+            out GameFrameworkLinkedListRange<Type> result)
         {
-            var result = hotfixComponent.GetTypesFromAttribute<HotfixProcedureAttribute>();
-            return result ?? default;
+            var attributes = hotfixComponent.GetTypesFromAttribute<HotfixProcedureAttribute>();
+            if (attributes.HasValue)
+            {
+                result = attributes.Value;
+            }
+
+            return attributes.HasValue;
         }
 
 
@@ -68,6 +80,7 @@ namespace LFramework.Hotfix
             {
                 return;
             }
+
             foreach (var preloadType in preLoadAttributes)
             {
                 if (preloadType == null)
@@ -79,19 +92,24 @@ namespace LFramework.Hotfix
                 {
                     continue;
                 }
-                
+
                 //预加载
                 TypeAnalyzer.TryGetInfo(preloadType);
             }
         }
-        
+
         /// <summary>
         /// 添加热更流程进入流程
         /// </summary>
         private static void AddHotfixProcedure(ProcedureComponent procedureComponent, HotfixComponent hotfixComponent)
         {
             var objs = new List<object>();
-            foreach (var type in GetHotfixProcedureTypes(hotfixComponent))
+            if (!GetHotfixProcedureTypes(hotfixComponent, out var types))
+            {
+                return;
+            }
+
+            foreach (var type in types)
             {
                 if (type.IsAbstract)
                 {

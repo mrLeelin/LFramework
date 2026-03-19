@@ -23,6 +23,11 @@ namespace LFramework.Runtime.LaunchPipeline
         public CancellationToken CancellationToken { get; set; }
 
         /// <summary>
+        /// 进度报告器，任务内部通过此对象汇报进度，外部通过事件监听。
+        /// </summary>
+        public LaunchProgressReporter ProgressReporter { get; private set; }
+
+        /// <summary>
         /// 版本检查结果，用于在版本检查任务和后续任务之间传递版本检查结果。
         /// </summary>
         public VersionCheckResult VersionCheckResult { get; set; }
@@ -35,6 +40,7 @@ namespace LFramework.Runtime.LaunchPipeline
         {
             CancellationToken = cancellationToken;
             CustomData = new Dictionary<string, object>();
+            ProgressReporter = new LaunchProgressReporter();
         }
 
         /// <summary>

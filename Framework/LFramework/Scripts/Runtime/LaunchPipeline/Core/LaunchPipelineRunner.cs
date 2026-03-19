@@ -19,9 +19,8 @@ namespace LFramework.Runtime.LaunchPipeline
         /// </summary>
         /// <param name="pipeline">要执行的启动管线。</param>
         /// <param name="context">启动管线上下文。</param>
-        /// <param name="diContainer">可选的 Zenject 依赖注入容器，用于在执行任务前注入依赖。</param>
         /// <returns><c>true</c> 表示管线执行成功，<c>false</c> 表示执行失败。</returns>
-        public static async UniTask<bool> RunAsync(ILaunchPipeline pipeline, LaunchContext context, DiContainer diContainer = null)
+        public static async UniTask<bool> RunAsync(ILaunchPipeline pipeline, LaunchContext context)
         {
             if (pipeline == null)
             {
@@ -64,11 +63,14 @@ namespace LFramework.Runtime.LaunchPipeline
 
                 Log.Info("[LaunchPipelineRunner] ---------- 任务 {0}/{1}: {2} ----------", i + 1, tasks.Count, task.TaskName);
 
+                // 通知进度报告器：当前任务开始
+                context.ProgressReporter.SetCurrentTask(i, tasks.Count, task.TaskName);
+
                 LaunchTaskResult result;
 
                 try
                 {
-                    // 如果提供了 DI 容器，在执行前注入依赖
+                    var diContainer = LFrameworkAspect.Instance.DiContainer;
                     if (diContainer != null)
                     {
                         diContainer.Inject(task);
@@ -78,6 +80,7 @@ namespace LFramework.Runtime.LaunchPipeline
                     if (!task.CanExecute(context))
                     {
                         result = LaunchTaskResult.CreateSkipped(task.TaskName);
+                        context.ProgressReporter.CompleteCurrentTask();
                         Log.Info("[LaunchPipelineRunner] 任务已跳过: {0}", task.TaskName);
                         executedTasks.Add(result);
                         continue;
@@ -92,6 +95,9 @@ namespace LFramework.Runtime.LaunchPipeline
                     {
                         result = LaunchTaskResult.CreateFailed(task.TaskName, "Task returned null result.");
                     }
+
+                    // 通知进度报告器：当前任务完成
+                    context.ProgressReporter.CompleteCurrentTask();
 
                     executedTasks.Add(result);
 

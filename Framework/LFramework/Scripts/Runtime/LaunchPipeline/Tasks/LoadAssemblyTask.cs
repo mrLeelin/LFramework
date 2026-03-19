@@ -46,6 +46,7 @@ namespace LFramework.Runtime.LaunchPipeline
             try
             {
                 Log.Info("[LoadAssemblyTask] 开始加载热更程序集");
+                context.ProgressReporter.ReportProgress(0f, "正在加载热更程序集...");
 
                 // 使用 UniTaskCompletionSource 将回调模式转换为可 await 的异步操作
                 var tcs = new UniTaskCompletionSource();
