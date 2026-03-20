@@ -424,14 +424,7 @@ namespace LFramework.Editor
         // ── 链接 ──
         private void DrawLinks()
         {
-            EditorGUILayout.BeginHorizontal();
-            GUILayout.Space(16);
-            _sectionHeaderStyle.normal.textColor = EditorGUIUtility.isProSkin
-                ? Color.white
-                : new Color(0.15f, 0.15f, 0.15f);
-            EditorGUILayout.LabelField("相关资源", _sectionHeaderStyle);
-            GUILayout.Space(16);
-            EditorGUILayout.EndHorizontal();
+            DrawSectionHeader("相关资源");
 
             GUILayout.Space(4);
 
