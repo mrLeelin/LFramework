@@ -255,16 +255,7 @@ namespace LFramework.Editor
         // ── 快捷操作 ──
         private void DrawQuickActions()
         {
-            EditorGUILayout.BeginHorizontal();
-            GUILayout.Space(16);
-
-            _sectionHeaderStyle.normal.textColor = EditorGUIUtility.isProSkin
-                ? Color.white
-                : new Color(0.15f, 0.15f, 0.15f);
-            EditorGUILayout.LabelField("快捷操作", _sectionHeaderStyle);
-
-            GUILayout.Space(16);
-            EditorGUILayout.EndHorizontal();
+            DrawSectionHeader("快捷操作");
 
             GUILayout.Space(4);
 
@@ -291,6 +282,15 @@ namespace LFramework.Editor
                 }
             }
 
+            GUILayout.Space(8);
+
+            if (DrawActionButton("GC Collect", "d_Profiler.Memory"))
+            {
+                System.GC.Collect();
+                Resources.UnloadUnusedAssets();
+                Debug.Log("[LFramework] GC.Collect & UnloadUnusedAssets 完成");
+            }
+
             GUILayout.FlexibleSpace();
             GUILayout.Space(16);
             EditorGUILayout.EndHorizontal();
@@ -314,14 +314,7 @@ namespace LFramework.Editor
         // ── 模块卡片网格 ──
         private void DrawModuleSection(string title, ModuleInfo[] modules)
         {
-            EditorGUILayout.BeginHorizontal();
-            GUILayout.Space(16);
-            _sectionHeaderStyle.normal.textColor = EditorGUIUtility.isProSkin
-                ? Color.white
-                : new Color(0.15f, 0.15f, 0.15f);
-            EditorGUILayout.LabelField(title, _sectionHeaderStyle);
-            GUILayout.Space(16);
-            EditorGUILayout.EndHorizontal();
+            DrawSectionHeader(title);
 
             GUILayout.Space(4);
 
@@ -380,14 +373,7 @@ namespace LFramework.Editor
         // ── 环境信息 ──
         private void DrawEnvironmentInfo()
         {
-            EditorGUILayout.BeginHorizontal();
-            GUILayout.Space(16);
-            _sectionHeaderStyle.normal.textColor = EditorGUIUtility.isProSkin
-                ? Color.white
-                : new Color(0.15f, 0.15f, 0.15f);
-            EditorGUILayout.LabelField("环境信息", _sectionHeaderStyle);
-            GUILayout.Space(16);
-            EditorGUILayout.EndHorizontal();
+            DrawSectionHeader("环境信息");
 
             GUILayout.Space(4);
 
