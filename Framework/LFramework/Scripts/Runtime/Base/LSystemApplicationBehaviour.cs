@@ -12,6 +12,10 @@ using Zenject;
 namespace LFramework.Runtime
 {
     
+    /// <summary>
+    /// 启动器
+    /// 可以继承这个启动器启动游戏
+    /// </summary>
     public class LSystemApplicationBehaviour : UnitySystemApplicationBehaviour
     {
         [Inject] private DebuggerComponent DebuggerComponent { get; }

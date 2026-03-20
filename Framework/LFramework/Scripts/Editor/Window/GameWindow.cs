@@ -20,6 +20,7 @@ namespace LFramework.Editor.Window
     {
         public Action<OdinMenuTree> BuildMenuTreeAction;
         private static List<IGameWindowExtend> _gameWindowExtends;
+        private GameWindowHome _gameWindowHome;
 
 
         [MenuItem("LFramework/GameSetting")]
@@ -34,6 +35,7 @@ namespace LFramework.Editor.Window
         protected override void OnEnable()
         {
             base.OnEnable();
+            _gameWindowHome = new GameWindowHome();
             if (_allProfiled == null)
             {
                 _allProfiled = new List<ProfiledBase>();
@@ -45,8 +47,7 @@ namespace LFramework.Editor.Window
 
                     try
                     {
-                        var instance = Activator.CreateInstance(type) as ProfiledBase;
-                        if (instance != null)
+                        if (Activator.CreateInstance(type) is ProfiledBase instance)
                         {
                             _allProfiled.Add(instance);
                         }
@@ -63,13 +64,13 @@ namespace LFramework.Editor.Window
         {
             var tree = new OdinMenuTree(supportsMultiSelect: true)
             {
-                { "Home", this, EditorIcons.House },
+                { "Home", _gameWindowHome, EditorIcons.House },
             };
-            
+
             //All Component Setting
             AddAllAssetsAtType<ComponentSetting>(tree, "Framework Setting")
                 .AddIcons(EditorIcons.SettingsCog);
-            
+
 
             // Framework Profiled 子菜单
             tree.Add("Framework Profiled", null, EditorIcons.Car);
@@ -84,7 +85,7 @@ namespace LFramework.Editor.Window
                     tree.AddObjectAtPath("Framework Profiled/" + name, profiled);
                 }
             }
-            
+
             // Setting Selector - 新的配置管理系统
             AddAllAssetsAtType<SettingSelector>(tree, "Game Setting/Setting Selector")
                 .AddIcons(EditorIcons.SettingsCog);
@@ -92,15 +93,16 @@ namespace LFramework.Editor.Window
             // 所有 GameSetting 实例
             AddAllAssetsAtType<BaseSetting>(tree, "Game Setting/GameSettings")
                 .AddIcons(EditorIcons.SettingsCog);
-            
+
             tree.Add("打包", null, EditorIcons.Airplane);
             tree.AddObjectAtPath("打包/打包资源", new BuildResourcesData()).AddIcon(EditorIcons.SettingsCog);
             tree.AddObjectAtPath("打包/打包App", new BuildPackageWindow()).AddIcon(EditorIcons.SettingsCog);
             tree.AddObjectAtPath("打包/上传版本文件", new BuildVersionWindow()).AddIcon(EditorIcons.Car);
             tree.AddObjectAtPath("Utility/OpenFolder", new OpenFolderInspector()).AddIcon(EditorIcons.ShoppingCart);
-            tree.Add("游戏扩展", null, EditorIcons.SettingsCog);
-            AddAllExtendItems(tree);
-            //tree.SortMenuItemsByName();
+            AddAllExtendItems("功能扩展", tree);
+            /*
+            tree.SortMenuItemsByName();
+            */
             return tree;
         }
 
@@ -148,7 +150,7 @@ namespace LFramework.Editor.Window
         }
 
 
-        private static void AddAllExtendItems(OdinMenuTree tree)
+        private static void AddAllExtendItems(string baseFold, OdinMenuTree tree)
         {
             AppendExtends();
             if (_gameWindowExtends == null || _gameWindowExtends.Count == 0)
@@ -158,20 +160,19 @@ namespace LFramework.Editor.Window
 
             foreach (var extend in _gameWindowExtends)
             {
+                tree.AddMenuItemAtPath(baseFold, new OdinMenuItem(tree, extend.FoldName, extend));
                 var items = extend.Handle(tree);
                 if (items == null)
                 {
                     continue;
                 }
-
                 foreach (var item in items)
                 {
                     if (item == null || item.Value == null)
                     {
                         continue;
                     }
-
-                    tree.AddMenuItemAtPath("游戏扩展", item);
+                    tree.AddMenuItemAtPath(baseFold + '/' + extend.FoldName, item);
                 }
             }
         }
@@ -182,7 +183,7 @@ namespace LFramework.Editor.Window
             {
                 return;
             }
-            
+
             _gameWindowExtends = new List<IGameWindowExtend>();
             var allTypes = Utility.Assembly.GetTypes();
             foreach (var type in allTypes)
@@ -201,7 +202,6 @@ namespace LFramework.Editor.Window
             }
         }
 
-        
 
         private static IEnumerable<OdinMenuItem> AddAllAssetsAtType<T>(OdinMenuTree tree, string menuPath)
             where T : ScriptableObject
