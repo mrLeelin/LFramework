@@ -134,11 +134,11 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             switch (buildSetting.builderTarget)
             {
                 case BuilderTarget.iOS:
-                    //ApplyiOSSettings();
+                    ApplyiOSSettings();
                     break;
 
                 case BuilderTarget.Android:
-                    //ApplyAndroidSettings();
+                    ApplyAndroidSettings();
                     break;
 
                 case BuilderTarget.Windows:
@@ -160,7 +160,8 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             var iosSetting = SettingManager.GetSetting<iOSSetting>();
             if (iosSetting == null)
             {
-                Debug.LogWarning("[BuildGameSettingTask] iOSSetting not found in SettingSelector, skipping iOS platform settings.");
+                Debug.LogWarning(
+                    "[BuildGameSettingTask] iOSSetting not found in SettingSelector, skipping iOS platform settings.");
                 return;
             }
 
@@ -171,44 +172,54 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                 return;
             }
 
-            // 应用配置
-            PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.iOS, iosSetting.BundleIdentifier);
-            PlayerSettings.iOS.targetOSVersionString = iosSetting.TargetOSVersion;
-            PlayerSettings.iOS.requiresFullScreen = iosSetting.RequiresFullScreen;
-
-            // 设置权限描述
-            if (!string.IsNullOrEmpty(iosSetting.CameraUsageDescription))
-            {
-                PlayerSettings.iOS.cameraUsageDescription = iosSetting.CameraUsageDescription;
-            }
-            if (!string.IsNullOrEmpty(iosSetting.LocationUsageDescription))
-            {
-                PlayerSettings.iOS.locationUsageDescription = iosSetting.LocationUsageDescription;
-            }
-
-            Debug.Log($"[BuildGameSettingTask] iOS settings applied successfully - Bundle ID: {iosSetting.BundleIdentifier}");
+            Debug.Log(
+                $"[BuildGameSettingTask] iOS settings applied successfully - Bundle ID: {iosSetting.BundleIdentifier}");
         }
 
+        /// <summary>
+        /// 应用 Android 平台配置
+        /// </summary>
+        private void ApplyAndroidSettings()
+        {
+            var androidSetting = SettingManager.GetSetting<AndroidSetting>();
+            if (androidSetting == null)
+            {
+                Debug.LogWarning("[BuildGameSettingTask] AndroidSetting not found in SettingSelector, skipping Android platform settings.");
+                return;
+            }
 
+            // 验证配置
+            if (!androidSetting.Validate(out var errorMessage))
+            {
+                Debug.LogError($"[BuildGameSettingTask] AndroidSetting validation failed: {errorMessage}");
+                return;
+            }
 
-        /*
+            ApplyAndroidSdkVersions(androidSetting);
+
+            Debug.Log($"[BuildGameSettingTask] Android settings applied successfully");
+        }
         private static void ApplyAndroidSdkVersions(AndroidSetting androidSetting)
         {
             const int minimumSupportedApi = 25;
 
-            int requestedMinApi = Mathf.Max(androidSetting.MinSdkVersion, minimumSupportedApi);
-            int requestedTargetApi = Mathf.Max(androidSetting.TargetSdkVersion, requestedMinApi);
+            int requestedMinApi = Mathf.Max((int)PlayerSettings.Android.minSdkVersion, minimumSupportedApi);
+            int requestedTargetApi = Mathf.Max((int)PlayerSettings.Android.targetSdkVersion, requestedMinApi);
 
-            AndroidSdkVersions? resolvedTarget = ResolveAndroidApiLevel(requestedTargetApi, fallbackToHighestAvailable: true);
+            AndroidSdkVersions? resolvedTarget =
+                ResolveAndroidApiLevel(requestedTargetApi, fallbackToHighestAvailable: true);
             if (!resolvedTarget.HasValue)
             {
-                throw new InvalidOperationException("No valid Android target SDK enum is available in the current Unity editor.");
+                throw new InvalidOperationException(
+                    "No valid Android target SDK enum is available in the current Unity editor.");
             }
 
-            AndroidSdkVersions? resolvedMin = ResolveAndroidApiLevel(requestedMinApi, fallbackToHighestAvailable: false);
+            AndroidSdkVersions? resolvedMin =
+                ResolveAndroidApiLevel(requestedMinApi, fallbackToHighestAvailable: false);
             if (!resolvedMin.HasValue)
             {
-                throw new InvalidOperationException($"No valid Android minimum SDK enum is available for API {requestedMinApi}.");
+                throw new InvalidOperationException(
+                    $"No valid Android minimum SDK enum is available for API {requestedMinApi}.");
             }
 
             if (ExtractApiLevel(resolvedMin.Value) > ExtractApiLevel(resolvedTarget.Value))
@@ -219,11 +230,13 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             PlayerSettings.Android.minSdkVersion = resolvedMin.Value;
             PlayerSettings.Android.targetSdkVersion = resolvedTarget.Value;
 
-            Debug.Log($"[BuildGameSettingTask] Android SDK versions applied - Min API: {ExtractApiLevel(resolvedMin.Value)}, Target API: {ExtractApiLevel(resolvedTarget.Value)}");
+            Debug.Log(
+                $"[BuildGameSettingTask] Android SDK versions applied - Min API: {ExtractApiLevel(resolvedMin.Value)}, Target API: {ExtractApiLevel(resolvedTarget.Value)}");
         }
-     
 
-        private static AndroidSdkVersions? ResolveAndroidApiLevel(int requestedApiLevel, bool fallbackToHighestAvailable)
+
+        private static AndroidSdkVersions? ResolveAndroidApiLevel(int requestedApiLevel,
+            bool fallbackToHighestAvailable)
         {
             string directName = $"AndroidApiLevel{requestedApiLevel}";
             string[] enumNames = Enum.GetNames(typeof(AndroidSdkVersions));
@@ -270,6 +283,5 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             string numericPart = new string(enumName.Substring(prefix.Length).TakeWhile(char.IsDigit).ToArray());
             return int.TryParse(numericPart, out int apiLevel) ? apiLevel : null;
         }
-        */
     }
 }
