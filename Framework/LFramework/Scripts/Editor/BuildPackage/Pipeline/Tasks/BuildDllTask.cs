@@ -67,9 +67,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
 
         private string GetBackupPath(BuildSetting buildSetting)
         {
-            string channelName = AddressableBuildHelper.GetChannelName(buildSetting);
-            string folderName = AddressableBuildHelper.GetFolderName(buildSetting);
-            return $"{AddressableBuildHelper.GetExportPath()}/PartyGame_BackUp_BuildResource/{channelName}/{folderName}";
+            return BuildResourcePathHelper.GetDllBackupPath(buildSetting);
         }
     }
 }

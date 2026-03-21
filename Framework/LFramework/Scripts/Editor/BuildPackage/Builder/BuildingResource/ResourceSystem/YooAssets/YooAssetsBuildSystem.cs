@@ -23,12 +23,6 @@ namespace LFramework.Editor.Builder.BuildingResource
     /// </summary>
     public class YooAssetsBuildSystem : IResourceBuildSystem
     {
-        private const string SERVER_DATA_FOLDER_NAME = "ServerData";
-        private const string BACKUP_FOLDER_NAME = "PartyGame_BackUp_BuildResource";
-        private const string BACKUP_FILE_NAME = "Version";
-        private const string Replace_Remote = "remote_";
-        private const string Replace_Version = "_resource_version_";
-
         /// <summary>
         /// 构建资源
         /// </summary>
@@ -159,7 +153,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// </summary>
         public string GetBuildPath(BuildSetting data)
         {
-            return SERVER_DATA_FOLDER_NAME + "/" + GetFolderNameBasedOnAppVersion(data) + "/" + GetFolderName(data);
+            return BuildResourcePathHelper.GetBuildPath(data);
         }
 
         /// <summary>
@@ -170,12 +164,13 @@ namespace LFramework.Editor.Builder.BuildingResource
             var path = string.Empty;
             if (data.cdnType == CdnType.Local)
             {
-                path += GetUrl(data.cdnType);
+                path += BuildResourcePathHelper.GetUrl(data.cdnType);
             }
             else
             {
-                path += GetUrl(data.cdnType) + GetFolderNameBasedOnAppVersion(data) + "/" +
-                        GetReplaceVersionName(data);
+                path += BuildResourcePathHelper.GetUrl(data.cdnType) +
+                        BuildResourcePathHelper.GetFolderNameBasedOnAppVersion(data) + "/" +
+                        BuildResourcePathHelper.GetReplaceVersionName(data);
             }
 
             return path;
@@ -287,103 +282,32 @@ namespace LFramework.Editor.Builder.BuildingResource
         private void GenerateUpdateFile(BuildSetting buildResourcesData)
         {
             var exportVersionPath = GetExportVersionPath(buildResourcesData);
-
-            if (File.Exists(exportVersionPath))
-            {
-                File.Delete(exportVersionPath);
-            }
-
-            var setting = new GameVersion
-            {
-                appVersion = buildResourcesData.appVersion,
-            };
-            var json = JsonUtility.ToJson(setting);
-            File.WriteAllText(exportVersionPath, json);
+            var debugExportVersionPath = BuildResourcePathHelper.GetTempDebugExportVersionPath(buildResourcesData);
+            AddressableBuildHelper.GenerateUpdateFile(exportVersionPath, debugExportVersionPath, buildResourcesData);
         }
 
         #endregion
 
         #region Path Helper Methods
 
-        private string GetChannelName(BuildSetting data)
-        {
-            string name = string.Empty;
-            if (data == null) return name;
-            switch (data.builderTarget)
-            {
-                case BuilderTarget.Windows:
-                    name = data.windowsChannel.ToString();
-                    break;
-                case BuilderTarget.Android:
-                    name = data.androidChannel.ToString();
-                    break;
-                case BuilderTarget.iOS:
-                    name = data.iosChannel.ToString();
-                    break;
-            }
-
-            return name;
-        }
-
-        private string GetUrl(CdnType cdnType)
-        {
-            string url = "";
-            switch (cdnType)
-            {
-                case CdnType.Local:
-                    url = "http://[PrivateIpAddress]:[HostingServicePort]";
-                    break;
-                default:
-                    url = Replace_Remote;
-                    break;
-            }
-
-            return url;
-        }
-
-        private string GetFolderName(BuildSetting data)
-        {
-            return GetChannelName(data) + "_" + data.resourcesVersion + "_" +
-                   data.cdnType;
-        }
-
-        private string GetReplaceVersionName(BuildSetting data)
-        {
-            return GetChannelName(data) + "_" + Replace_Version + "_" +
-                   data.cdnType;
-        }
-
-        private string GetFolderNameBasedOnAppVersion(BuildSetting data)
-        {
-            return GetChannelName(data) + "_" + data.appVersion + "_" +
-                   data.cdnType;
-        }
-
-        private string GetExportPath()
-        {
-            return Application.dataPath + "/../" + SERVER_DATA_FOLDER_NAME;
-        }
-
         private string GetExportBuildPath(BuildSetting data)
         {
-            return Application.dataPath + "/../" + GetBuildPath(data);
+            return BuildResourcePathHelper.GetExportBuildPath(data);
         }
 
         private string GetExportVersionPath(BuildSetting data)
         {
-            string path = GetExportBuildPath(data);
-            return path + "/" + BACKUP_FILE_NAME;
+            return BuildResourcePathHelper.GetExportVersionPath(data);
         }
 
         private string GetBackupPath(BuildSetting data)
         {
-            return Application.dataPath + "/../" + BACKUP_FOLDER_NAME + "/" + GetFolderNameBasedOnAppVersion(data);
+            return BuildResourcePathHelper.GetBackupPath(data);
         }
 
         private string GetBackupSeverDataBuildPath(BuildSetting data)
         {
-            string path = GetBackupPath(data);
-            return path + "/" + GetFolderName(data);
+            return BuildResourcePathHelper.GetBackupSeverDataBuildPath(data);
         }
 
         #endregion

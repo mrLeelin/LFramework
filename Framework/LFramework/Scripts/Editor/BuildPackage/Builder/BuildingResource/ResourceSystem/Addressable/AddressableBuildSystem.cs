@@ -56,17 +56,17 @@ namespace LFramework.Editor.Builder.BuildingResource
             var buildPath = GetBuildPath(buildResourcesData);
             var loadPath = GetLoadPath(buildResourcesData);
 
-            var exportPath = AddressableBuildHelper.GetExportPath();
+            var exportPath = BuildResourcePathHelper.GetExportPath();
             var exportAdsPath = AddressableBuildHelper.GetExportAdsPath();
             var exportAdsBinPath = AddressableBuildHelper.GetExportAdsBinPath(buildResourcesData);
-            var exportBuildPath = AddressableBuildHelper.GetExportBuildPath(buildResourcesData);
-            var exportVersionPath = AddressableBuildHelper.GetExportVersionPath(buildResourcesData);
-            var debugExportVersionPath = AddressableBuildHelper.GetTempDebugExportVersionPath(buildResourcesData);
+            var exportBuildPath = BuildResourcePathHelper.GetExportBuildPath(buildResourcesData);
+            var exportVersionPath = BuildResourcePathHelper.GetExportVersionPath(buildResourcesData);
+            var debugExportVersionPath = BuildResourcePathHelper.GetTempDebugExportVersionPath(buildResourcesData);
 
-            var backupPath = AddressableBuildHelper.GetBackupPath(buildResourcesData);
+            var backupPath = BuildResourcePathHelper.GetBackupPath(buildResourcesData);
             var backupAdsBinPath = AddressableBuildHelper.GetBackupAdsBinPath(buildResourcesData);
-            var backupSeverDataPath = AddressableBuildHelper.GetBackupSeverDataBuildPath(buildResourcesData);
-            var backupLastAssetsDataPath = GetBackupLastBuildPath(buildResourcesData);
+            var backupSeverDataPath = BuildResourcePathHelper.GetBackupSeverDataBuildPath(buildResourcesData);
+            var backupLastAssetsDataPath = BuildResourcePathHelper.GetBackupLastBuildPath(buildResourcesData);
 
             var assetAdsBinPath = GetAssetAdsBinPath(buildResourcesData);
             var assetAdsBinFilePath = GetAssetAdsBinFilePath(buildResourcesData);
@@ -197,7 +197,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// </summary>
         public string GetBuildPath(BuildSetting data)
         {
-            return AddressableBuildHelper.GetBuildPath(data);
+            return BuildResourcePathHelper.GetBuildPath(data);
         }
 
         /// <summary>
@@ -208,13 +208,13 @@ namespace LFramework.Editor.Builder.BuildingResource
             var path = string.Empty;
             if (data.cdnType == CdnType.Local)
             {
-                path += AddressableBuildHelper.GetUrl(data.cdnType);
+                path += BuildResourcePathHelper.GetUrl(data.cdnType);
             }
             else
             {
-                path += AddressableBuildHelper.GetUrl(data.cdnType) +
-                        AddressableBuildHelper.GetFolderNameBasedOnAppVersion(data) + "/" +
-                        AddressableBuildHelper.GetReplaceVersionName(data);
+                path += BuildResourcePathHelper.GetUrl(data.cdnType) +
+                        BuildResourcePathHelper.GetFolderNameBasedOnAppVersion(data) + "/" +
+                        BuildResourcePathHelper.GetReplaceVersionName(data);
             }
 
             return path;
@@ -223,13 +223,6 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 获取备份最后构建路径
         /// </summary>
-        private string GetBackupLastBuildPath(BuildSetting data)
-        {
-            string path = AddressableBuildHelper.GetBackupPath(data);
-            return path + "/" + AddressableBuildHelper.GetChannelName(data) + "_" +
-                   AddressableBuildHelper.BACKUP_LAST_NAME + "_" + data.cdnType;
-        }
-
         /// <summary>
         /// 获取资产 Addressable Bin 路径
         /// </summary>

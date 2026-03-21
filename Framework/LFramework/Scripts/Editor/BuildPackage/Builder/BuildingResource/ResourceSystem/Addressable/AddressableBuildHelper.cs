@@ -24,13 +24,7 @@ namespace LFramework.Editor.Builder.BuildingResource
     {
         #region Constants
 
-        public const string SERVER_DATA_FOLDER_NAME = "ServerData";
-        public const string BACKUP_FOLDER_NAME = "PartyGame_BackUp_BuildResource";
-        public const string BACKUP_LAST_NAME = "LastBuild";
-        public const string BACKUP_FILE_NAME = "Version";
         public const string Last_Report_File_Name = "LastBuildReport.json";
-        public const string Replace_Remote = "remote_";
-        public const string Replace_Version = "_resource_version_";
 
         #endregion
 
@@ -39,87 +33,30 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 获取渠道名称
         /// </summary>
-        public static string GetChannelName(BuildSetting data)
-        {
-            string name = string.Empty;
-            if (data == null) return name;
-            switch (data.builderTarget)
-            {
-                case BuilderTarget.Windows:
-                    name = data.windowsChannel.ToString();
-                    break;
-                case BuilderTarget.Android:
-                    name = data.androidChannel.ToString();
-                    break;
-                case BuilderTarget.iOS:
-                    name = data.iosChannel.ToString();
-                    break;
-            }
-
-            return name;
-        }
 
         /// <summary>
         /// 获取服务器 URL
         /// </summary>
-        public static string GetUrl(CdnType cdnType)
-        {
-            string url = "";
-            switch (cdnType)
-            {
-                case CdnType.Local:
-                    url = "http://[PrivateIpAddress]:[HostingServicePort]";
-                    break;
-                default:
-                    url = Replace_Remote;
-                    break;
-            }
-
-            return url;
-        }
 
         /// <summary>
         /// 获取文件夹名称（包含资源版本）
         /// </summary>
-        public static string GetFolderName(BuildSetting data)
-        {
-            return GetChannelName(data) + "_" + data.resourcesVersion + "_" +
-                   data.cdnType;
-        }
 
         /// <summary>
         /// 获取替换版本名称
         /// </summary>
-        public static string GetReplaceVersionName(BuildSetting data)
-        {
-            return GetChannelName(data) + "_" + Replace_Version + "_" +
-                   data.cdnType;
-        }
 
         /// <summary>
         /// 获取基于应用版本的文件夹名称
         /// </summary>
-        public static string GetFolderNameBasedOnAppVersion(BuildSetting data)
-        {
-            return GetChannelName(data) + "_" + data.appVersion + "_" +
-                   data.cdnType;
-        }
 
         /// <summary>
         /// 获取导出根路径
         /// </summary>
-        public static string GetExportPath()
-        {
-            return Application.dataPath + "/../" + SERVER_DATA_FOLDER_NAME;
-        }
 
         /// <summary>
         /// 获取导出构建路径
         /// </summary>
-        public static string GetExportBuildPath(BuildSetting data)
-        {
-            return Application.dataPath + "/../" + GetBuildPath(data);
-        }
 
         /// <summary>
         /// 获取 Addressable 导出路径
@@ -140,44 +77,25 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 获取导出版本文件路径
         /// </summary>
-        public static string GetExportVersionPath(BuildSetting data)
-        {
-            string path = GetExportBuildPath(data);
-            return path + "/" + BACKUP_FILE_NAME;
-        }
 
         /// <summary>
         /// 获取临时调试导出版本路径
         /// </summary>
-        public static string GetTempDebugExportVersionPath(BuildSetting data)
-        {
-            string path = GetExportPath();
-            return path + "/" + GetChannelName(data) + "_" + data.cdnType + "/" + BACKUP_FILE_NAME;
-        }
 
         /// <summary>
         /// 获取备份根路径
         /// </summary>
-        public static string GetBackupPath(BuildSetting data)
-        {
-            return Application.dataPath + "/../" + BACKUP_FOLDER_NAME + "/" + GetFolderNameBasedOnAppVersion(data);
-        }
 
         /// <summary>
         /// 获取备份服务器数据构建路径
         /// </summary>
-        public static string GetBackupSeverDataBuildPath(BuildSetting data)
-        {
-            string path = GetBackupPath(data);
-            return path + "/" + GetFolderName(data);
-        }
 
         /// <summary>
         /// 获取备份 Addressable 构建路径
         /// </summary>
         public static string GetBackupAdsBuildPath(BuildSetting data)
         {
-            var path = GetBackupPath(data);
+            var path = BuildResourcePathHelper.GetBackupPath(data);
             return path + "/com.unity.addressables";
         }
 
@@ -192,10 +110,6 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 获取构建路径（相对路径）
         /// </summary>
-        public static string GetBuildPath(BuildSetting data)
-        {
-            return SERVER_DATA_FOLDER_NAME + "/" + GetFolderNameBasedOnAppVersion(data) + "/" + GetFolderName(data);
-        }
 
         /// <summary>
         /// 获取热更新配置路径
@@ -458,7 +372,7 @@ namespace LFramework.Editor.Builder.BuildingResource
             }
 
             var log = sb.ToString();
-            var backupPath = GetBackupPath(data);
+            var backupPath = BuildResourcePathHelper.GetBackupPath(data);
             File.WriteAllText(Path.Combine(backupPath, "hotfixGroup.log"), log);
             buildLayout.Close();
         }
@@ -655,7 +569,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         public static void CopyReportToBackUp(BuildSetting buildResourcesData)
         {
             var originFilePath = GetBuildReportFilePath();
-            var newFilePath = GetBackupPath(buildResourcesData) + "/" + Last_Report_File_Name;
+            var newFilePath = BuildResourcePathHelper.GetBackupPath(buildResourcesData) + "/" + Last_Report_File_Name;
             CopyFile(originFilePath, newFilePath);
         }
 
