@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using LFramework.Editor.Builder;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
@@ -89,6 +90,8 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                 // 设置新的宏定义
                 var newDefines = string.Join(";", defineList);
                 PlayerSettings.SetScriptingDefineSymbols(NamedBuildTarget.FromBuildTargetGroup(targetGroup), newDefines);
+
+                BuildEnvironmentConfigurator.Prepare(context);
 
                 Debug.Log($"[SetScriptingDefineSymbolsTask] New defines: {newDefines}");
                 Debug.Log($"[SetScriptingDefineSymbolsTask] Scripting define symbols set successfully.");

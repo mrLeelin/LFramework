@@ -16,6 +16,6 @@ MonoBehaviour:
   description: 
   tags: []
   bundleIdentifier: com.company.game.dev
-  minSdkVersion: 21
-  targetSdkVersion: 95
+  minSdkVersion: 25
+  targetSdkVersion: 35
   useIL2CPP: 1

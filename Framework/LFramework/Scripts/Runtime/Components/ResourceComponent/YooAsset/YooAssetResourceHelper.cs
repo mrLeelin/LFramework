@@ -37,7 +37,7 @@ namespace LFramework.Runtime
         /// <summary>
         /// 场景名称 → SceneHandle 映射
         /// </summary>
-        private readonly Dictionary<string, SceneHandle> _sceneHandles = new Dictionary<string, SceneHandle>();
+        private readonly Dictionary<string, YooAsset.SceneHandle> _sceneHandles = new Dictionary<string, YooAsset.SceneHandle>();
 
         /// <summary>
         /// 二进制资源名称 → RawFileHandle 映射
@@ -144,7 +144,7 @@ namespace LFramework.Runtime
 
             op.completed += (_) =>
             {
-                if (_sceneHandles.TryGetValue(sceneAssetName, out SceneHandle handle))
+                if (_sceneHandles.TryGetValue(sceneAssetName, out YooAsset.SceneHandle handle))
                 {
                     handle.UnloadAsync();
                     _sceneHandles.Remove(sceneAssetName);
@@ -215,7 +215,7 @@ namespace LFramework.Runtime
             StartCoroutine(WaitForSceneLoad(handle, sceneAssetName, callbacks, userData));
         }
 
-        private IEnumerator WaitForSceneLoad(SceneHandle handle, string sceneAssetName,
+        private IEnumerator WaitForSceneLoad(YooAsset.SceneHandle handle, string sceneAssetName,
             LoadSceneCallbacks callbacks, object userData)
         {
             while (!handle.IsDone)

@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using LFramework.Runtime;
 using LFramework.Runtime.Settings;
-using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEngine;
 
@@ -210,14 +209,91 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
 
             // 应用配置
             PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, androidSetting.BundleIdentifier);
-            PlayerSettings.Android.minSdkVersion = (AndroidSdkVersions)androidSetting.MinSdkVersion;
-            PlayerSettings.Android.targetSdkVersion = (AndroidSdkVersions)androidSetting.TargetSdkVersion;
+            ApplyAndroidSdkVersions(androidSetting);
 
             // 设置脚本后端
             PlayerSettings.SetScriptingBackend(BuildTargetGroup.Android,
                 androidSetting.UseIL2CPP ? ScriptingImplementation.IL2CPP : ScriptingImplementation.Mono2x);
 
             Debug.Log($"[BuildGameSettingTask] Android settings applied successfully - Bundle ID: {androidSetting.BundleIdentifier}");
+        }
+
+        private static void ApplyAndroidSdkVersions(AndroidSetting androidSetting)
+        {
+            const int minimumSupportedApi = 25;
+
+            int requestedMinApi = Mathf.Max(androidSetting.MinSdkVersion, minimumSupportedApi);
+            int requestedTargetApi = Mathf.Max(androidSetting.TargetSdkVersion, requestedMinApi);
+
+            AndroidSdkVersions? resolvedTarget = ResolveAndroidApiLevel(requestedTargetApi, fallbackToHighestAvailable: true);
+            if (!resolvedTarget.HasValue)
+            {
+                throw new InvalidOperationException("No valid Android target SDK enum is available in the current Unity editor.");
+            }
+
+            AndroidSdkVersions? resolvedMin = ResolveAndroidApiLevel(requestedMinApi, fallbackToHighestAvailable: false);
+            if (!resolvedMin.HasValue)
+            {
+                throw new InvalidOperationException($"No valid Android minimum SDK enum is available for API {requestedMinApi}.");
+            }
+
+            if (ExtractApiLevel(resolvedMin.Value) > ExtractApiLevel(resolvedTarget.Value))
+            {
+                resolvedMin = resolvedTarget;
+            }
+
+            PlayerSettings.Android.minSdkVersion = resolvedMin.Value;
+            PlayerSettings.Android.targetSdkVersion = resolvedTarget.Value;
+
+            Debug.Log($"[BuildGameSettingTask] Android SDK versions applied - Min API: {ExtractApiLevel(resolvedMin.Value)}, Target API: {ExtractApiLevel(resolvedTarget.Value)}");
+        }
+
+        private static AndroidSdkVersions? ResolveAndroidApiLevel(int requestedApiLevel, bool fallbackToHighestAvailable)
+        {
+            string directName = $"AndroidApiLevel{requestedApiLevel}";
+            string[] enumNames = Enum.GetNames(typeof(AndroidSdkVersions));
+
+            if (enumNames.Contains(directName))
+            {
+                return (AndroidSdkVersions)Enum.Parse(typeof(AndroidSdkVersions), directName);
+            }
+
+            var availableApiLevels = enumNames
+                .Select(name => new { Name = name, ApiLevel = ParseApiLevel(name) })
+                .Where(item => item.ApiLevel.HasValue)
+                .OrderBy(item => item.ApiLevel.Value)
+                .ToArray();
+
+            if (availableApiLevels.Length == 0)
+            {
+                return null;
+            }
+
+            var capped = availableApiLevels.LastOrDefault(item => item.ApiLevel.Value <= requestedApiLevel);
+            if (capped != null)
+            {
+                return (AndroidSdkVersions)Enum.Parse(typeof(AndroidSdkVersions), capped.Name);
+            }
+
+            var fallback = fallbackToHighestAvailable ? availableApiLevels[^1] : availableApiLevels[0];
+            return (AndroidSdkVersions)Enum.Parse(typeof(AndroidSdkVersions), fallback.Name);
+        }
+
+        private static int ExtractApiLevel(AndroidSdkVersions sdkVersion)
+        {
+            return ParseApiLevel(sdkVersion.ToString()) ?? (int)sdkVersion;
+        }
+
+        private static int? ParseApiLevel(string enumName)
+        {
+            const string prefix = "AndroidApiLevel";
+            if (!enumName.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            string numericPart = new string(enumName.Substring(prefix.Length).TakeWhile(char.IsDigit).ToArray());
+            return int.TryParse(numericPart, out int apiLevel) ? apiLevel : null;
         }
     }
 }

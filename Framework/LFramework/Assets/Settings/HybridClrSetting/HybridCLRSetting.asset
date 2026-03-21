@@ -21,5 +21,4 @@ MonoBehaviour:
   defaultInitLabel: init_assets
   hotfixAssembliesSort:
   - LFramework.Hotfix
-  - MagicWarrior.Hotfix
   logicMainDllName: LFramework.Hotfix
