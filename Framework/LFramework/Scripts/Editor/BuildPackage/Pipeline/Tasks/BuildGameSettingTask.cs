@@ -3,6 +3,7 @@ using System.Linq;
 using LFramework.Runtime;
 using LFramework.Runtime.Settings;
 using UnityEditor;
+using UnityEditor.Build;
 using UnityEngine;
 
 namespace LFramework.Editor.Builder.Pipeline.Tasks
@@ -133,11 +134,11 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             switch (buildSetting.builderTarget)
             {
                 case BuilderTarget.iOS:
-                    ApplyiOSSettings();
+                    //ApplyiOSSettings();
                     break;
 
                 case BuilderTarget.Android:
-                    ApplyAndroidSettings();
+                    //ApplyAndroidSettings();
                     break;
 
                 case BuilderTarget.Windows:
@@ -188,36 +189,9 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             Debug.Log($"[BuildGameSettingTask] iOS settings applied successfully - Bundle ID: {iosSetting.BundleIdentifier}");
         }
 
-        /// <summary>
-        /// 应用 Android 平台配置
-        /// </summary>
-        private void ApplyAndroidSettings()
-        {
-            var androidSetting = SettingManager.GetSetting<AndroidSetting>();
-            if (androidSetting == null)
-            {
-                Debug.LogWarning("[BuildGameSettingTask] AndroidSetting not found in SettingSelector, skipping Android platform settings.");
-                return;
-            }
 
-            // 验证配置
-            if (!androidSetting.Validate(out var errorMessage))
-            {
-                Debug.LogError($"[BuildGameSettingTask] AndroidSetting validation failed: {errorMessage}");
-                return;
-            }
 
-            // 应用配置
-            PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, androidSetting.BundleIdentifier);
-            ApplyAndroidSdkVersions(androidSetting);
-
-            // 设置脚本后端
-            PlayerSettings.SetScriptingBackend(BuildTargetGroup.Android,
-                androidSetting.UseIL2CPP ? ScriptingImplementation.IL2CPP : ScriptingImplementation.Mono2x);
-
-            Debug.Log($"[BuildGameSettingTask] Android settings applied successfully - Bundle ID: {androidSetting.BundleIdentifier}");
-        }
-
+        /*
         private static void ApplyAndroidSdkVersions(AndroidSetting androidSetting)
         {
             const int minimumSupportedApi = 25;
@@ -247,6 +221,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
 
             Debug.Log($"[BuildGameSettingTask] Android SDK versions applied - Min API: {ExtractApiLevel(resolvedMin.Value)}, Target API: {ExtractApiLevel(resolvedTarget.Value)}");
         }
+     
 
         private static AndroidSdkVersions? ResolveAndroidApiLevel(int requestedApiLevel, bool fallbackToHighestAvailable)
         {
@@ -295,5 +270,6 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             string numericPart = new string(enumName.Substring(prefix.Length).TakeWhile(char.IsDigit).ToArray());
             return int.TryParse(numericPart, out int apiLevel) ? apiLevel : null;
         }
+        */
     }
 }

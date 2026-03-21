@@ -19,4 +19,4 @@ MonoBehaviour:
   _minUnloadInterval: 60
   _maxUnloadInterval: 300
   _yooAssetPackageName: DefaultPackage
-  _yooAssetPlayMode: 1
+  _yooAssetPlayMode: 0
