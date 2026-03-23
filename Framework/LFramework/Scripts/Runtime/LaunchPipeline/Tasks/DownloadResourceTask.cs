@@ -1,29 +1,18 @@
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using GameFramework.Resource;
 using LFramework.Runtime;
+
+#if USE_ADDRESSABLE
 using UnityEngine.AddressableAssets;
+#endif
+
 using UnityGameFramework.Runtime;
 using Zenject;
 
 namespace LFramework.Runtime.LaunchPipeline
 {
-    /// <summary>
-    /// 资源下载模式
-    /// </summary>
-    public enum DownloadMode
-    {
-        /// <summary>
-        /// Addressable 资源下载
-        /// </summary>
-        Addressable,
-
-        /// <summary>
-        /// YooAsset 资源下载
-        /// </summary>
-        YooAsset
-    }
-
     /// <summary>
     /// 资源下载启动任务。
     /// 通过 <see cref="ResourceDownloadComponent"/> 创建并执行资源下载处理器，
@@ -39,6 +28,11 @@ namespace LFramework.Runtime.LaunchPipeline
         /// 资源下载组件，通过 Zenject 依赖注入获取
         /// </summary>
         [Inject] private ResourceDownloadComponent _resourceDownloadComponent;
+
+        /// <summary>
+        /// 资源组件
+        /// </summary>
+        [Inject] private ResourceComponent _resourceComponent;
 
         /// <summary>
         /// 当前下载处理器的序列 ID，用于清理
@@ -100,8 +94,7 @@ namespace LFramework.Runtime.LaunchPipeline
                 // 1. 从上下文获取下载配置
                 var labels = GetDownloadLabels(context);
                 var handlerName = GetDownloadHandlerName(context);
-                var downloadMode = GetDownloadMode(context);
-
+             
                 if (labels == null || labels.Count == 0)
                 {
                     Log.Info("[DownloadResourceTask] 没有指定下载标签，跳过下载");
@@ -109,10 +102,10 @@ namespace LFramework.Runtime.LaunchPipeline
                 }
 
                 Log.Info("[DownloadResourceTask] 下载模式: {0}, 处理器名称: {1}, 标签数量: {2}",
-                    downloadMode, handlerName, labels.Count);
+                    _resourceComponent.ResourceMode, handlerName, labels.Count);
 
                 // 2. 根据模式创建下载处理器（不自动运行）
-                _handlerSerialId = CreateHandler(context, downloadMode, handlerName, labels);
+                _handlerSerialId = CreateHandler(context,  _resourceComponent.ResourceMode, handlerName, labels);
                 handler = _resourceDownloadComponent.GetHandler(_handlerSerialId);
 
                 if (handler == null)
@@ -203,24 +196,28 @@ namespace LFramework.Runtime.LaunchPipeline
         /// <param name="handlerName">处理器名称</param>
         /// <param name="labels">下载标签列表</param>
         /// <returns>处理器序列 ID</returns>
-        private int CreateHandler(LaunchContext context, DownloadMode mode, string handlerName, List<string> labels)
+        private int CreateHandler(LaunchContext context, ResourceMode mode, string handlerName, List<string> labels)
         {
             switch (mode)
             {
-                case DownloadMode.YooAsset:
-                    var packageName = GetPackageName(context);
+                
+                case ResourceMode.YooAsset:
+                    var packageName = _resourceComponent.YooAssetPackageName;
                     var checkDownloadedTags = GetCheckDownloadedTags(context);
                     Log.Info("[DownloadResourceTask] 创建 YooAsset 处理器，包名: {0}, 检查已下载标签: {1}",
                         packageName, checkDownloadedTags);
                     return _resourceDownloadComponent.AddYooAssetHandlerNotRun(
                         handlerName, labels, packageName, true, checkDownloadedTags);
 
-                case DownloadMode.Addressable:
-                default:
+#if USE_ADDRESSABLE
+                case ResourceMode.Addressable:
                     var mergeMode = GetMergeMode(context);
                     Log.Info("[DownloadResourceTask] 创建 Addressable 处理器，合并模式: {0}", mergeMode);
                     return _resourceDownloadComponent.AddUpdateHandlerNotRun(
                         handlerName, labels, mergeMode, true);
+#endif
+                default:
+                    return 0;
             }
         }
 
@@ -248,29 +245,9 @@ namespace LFramework.Runtime.LaunchPipeline
             return context.GetCustomData("DownloadHandlerName", "LaunchDownload");
         }
 
-        /// <summary>
-        /// 获取下载模式。
-        /// 默认从 CustomData 的 "DownloadMode" 获取，未设置则使用 Addressable。
-        /// </summary>
-        /// <param name="context">启动管线上下文。</param>
-        /// <returns>下载模式。</returns>
-        protected virtual DownloadMode GetDownloadMode(LaunchContext context)
-        {
-            return context.GetCustomData("DownloadMode", DownloadMode.Addressable);
-        }
 
-        /// <summary>
-        /// 获取 YooAsset 包名。
-        /// 默认从 CustomData 的 "PackageName" 获取，未设置则使用 "DefaultPackage"。
-        /// </summary>
-        /// <param name="context">启动管线上下文。</param>
-        /// <returns>YooAsset 包名。</returns>
-        protected virtual string GetPackageName(LaunchContext context)
-        {
-            return context.GetCustomData("PackageName", "DefaultPackage");
-        }
-
-        /// <summary>
+#if USE_ADDRESSABLE
+         /// <summary>
         /// 获取 Addressable 合并模式。
         /// 默认从 CustomData 的 "MergeMode" 获取，未设置则使用 Union。
         /// </summary>
@@ -280,6 +257,8 @@ namespace LFramework.Runtime.LaunchPipeline
         {
             return context.GetCustomData("MergeMode", Addressables.MergeMode.Union);
         }
+#endif
+       
 
         /// <summary>
         /// 获取是否检查已下载标签（仅 YooAsset 模式）。

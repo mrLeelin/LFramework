@@ -1,3 +1,4 @@
+#if USE_ADDRESSABLE
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -290,3 +291,6 @@ namespace LFramework.Runtime
         }
     }
 }
+#endif
+
+

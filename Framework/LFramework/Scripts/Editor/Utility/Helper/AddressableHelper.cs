@@ -1,3 +1,4 @@
+#if USE_ADDRESSABLE
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor.AddressableAssets.Build;
@@ -60,3 +61,4 @@ namespace LFramework.Editor
         }
     }
 }
+#endif

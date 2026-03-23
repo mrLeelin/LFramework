@@ -109,9 +109,7 @@ namespace LFramework.Editor.Builder.BuildingResource
             {
                 Debug.LogWarning($"[YooAssets] 构建产物目录不存在: {yooAssetOutputDir}");
             }
-
-            // 生成版本文件
-            GenerateUpdateFile(buildResourcesData);
+            
 
             // 备份构建结果
             DeleteDirectory(backupSeverDataPath);
@@ -276,17 +274,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         }
 
         #endregion
-
-        #region Private Helper Methods
-
-        private void GenerateUpdateFile(BuildSetting buildResourcesData)
-        {
-            var exportVersionPath = GetExportVersionPath(buildResourcesData);
-            var debugExportVersionPath = BuildResourcePathHelper.GetTempDebugExportVersionPath(buildResourcesData);
-            AddressableBuildHelper.GenerateUpdateFile(exportVersionPath, debugExportVersionPath, buildResourcesData);
-        }
-
-        #endregion
+        
 
         #region Path Helper Methods
 

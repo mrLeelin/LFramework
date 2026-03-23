@@ -1,8 +1,10 @@
+#if USE_ADDRESSABLE
 using System;
 using System.IO;
 using System.Linq;
 using LFramework.Runtime;
 using LFramework.Runtime.Settings;
+using Sirenix.Utilities.Editor;
 using ThirdParty.Framework.LFramework.Scripts.Editor.BuildPackage.Builder.BuildingResource;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
@@ -25,6 +27,14 @@ namespace LFramework.Editor.Builder.BuildingResource
         public void Build(BuildSetting buildResourcesData)
         {
             // 获取 Addressable 配置
+            var resourceComponentSetting =
+                AssetUtilities.GetAllAssetsOfType<ResourceComponentSetting>().FirstOrDefault();
+            if (resourceComponentSetting == null)
+            {
+                Debug.LogError("ResourceComponent is null in Build.");
+                return;
+            }
+
             var settings = AddressableAssetSettingsDefaultObject.Settings;
             if (settings == null)
             {
@@ -37,15 +47,16 @@ namespace LFramework.Editor.Builder.BuildingResource
             {
                 throw new Exception("[AddressableBuildSystem] GameSetting not found in project!");
             }
-
+            
             // 执行构建
-            BuildInternal(buildResourcesData, settings, gameSetting);
+            BuildInternal(buildResourcesData, settings, gameSetting,resourceComponentSetting);
         }
 
         /// <summary>
         /// 内部构建方法
         /// </summary>
-        private void BuildInternal(BuildSetting buildResourcesData, AddressableAssetSettings settings, HybridCLRSetting gameSetting)
+        private void BuildInternal(BuildSetting buildResourcesData, AddressableAssetSettings settings,
+            HybridCLRSetting gameSetting, ResourceComponentSetting resourceComponentSetting)
         {
             if (buildResourcesData.isResourcesBuildIn)
             {
@@ -71,7 +82,7 @@ namespace LFramework.Editor.Builder.BuildingResource
             var assetAdsBinPath = GetAssetAdsBinPath(buildResourcesData);
             var assetAdsBinFilePath = GetAssetAdsBinFilePath(buildResourcesData);
 
-            AddressableBuildHelper.SetSetting(settings, buildResourcesData, buildPath, loadPath);
+            AddressableBuildHelper.SetSetting(settings, resourceComponentSetting,buildResourcesData, buildPath, loadPath);
 
             // 删除exportAds文件夹
             AddressableBuildHelper.DeleteDirectory(exportAdsPath);
@@ -240,3 +251,5 @@ namespace LFramework.Editor.Builder.BuildingResource
         }
     }
 }
+#endif
+

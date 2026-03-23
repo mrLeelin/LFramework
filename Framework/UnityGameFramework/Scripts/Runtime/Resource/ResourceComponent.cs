@@ -25,13 +25,13 @@ namespace UnityGameFramework.Runtime
         /// <summary>
         /// 资源模式
         /// </summary>
-        [SerializeField] private ResourceMode _resourceMode;
+        [SerializeField] private ResourceMode _resourceMode = ResourceMode.YooAsset;
 
         /// <summary>
         /// 资源辅助器类型名称
         /// </summary>
         [SerializeField]
-        private string m_ResourceHelperTypeName = "UnityGameFramework.Runtime.AddressableResourceHelper";
+        private string m_ResourceHelperTypeName = "LFramework.Runtime.YooAssetResourceHelper";
 
         [SerializeField] private ResourceHelperBase m_CustomResourceHelper = null;
 

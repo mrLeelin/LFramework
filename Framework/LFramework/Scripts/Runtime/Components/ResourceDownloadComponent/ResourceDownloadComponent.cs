@@ -4,11 +4,15 @@ using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using GameFramework.Resource;
 using UnityEngine;
+
+#if USE_ADDRESSABLE
 using UnityEngine.AddressableAssets;
 using UnityEngine.AddressableAssets.ResourceLocators;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceLocations;
 using UnityEngine.ResourceManagement.ResourceProviders;
+#endif
+
 using UnityGameFramework.Runtime;
 using Zenject;
 
@@ -19,7 +23,6 @@ namespace LFramework.Runtime
         [Inject] private GameSetting GameSetting { get; }
         [Inject] private SettingComponent SettingComponent { get; }
         [Inject] private ResourceComponent ResourceComponent { get; }
-
 
 
         private int _nextSerialID;
@@ -56,6 +59,7 @@ namespace LFramework.Runtime
             }
         }
 
+#if USE_ADDRESSABLE
         public int AddUpdateHandlerNotRun(string name, List<string> labels,
             Addressables.MergeMode mergeMode = Addressables.MergeMode.Union, bool autoReleaseHandle = true)
         {
@@ -85,6 +89,16 @@ namespace LFramework.Runtime
             return handle.SerialID;
         }
 
+        private AddressableDownloadHandler CreateAddressableHandler(string name, List<string> labels,
+            Addressables.MergeMode mergeMode = Addressables.MergeMode.Union,
+            bool autoReleaseHandle = true)
+        {
+            var serialID = GetNextSerialID();
+            var handler = new AddressableDownloadHandler(name, labels, mergeMode, serialID, autoReleaseHandle);
+            RegisterHandler(handler);
+            return handler;
+        }
+#endif
 
         public int AddYooAssetHandler(string name, List<string> labels,
             string packageName, bool autoReleaseHandle = true, bool checkDownloadedTags = false)
@@ -157,52 +171,11 @@ namespace LFramework.Runtime
             return true;
         }
 
-        public async Task<bool> CheckAssetsInLocal(string key)
-        {
-            var downloadSizeOp = Addressables.GetDownloadSizeAsync(key);
-            await downloadSizeOp.Task;
-            var result = false;
-            if (downloadSizeOp.Status == AsyncOperationStatus.Succeeded)
-            {
-                if (downloadSizeOp.Result == 0)
-                {
-                    Debug.Log($"资源已经在本地 '{key}'");
-                    result = true;
-                }
-                else
-                {
-                    Debug.Log($"资源需要下载 '{key}'，大小为: {downloadSizeOp.Result} bytes");
-                }
-            }
-            else
-            {
-                Log.Error($"获取资源大小失败 '{key}'");
-            }
-
-            Addressables.Release(downloadSizeOp);
-            return result;
-        }
-
-        public void DownloadAssets(List<string> keys)
-        {
-            Addressables.DownloadDependenciesAsync((IEnumerable)keys, Addressables.MergeMode.Union, true);
-        }
-
-        private AddressableDownloadHandler CreateAddressableHandler(string name, List<string> labels,
-            Addressables.MergeMode mergeMode = Addressables.MergeMode.Union,
-            bool autoReleaseHandle = true)
-        {
-            var serialID = GetNextSerialID();
-            var handler = new AddressableDownloadHandler(name, labels, mergeMode, serialID, autoReleaseHandle);
-            RegisterHandler(handler);
-            return handler;
-        }
-
         private YooAssetDownloadHandler CreateYooAssetHandler(string name, List<string> labels,
             string packageName, bool autoReleaseHandle, bool checkDownloadedTags = false)
         {
             var serialID = GetNextSerialID();
-            var handler = new YooAssetDownloadHandler(name, labels, packageName, serialID, 
+            var handler = new YooAssetDownloadHandler(name, labels, packageName, serialID,
                 autoReleaseHandle, checkDownloadedTags);
             RegisterHandler(handler);
             return handler;
@@ -215,7 +188,7 @@ namespace LFramework.Runtime
             handler.DownloadFailureEventHandler += OnUpdateAssetsFailure;
             handler.DownloadSuccessfulEventHandler += OnUpdateAssetsSuccessful;
         }
-        
+
 
         private void OnRemoveHandleAction(ResourceDownloadHandlerBase obj)
         {

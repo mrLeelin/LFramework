@@ -21,7 +21,7 @@ namespace LFramework.Runtime.Settings
         [BoxGroup("通用设置")]
         [LabelText("资源模式")]
         [SerializeField]
-        private ResourceMode _resourceMode = ResourceMode.Unspecified;
+        private ResourceMode _resourceMode = ResourceMode.YooAsset;
 
         /// <summary>
         /// 资源辅助器类型名称
@@ -29,7 +29,7 @@ namespace LFramework.Runtime.Settings
         [BoxGroup("通用设置")]
         [LabelText("资源辅助器类型名称")]
         [SerializeField]
-        private string m_ResourceHelperTypeName = "UnityGameFramework.Runtime.AddressableResourceHelper";
+        private string m_ResourceHelperTypeName = "LFramework.Runtime.YooAssetResourceHelper";
 
         [SerializeField]
         private SettingHelperBase m_CustomResourceHelper = null;
@@ -77,7 +77,23 @@ namespace LFramework.Runtime.Settings
         private YooAssetPlayMode _yooAssetPlayMode = YooAssetPlayMode.EditorSimulateMode;
         
         #endregion
+
+        #region Addreaable 设置
+
+        [BoxGroup("Addressable 设置")]
+        [SerializeField]
+        [LabelText("资源包名称")]
+        [ShowIf("_resourceMode", ResourceMode.Addressable)]
+        private string _hotfixProfileName;
         
+
+        #endregion
+
+
+        /// <summary>
+        /// 热更新Profile地址
+        /// </summary>
+        public string HotfixProfileName => _hotfixProfileName;
         /// <summary>
         /// 资源模式
         /// </summary>

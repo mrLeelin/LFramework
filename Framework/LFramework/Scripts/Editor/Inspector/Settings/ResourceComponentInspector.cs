@@ -16,6 +16,7 @@ namespace LFramework.Editor.Inspector
         private SerializedProperty m_MaxUnloadInterval = null;
         private SerializedProperty m_YooAssetPackageName = null;
         private SerializedProperty m_YooAssetPlayMode = null;
+        private SerializedProperty m_AddressableHotfixProfileName;
 
         private HelperInfo<ResourceHelperBase> m_ResourceHelperInfo = new HelperInfo<ResourceHelperBase>("Resource");
 
@@ -41,6 +42,13 @@ namespace LFramework.Editor.Inspector
                     EditorGUILayout.LabelField("YooAsset Settings", EditorStyles.boldLabel);
                     EditorGUILayout.PropertyField(m_YooAssetPackageName);
                     EditorGUILayout.PropertyField(m_YooAssetPlayMode);
+                }
+                else
+                {
+                    //Addressable in this
+                    EditorGUILayout.Space();
+                    EditorGUILayout.LabelField("Addressable Settings", EditorStyles.boldLabel);
+                    EditorGUILayout.PropertyField(m_AddressableHotfixProfileName);
                 }
 
                 EditorGUILayout.Space();
@@ -68,7 +76,8 @@ namespace LFramework.Editor.Inspector
             m_MaxUnloadInterval = serializedObject.FindProperty("_maxUnloadInterval");
             m_YooAssetPackageName = serializedObject.FindProperty("_yooAssetPackageName");
             m_YooAssetPlayMode = serializedObject.FindProperty("_yooAssetPlayMode");
-
+            m_AddressableHotfixProfileName = serializedObject.FindProperty("_hotfixProfileName");
+            
             m_ResourceHelperInfo.Init(serializedObject);
 
             RefreshTypeNames();

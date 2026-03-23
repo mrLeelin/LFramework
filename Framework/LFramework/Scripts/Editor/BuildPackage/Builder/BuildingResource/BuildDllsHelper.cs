@@ -88,7 +88,14 @@ namespace LFramework.Editor
             switch (mode)
             {
                 case ResourceMode.Addressable:
-                    return new AddressableDllRegistrar();
+#if USE_ADDRESSABLE
+                     return new AddressableDllRegistrar();
+#else
+                    Log.Error("Addressable is not enabled. Define USE_ADDRESSABLE in Player Settings.");
+                    return null;
+#endif
+
+                   
                 case ResourceMode.YooAsset:
 #if YOOASSET_SUPPORT
                     return new YooAssetDllRegistrar();

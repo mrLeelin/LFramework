@@ -1,3 +1,4 @@
+#if USE_ADDRESSABLE
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
@@ -394,8 +395,10 @@ namespace LFramework.Runtime
         private string ReplaceUrl(string internalId, GameSetting setting)
         {
             var newUrl = setting.GetCdnUrl();
-            var addressKey = internalId.Replace(ReplaceRemote, newUrl).Replace(ReplaceVersion, setting.GetResourceVersion(_settingComponent));
+            var addressKey =
+ internalId.Replace(ReplaceRemote, newUrl).Replace(ReplaceVersion, setting.GetResourceVersion(_settingComponent));
             return addressKey;
         }
     }
 }
+#endif

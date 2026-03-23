@@ -1,3 +1,5 @@
+
+#if USE_ADDRESSABLE
 using System.Collections.Generic;
 using LFramework.Runtime.Settings;
 using UnityEditor;
@@ -84,3 +86,5 @@ namespace LFramework.Editor.Builder.BuildingResource
         }
     }
 }
+#endif
+

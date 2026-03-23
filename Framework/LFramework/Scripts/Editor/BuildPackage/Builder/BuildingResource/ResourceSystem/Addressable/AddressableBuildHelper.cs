@@ -1,3 +1,4 @@
+#if USE_ADDRESSABLE
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -149,10 +150,13 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 设置 Addressable 构建配置
         /// </summary>
-        public static void SetSetting(AddressableAssetSettings settings, BuildSetting buildResourcesData,
+        public static void SetSetting(AddressableAssetSettings settings,
+            ResourceComponentSetting resourceComponentSetting, BuildSetting buildResourcesData,
             string buildPath, string loadPath)
         {
-            var dynamicProfileId = SetProfile(settings, "Dynamic");
+            var hotfixProfile = resourceComponentSetting.HotfixProfileName;
+            if (string.IsNullOrEmpty(hotfixProfile)) hotfixProfile = "Default";
+            var dynamicProfileId = SetProfile(settings,hotfixProfile);
             settings.profileSettings.SetValue(dynamicProfileId, AddressableAssetSettings.kRemoteBuildPath, buildPath);
             settings.profileSettings.SetValue(dynamicProfileId, AddressableAssetSettings.kRemoteLoadPath, loadPath);
             settings.BuildRemoteCatalog = true;
@@ -576,3 +580,6 @@ namespace LFramework.Editor.Builder.BuildingResource
         #endregion
     }
 }
+#endif
+
+

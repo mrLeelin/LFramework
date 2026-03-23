@@ -1,10 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
 using Cysharp.Threading.Tasks;
-using LFramework.Runtime;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
-using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.U2D;
 using UnityEngine.UI;
 using UnityGameFramework.Runtime;
@@ -17,7 +13,6 @@ namespace LFramework.Runtime
         public string SpritePath { get; set; }
         public bool IsSpriteAtlas { get; set; }
         public bool IsInvalid => string.IsNullOrEmpty(SpriteAtlasPath) && string.IsNullOrEmpty(SpritePath);
-
         public string OriginUrl { get; set; }
 
         public static implicit operator ImageResource(string url)
@@ -32,6 +27,7 @@ namespace LFramework.Runtime
                 OriginUrl = url,
                 IsSpriteAtlas = url.ExtractKeyAndSubKey(out var mainKey, out var subKey)
             };
+
             if (result.IsSpriteAtlas)
             {
                 result.SpriteAtlasPath = mainKey;
@@ -50,30 +46,51 @@ namespace LFramework.Runtime
     {
         [SerializeField] public bool keepNativeSize = true;
 
-
+        private ResourceComponent _resourceComponent;
         private SpriteAtlas _spriteAtlas;
-        private AsyncOperationHandle<SpriteAtlas> _spriteAtlasHandle;
-        private string _spriteAtlasPath;
+        private ResourceAssetHandle<SpriteAtlas> _spriteAtlasHandle;
+        private string _spriteAtlasPath = string.Empty;
 
-        private AsyncOperationHandle<Sprite> _singleSpriteHandle;
+        private ResourceAssetHandle<Sprite> _singleSpriteHandle;
         private Sprite _singleSprite;
-        private string _singleSpritePath;
+        private string _singleSpritePath = string.Empty;
+        private int _requestSerial;
+        private bool _isDestroyed;
+
+        private ResourceComponent ResourceComponent
+        {
+            get
+            {
+                if (_resourceComponent != null)
+                {
+                    return _resourceComponent;
+                }
+
+                if (LFrameworkAspect.Instance == null || !LFrameworkAspect.Instance.HasBinding<ResourceComponent>())
+                {
+                    Log.Error("CustomImage can not resolve ResourceComponent.");
+                    return null;
+                }
+
+                _resourceComponent = LFrameworkAspect.Instance.Get<ResourceComponent>();
+                return _resourceComponent;
+            }
+        }
 
         protected override void OnDestroy()
         {
+            _isDestroyed = true;
+            ReleaseLoadedResources();
             base.OnDestroy();
-            UnLoad();
         }
 
         public virtual void SetSprite(Sprite spriteValue)
         {
-            
             sprite = spriteValue;
             if (keepNativeSize && sprite != null)
             {
                 SetNativeSize();
             }
-            
         }
 
         public void SetImage(ImageResource imageResource)
@@ -83,137 +100,190 @@ namespace LFramework.Runtime
 
         public async UniTask SetImageTask(ImageResource imageResource)
         {
+            int requestSerial = ++_requestSerial;
+
             if (imageResource.IsInvalid)
             {
                 Log.Error("CustomImage SetSpriteTask imageResource is invalid url:{0}", imageResource.OriginUrl);
+                ReleaseLoadedResources();
                 return;
             }
 
             if (!imageResource.IsSpriteAtlas)
             {
-                var task = SetImageSingleTask(imageResource);
-                await task;
+                await SetImageSingleTask(imageResource, requestSerial);
                 return;
             }
 
-            if (string.Equals(_spriteAtlasPath, imageResource.SpriteAtlasPath) && _spriteAtlas != null)
+            await SetImageAtlasTask(imageResource, requestSerial);
+        }
+
+        private async UniTask SetImageAtlasTask(ImageResource imageResource, int requestSerial)
+        {
+            if (string.Equals(_spriteAtlasPath, imageResource.SpriteAtlasPath, StringComparison.Ordinal) &&
+                _spriteAtlas != null)
             {
-                if (_spriteAtlas != null)
+                SetAlpha(1f);
+                var cachedSprite = _spriteAtlas.GetSprite(imageResource.SpritePath);
+                if (cachedSprite == null)
                 {
-                    SetSprite(_spriteAtlas.GetSprite(imageResource.SpritePath));
+                    Log.Error("CustomImage SetSpriteTask spriteInAtlas is null url:{0}", imageResource.OriginUrl);
+                    return;
                 }
 
+                SetSprite(cachedSprite);
                 return;
             }
 
-            UnLoad();
-            _spriteAtlasPath = imageResource.SpriteAtlasPath;
-            SetAlpha(0);
-            _spriteAtlasHandle = Addressables.LoadAssetAsync<SpriteAtlas>(imageResource.SpriteAtlasPath);
-            await _spriteAtlasHandle;
-            //这里如果被中断会返回None
-            if (_spriteAtlasHandle.Status == AsyncOperationStatus.None)
+            var resourceComponent = ResourceComponent;
+            if (resourceComponent == null)
             {
                 return;
             }
 
-            SetAlpha(1);
-            if (_spriteAtlasHandle.Status == AsyncOperationStatus.Failed)
+            ReleaseLoadedResources();
+            SetAlpha(0f);
+
+            var handle = resourceComponent.LoadAssetHandle<SpriteAtlas>(imageResource.SpriteAtlasPath);
+            SpriteAtlas spriteAtlas;
+            try
             {
-                Log.Error("CustomImage SetSpriteTask _spriteAtlasHandle is null url:{0}", _spriteAtlasPath);
+                spriteAtlas = await handle;
+            }
+            catch (Exception ex)
+            {
+                handle.Release();
+                if (ShouldIgnoreRequest(requestSerial))
+                {
+                    return;
+                }
+
+                SetAlpha(1f);
+                Log.Error("CustomImage failed to load atlas '{0}' for '{1}': {2}",
+                    imageResource.SpriteAtlasPath, imageResource.OriginUrl, ex.Message);
                 return;
             }
 
-            _spriteAtlas = _spriteAtlasHandle.Result;
-            if (_spriteAtlas == null)
+            if (ShouldIgnoreRequest(requestSerial))
             {
-                Log.Error("CustomImage SetSpriteTask _spriteAtlas is null url:{0}", _spriteAtlasPath);
+                handle.Release();
                 return;
             }
 
-            var spriteInAtlas = _spriteAtlas.GetSprite(imageResource.SpritePath);
+            SetAlpha(1f);
+            if (spriteAtlas == null)
+            {
+                handle.Release();
+                Log.Error("CustomImage SetSpriteTask _spriteAtlas is null url:{0}", imageResource.SpriteAtlasPath);
+                return;
+            }
+
+            var spriteInAtlas = spriteAtlas.GetSprite(imageResource.SpritePath);
             if (spriteInAtlas == null)
             {
+                handle.Release();
                 Log.Error("CustomImage SetSpriteTask spriteInAtlas is null url:{0}", imageResource.OriginUrl);
+                return;
             }
 
+            _spriteAtlasHandle = handle;
+            _spriteAtlas = spriteAtlas;
+            _spriteAtlasPath = imageResource.SpriteAtlasPath;
             SetSprite(spriteInAtlas);
         }
 
-        private async UniTask SetImageSingleTask(ImageResource imageResource)
+        private async UniTask SetImageSingleTask(ImageResource imageResource, int requestSerial)
         {
-            if (string.Equals(_singleSpritePath, imageResource.SpritePath) && _singleSprite != null)
+            if (string.Equals(_singleSpritePath, imageResource.SpritePath, StringComparison.Ordinal) &&
+                _singleSprite != null)
             {
-                if (keepNativeSize && sprite != null)
+                SetAlpha(1f);
+                SetSprite(_singleSprite);
+                return;
+            }
+
+            var resourceComponent = ResourceComponent;
+            if (resourceComponent == null)
+            {
+                return;
+            }
+
+            ReleaseLoadedResources();
+            SetAlpha(0f);
+
+            var handle = resourceComponent.LoadAssetHandle<Sprite>(imageResource.SpritePath);
+            Sprite singleSprite;
+            try
+            {
+                singleSprite = await handle;
+            }
+            catch (Exception ex)
+            {
+                handle.Release();
+                if (ShouldIgnoreRequest(requestSerial))
                 {
-                    SetNativeSize();
+                    return;
                 }
 
+                SetAlpha(1f);
+                Log.Error("CustomImage failed to load sprite '{0}' for '{1}': {2}",
+                    imageResource.SpritePath, imageResource.OriginUrl, ex.Message);
                 return;
             }
 
-            UnLoad();
-            SetAlpha(0);
+            if (ShouldIgnoreRequest(requestSerial))
+            {
+                handle.Release();
+                return;
+            }
+
+            SetAlpha(1f);
+            if (singleSprite == null)
+            {
+                handle.Release();
+                Log.Error("CustomImage SetSpriteTask _singleSprite is null url:{0} DebugName {1}",
+                    imageResource.SpritePath, imageResource.OriginUrl);
+                return;
+            }
+
+            _singleSpriteHandle = handle;
+            _singleSprite = singleSprite;
             _singleSpritePath = imageResource.SpritePath;
-            _singleSpriteHandle = Addressables.LoadAssetAsync<Sprite>(_singleSpritePath);
-            await _singleSpriteHandle;
-            //这里如果被中断会返回None
-            if (_singleSpriteHandle.Status == AsyncOperationStatus.None)
-            {
-                return;
-            }
-
-            SetAlpha(1);
-            if (_singleSpriteHandle.Status == AsyncOperationStatus.Failed)
-            {
-                Log.Error("CustomImage SetSpriteTask _singleSpriteHandle is null url:{0}  DebugName {1}",
-                    _singleSpritePath, imageResource.OriginUrl);
-                return;
-            }
-
-            _singleSprite = _singleSpriteHandle.Result;
-            if (_singleSprite == null)
-            {
-                Log.Error("CustomImage SetSpriteTask _singleSprite is null url:{0} DebugName {1}", _singleSpritePath,
-                    _singleSpriteHandle.DebugName);
-            }
-
-            SetSprite(_singleSprite);
+            SetSprite(singleSprite);
         }
 
-        private void UnLoad()
+        private bool ShouldIgnoreRequest(int requestSerial)
         {
-            if (_spriteAtlas != null)
+            return _isDestroyed || requestSerial != _requestSerial;
+        }
+
+        private void ReleaseLoadedResources()
+        {
+            SetSprite(null);
+
+            if (_spriteAtlasHandle != null)
             {
-                SetSprite(null);
-                _spriteAtlas = null;
+                _spriteAtlasHandle.Release();
+                _spriteAtlasHandle = null;
             }
 
-            if (_spriteAtlasHandle.IsValid())
+            if (_singleSpriteHandle != null)
             {
-                Addressables.Release(_spriteAtlasHandle);
+                _singleSpriteHandle.Release();
+                _singleSpriteHandle = null;
             }
 
-            if (_singleSprite != null)
-            {
-                SetSprite(null);
-                _singleSprite = null;
-            }
-
-            if (_singleSpriteHandle.IsValid())
-            {
-                Addressables.Release(_singleSpriteHandle);
-            }
-
+            _spriteAtlas = null;
+            _singleSprite = null;
             _spriteAtlasPath = string.Empty;
             _singleSpritePath = string.Empty;
         }
 
         private void SetAlpha(float value)
         {
-            var c = this.color;
+            var c = color;
             c.a = value;
-            this.color = c;
+            color = c;
         }
     }
 }
