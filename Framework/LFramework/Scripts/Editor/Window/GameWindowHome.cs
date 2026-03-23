@@ -294,6 +294,27 @@ namespace LFramework.Editor
             GUILayout.FlexibleSpace();
             GUILayout.Space(16);
             EditorGUILayout.EndHorizontal();
+
+            GUILayout.Space(8);
+
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Space(16);
+
+            if (DrawActionButton("Yoo -> Addressables", "d_Refresh"))
+                RunMigrationAction(
+                    "这会重建工具生成的 Addressable 分组，并迁移对应资源条目。是否继续？",
+                    ResourceConfigMigrationHelper.ConvertYooAssetsToAddressables);
+
+            GUILayout.Space(8);
+
+            if (DrawActionButton("Addressables -> Yoo", "d_Refresh"))
+                RunMigrationAction(
+                    "这会重建目标 YooAssets Package 的采集配置。是否继续？",
+                    ResourceConfigMigrationHelper.ConvertAddressablesToYooAssets);
+
+            GUILayout.FlexibleSpace();
+            GUILayout.Space(16);
+            EditorGUILayout.EndHorizontal();
         }
 
         private bool DrawActionButton(string label, string iconName)
@@ -309,6 +330,28 @@ namespace LFramework.Editor
             };
 
             return GUILayout.Button(content, style, GUILayout.ExpandWidth(false));
+        }
+
+        private void RunMigrationAction(
+            string confirmationMessage,
+            Func<ResourceComponentSetting, ResourceConfigMigrationHelper.ResourceConfigMigrationResult> action)
+        {
+            var setting = AssetUtilities.GetAllAssetsOfType<ResourceComponentSetting>().FirstOrDefault();
+            if (setting == null)
+            {
+                EditorUtility.DisplayDialog("Resource Migration", "未找到 ResourceComponentSetting。", "OK");
+                return;
+            }
+
+            if (!EditorUtility.DisplayDialog("Resource Migration", confirmationMessage, "继续", "取消"))
+            {
+                return;
+            }
+
+            var result = action(setting);
+            var dialogTitle = result.Success ? "迁移成功" : "迁移失败";
+            var dialogBody = $"{result.Summary}\nReport: {result.ReportPath}";
+            EditorUtility.DisplayDialog(dialogTitle, dialogBody, "OK");
         }
 
         // ── 模块卡片网格 ──

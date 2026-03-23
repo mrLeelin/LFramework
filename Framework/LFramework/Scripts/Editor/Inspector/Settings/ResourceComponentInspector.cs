@@ -1,6 +1,8 @@
+using System;
 using GameFramework.Resource;
 using LFramework.Runtime.Settings;
 using UnityEditor;
+using UnityEngine;
 using UnityGameFramework.Editor;
 using UnityGameFramework.Runtime;
 
@@ -40,6 +42,9 @@ namespace LFramework.Editor.Inspector
                     EditorGUILayout.PropertyField(m_YooAssetPackageName);
                     EditorGUILayout.PropertyField(m_YooAssetPlayMode);
                 }
+
+                EditorGUILayout.Space();
+                DrawMigrationButtons();
                 
             }
             EditorGUI.EndDisabledGroup();
@@ -73,6 +78,46 @@ namespace LFramework.Editor.Inspector
         {
             m_ResourceHelperInfo.Refresh();
             serializedObject.ApplyModifiedProperties();
+        }
+
+        private void DrawMigrationButtons()
+        {
+            EditorGUILayout.LabelField("Resource Migration", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox(
+                "Main thread handles Unity APIs. Worker threads handle validation, conflict checks, and migration planning.",
+                MessageType.Info);
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("YooAssets -> Addressables", GUILayout.Height(28)))
+                {
+                    ExecuteMigration(
+                        "This will rebuild generated Addressable groups and move matching entries. Continue?",
+                        ResourceConfigMigrationHelper.ConvertYooAssetsToAddressables);
+                }
+
+                if (GUILayout.Button("Addressables -> YooAssets", GUILayout.Height(28)))
+                {
+                    ExecuteMigration(
+                        "This will rebuild the target YooAssets package collectors. Continue?",
+                        ResourceConfigMigrationHelper.ConvertAddressablesToYooAssets);
+                }
+            }
+        }
+
+        private void ExecuteMigration(
+            string confirmationMessage,
+            Func<ResourceComponentSetting, ResourceConfigMigrationHelper.ResourceConfigMigrationResult> action)
+        {
+            if (!EditorUtility.DisplayDialog("Resource Migration", confirmationMessage, "Continue", "Cancel"))
+            {
+                return;
+            }
+
+            var result = action((ResourceComponentSetting)target);
+            var dialogTitle = result.Success ? "Migration Success" : "Migration Failed";
+            var dialogBody = $"{result.Summary}\nReport: {result.ReportPath}";
+            EditorUtility.DisplayDialog(dialogTitle, dialogBody, "OK");
         }
     }
 }
