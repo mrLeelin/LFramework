@@ -9,6 +9,8 @@ using LFramework.Runtime.Settings;
 using ThirdParty.Framework.LFramework.Scripts.Editor.BuildPackage.Builder.BuildingResource;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
+using UnityEditor.AddressableAssets.Build;
+using UnityEditor.AddressableAssets.Build.DataBuilders;
 using UnityEditor.AddressableAssets.Build.Layout;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.AddressableAssets.Settings.GroupSchemas;
@@ -26,6 +28,10 @@ namespace LFramework.Editor.Builder.BuildingResource
         #region Constants
 
         public const string Last_Report_File_Name = "LastBuildReport.json";
+        private const string DefaultPlayerBuildScriptAssetPath =
+            "Assets/AddressableAssetsData/DataBuilders/BuildScriptPackedMode.asset";
+        private const string RecoveryPlayerBuildScriptAssetPath =
+            "Assets/AddressableAssetsData/DataBuilders/BuildScriptPackedMode.Recovered.asset";
 
         #endregion
 
@@ -161,7 +167,7 @@ namespace LFramework.Editor.Builder.BuildingResource
             settings.profileSettings.SetValue(dynamicProfileId, AddressableAssetSettings.kRemoteLoadPath, loadPath);
             settings.BuildRemoteCatalog = true;
             settings.DisableCatalogUpdateOnStartup = true;
-            settings.OverridePlayerVersion = buildResourcesData.appVersion;
+            settings.OverridePlayerVersion = buildResourcesData.GetAppVersion();
             AddressableAssetSettings.CleanPlayerContent();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -170,6 +176,57 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <summary>
         /// 刷新 Addressable 资源
         /// </summary>
+        internal static IDataBuilder EnsurePlayerDataBuilder(AddressableAssetSettings settings)
+        {
+            if (settings == null)
+            {
+                throw new ArgumentNullException(nameof(settings));
+            }
+
+            var targetIndex = FindDataBuilderIndex(settings, builder => builder is BuildScriptPackedMode);
+            if (targetIndex < 0)
+            {
+                targetIndex = AddDefaultPlayerBuildScript(settings);
+            }
+
+            if (targetIndex < 0)
+            {
+                targetIndex = FindDataBuilderIndex(settings,
+                    builder => builder != null && builder.CanBuildData<AddressablesPlayerBuildResult>());
+            }
+
+            if (targetIndex < 0)
+            {
+                throw new InvalidOperationException(
+                    "[AddressableBuildHelper] No valid Addressables player build script is available.");
+            }
+
+            if (settings.ActivePlayerDataBuilderIndex != targetIndex)
+            {
+                settings.ActivePlayerDataBuilderIndex = targetIndex;
+                EditorUtility.SetDirty(settings);
+                AssetDatabase.SaveAssets();
+            }
+
+            var activeBuilder = settings.GetDataBuilder(targetIndex);
+            if (activeBuilder == null || !activeBuilder.CanBuildData<AddressablesPlayerBuildResult>())
+            {
+                throw new InvalidOperationException(
+                    "[AddressableBuildHelper] Active Addressables player build script is invalid after recovery.");
+            }
+
+            return activeBuilder;
+        }
+
+        /// <summary>
+        /// 确保 Addressables 在构建前输出调试布局，并强制使用 JSON 格式。
+        /// </summary>
+        internal static void EnsureBuildLayoutPreferences()
+        {
+            ProjectConfigData.GenerateBuildLayout = true;
+            ProjectConfigData.BuildLayoutReportFileFormat = ProjectConfigData.ReportFileFormat.JSON;
+        }
+
         public static void AddressableRefresh()
         {
             AssetDatabase.Refresh();
@@ -233,6 +290,72 @@ namespace LFramework.Editor.Builder.BuildingResource
             }
 
             AssetDatabase.Refresh();
+        }
+
+        private static int FindDataBuilderIndex(AddressableAssetSettings settings, Func<IDataBuilder, bool> predicate)
+        {
+            for (var index = 0; index < settings.DataBuilders.Count; index++)
+            {
+                var builder = settings.GetDataBuilder(index);
+                if (builder != null && predicate(builder))
+                {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
+        private static int AddDefaultPlayerBuildScript(AddressableAssetSettings settings)
+        {
+            var builder = LoadOrCreateDefaultPlayerBuildScript();
+            if (builder == null)
+            {
+                return -1;
+            }
+
+            var builderObject = builder as ScriptableObject;
+            var existingIndex = settings.DataBuilders.IndexOf(builderObject);
+            if (existingIndex >= 0)
+            {
+                return existingIndex;
+            }
+
+            settings.AddDataBuilder(builder);
+            EditorUtility.SetDirty(settings);
+            AssetDatabase.SaveAssets();
+            return settings.DataBuilders.Count - 1;
+        }
+
+        private static IDataBuilder LoadOrCreateDefaultPlayerBuildScript()
+        {
+            var builder = LoadPlayerBuildScriptAsset(DefaultPlayerBuildScriptAssetPath)
+                          ?? LoadPlayerBuildScriptAsset(RecoveryPlayerBuildScriptAssetPath);
+            if (builder != null)
+            {
+                return builder;
+            }
+
+            var createPath = ChoosePlayerBuildScriptCreatePath();
+            CreateDirectory(Path.GetDirectoryName(createPath));
+
+            var buildScript = ScriptableObject.CreateInstance<BuildScriptPackedMode>();
+            AssetDatabase.CreateAsset(buildScript, createPath);
+            AssetDatabase.SaveAssets();
+            return buildScript;
+        }
+
+        private static IDataBuilder LoadPlayerBuildScriptAsset(string assetPath)
+        {
+            return AssetDatabase.LoadAssetAtPath<ScriptableObject>(assetPath) as IDataBuilder;
+        }
+
+        private static string ChoosePlayerBuildScriptCreatePath()
+        {
+            var existingAsset = AssetDatabase.LoadMainAssetAtPath(DefaultPlayerBuildScriptAssetPath);
+            return existingAsset == null && !File.Exists(DefaultPlayerBuildScriptAssetPath)
+                ? DefaultPlayerBuildScriptAssetPath
+                : RecoveryPlayerBuildScriptAssetPath;
         }
 
         #endregion
@@ -535,37 +658,6 @@ namespace LFramework.Editor.Builder.BuildingResource
         #endregion
 
         #region Other Helper Methods
-
-        /// <summary>
-        /// 生成版本更新文件
-        /// </summary>
-        public static void GenerateUpdateFile(string filePath, string debugFilePath,
-            BuildSetting buildResourcesData)
-        {
-            if (File.Exists(filePath))
-            {
-                File.Delete(filePath);
-            }
-
-            if (File.Exists(debugFilePath))
-            {
-                File.Delete(debugFilePath);
-            }
-
-            var setting = new GameVersion
-            {
-                appVersion = buildResourcesData.appVersion,
-            };
-            var json = JsonUtility.ToJson(setting);
-            File.WriteAllText(filePath, json);
-            var dirPath = Path.GetDirectoryName(debugFilePath);
-            if (!Directory.Exists(dirPath))
-            {
-                Directory.CreateDirectory(dirPath);
-            }
-
-            File.Copy(filePath, debugFilePath);
-        }
 
         /// <summary>
         /// 复制构建报告到备份目录

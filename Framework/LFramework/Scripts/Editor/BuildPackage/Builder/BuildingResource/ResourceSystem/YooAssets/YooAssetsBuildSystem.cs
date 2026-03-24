@@ -7,9 +7,7 @@ using LFramework.Runtime.Settings;
 using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEditor.Build.Pipeline.Utilities;
-using UnityEditor.Build.Reporting;
 using UnityEngine;
-using UnityGameFramework.Runtime;
 using YooAsset;
 using YooAsset.Editor;
 using BuildResult = YooAsset.Editor.BuildResult;
@@ -18,17 +16,17 @@ using ScriptableBuildPipeline = YooAsset.Editor.ScriptableBuildPipeline;
 namespace LFramework.Editor.Builder.BuildingResource
 {
     /// <summary>
-    /// YooAssets 资源构建系统实现
-    /// 负责使用 YooAssets 系统进行资源打包、增量更新和版本管理
+    /// YooAssets resource build system implementation.
     /// </summary>
     public class YooAssetsBuildSystem : IResourceBuildSystem
     {
         /// <summary>
-        /// 构建资源
+        /// Builds resource content with YooAssets.
         /// </summary>
+        /// <param name="buildResourcesData">Build settings.</param>
         public void Build(BuildSetting buildResourcesData)
         {
-            Debug.Log("[YooAssets] 开始构建资源...");
+            Debug.Log("[YooAssets] Start building resources...");
             var resourceComponentSetting =
                 AssetUtilities.GetAllAssetsOfType<ResourceComponentSetting>().FirstOrDefault();
             if (resourceComponentSetting == null)
@@ -43,103 +41,97 @@ namespace LFramework.Editor.Builder.BuildingResource
                 return;
             }
 
-            var buildPath = GetBuildPath(buildResourcesData);
-            var loadPath = GetLoadPath(buildResourcesData);
+            string buildPath = GetBuildPath(buildResourcesData);
+            string loadPath = GetLoadPath(buildResourcesData);
 
             Debug.Log($"[YooAssets] Build Path: {buildPath}");
             Debug.Log($"[YooAssets] Load Path: {loadPath}");
 
-            var exportBuildPath = GetExportBuildPath(buildResourcesData);
-            var backupPath = GetBackupPath(buildResourcesData);
-            var backupSeverDataPath = GetBackupSeverDataBuildPath(buildResourcesData);
+            string exportBuildPath = GetExportBuildPath(buildResourcesData);
+            string backupPath = GetBackupPath(buildResourcesData);
+            string backupSeverDataPath = GetBackupSeverDataBuildPath(buildResourcesData);
 
-            // 创建备份目录
             CreateDirectory(backupPath);
 
-            // 构建 YooAsset 资源
             string outputRoot = GetYooAssetOutputRoot();
             string buildinFileRoot = AssetBundleBuilderHelper.GetStreamingAssetsRoot();
-            var param = BuildScriptableBuildParameters(resourceComponentSetting, outputRoot, buildinFileRoot,
+            var buildParameters = BuildScriptableBuildParameters(
+                resourceComponentSetting,
+                outputRoot,
+                buildinFileRoot,
                 buildResourcesData.resourcesVersion);
+
+            string yooAssetOutputDir;
             if (buildResourcesData.buildType == BuildType.ResourcesUpdate)
             {
-                Debug.Log("[YooAssets] 开始编译增量更新资源");
-                // 增量更新：使用 ScriptableBuildPipeline，不清除缓存
-                param.ClearBuildCacheFiles = false;
-                param.BuildinFileCopyOption = EBuildinFileCopyOption.None;
-                ExecuteYooAssetBuild(
-                    resourceComponentSetting,
-                    param);
+                Debug.Log("[YooAssets] Start incremental resource build.");
+                buildParameters.ClearBuildCacheFiles = false;
+                buildParameters.BuildinFileCopyOption = EBuildinFileCopyOption.None;
+                yooAssetOutputDir = ExecuteYooAssetBuild(resourceComponentSetting, buildParameters);
             }
             else
             {
-                Debug.Log("[YooAssets] 构建全量资源");
-                // 全量构建：清除缓存，复制内置文件
-                param.ClearBuildCacheFiles = true;
-                //TODO 根据标签copy
+                Debug.Log("[YooAssets] Build all resources.");
+                buildParameters.ClearBuildCacheFiles = true;
 
-                param.BuildinFileCopyParams = SettingManager.GetSetting<HybridCLRSetting>().defaultInitLabel;
-                if (string.IsNullOrEmpty(param.BuildinFileCopyParams))
-                {
-                    param.BuildinFileCopyOption = EBuildinFileCopyOption.ClearAndCopyAll;
-                }
-                else
-                {
-                    param.BuildinFileCopyOption = EBuildinFileCopyOption.ClearAndCopyByTags;
-                }
+                buildParameters.BuildinFileCopyParams =
+                    SettingManager.GetSetting<HybridCLRSetting>().defaultInitLabel;
+                buildParameters.BuildinFileCopyOption =
+                    string.IsNullOrEmpty(buildParameters.BuildinFileCopyParams)
+                        ? EBuildinFileCopyOption.ClearAndCopyAll
+                        : EBuildinFileCopyOption.ClearAndCopyByTags;
 
-                ExecuteYooAssetBuild(
-                    resourceComponentSetting,
-                    param);
+                yooAssetOutputDir = ExecuteYooAssetBuild(resourceComponentSetting, buildParameters);
             }
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            // 将 YooAsset 构建产物复制到项目的 ServerData 目录
-            string yooAssetOutputDir = GetYooAssetPackageOutputDir(resourceComponentSetting, outputRoot,
-                buildResourcesData.resourcesVersion);
             if (Directory.Exists(yooAssetOutputDir))
             {
+                DeleteDirectory(exportBuildPath);
                 CreateDirectory(exportBuildPath);
                 CopyDirectory(yooAssetOutputDir, exportBuildPath);
-                Debug.Log($"[YooAssets] 已复制构建产物: {yooAssetOutputDir} -> {exportBuildPath}");
+                Debug.Log($"[YooAssets] Copied build output: {yooAssetOutputDir} -> {exportBuildPath}");
             }
             else
             {
-                Debug.LogWarning($"[YooAssets] 构建产物目录不存在: {yooAssetOutputDir}");
+                Debug.LogWarning($"[YooAssets] Build output directory does not exist: {yooAssetOutputDir}");
             }
-            
 
-            // 备份构建结果
             DeleteDirectory(backupSeverDataPath);
             CopyDirectory(exportBuildPath, backupSeverDataPath);
+            BuildArtifactPostprocessHelper.ProcessBuildArtifacts(buildResourcesData, exportBuildPath);
 
             Debug.Log($"[YooAssets] Build Over, Please upload = {backupSeverDataPath}, upload url = {loadPath}");
         }
 
+        /// <summary>
+        /// Interface entry point for built-in package builds.
+        /// </summary>
         public void BuildInPackage()
         {
         }
 
         /// <summary>
-        /// 构建内置资源包
-        /// 将资源打包到 StreamingAssets，不支持热更新
+        /// Builds the built-in resource package into StreamingAssets.
         /// </summary>
+        /// <param name="resourceComponentSetting">Resource component configuration.</param>
         private void BuildInPackage(ResourceComponentSetting resourceComponentSetting)
         {
-            Debug.Log("[YooAssets] 开始构建内置资源包...");
+            Debug.Log("[YooAssets] Start building built-in resource package...");
 
             string outputRoot = GetYooAssetOutputRoot();
             string buildinFileRoot = AssetBundleBuilderHelper.GetStreamingAssetsRoot();
 
-            var param = BuildScriptableBuildParameters(resourceComponentSetting, outputRoot, buildinFileRoot,
-                "buildin");
-            param.ClearBuildCacheFiles = true;
-            param.BuildinFileCopyOption = EBuildinFileCopyOption.ClearAndCopyAll;
-            ExecuteYooAssetBuild(
+            var buildParameters = BuildScriptableBuildParameters(
                 resourceComponentSetting,
-                param);
+                outputRoot,
+                buildinFileRoot,
+                "buildin");
+            buildParameters.ClearBuildCacheFiles = true;
+            buildParameters.BuildinFileCopyOption = EBuildinFileCopyOption.ClearAndCopyAll;
+            ExecuteYooAssetBuild(resourceComponentSetting, buildParameters);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -147,7 +139,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         }
 
         /// <summary>
-        /// 获取构建路径
+        /// Gets the build path.
         /// </summary>
         public string GetBuildPath(BuildSetting data)
         {
@@ -155,11 +147,11 @@ namespace LFramework.Editor.Builder.BuildingResource
         }
 
         /// <summary>
-        /// 获取加载路径
+        /// Gets the remote load path.
         /// </summary>
         public string GetLoadPath(BuildSetting data)
         {
-            var path = string.Empty;
+            string path = string.Empty;
             if (data.cdnType == CdnType.Local)
             {
                 path += BuildResourcePathHelper.GetUrl(data.cdnType);
@@ -180,10 +172,9 @@ namespace LFramework.Editor.Builder.BuildingResource
             ResourceComponentSetting resourceComponentSetting,
             string outputRoot,
             string buildinFileRoot,
-            string packageVersion
-        )
+            string packageVersion)
         {
-            var buildParameters = new ScriptableBuildParameters
+            return new ScriptableBuildParameters
             {
                 BuildOutputRoot = outputRoot,
                 BuildinFileRoot = buildinFileRoot,
@@ -198,18 +189,14 @@ namespace LFramework.Editor.Builder.BuildingResource
                 EnableSharePackRule = true,
                 SingleReferencedPackAlone = true,
                 VerifyBuildingResult = true,
-
                 FileNameStyle = EFileNameStyle.BundleName_HashName,
                 BuildinFileCopyOption = EBuildinFileCopyOption.ClearAndCopyAll,
                 BuildinFileCopyParams = string.Empty,
-
                 EncryptionServices = BuildEncryptionServices(),
                 ManifestProcessServices = BuildManifestProcessServices(),
                 ManifestRestoreServices = BuildManifestRestoreServices(),
-
                 CompressOption = ECompressOption.LZ4,
             };
-            return buildParameters;
         }
 
         private IEncryptionServices BuildEncryptionServices()
@@ -228,14 +215,16 @@ namespace LFramework.Editor.Builder.BuildingResource
         }
 
         /// <summary>
-        /// 执行 YooAsset 构建
-        /// 使用 ScriptableBuildPipeline 进行 AssetBundle 构建
+        /// Executes the YooAssets build and returns the actual output package directory.
         /// </summary>
-        private void ExecuteYooAssetBuild(ResourceComponentSetting resourceComponentSetting,
+        /// <param name="resourceComponentSetting">Resource component configuration.</param>
+        /// <param name="buildParameters">Build parameters.</param>
+        /// <returns>Resolved output package directory.</returns>
+        private string ExecuteYooAssetBuild(
+            ResourceComponentSetting resourceComponentSetting,
             ScriptableBuildParameters buildParameters)
         {
-            // 内置着色器资源包名称
-            var uniqueBundleName = AssetBundleCollectorSettingData.Setting.UniqueBundleName;
+            bool uniqueBundleName = AssetBundleCollectorSettingData.Setting.UniqueBundleName;
             var packRuleResult = DefaultPackRule.CreateShadersPackRuleResult();
             buildParameters.BuiltinShadersBundleName =
                 packRuleResult.GetBundleName(resourceComponentSetting.YooAssetPackageName, uniqueBundleName);
@@ -243,49 +232,31 @@ namespace LFramework.Editor.Builder.BuildingResource
             var pipeline = new ScriptableBuildPipeline();
             BuildResult buildResult = pipeline.Run(buildParameters, true);
 
-            if (buildResult.Success)
+            if (!buildResult.Success)
             {
-                Debug.Log($"[YooAssets] 构建成功，输出目录: {buildResult.OutputPackageDirectory}");
-            }
-            else
-            {
-                Debug.LogError($"[YooAssets] 构建失败: {buildResult.ErrorInfo}");
+                Debug.LogError($"[YooAssets] Build failed: {buildResult.ErrorInfo}");
                 throw new Exception($"[YooAssets] Build failed: {buildResult.ErrorInfo}");
             }
+
+            Debug.Log($"[YooAssets] Build succeeded, output directory: {buildResult.OutputPackageDirectory}");
+            return buildResult.OutputPackageDirectory;
         }
 
         /// <summary>
-        /// 获取 YooAsset 默认输出根目录
+        /// Gets the YooAssets default build output root.
         /// </summary>
         private string GetYooAssetOutputRoot()
         {
             return AssetBundleBuilderHelper.GetDefaultBuildOutputRoot();
         }
 
-        /// <summary>
-        /// 获取 YooAsset 构建产物的包输出目录
-        /// 路径格式: {outputRoot}/{BuildTarget}/{PackageName}/{PackageVersion}
-        /// </summary>
-        private string GetYooAssetPackageOutputDir(ResourceComponentSetting resourceComponentSetting, string outputRoot,
-            string packageVersion)
-        {
-            string buildTarget = EditorUserBuildSettings.activeBuildTarget.ToString();
-            return Path.Combine(outputRoot, buildTarget, resourceComponentSetting.YooAssetPackageName, packageVersion);
-        }
-
         #endregion
-        
 
         #region Path Helper Methods
 
         private string GetExportBuildPath(BuildSetting data)
         {
             return BuildResourcePathHelper.GetExportBuildPath(data);
-        }
-
-        private string GetExportVersionPath(BuildSetting data)
-        {
-            return BuildResourcePathHelper.GetExportVersionPath(data);
         }
 
         private string GetBackupPath(BuildSetting data)
@@ -328,7 +299,8 @@ namespace LFramework.Editor.Builder.BuildingResource
                 DirectoryInfo[] directoryInfoArray = directoryInfo.GetDirectories();
                 for (int d = 0; d < directoryInfoArray.Length; d++)
                 {
-                    CopyDirectory(Path.Combine(from, directoryInfoArray[d].Name),
+                    CopyDirectory(
+                        Path.Combine(from, directoryInfoArray[d].Name),
                         Path.Combine(to, directoryInfoArray[d].Name));
                 }
             }
@@ -359,19 +331,20 @@ using UnityEngine;
 namespace LFramework.Editor.Builder.BuildingResource
 {
     /// <summary>
-    /// YooAssets 资源构建系统实现（未启用）
-    /// 需要定义 YOOASSET_SUPPORT 宏才能使用此功能
+    /// YooAssets resource build system implementation when the package is disabled.
     /// </summary>
     public class YooAssetsBuildSystem : IResourceBuildSystem
     {
         public void Build(BuildSetting buildResourcesData)
         {
-            Debug.LogWarning("[YooAssets] YOOASSET_SUPPORT 未定义，无法构建资源。请在 Player Settings -> Scripting Define Symbols 中添加 YOOASSET_SUPPORT。");
+            Debug.LogWarning(
+                "[YooAssets] YOOASSET_SUPPORT is not defined. Add it in Player Settings -> Scripting Define Symbols.");
         }
 
         public void BuildInPackage()
         {
-            Debug.LogWarning("[YooAssets] YOOASSET_SUPPORT 未定义，无法构建内置资源包。");
+            Debug.LogWarning(
+                "[YooAssets] YOOASSET_SUPPORT is not defined. Built-in resource build is unavailable.");
         }
 
         public string GetBuildPath(BuildSetting data)

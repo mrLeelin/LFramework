@@ -77,7 +77,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
 
                 if (!setting.isResourcesBuildIn)
                 {
-                    setting.appVersion = buildSetting.appVersion + "." + buildSetting.versionCode;
+                    setting.appVersion = buildSetting.GetAppVersion();
                     setting.resourceVersion = buildSetting.resourcesVersion;
                     setting.cdnType = buildSetting.cdnType;
 

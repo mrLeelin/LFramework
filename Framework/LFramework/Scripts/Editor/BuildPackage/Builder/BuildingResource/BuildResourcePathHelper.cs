@@ -12,7 +12,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         public const string ServerDataFolderName = "ServerData";
         public const string BackupFolderName = "BackUp_BuildResource";
         public const string BackupLastName = "LastBuild";
-        public const string BackupFileName = "Version";
+        public const string BackupDiffFolderName = "Diff";
         public const string ReplaceRemote = "remote_";
         public const string ReplaceVersion = "_resource_version_";
 
@@ -63,7 +63,7 @@ namespace LFramework.Editor.Builder.BuildingResource
 
         public static string GetFolderNameBasedOnAppVersion(BuildSetting data)
         {
-            return $"{GetChannelName(data)}_{data.appVersion}_{data.cdnType}";
+            return $"{GetChannelName(data)}_{data.GetAppVersion()}_{data.cdnType}";
         }
 
         public static string GetExportPath()
@@ -80,17 +80,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         {
             return $"{Application.dataPath}/../{GetBuildPath(data)}";
         }
-
-        public static string GetExportVersionPath(BuildSetting data)
-        {
-            return $"{GetExportBuildPath(data)}/{BackupFileName}";
-        }
-
-        public static string GetTempDebugExportVersionPath(BuildSetting data)
-        {
-            return $"{GetExportPath()}/{GetChannelName(data)}_{data.cdnType}/{BackupFileName}";
-        }
-
+        
         public static string GetBackupPath(BuildSetting data)
         {
             return $"{Application.dataPath}/../{BackupFolderName}/{GetFolderNameBasedOnAppVersion(data)}";
@@ -104,6 +94,16 @@ namespace LFramework.Editor.Builder.BuildingResource
         public static string GetBackupLastBuildPath(BuildSetting data)
         {
             return $"{GetBackupPath(data)}/{GetChannelName(data)}_{BackupLastName}_{data.cdnType}";
+        }
+
+        public static string GetBackupDiffPath(BuildSetting data)
+        {
+            return $"{GetBackupPath(data)}/{BackupDiffFolderName}";
+        }
+
+        public static string GetBackupDiffBuildPath(BuildSetting data)
+        {
+            return $"{GetBackupDiffPath(data)}/{GetFolderName(data)}";
         }
 
         public static string GetDllBackupPath(BuildSetting data)

@@ -92,7 +92,7 @@ namespace LFramework.Editor.Builder.PlatformConfig
         public string GetOutputPath(BuildSetting buildSetting)
         {
             string releaseType = buildSetting.isRelease ? "Release" : "Debug";
-            string appName = $"Build_{releaseType}_{buildSetting.appVersion}_{buildSetting.versionCode}";
+            string appName = $"Build_{releaseType}_{buildSetting.GetAppVersion()}";
 
             if (buildSetting.isDeepProfiler)
             {
@@ -103,7 +103,7 @@ namespace LFramework.Editor.Builder.PlatformConfig
             if (buildSetting.buildAndroidAppType == BuildAndroidAppType.ExportAndroidProject)
             {
                 string timeInfo = DateTime.Now.ToString("yyyyMMddHHmmss");
-                return Application.dataPath + $"/../Builds/Android_{releaseType}_{buildSetting.appVersion}_{timeInfo}/{appName}";
+                return Application.dataPath + $"/../Builds/Android_{releaseType}_{buildSetting.GetAppVersion()}_{timeInfo}/{appName}";
             }
             else
             {

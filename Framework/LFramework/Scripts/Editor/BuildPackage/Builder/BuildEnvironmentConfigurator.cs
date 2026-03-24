@@ -14,6 +14,11 @@ using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
 
+#if USE_ADDRESSABLE
+using UnityEditor.AddressableAssets;
+using LFramework.Editor.Builder.BuildingResource;
+#endif
+
 namespace LFramework.Editor.Builder
 {
     internal static class BuildEnvironmentConfigurator
@@ -47,6 +52,14 @@ namespace LFramework.Editor.Builder
             var hotUpdateAssemblyNames = ResolveHotUpdateAssemblyNames(runtimeSetting);
             SyncRuntimeSetting(runtimeSetting, hotUpdateAssemblyNames);
             SyncHybridClrSettingsAsset(hotUpdateAssemblyNames);
+#endif
+
+#if USE_ADDRESSABLE
+            var addressableSettings = AddressableAssetSettingsDefaultObject.Settings;
+            if (addressableSettings != null)
+            {
+                AddressableBuildHelper.EnsurePlayerDataBuilder(addressableSettings);
+            }
 #endif
 
             if (EditorUserBuildSettings.activeBuildTarget == BuildTarget.Android)
@@ -175,7 +188,7 @@ namespace LFramework.Editor.Builder
             if (!installedApiLevel.HasValue)
             {
                 Debug.LogWarning(
-                    "[BuildEnvironmentConfigurator] No stable Android SDK platform was found. Keeping the current target SDK.");
+                "[BuildEnvironmentConfigurator] No stable Android SDK platform was found. Keeping the current target SDK.");
                 return;
             }
 

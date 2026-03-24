@@ -15,18 +15,16 @@ using UnityEngine;
 namespace LFramework.Editor.Builder.BuildingResource
 {
     /// <summary>
-    /// Addressable 资源构建系统实现
-    /// 负责使用 Unity Addressable 系统进行资源打包、增量更新和版本管理
+    /// Addressables resource build system implementation.
     /// </summary>
     public class AddressableBuildSystem : IResourceBuildSystem
     {
         /// <summary>
-        /// 构建资源
-        /// 自己负责获取所需的 AddressableAssetSettings 和 GameSetting
+        /// Builds resource content with the current Addressables configuration.
         /// </summary>
+        /// <param name="buildResourcesData">Build settings.</param>
         public void Build(BuildSetting buildResourcesData)
         {
-            // 获取 Addressable 配置
             var resourceComponentSetting =
                 AssetUtilities.GetAllAssetsOfType<ResourceComponentSetting>().FirstOrDefault();
             if (resourceComponentSetting == null)
@@ -41,22 +39,23 @@ namespace LFramework.Editor.Builder.BuildingResource
                 throw new Exception("[AddressableBuildSystem] AddressableAssetSettings not found!");
             }
 
-            // 使用 SettingManager 获取 GameSetting
             var gameSetting = SettingManager.GetSetting<HybridCLRSetting>();
             if (gameSetting == null)
             {
                 throw new Exception("[AddressableBuildSystem] GameSetting not found in project!");
             }
-            
-            // 执行构建
-            BuildInternal(buildResourcesData, settings, gameSetting,resourceComponentSetting);
+
+            BuildInternal(buildResourcesData, settings, gameSetting, resourceComponentSetting);
         }
 
         /// <summary>
-        /// 内部构建方法
+        /// Builds Addressables content.
         /// </summary>
-        private void BuildInternal(BuildSetting buildResourcesData, AddressableAssetSettings settings,
-            HybridCLRSetting gameSetting, ResourceComponentSetting resourceComponentSetting)
+        private void BuildInternal(
+            BuildSetting buildResourcesData,
+            AddressableAssetSettings settings,
+            HybridCLRSetting gameSetting,
+            ResourceComponentSetting resourceComponentSetting)
         {
             if (buildResourcesData.isResourcesBuildIn)
             {
@@ -64,62 +63,62 @@ namespace LFramework.Editor.Builder.BuildingResource
                 return;
             }
 
-            var buildPath = GetBuildPath(buildResourcesData);
-            var loadPath = GetLoadPath(buildResourcesData);
+            string buildPath = GetBuildPath(buildResourcesData);
+            string loadPath = GetLoadPath(buildResourcesData);
 
-            var exportPath = BuildResourcePathHelper.GetExportPath();
-            var exportAdsPath = AddressableBuildHelper.GetExportAdsPath();
-            var exportAdsBinPath = AddressableBuildHelper.GetExportAdsBinPath(buildResourcesData);
-            var exportBuildPath = BuildResourcePathHelper.GetExportBuildPath(buildResourcesData);
-            var exportVersionPath = BuildResourcePathHelper.GetExportVersionPath(buildResourcesData);
-            var debugExportVersionPath = BuildResourcePathHelper.GetTempDebugExportVersionPath(buildResourcesData);
+            string exportPath = BuildResourcePathHelper.GetExportPath();
+            string exportAdsPath = AddressableBuildHelper.GetExportAdsPath();
+            string exportAdsBinPath = AddressableBuildHelper.GetExportAdsBinPath(buildResourcesData);
+            string exportBuildPath = BuildResourcePathHelper.GetExportBuildPath(buildResourcesData);
 
-            var backupPath = BuildResourcePathHelper.GetBackupPath(buildResourcesData);
-            var backupAdsBinPath = AddressableBuildHelper.GetBackupAdsBinPath(buildResourcesData);
-            var backupSeverDataPath = BuildResourcePathHelper.GetBackupSeverDataBuildPath(buildResourcesData);
-            var backupLastAssetsDataPath = BuildResourcePathHelper.GetBackupLastBuildPath(buildResourcesData);
+            string backupPath = BuildResourcePathHelper.GetBackupPath(buildResourcesData);
+            string backupAdsBinPath = AddressableBuildHelper.GetBackupAdsBinPath(buildResourcesData);
+            string backupSeverDataPath = BuildResourcePathHelper.GetBackupSeverDataBuildPath(buildResourcesData);
 
-            var assetAdsBinPath = GetAssetAdsBinPath(buildResourcesData);
-            var assetAdsBinFilePath = GetAssetAdsBinFilePath(buildResourcesData);
+            string assetAdsBinPath = GetAssetAdsBinPath(buildResourcesData);
+            string assetAdsBinFilePath = GetAssetAdsBinFilePath(buildResourcesData);
 
-            AddressableBuildHelper.SetSetting(settings, resourceComponentSetting,buildResourcesData, buildPath, loadPath);
+            AddressableBuildHelper.SetSetting(
+                settings,
+                resourceComponentSetting,
+                buildResourcesData,
+                buildPath,
+                loadPath);
+            AddressableBuildHelper.EnsureBuildLayoutPreferences();
+            AddressableBuildHelper.EnsurePlayerDataBuilder(settings);
 
-            // 删除exportAds文件夹
             AddressableBuildHelper.DeleteDirectory(exportAdsPath);
-            // 删除exportPath文件夹
             AddressableBuildHelper.DeleteDirectory(exportPath);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            // 刷新资源
+
             AddressableBuildHelper.AddressableRefresh();
-            // 清空空的组
             AddressableBuildHelper.AddressableCleanEmptyGroup(settings);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            // 创建backupPath
             AddressableBuildHelper.CreateDirectory(backupPath);
             if (buildResourcesData.buildType == BuildType.ResourcesUpdate)
             {
-                Debug.Log("开始编译增量更新资源");
-                // 删除assetAdsBinPath文件夹
+                Debug.Log("Start content update build.");
                 AddressableBuildHelper.DeleteDirectory(assetAdsBinPath);
-                // 检查上个版本的adsBin文件夹 是否存在
                 if (Directory.Exists(backupAdsBinPath))
                 {
-                    // 复制上个版本的adsBin文件夹 到 assetAdsBinPath文件夹
                     AddressableBuildHelper.CopyDirectory(backupAdsBinPath, assetAdsBinPath);
                     Debug.Log($"copy bin file {backupAdsBinPath} -> {assetAdsBinPath}");
                 }
 
                 if (!File.Exists(assetAdsBinFilePath))
                 {
-                    throw new Exception("找不到bin文件!");
+                    throw new Exception("Addressables content state bin file not found.");
                 }
 
-                // 检查之前的列表，需要更新的打包到小包
-                AddressableBuildHelper.CheckForUpdateContent(backupPath, settings, buildResourcesData, gameSetting);
+                AddressableBuildHelper.CheckForUpdateContent(
+                    backupPath,
+                    settings,
+                    buildResourcesData,
+                    gameSetting);
                 string assetContentPath = ContentUpdateScript.GetContentStateDataPath(false);
                 Debug.Log($"use bin file : {assetContentPath}");
                 var result = ContentUpdateScript.BuildContentUpdate(settings, assetContentPath);
@@ -136,7 +135,7 @@ namespace LFramework.Editor.Builder.BuildingResource
             {
                 Debug.Log("build all resources");
                 AddressableAssetSettings.BuildPlayerContent(out AddressablesPlayerBuildResult result);
-                var success = string.IsNullOrEmpty(result.Error);
+                bool success = string.IsNullOrEmpty(result.Error);
                 if (!success)
                 {
                     Debug.LogError("Addressables build error encountered: " + result.Error);
@@ -152,32 +151,15 @@ namespace LFramework.Editor.Builder.BuildingResource
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            // 构建版本文件
-            AddressableBuildHelper.GenerateUpdateFile(exportVersionPath, debugExportVersionPath, buildResourcesData);
-
             AddressableBuildHelper.DeleteDirectory(backupSeverDataPath);
             AddressableBuildHelper.CopyDirectory(exportBuildPath, backupSeverDataPath);
+            BuildArtifactPostprocessHelper.ProcessBuildArtifacts(buildResourcesData, exportBuildPath);
 
-            // 资源更新
-            if (buildResourcesData.buildType == BuildType.ResourcesUpdate)
-            {
-                if (Directory.Exists(backupLastAssetsDataPath))
-                {
-                    // 可以在这里添加差异对比逻辑
-                }
-            }
-
-            // Copy 到最新的打包文件用于和下一次打包对比
-            AddressableBuildHelper.DeleteDirectory(backupLastAssetsDataPath);
-            AddressableBuildHelper.CopyDirectory(exportBuildPath, backupLastAssetsDataPath);
-
-            // 提示上传backupBuildPath
             Debug.Log($"Build Over ,Please upLoad = {backupSeverDataPath}, upload url = {loadPath}");
         }
 
         /// <summary>
-        /// 构建内置资源包
-        /// 自己负责获取所需的 AddressableAssetSettings
+        /// Builds the built-in resource package.
         /// </summary>
         public void BuildInPackage()
         {
@@ -189,9 +171,11 @@ namespace LFramework.Editor.Builder.BuildingResource
 
             AddressableBuildHelper.SetProfile(settings, "Default");
             settings.BuildRemoteCatalog = false;
+            AddressableBuildHelper.EnsureBuildLayoutPreferences();
+            AddressableBuildHelper.EnsurePlayerDataBuilder(settings);
             AssetDatabase.Refresh();
             AddressableAssetSettings.BuildPlayerContent(out AddressablesPlayerBuildResult result);
-            var success = string.IsNullOrEmpty(result.Error);
+            bool success = string.IsNullOrEmpty(result.Error);
             if (!success)
             {
                 Debug.LogError("Addressables build error encountered: " + result.Error);
@@ -200,11 +184,11 @@ namespace LFramework.Editor.Builder.BuildingResource
             }
 
             AssetDatabase.Refresh();
-            Debug.Log($"Build Over");
+            Debug.Log("Build Over");
         }
 
         /// <summary>
-        /// 获取构建路径
+        /// Gets the build path.
         /// </summary>
         public string GetBuildPath(BuildSetting data)
         {
@@ -212,11 +196,11 @@ namespace LFramework.Editor.Builder.BuildingResource
         }
 
         /// <summary>
-        /// 获取加载路径
+        /// Gets the remote load path.
         /// </summary>
         public string GetLoadPath(BuildSetting data)
         {
-            var path = string.Empty;
+            string path = string.Empty;
             if (data.cdnType == CdnType.Local)
             {
                 path += BuildResourcePathHelper.GetUrl(data.cdnType);
@@ -232,10 +216,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         }
 
         /// <summary>
-        /// 获取备份最后构建路径
-        /// </summary>
-        /// <summary>
-        /// 获取资产 Addressable Bin 路径
+        /// Gets the Addressables state-bin directory under Assets.
         /// </summary>
         private string GetAssetAdsBinPath(BuildSetting data)
         {
@@ -243,7 +224,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         }
 
         /// <summary>
-        /// 获取资产 Addressable Bin 文件路径
+        /// Gets the Addressables state-bin file path.
         /// </summary>
         private string GetAssetAdsBinFilePath(BuildSetting data)
         {
@@ -252,4 +233,3 @@ namespace LFramework.Editor.Builder.BuildingResource
     }
 }
 #endif
-

@@ -1,0 +1,21 @@
+{
+    "name": "LFramework.Editor.Tests",
+    "rootNamespace": "LFramework.Editor.Tests",
+    "references": [
+        "LFramework.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "noEngineReferences": false
+}

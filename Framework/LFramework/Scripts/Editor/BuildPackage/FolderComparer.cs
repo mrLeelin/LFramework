@@ -7,19 +7,25 @@ using UnityGameFramework.Runtime;
 
 namespace LFramework.Editor
 {
+    /// <summary>
+    /// Compares two folders and copies changed files from the current build output.
+    /// </summary>
     public static class FolderComparer
     {
         /// <summary>
-        /// 对比两个文件夹中的文件，找出不一样的文件并复制到目标文件夹。
+        /// Copies files that are new or different in <paramref name="sourceFolder1"/>.
         /// </summary>
-        /// <param name="sourceFolder1">文件夹1路径</param>
-        /// <param name="sourceFolder2">文件夹2路径</param>
-        /// <param name="outputFolder">输出文件夹路径</param>
-        public static void CompareAndCopyDifferentFiles(string sourceFolder1, string sourceFolder2, string outputFolder)
+        /// <param name="sourceFolder1">Current build folder.</param>
+        /// <param name="sourceFolder2">Previous build folder.</param>
+        /// <param name="outputFolder">Diff output folder.</param>
+        public static void CompareAndCopyDifferentFiles(
+            string sourceFolder1,
+            string sourceFolder2,
+            string outputFolder)
         {
             if (!Directory.Exists(sourceFolder1) || !Directory.Exists(sourceFolder2))
             {
-                Debug.LogError("源文件夹不存在！");
+                SafeLogError("Source folders do not exist.");
                 return;
             }
 
@@ -28,45 +34,40 @@ namespace LFramework.Editor
                 Directory.CreateDirectory(outputFolder);
             }
 
-            // 获取两个文件夹中的所有文件路径
             var files1 = Directory.GetFiles(sourceFolder1, "*", SearchOption.AllDirectories);
             var files2 = Directory.GetFiles(sourceFolder2, "*", SearchOption.AllDirectories);
 
-            // 创建哈希字典
-            var fileHashes2 = new Dictionary<string, string>();
-            foreach (var filePath in files2)
+            var fileHashes2 = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string filePath in files2)
             {
-                if (filePath.Contains("catalog_"))
-                {
-                    continue;
-                }
                 string relativePath = Path.GetRelativePath(sourceFolder2, filePath).Replace("\\", "/");
                 fileHashes2[relativePath] = GetFileHash(filePath);
             }
 
-            // 对比文件夹1的文件
-            foreach (var filePath in files1)
+            foreach (string filePath in files1)
             {
                 string relativePath = Path.GetRelativePath(sourceFolder1, filePath).Replace("\\", "/");
                 string fileHash = GetFileHash(filePath);
 
-                if (!fileHashes2.TryGetValue(relativePath, out var hash2) || hash2 != fileHash ||
-                    fileHash.Equals("0") || hash2.Equals("0"))
+                if (!fileHashes2.TryGetValue(relativePath, out string hash2) ||
+                    hash2 != fileHash ||
+                    fileHash.Equals("0", StringComparison.Ordinal) ||
+                    hash2.Equals("0", StringComparison.Ordinal))
                 {
-                    // 文件不同或不存在于文件夹2，复制到目标文件夹
                     string outputFilePath = Path.Combine(outputFolder, relativePath);
-                    Directory.CreateDirectory(Path.GetDirectoryName(outputFilePath) ?? string.Empty);
+                    string outputDirectory = Path.GetDirectoryName(outputFilePath) ?? string.Empty;
+                    Directory.CreateDirectory(outputDirectory);
                     File.Copy(filePath, outputFilePath, true);
-                    Debug.Log($"不同文件已复制: {relativePath}");
+                    SafeLog($"Copied different file: {relativePath}");
                 }
             }
         }
 
         /// <summary>
-        /// 计算文件的 MD5 哈希值
+        /// Calculates the MD5 hash for a file.
         /// </summary>
-        /// <param name="filePath">文件路径</param>
-        /// <returns>哈希值字符串</returns>
+        /// <param name="filePath">Target file path.</param>
+        /// <returns>Lowercase hash string, or "0" when unavailable.</returns>
         private static string GetFileHash(string filePath)
         {
             if (!File.Exists(filePath))
@@ -82,16 +83,38 @@ namespace LFramework.Editor
                     using (var stream = File.OpenRead(extendedPath))
                     {
                         byte[] hashBytes = md5.ComputeHash(stream);
-                        return System.BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                        return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                Log.Error(e);
+                Log.Error(exception);
             }
 
             return "0";
+        }
+
+        private static void SafeLog(string message)
+        {
+            try
+            {
+                Debug.Log(message);
+            }
+            catch
+            {
+            }
+        }
+
+        private static void SafeLogError(string message)
+        {
+            try
+            {
+                Debug.LogError(message);
+            }
+            catch
+            {
+            }
         }
     }
 }

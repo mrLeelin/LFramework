@@ -42,7 +42,7 @@ namespace LFramework.Editor.Builder
         /// 母包版本（例如：0.0.0.1）
         /// </summary>
         [Header("母包版本")] public string AppVersion;
-
+        [Header("母包版本")] public int VersionCode;
         public string ResourcesVersion;
         public bool IsResourcesBuildIn;
 
@@ -78,6 +78,7 @@ namespace LFramework.Editor.Builder
                 androidChannel = data.AndroidChannel,
                 iosChannel = data.IOSChannel,
                 appVersion = data.AppVersion,
+                versionCode = data.VersionCode,
                 resourcesVersion = data.ResourcesVersion,
                 isResourcesBuildIn = data.IsResourcesBuildIn,
                 isBuildDll = data.IsBuildDll,
@@ -86,5 +87,6 @@ namespace LFramework.Editor.Builder
                 cdnType = (CdnType)data.BuildResourcesServerModel
             };
         }
+        
     }
 }

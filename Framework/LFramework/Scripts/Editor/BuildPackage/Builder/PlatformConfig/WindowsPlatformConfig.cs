@@ -68,7 +68,7 @@ namespace LFramework.Editor.Builder.PlatformConfig
         {
             string timeInfo = DateTime.Now.ToString("yyyyMMddHHmmss");
             string releaseType = buildSetting.isRelease ? "Release" : "Debug";
-            string appName = $"Build_{releaseType}_{buildSetting.appVersion}_{buildSetting.versionCode}";
+            string appName = $"Build_{releaseType}_{buildSetting.GetAppVersion()}";
 
             if (buildSetting.isDeepProfiler)
             {
@@ -76,7 +76,7 @@ namespace LFramework.Editor.Builder.PlatformConfig
             }
 
             return Application.dataPath +
-                $"/../Builds/Window_{releaseType}_{buildSetting.appVersion}_{timeInfo}/{appName}.exe";
+                $"/../Builds/Window_{releaseType}_{buildSetting.GetAppVersion()}_{timeInfo}/{appName}.exe";
         }
 
         public string GetBuildFolderPath()

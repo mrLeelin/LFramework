@@ -66,6 +66,8 @@ namespace LFramework.Editor
         /// </summary>
         public bool isBuildDll = false;
 
+        public string GetAppVersion() => appVersion + "." + versionCode;
+
         public override string ToString()
         {
             StringBuilder stringBuilder = new StringBuilder();
