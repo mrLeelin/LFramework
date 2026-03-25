@@ -240,7 +240,11 @@ namespace LFramework.Runtime
             foreach (var worldHelper in autoWorldHelper)
             {
                 BuildWorldHelpers(worldHelper);
-                var interfaceType = worldHelper.GetType().GetDerivedInterfaces(typeof(IWorldHelper), typeof(IReference),
+                var interfaceType = worldHelper.GetType().GetDerivedInterfaces(
+                    typeof(IWorldHelper), 
+                    typeof(IWorldUpdate),
+                    typeof(IWorldLateUpdate),
+                    typeof(IReference),
                     typeof(IDisposable));
                 if (interfaceType == null)
                 {
