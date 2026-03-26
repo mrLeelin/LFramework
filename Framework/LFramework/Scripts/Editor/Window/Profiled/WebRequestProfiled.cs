@@ -17,68 +17,42 @@ namespace LFramework.Editor.Window
         internal override void Draw()
         {
             GetComponent(ref _webRequestComponent);
-            if (_webRequestComponent == null)
-            {
-                EditorGUILayout.HelpBox("WebRequest component is unavailable.", MessageType.Warning);
-                return;
-            }
 
-            TaskInfo[] webRequestInfos = _webRequestComponent.GetAllWebRequestInfos() ?? Array.Empty<TaskInfo>();
+            DrawMetricCards(
+                new ProfiledMetric("Total Agents", _webRequestComponent.TotalAgentCount.ToString(), "All agents"),
+                new ProfiledMetric("Free Agents", _webRequestComponent.FreeAgentCount.ToString(), "Idle agents"),
+                new ProfiledMetric("Working Agents", _webRequestComponent.WorkingAgentCount.ToString(), "Active agents"),
+                new ProfiledMetric("Waiting Tasks", _webRequestComponent.WaitingTaskCount.ToString(), "Queued tasks"));
 
-            EditorGUILayout.BeginVertical("box");
-            {
-                EditorGUILayout.LabelField("Overview", EditorStyles.boldLabel);
-                EditorGUILayout.LabelField("Total Agent Count", _webRequestComponent.TotalAgentCount.ToString());
-                EditorGUILayout.LabelField("Free Agent Count", _webRequestComponent.FreeAgentCount.ToString());
-                EditorGUILayout.LabelField("Working Agent Count", _webRequestComponent.WorkingAgentCount.ToString());
-                EditorGUILayout.LabelField("Waiting Agent Count", _webRequestComponent.WaitingTaskCount.ToString());
-                EditorGUILayout.LabelField("Task Count", webRequestInfos.Length.ToString());
-            }
-            EditorGUILayout.EndVertical();
-
-            EditorGUILayout.Space();
-
-            EditorGUILayout.BeginVertical("box");
-            {
-                EditorGUILayout.LabelField("Task List", EditorStyles.boldLabel);
-                if (webRequestInfos.Length == 0)
+            TaskInfo[] webRequestInfos = _webRequestComponent.GetAllWebRequestInfos();
+            DrawSection(
+                "Task Queue",
+                "Current web request tasks, including serial id, tag, priority, and state. Export remains available for offline analysis.",
+                () =>
                 {
-                    EditorGUILayout.HelpBox("No active web request tasks.", MessageType.Info);
-                }
-                else
-                {
+                    if (webRequestInfos == null || webRequestInfos.Length == 0)
+                    {
+                        DrawKeyValueRow("Tasks", "Empty");
+                        return;
+                    }
+
                     foreach (TaskInfo webRequestInfo in webRequestInfos)
                     {
-                        DrawWebRequestInfo(webRequestInfo);
+                        DrawKeyValueRow(
+                            webRequestInfo.Description,
+                            Utility.Text.Format(
+                                "Serial {0}  Tag {1}  Priority {2}  Status {3}",
+                                webRequestInfo.SerialId,
+                                webRequestInfo.Tag ?? "<None>",
+                                webRequestInfo.Priority,
+                                webRequestInfo.Status));
                     }
-                }
-            }
-            EditorGUILayout.EndVertical();
 
-            EditorGUILayout.Space();
-
-            EditorGUILayout.BeginHorizontal();
-            GUILayout.FlexibleSpace();
-            if (GUILayout.Button($"Export CSV Data ({webRequestInfos.Length})", GUILayout.Width(220f)))
-            {
-                ExportCsv(webRequestInfos);
-            }
-
-            EditorGUILayout.EndHorizontal();
-        }
-
-        private void DrawWebRequestInfo(TaskInfo webRequestInfo)
-        {
-            string description = string.IsNullOrEmpty(webRequestInfo.Description) ? "<No Description>" : webRequestInfo.Description;
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField(description, EditorStyles.boldLabel);
-            EditorGUILayout.LabelField(
-                Utility.Text.Format("SerialId: {0}    Tag: {1}    Priority: {2}    Status: {3}",
-                    webRequestInfo.SerialId,
-                    webRequestInfo.Tag ?? "<None>",
-                    webRequestInfo.Priority,
-                    webRequestInfo.Status));
-            EditorGUILayout.EndVertical();
+                    if (GUILayout.Button("Export CSV Data"))
+                    {
+                        ExportCsv(webRequestInfos);
+                    }
+                });
         }
 
         private static void ExportCsv(TaskInfo[] webRequestInfos)
@@ -96,7 +70,8 @@ namespace LFramework.Editor.Window
                 data[index++] = "WebRequest Uri,Serial Id,Tag,Priority,Status";
                 foreach (TaskInfo webRequestInfo in webRequestInfos)
                 {
-                    data[index++] = Utility.Text.Format("{0},{1},{2},{3},{4}",
+                    data[index++] = Utility.Text.Format(
+                        "{0},{1},{2},{3},{4}",
                         webRequestInfo.Description,
                         webRequestInfo.SerialId,
                         webRequestInfo.Tag ?? string.Empty,
@@ -109,7 +84,10 @@ namespace LFramework.Editor.Window
             }
             catch (Exception exception)
             {
-                Debug.LogError(Utility.Text.Format("Export web request task CSV data to '{0}' failure, exception is '{1}'.", exportFileName, exception));
+                Debug.LogError(Utility.Text.Format(
+                    "Export web request task CSV data to '{0}' failure, exception is '{1}'.",
+                    exportFileName,
+                    exception));
             }
         }
     }

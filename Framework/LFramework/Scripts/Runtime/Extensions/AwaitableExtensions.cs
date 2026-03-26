@@ -26,7 +26,7 @@ namespace LFramework.Runtime
 
             eventComponent.Subscribe(ShowEntitySuccessEventArgs.EventId, OnShowEntitySuccess);
             eventComponent.Subscribe(ShowEntityFailureEventArgs.EventId, OnShowEntityFailure);
-            eventComponent.Subscribe(HideEntityCompleteEventArgs.EventId,OnHideEntitySuccess);
+            eventComponent.Subscribe(HideEntityCompleteEventArgs.EventId, OnHideEntitySuccess);
 
 
             eventComponent.Subscribe(LoadSceneSuccessEventArgs.EventId, OnLoadSceneSuccess);
@@ -43,24 +43,28 @@ namespace LFramework.Runtime
             {
                 tcs.TrySetCanceled();
             }
+
             SuiFormTcs.Clear();
 
             foreach (var tcs in SEntityTcs.Values)
             {
                 tcs.TrySetCanceled();
             }
+
             SEntityTcs.Clear();
 
             foreach (var tcs in SEntityHideTcs.Values)
             {
                 tcs.TrySetCanceled();
             }
+
             SEntityHideTcs.Clear();
 
             foreach (var tcs in SSceneTcs.Values)
             {
                 tcs.TrySetCanceled();
             }
+
             SSceneTcs.Clear();
         }
 
@@ -107,6 +111,25 @@ namespace LFramework.Runtime
         #endregion
 
         #region Entity
+
+        /// <summary>
+        /// 显示实体
+        /// </summary>
+        /// <param name="entityComponent"></param>
+        /// <param name="entityId"></param>
+        /// <param name="entityAssetName"></param>
+        /// <param name="entityGroupName"></param>
+        /// <param name="priority"></param>
+        /// <param name="userData"></param>
+        /// <typeparam name="TLogic"></typeparam>
+        /// <returns></returns>
+        public static UniTask<int> ShowEntityAsync<TLogic>(this EntityComponent entityComponent, int entityId,
+            string entityAssetName, string entityGroupName, int priority, object userData)
+            where TLogic : EntityLogic
+        {
+            return ShowEntityAsync(entityComponent, entityId, typeof(TLogic), entityAssetName, entityGroupName,
+                priority, userData);
+        }
 
         /// <summary>
         /// 显示实体（可等待）
@@ -200,6 +223,7 @@ namespace LFramework.Runtime
             {
                 return;
             }
+
             tcs.TrySetResult(true);
             SSceneTcs.Remove(ne.SceneAssetName);
         }
@@ -212,6 +236,7 @@ namespace LFramework.Runtime
             {
                 return;
             }
+
             tcs.TrySetException(new GameFrameworkException(ne.ErrorMessage));
             SSceneTcs.Remove(ne.SceneAssetName);
         }

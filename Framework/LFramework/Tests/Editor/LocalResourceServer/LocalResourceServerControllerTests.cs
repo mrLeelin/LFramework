@@ -93,6 +93,50 @@ namespace LFramework.Editor.Tests.LocalResourceServer
             Assert.That(controller.IsRunning, Is.False);
         }
 
+        [Test]
+        public void TryStart_PersistsRestoreFlag_WhenStartSucceeds()
+        {
+            var host = new FakeLocalResourceServerHost();
+            var runStateStorage = new FakeRunStateStorage();
+            var controller = new LocalResourceServerController(host, _tempProjectRoot, new FakePortStorage(), runStateStorage);
+
+            bool started = controller.TryStart(out string error);
+
+            Assert.That(started, Is.True);
+            Assert.That(error, Is.Empty);
+            Assert.That(controller.ShouldRestoreAfterReload, Is.True);
+            Assert.That(runStateStorage.StoredValue, Is.True);
+        }
+
+        [Test]
+        public void TryStart_ClearsRestoreFlag_WhenStartFails()
+        {
+            var host = new FakeLocalResourceServerHost { StartResult = false, StartErrorMessage = "Port already in use." };
+            var runStateStorage = new FakeRunStateStorage { StoredValue = true };
+            var controller = new LocalResourceServerController(host, _tempProjectRoot, new FakePortStorage(), runStateStorage);
+
+            bool started = controller.TryStart(out string error);
+
+            Assert.That(started, Is.False);
+            Assert.That(error, Is.EqualTo("Port already in use."));
+            Assert.That(controller.ShouldRestoreAfterReload, Is.False);
+            Assert.That(runStateStorage.StoredValue, Is.False);
+        }
+
+        [Test]
+        public void Stop_ClearsRestoreFlag()
+        {
+            var host = new FakeLocalResourceServerHost();
+            var runStateStorage = new FakeRunStateStorage { StoredValue = true };
+            var controller = new LocalResourceServerController(host, _tempProjectRoot, new FakePortStorage(), runStateStorage);
+
+            controller.TryStart(out _);
+            controller.Stop();
+
+            Assert.That(runStateStorage.StoredValue, Is.False);
+            Assert.That(controller.ShouldRestoreAfterReload, Is.False);
+        }
+
         private sealed class FakeLocalResourceServerHost : ILocalResourceServerHost
         {
             public bool StartCalled { get; private set; }
@@ -100,15 +144,17 @@ namespace LFramework.Editor.Tests.LocalResourceServer
             public int LastPort { get; private set; }
             public string LastRootDirectory { get; private set; }
             public bool IsRunning { get; private set; }
+            public bool StartResult { get; set; } = true;
+            public string StartErrorMessage { get; set; } = string.Empty;
 
             public bool TryStart(int port, string rootDirectory, out string errorMessage)
             {
                 StartCalled = true;
                 LastPort = port;
                 LastRootDirectory = rootDirectory;
-                IsRunning = true;
-                errorMessage = string.Empty;
-                return true;
+                IsRunning = StartResult;
+                errorMessage = StartErrorMessage;
+                return StartResult;
             }
 
             public void Stop()
@@ -130,6 +176,21 @@ namespace LFramework.Editor.Tests.LocalResourceServer
             public void SavePort(int port)
             {
                 StoredPort = port;
+            }
+        }
+
+        private sealed class FakeRunStateStorage : ILocalResourceServerRunStateStorage
+        {
+            public bool StoredValue { get; set; }
+
+            public bool LoadShouldRestoreAfterReload()
+            {
+                return StoredValue;
+            }
+
+            public void SaveShouldRestoreAfterReload(bool shouldRestore)
+            {
+                StoredValue = shouldRestore;
             }
         }
     }

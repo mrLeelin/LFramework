@@ -1,5 +1,3 @@
-using LFramework.Editor;
-using UnityEditor;
 using UnityGameFramework.Runtime;
 
 namespace LFramework.Editor.Window
@@ -13,25 +11,17 @@ namespace LFramework.Editor.Window
         internal override void Draw()
         {
             GetComponent(ref _procedureComponent);
-            if (_procedureComponent == null)
-            {
-                EditorGUILayout.HelpBox("ProcedureComponent is unavailable in the current runtime context.", MessageType.Info);
-                return;
-            }
 
-            GameWindowChrome.DrawCompactHeader("Procedure Overview");
-            EditorGUILayout.BeginVertical("box");
-            EditorGUILayout.LabelField(
-                "Current Procedure",
-                _procedureComponent.CurrentProcedure == null
-                    ? "None"
-                    : _procedureComponent.CurrentProcedure.GetType().ToString());
-            EditorGUILayout.LabelField(
-                "Current Procedure Time",
-                _procedureComponent.CurrentProcedure == null
-                    ? "N/A"
-                    : $"{_procedureComponent.CurrentProcedureTime:F1}s");
-            EditorGUILayout.EndVertical();
+            bool hasProcedure = _procedureComponent.CurrentProcedure != null;
+            DrawMetricCards(
+                new ProfiledMetric(
+                    "Current Procedure",
+                    hasProcedure ? _procedureComponent.CurrentProcedure.GetType().Name : "None",
+                    hasProcedure ? _procedureComponent.CurrentProcedure.GetType().FullName : "No active procedure"),
+                new ProfiledMetric(
+                    "Procedure Time",
+                    hasProcedure ? $"{_procedureComponent.CurrentProcedureTime:F1}s" : "N/A",
+                    "Elapsed active time"));
         }
     }
 }

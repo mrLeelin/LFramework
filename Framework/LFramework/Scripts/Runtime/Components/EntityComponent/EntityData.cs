@@ -68,8 +68,7 @@ namespace LFramework.Runtime
             get => m_UserData;
             set => m_UserData = value;
         }
-
-        public bool ForceUseFullEntityPath { get; set; }
+        
 
         /// <summary>
         /// 实体资源地址

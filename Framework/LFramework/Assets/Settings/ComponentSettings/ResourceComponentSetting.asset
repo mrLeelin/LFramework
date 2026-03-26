@@ -19,5 +19,5 @@ MonoBehaviour:
   _minUnloadInterval: 60
   _maxUnloadInterval: 300
   _yooAssetPackageName: DefaultPackage
-  _yooAssetPlayMode: 2
+  _yooAssetPlayMode: 0
   _hotfixProfileName: Dynamic

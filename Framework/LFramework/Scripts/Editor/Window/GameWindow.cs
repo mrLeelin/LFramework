@@ -297,7 +297,7 @@ namespace LFramework.Editor.Window
             }
 
             _gameWindowExtends = new List<IGameWindowExtend>();
-            var allTypes = Utility.Assembly.GetTypes();
+            var allTypes = GameFramework.Utility.Assembly.GetTypes();
             foreach (var type in allTypes)
             {
                 if (!type.InheritsFrom<IGameWindowExtend>())

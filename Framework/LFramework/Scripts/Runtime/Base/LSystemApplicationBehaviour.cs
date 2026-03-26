@@ -116,7 +116,6 @@ namespace LFramework.Runtime
         {
             DiContainer.Bind<ISystemApplication>().FromInstance(this).AsSingle();
             AwaitableExtensions.SubscribeEvent(EventComponent);
-            
         }
 
       

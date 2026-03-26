@@ -1,5 +1,4 @@
-using LFramework.Editor;
-using UnityEditor;
+using System.Linq;
 using UnityEngine;
 using UnityGameFramework.Runtime;
 
@@ -14,40 +13,42 @@ namespace LFramework.Editor.Window
         internal override void Draw()
         {
             GetComponent(ref _sceneComponent);
-            if (_sceneComponent == null)
-            {
-                EditorGUILayout.HelpBox("SceneComponent is unavailable in the current runtime context.", MessageType.Info);
-                return;
-            }
 
-            GameWindowChrome.DrawCompactHeader("Scene Overview");
-            EditorGUILayout.BeginVertical("box");
-            EditorGUILayout.LabelField("Loaded Scene Assets", GetSceneNameString(_sceneComponent.GetLoadedSceneAssetNames()));
-            EditorGUILayout.LabelField("Loading Scene Assets", GetSceneNameString(_sceneComponent.GetLoadingSceneAssetNames()));
-            EditorGUILayout.LabelField("Unloading Scene Assets", GetSceneNameString(_sceneComponent.GetUnloadingSceneAssetNames()));
-            EditorGUILayout.ObjectField("Main Camera", _sceneComponent.MainCamera, typeof(Camera), true);
-            EditorGUILayout.EndVertical();
+            string[] loadedSceneNames = ConvertSceneNames(_sceneComponent.GetLoadedSceneAssetNames());
+            string[] loadingSceneNames = ConvertSceneNames(_sceneComponent.GetLoadingSceneAssetNames());
+            string[] unloadingSceneNames = ConvertSceneNames(_sceneComponent.GetUnloadingSceneAssetNames());
+
+            DrawMetricCards(
+                new ProfiledMetric("Loaded Scenes", loadedSceneNames.Length.ToString(), "Active scenes"),
+                new ProfiledMetric("Loading Scenes", loadingSceneNames.Length.ToString(), "Pending load"),
+                new ProfiledMetric("Unloading Scenes", unloadingSceneNames.Length.ToString(), "Pending unload"),
+                new ProfiledMetric(
+                    "Main Camera",
+                    _sceneComponent.MainCamera != null ? _sceneComponent.MainCamera.name : "None",
+                    _sceneComponent.MainCamera != null ? "Camera reference" : "No active camera"));
+
+            DrawSection(
+                "Scene Queues",
+                "Readable view of the scene load and unload queues tracked by the runtime scene component.",
+                () =>
+                {
+                    DrawKeyValueRow("Loaded", ProfiledTextFormatter.JoinOrFallback(loadedSceneNames, "<Empty>"));
+                    DrawKeyValueRow("Loading", ProfiledTextFormatter.JoinOrFallback(loadingSceneNames, "<Empty>"));
+                    DrawKeyValueRow("Unloading", ProfiledTextFormatter.JoinOrFallback(unloadingSceneNames, "<Empty>"));
+                });
         }
 
-        private string GetSceneNameString(string[] sceneAssetNames)
+        private static string[] ConvertSceneNames(string[] sceneAssetNames)
         {
-            if (sceneAssetNames == null || sceneAssetNames.Length <= 0)
+            if (sceneAssetNames == null || sceneAssetNames.Length == 0)
             {
-                return "<Empty>";
+                return new string[0];
             }
 
-            string sceneNameString = string.Empty;
-            foreach (string sceneAssetName in sceneAssetNames)
-            {
-                if (!string.IsNullOrEmpty(sceneNameString))
-                {
-                    sceneNameString += ", ";
-                }
-
-                sceneNameString += SceneComponent.GetSceneName(sceneAssetName);
-            }
-
-            return sceneNameString;
+            return sceneAssetNames
+                .Select(SceneComponent.GetSceneName)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .ToArray();
         }
     }
 }

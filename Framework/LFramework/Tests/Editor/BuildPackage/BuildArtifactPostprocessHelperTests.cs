@@ -243,3 +243,38 @@ namespace LFramework.Editor.Tests.Inspector
         }
     }
 }
+
+namespace LFramework.Editor.Tests.Window
+{
+    public class ProfiledTextFormatterTests
+    {
+        [Test]
+        public void JoinOrFallback_ReturnsFallback_WhenInputEmpty()
+        {
+            string result = InvokeFormatter(null, "<Empty>");
+
+            Assert.That(result, Is.EqualTo("<Empty>"));
+        }
+
+        [Test]
+        public void JoinOrFallback_JoinsNonEmptyValues()
+        {
+            string result = InvokeFormatter(new[] { "Home", string.Empty, "Battle" }, "<Empty>");
+
+            Assert.That(result, Is.EqualTo("Home, Battle"));
+        }
+
+        private static string InvokeFormatter(string[] values, string fallback)
+        {
+            Assembly editorAssembly = Assembly.Load("LFramework.Editor");
+            System.Type formatterType = editorAssembly.GetType("LFramework.Editor.Window.ProfiledTextFormatter");
+
+            Assert.That(formatterType, Is.Not.Null, "Expected ProfiledTextFormatter to exist in LFramework.Editor.");
+
+            MethodInfo formatMethod = formatterType.GetMethod("JoinOrFallback", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+            Assert.That(formatMethod, Is.Not.Null, "Expected ProfiledTextFormatter.JoinOrFallback to exist.");
+
+            return formatMethod.Invoke(null, new object[] { values, fallback }) as string;
+        }
+    }
+}

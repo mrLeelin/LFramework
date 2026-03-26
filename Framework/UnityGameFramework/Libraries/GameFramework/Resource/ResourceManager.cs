@@ -132,6 +132,11 @@ namespace GameFramework.Resource
         {
             if (asset == null)
                 throw new GameFrameworkException("Asset is invalid.");
+            if (_resourceHelper == null)
+            {
+                GameFrameworkLog.Warning("The resource helper is null.");
+                return;
+            }
             _resourceHelper.Release(asset);
         }
 
