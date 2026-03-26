@@ -89,9 +89,9 @@ namespace LFramework.Editor.Window
             var tree = new OdinMenuTree(supportsMultiSelect: true)
             {
                 { "Home", _gameWindowHome, EditorIcons.House },
-                { "Local Resource Server", _gameWindowLocalResourceServer, EditorIcons.SettingsCog },
-                { "Framework Setting", _gameWindowFrameworkSettingOverview, EditorIcons.SettingsCog },
-                { "Framework Profiled", _gameWindowFrameworkProfiledOverview, EditorIcons.Car },
+                { "框架设置", _gameWindowFrameworkSettingOverview, EditorIcons.SettingsCog },
+                { "运行时预览", _gameWindowFrameworkProfiledOverview, EditorIcons.Car },
+                { "本地Cdn测试服务", _gameWindowLocalResourceServer, EditorIcons.SettingsCog },
             };
 
             AddAllAssetsAtType<ComponentSetting>(tree, "Framework Setting")

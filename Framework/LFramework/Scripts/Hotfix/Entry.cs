@@ -38,7 +38,11 @@ namespace LFramework.Hotfix
             RegisterPreloadInjects(hotfixComponent);
             var entranceProcedure = procedureComponent.EntranceHotfixProcedureTypeName;
             var dict =  hotfixComponent.GetHotfixAssemblyAllTypes();
-            if (dict.TryGetValue(entranceProcedure,out var hotfixEntranceProcedureType))
+            if (string.IsNullOrEmpty(entranceProcedure))
+            {
+                Log.Error("Enter hotfix force change procedure is null.please check [ProcedureComponentSetting].");
+            }
+            else if (dict.TryGetValue(entranceProcedure,out var hotfixEntranceProcedureType))
             {
                 procedureComponent.ForceChangedProcedure(hotfixEntranceProcedureType);
                 Log.Info($"Enter Hotfix Force Changed Procedure. '{hotfixEntranceProcedureType?.FullName}'");
