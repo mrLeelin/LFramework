@@ -14,7 +14,7 @@ using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
 
-#if USE_ADDRESSABLE
+#if ADDRESSABLE_SUPPORT
 using UnityEditor.AddressableAssets;
 using LFramework.Editor.Builder.BuildingResource;
 #endif
@@ -54,7 +54,7 @@ namespace LFramework.Editor.Builder
             SyncHybridClrSettingsAsset(hotUpdateAssemblyNames);
 #endif
 
-#if USE_ADDRESSABLE
+#if ADDRESSABLE_SUPPORT
             var addressableSettings = AddressableAssetSettingsDefaultObject.Settings;
             if (addressableSettings != null)
             {

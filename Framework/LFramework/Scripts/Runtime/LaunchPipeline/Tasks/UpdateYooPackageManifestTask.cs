@@ -1,4 +1,5 @@
-﻿using System;
+#if YOOASSET_SUPPORT
+using System;
 using Cysharp.Threading.Tasks;
 using GameFramework.Resource;
 using UnityGameFramework.Runtime;
@@ -7,19 +8,13 @@ using Zenject;
 
 namespace LFramework.Runtime.LaunchPipeline
 {
-
-#if USE_YOOASSETS
-    
-#endif
     /// <summary>
     /// YooAsset 资源包清单更新任务。
-    /// 先请求最新的资源包版本号，再根据版本号更新本地清单。
     /// </summary>
     public class UpdateYooPackageManifestTask : ILaunchTask
     {
-
         [Inject] private ResourceComponent _resourceComponent;
-        
+
         public string TaskName => "UpdateYooPackageManifest";
         public string Description => "更新 YooAsset 资源包清单";
 
@@ -35,11 +30,9 @@ namespace LFramework.Runtime.LaunchPipeline
                 var packageName = _resourceComponent.YooAssetPackageName;
                 var package = YooAssets.GetPackage(packageName);
 
-                // Step 1: 请求最新资源包版本
                 context.ProgressReporter.ReportProgress(0f, "正在请求资源包版本...");
                 Log.Info("[UpdateYooPackageManifestTask] 请求资源包版本, 包名: {0}", packageName);
                 var versionOperation = package.RequestPackageVersionAsync();
-                
                 await versionOperation.Task;
 
                 if (versionOperation.Status != EOperationStatus.Succeed)
@@ -51,7 +44,6 @@ namespace LFramework.Runtime.LaunchPipeline
                 var packageVersion = versionOperation.PackageVersion;
                 Log.Info("[UpdateYooPackageManifestTask] 获取到版本: {0}", packageVersion);
 
-                // Step 2: 更新资源清单
                 context.ProgressReporter.ReportProgress(0.5f, $"正在更新资源清单 v{packageVersion}...");
                 var manifestOperation = package.UpdatePackageManifestAsync(packageVersion);
                 await manifestOperation.Task;
@@ -73,3 +65,4 @@ namespace LFramework.Runtime.LaunchPipeline
         }
     }
 }
+#endif

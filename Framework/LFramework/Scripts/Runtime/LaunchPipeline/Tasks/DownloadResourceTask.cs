@@ -4,7 +4,7 @@ using Cysharp.Threading.Tasks;
 using GameFramework.Resource;
 using LFramework.Runtime;
 
-#if USE_ADDRESSABLE
+#if ADDRESSABLE_SUPPORT
 using UnityEngine.AddressableAssets;
 #endif
 
@@ -94,7 +94,7 @@ namespace LFramework.Runtime.LaunchPipeline
                 // 1. 从上下文获取下载配置
                 var labels = GetDownloadLabels(context);
                 var handlerName = GetDownloadHandlerName(context);
-             
+                
                 if (labels == null || labels.Count == 0)
                 {
                     Log.Info("[DownloadResourceTask] 没有指定下载标签，跳过下载");
@@ -200,7 +200,7 @@ namespace LFramework.Runtime.LaunchPipeline
         {
             switch (mode)
             {
-                
+#if YOOASSET_SUPPORT
                 case ResourceMode.YooAsset:
                     var packageName = _resourceComponent.YooAssetPackageName;
                     var checkDownloadedTags = GetCheckDownloadedTags(context);
@@ -208,8 +208,9 @@ namespace LFramework.Runtime.LaunchPipeline
                         packageName, checkDownloadedTags);
                     return _resourceDownloadComponent.AddYooAssetHandlerNotRun(
                         handlerName, labels, packageName, true, checkDownloadedTags);
+#endif
 
-#if USE_ADDRESSABLE
+#if ADDRESSABLE_SUPPORT
                 case ResourceMode.Addressable:
                     var mergeMode = GetMergeMode(context);
                     Log.Info("[DownloadResourceTask] 创建 Addressable 处理器，合并模式: {0}", mergeMode);
@@ -246,7 +247,7 @@ namespace LFramework.Runtime.LaunchPipeline
         }
 
 
-#if USE_ADDRESSABLE
+#if ADDRESSABLE_SUPPORT
          /// <summary>
         /// 获取 Addressable 合并模式。
         /// 默认从 CustomData 的 "MergeMode" 获取，未设置则使用 Union。

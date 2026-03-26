@@ -88,10 +88,10 @@ namespace LFramework.Editor
             switch (mode)
             {
                 case ResourceMode.Addressable:
-#if USE_ADDRESSABLE
+#if ADDRESSABLE_SUPPORT
                      return new AddressableDllRegistrar();
 #else
-                    Log.Error("Addressable is not enabled. Define USE_ADDRESSABLE in Player Settings.");
+                    Log.Error("Addressable is not enabled. Define ADDRESSABLE_SUPPORT in Player Settings.");
                     return null;
 #endif
 

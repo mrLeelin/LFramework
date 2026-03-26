@@ -105,10 +105,6 @@ namespace LFramework.Editor.Builder.BuildingResource
         {
             return $"{GetBackupDiffPath(data)}/{GetFolderName(data)}";
         }
-
-        public static string GetDllBackupPath(BuildSetting data)
-        {
-            return $"{GetExportPath()}/{BackupFolderName}/{GetChannelName(data)}/{GetFolderName(data)}";
-        }
+        
     }
 }

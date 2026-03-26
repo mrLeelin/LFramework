@@ -12,7 +12,9 @@ namespace LFramework.Runtime.LaunchPipeline
             var list = new List<ILaunchTask>
             {
                 new InitResourceTask(),
+#if YOOASSET_SUPPORT
                 new UpdateYooPackageManifestTask(),
+#endif
                 new LoadAssemblyTask(),
                 new HotfixEntryTask()
             };

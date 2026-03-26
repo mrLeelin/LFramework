@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using GameFramework.Resource;
 using UnityEngine;
 
-#if USE_ADDRESSABLE
+#if ADDRESSABLE_SUPPORT
 using UnityEngine.AddressableAssets;
 using UnityEngine.AddressableAssets.ResourceLocators;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -59,7 +59,7 @@ namespace LFramework.Runtime
             }
         }
 
-#if USE_ADDRESSABLE
+#if ADDRESSABLE_SUPPORT
         public int AddUpdateHandlerNotRun(string name, List<string> labels,
             Addressables.MergeMode mergeMode = Addressables.MergeMode.Union, bool autoReleaseHandle = true)
         {
@@ -100,6 +100,7 @@ namespace LFramework.Runtime
         }
 #endif
 
+#if YOOASSET_SUPPORT
         public int AddYooAssetHandler(string name, List<string> labels,
             string packageName, bool autoReleaseHandle = true, bool checkDownloadedTags = false)
         {
@@ -180,6 +181,7 @@ namespace LFramework.Runtime
             RegisterHandler(handler);
             return handler;
         }
+#endif
 
         private void RegisterHandler(ResourceDownloadHandlerBase handler)
         {

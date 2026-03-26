@@ -1,9 +1,11 @@
+#if YOOASSET_SUPPORT
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using GameFramework;
 using GameFramework.Resource;
+using LFramework.Runtime.Settings;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityGameFramework.Runtime;
@@ -44,6 +46,15 @@ namespace LFramework.Runtime
         /// </summary>
         private readonly Dictionary<string, RawFileHandle> _rawFileHandles = new Dictionary<string, RawFileHandle>();
 
+        private GameSetting _gameSetting;
+        private SettingComponent _settingComponent;
+
+
+        private void Awake()
+        {
+            _gameSetting = SettingManager.GetSetting<GameSetting>();
+            _settingComponent = LFrameworkAspect.Instance.Get<SettingComponent>();
+        }
 
         /// <summary>
         /// 初始化资源系统
@@ -545,22 +556,21 @@ namespace LFramework.Runtime
                     break;
                 case YooAssetPlayMode.OfflinePlayMode:
                 {
-                    var createParameters = new OfflinePlayModeParameters();
-                    createParameters.BuildinFileSystemParameters =
-                        FileSystemParameters.CreateDefaultBuildinFileSystemParameters();
+                    var createParameters = new OfflinePlayModeParameters
+                    {
+                        BuildinFileSystemParameters = FileSystemParameters.CreateDefaultBuildinFileSystemParameters()
+                    };
                     initOperation = package.InitializeAsync(createParameters);
                 }
                     break;
                 case YooAssetPlayMode.HostPlayMode:
                 {
-                    string defaultHostServer = "";
-                    string fallbackHostServer = "";
-                    IRemoteServices remoteServices = new RemoteServices(defaultHostServer, fallbackHostServer);
-                    var createParameters = new HostPlayModeParameters();
-                    createParameters.BuildinFileSystemParameters =
-                        FileSystemParameters.CreateDefaultBuildinFileSystemParameters();
-                    createParameters.CacheFileSystemParameters =
-                        FileSystemParameters.CreateDefaultCacheFileSystemParameters(remoteServices);
+                    IRemoteServices remoteServices = new DefaultRemoteServices(_settingComponent,_gameSetting);
+                    var createParameters = new HostPlayModeParameters
+                    {
+                        BuildinFileSystemParameters = FileSystemParameters.CreateDefaultBuildinFileSystemParameters(),
+                        CacheFileSystemParameters = FileSystemParameters.CreateDefaultCacheFileSystemParameters(remoteServices)
+                    };
                     initOperation = package.InitializeAsync(createParameters);
                 }
                     break;
@@ -576,9 +586,10 @@ namespace LFramework.Runtime
                     WechatFileSystemCreater.CreateFileSystemParameters(packageRoot, remoteServices);
                     initOperation = package.InitializeAsync(createParameters);
 #else
-                    var createParameters = new WebPlayModeParameters();
-                    createParameters.WebServerFileSystemParameters =
-                        FileSystemParameters.CreateDefaultWebServerFileSystemParameters();
+                    var createParameters = new WebPlayModeParameters
+                    {
+                        WebServerFileSystemParameters = FileSystemParameters.CreateDefaultWebServerFileSystemParameters()
+                    };
                     initOperation = package.InitializeAsync(createParameters);
 #endif
                 }
@@ -657,3 +668,4 @@ namespace LFramework.Runtime
         #endregion
     }
 }
+#endif

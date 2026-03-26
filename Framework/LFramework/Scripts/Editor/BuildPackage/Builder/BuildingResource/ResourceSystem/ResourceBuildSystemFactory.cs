@@ -21,10 +21,10 @@ namespace LFramework.Editor.Builder.BuildingResource
             {
                 
                 case ResourceMode.Addressable:
-#if USE_ADDRESSABLE
+#if ADDRESSABLE_SUPPORT
                       return new AddressableBuildSystem();
 #else
-                    throw new NotSupportedException("Addressable is not enabled. Please define USE_ADDRESSABLE in Player Settings -> Scripting Define Symbols.");
+                    throw new NotSupportedException("Addressable is not enabled. Please define ADDRESSABLE_SUPPORT in Player Settings -> Scripting Define Symbols.");
 #endif
                 
                 case ResourceMode.YooAsset:

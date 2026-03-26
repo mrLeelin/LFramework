@@ -1,4 +1,4 @@
-#if USE_ADDRESSABLE
+#if ADDRESSABLE_SUPPORT
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;

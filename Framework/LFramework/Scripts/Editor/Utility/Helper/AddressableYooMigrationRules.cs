@@ -1,4 +1,4 @@
-#if YOOASSET_SUPPORT && USE_ADDRESSABLE
+#if YOOASSET_SUPPORT && ADDRESSABLE_SUPPORT
 using System;
 using YooAsset.Editor;
 

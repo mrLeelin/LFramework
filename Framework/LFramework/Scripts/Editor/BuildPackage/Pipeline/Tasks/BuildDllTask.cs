@@ -67,7 +67,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
 
         private string GetBackupPath(BuildSetting buildSetting)
         {
-            return BuildResourcePathHelper.GetDllBackupPath(buildSetting);
+            return BuildResourcePathHelper.GetBackupPath(buildSetting);
         }
     }
 }

@@ -1,5 +1,5 @@
 
-#if USE_ADDRESSABLE
+#if ADDRESSABLE_SUPPORT
 using System.Collections.Generic;
 using LFramework.Runtime.Settings;
 using UnityEditor;
@@ -31,6 +31,13 @@ namespace LFramework.Editor.Builder.BuildingResource
             }
 
             var group = _settings.FindGroup(setting.aotAddressableGroupName);
+            if (dllPaths == null || dllPaths.Count == 0)
+            {
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
+                return true;
+            }
+
             foreach (var path in dllPaths)
             {
                 var assetsGuid = AssetDatabase.AssetPathToGUID(FullPathToUnityPath(path));
@@ -53,6 +60,13 @@ namespace LFramework.Editor.Builder.BuildingResource
             }
 
             var group = _settings.FindGroup(setting.codeAddressableGroupName);
+            if (dllPaths == null || dllPaths.Count == 0)
+            {
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
+                return true;
+            }
+
             foreach (var path in dllPaths)
             {
                 var assetsGuid = AssetDatabase.AssetPathToGUID(FullPathToUnityPath(path));
@@ -70,13 +84,14 @@ namespace LFramework.Editor.Builder.BuildingResource
         public bool EnsureGroupExists(string groupName)
         {
             var group = _settings.FindGroup(groupName);
-            if (group == null)
+            if (group != null)
             {
-                AddressableHelper.GenerateDefaultGroup(groupName, _settings, null, out group,
-                    out var groupSchema);
-                groupSchema.BundleMode = BundledAssetGroupSchema.BundlePackingMode.PackSeparately;
+                _settings.RemoveGroup(group);
             }
 
+            AddressableHelper.GenerateDefaultGroup(groupName, _settings, null, out group,
+                out var groupSchema);
+            groupSchema.BundleMode = BundledAssetGroupSchema.BundlePackingMode.PackSeparately;
             return true;
         }
 
