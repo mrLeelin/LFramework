@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using GameFramework;
 using GameFramework.Procedure;
+using LFramework.Editor;
 using LFramework.Runtime;
 using LFramework.Runtime.Settings;
 using Sirenix.Utilities.Editor;
@@ -38,6 +39,8 @@ namespace LFramework.Editor.Inspector
             base.OnInspectorGUI();
 
             serializedObject.Update();
+            EditorGUILayout.Space(4f);
+            DrawOverviewBanner();
 
             if (string.IsNullOrEmpty(m_EntranceProcedureTypeName.stringValue))
             {
@@ -69,25 +72,9 @@ namespace LFramework.Editor.Inspector
                 }
 
                 GUILayout.Space(12f);
-                DrawSelectionCard(
-                    "Entrance Procedure",
-                    "Select the procedure that runs first when the framework starts.",
-                    m_CurrentAvailableProcedureTypeNames,
-                    ref m_EntranceProcedureIndex,
-                    m_EntranceProcedureTypeName,
-                    "Select available procedures first.");
-
-                if (m_CurrentAvailableHotfixProcedureTypeNames != null)
-                {
-                    GUILayout.Space(12f);
-                    DrawSelectionCard(
-                        "Hotfix Entrance Procedure",
-                        "Pick the hotfix entry point when hotfix assemblies are enabled.",
-                        m_CurrentAvailableHotfixProcedureTypeNames,
-                        ref m_HotfixEntranceProcedureIndex,
-                        m_HotfixEntranceProcedureTypeName,
-                        "Enable hotfix assemblies to populate this list.");
-                }
+                DrawEntranceProcedureSection();
+                GUILayout.Space(12f);
+                DrawHotfixEntranceSection();
             }
             EditorGUI.EndDisabledGroup();
 
@@ -105,6 +92,7 @@ namespace LFramework.Editor.Inspector
 
         protected override void OnEnable()
         {
+            base.OnEnable();
             m_AvailableProcedureTypeNames = serializedObject.FindProperty("m_AvailableProcedureTypeNames");
             m_EntranceProcedureTypeName = serializedObject.FindProperty("m_EntranceProcedureTypeName");
             m_HotfixEntranceProcedureTypeName = serializedObject.FindProperty("m_EntranceHotfixProcedureTypeName");
@@ -115,8 +103,8 @@ namespace LFramework.Editor.Inspector
         {
             RefreshGameSetting();
             m_ProcedureTypeNames = Type.GetRuntimeTypeNames(typeof(ProcedureBase));
-            m_HotfixProcedureTypeNames =
-                Type.GetTypeNames(typeof(ProcedureBase), _onceGameSetting.hotfixAssembliesSort.ToArray());
+            var hotfixAssemblies = _onceGameSetting?.hotfixAssembliesSort?.ToArray() ?? Array.Empty<string>();
+            m_HotfixProcedureTypeNames = Type.GetTypeNames(typeof(ProcedureBase), hotfixAssemblies);
             ReadAvailableProcedureTypeNames();
             int oldCount = m_CurrentAvailableProcedureTypeNames.Count;
             m_CurrentAvailableProcedureTypeNames = m_CurrentAvailableProcedureTypeNames
@@ -136,7 +124,7 @@ namespace LFramework.Editor.Inspector
             }
 
             oldCount = m_CurrentAvailableHotfixProcedureTypeNames?.Count ?? 0;
-            m_CurrentAvailableHotfixProcedureTypeNames = m_HotfixProcedureTypeNames.ToList();
+            m_CurrentAvailableHotfixProcedureTypeNames = m_HotfixProcedureTypeNames?.ToList() ?? new List<string>();
             if (m_CurrentAvailableHotfixProcedureTypeNames.Count != oldCount)
             {
                 WriteAvailableProcedureTypeNames();
@@ -209,6 +197,7 @@ namespace LFramework.Editor.Inspector
             var gameSetting = SettingManager.GetSetting<HybridCLRSetting>();
             if (gameSetting == null)
             {
+                _onceGameSetting = null;
                 Debug.LogWarning("[ProcedureComponentInspector] GameSetting not found!");
                 return;
             }
@@ -233,6 +222,20 @@ namespace LFramework.Editor.Inspector
                 }
 
                 groups[assemblyName].Add(typeName);
+            }
+
+            foreach (var group in groups)
+            {
+                group.Value.Sort((left, right) =>
+                {
+                    int displayCompare = string.Compare(
+                        GetProcedureDisplayName(left),
+                        GetProcedureDisplayName(right),
+                        StringComparison.Ordinal);
+                    return displayCompare != 0
+                        ? displayCompare
+                        : string.Compare(left, right, StringComparison.Ordinal);
+                });
             }
 
             return groups;
@@ -289,52 +292,167 @@ namespace LFramework.Editor.Inspector
             {
                 string sessionKey = SessionStateKeyPrefix + category + "." + assemblyName;
                 bool foldout = SessionState.GetBool(sessionKey, true);
-
                 var procedures = groups[assemblyName];
-                string label = $"{assemblyName} ({procedures.Count})";
-                bool newFoldout = EditorGUILayout.Foldout(foldout, label, true);
+                int selectedCount = procedures.Count(typeName => m_CurrentAvailableProcedureTypeNames.Contains(typeName));
+
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+                bool newFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(
+                    foldout,
+                    $"{assemblyName} ({selectedCount}/{procedures.Count} selected)");
                 if (newFoldout != foldout)
                 {
                     SessionState.SetBool(sessionKey, newFoldout);
                 }
 
-                if (!newFoldout)
+                if (newFoldout)
                 {
-                    continue;
-                }
-
-                EditorGUI.indentLevel++;
-
-                foreach (string procedureTypeName in procedures)
-                {
-                    bool selected = m_CurrentAvailableProcedureTypeNames.Contains(procedureTypeName);
-                    bool toggled = EditorGUILayout.ToggleLeft(procedureTypeName, selected);
-                    if (toggled != selected)
+                    EditorGUILayout.Space(2f);
+                    foreach (string procedureTypeName in procedures)
                     {
-                        if (toggled)
-                        {
-                            m_CurrentAvailableProcedureTypeNames.Add(procedureTypeName);
-                        }
-                        else if (procedureTypeName != m_EntranceProcedureTypeName.stringValue)
-                        {
-                            m_CurrentAvailableProcedureTypeNames.Remove(procedureTypeName);
-                        }
+                        DrawProcedureToggle(procedureTypeName);
+                    }
 
-                        WriteAvailableProcedureTypeNames();
+                    if (selectedCount > 0)
+                    {
+                        EditorGUILayout.HelpBox(
+                            "The current entrance procedure cannot be deselected until you switch the entrance below.",
+                            MessageType.None);
                     }
                 }
 
-                EditorGUI.indentLevel--;
+                EditorGUILayout.EndFoldoutHeaderGroup();
+                EditorGUILayout.EndVertical();
+                EditorGUILayout.Space(2f);
             }
+        }
+
+        private void DrawOverviewBanner()
+        {
+            int availableCount = m_ProcedureTypeNames?.Length ?? 0;
+            int selectedCount = m_CurrentAvailableProcedureTypeNames?.Count ?? 0;
+            int hotfixCount = m_CurrentAvailableHotfixProcedureTypeNames?.Count ?? 0;
+            string hotfixState = _onceGameSetting == null ? "HybridCLRSetting missing" : "HybridCLR ready";
+
+            EditorGUILayout.HelpBox(
+                $"Available: {availableCount}  Selected: {selectedCount}  Hotfix: {hotfixCount}  State: {hotfixState}\n" +
+                "Group procedures by assembly, enable the runtime set, then assign entrance states below.",
+                MessageType.Info);
+        }
+
+        private void DrawEntranceProcedureSection()
+        {
+            DrawSelectionCard(
+                "Entrance Procedure",
+                "Select the procedure that runs first when the framework starts.",
+                m_CurrentAvailableProcedureTypeNames,
+                ref m_EntranceProcedureIndex,
+                m_EntranceProcedureTypeName,
+                "Select available procedures first.");
+
+            if (!string.IsNullOrEmpty(m_EntranceProcedureTypeName.stringValue))
+            {
+                EditorGUILayout.HelpBox(
+                    $"Current Entrance: {GetProcedureDisplayName(m_EntranceProcedureTypeName.stringValue)}",
+                    MessageType.None);
+            }
+        }
+
+        private void DrawHotfixEntranceSection()
+        {
+            if (_onceGameSetting == null)
+            {
+                DrawSelectionCard(
+                    "Hotfix Entrance Procedure",
+                    "Pick the hotfix entry point when hotfix assemblies are enabled.",
+                    null,
+                    ref m_HotfixEntranceProcedureIndex,
+                    m_HotfixEntranceProcedureTypeName,
+                    "HybridCLRSetting is missing, so hotfix procedures cannot be discovered.");
+                return;
+            }
+
+            if (_onceGameSetting.hotfixAssembliesSort == null || _onceGameSetting.hotfixAssembliesSort.Count == 0)
+            {
+                DrawSelectionCard(
+                    "Hotfix Entrance Procedure",
+                    "Pick the hotfix entry point when hotfix assemblies are enabled.",
+                    null,
+                    ref m_HotfixEntranceProcedureIndex,
+                    m_HotfixEntranceProcedureTypeName,
+                    "HybridCLR hotfix assembly list is empty. Configure it before selecting a hotfix entrance.");
+                return;
+            }
+
+            DrawSelectionCard(
+                "Hotfix Entrance Procedure",
+                "Pick the hotfix entry point when hotfix assemblies are enabled.",
+                m_CurrentAvailableHotfixProcedureTypeNames,
+                ref m_HotfixEntranceProcedureIndex,
+                m_HotfixEntranceProcedureTypeName,
+                "No hotfix procedures were discovered from the configured HybridCLR assemblies.");
+
+            string currentHotfixEntrance = string.IsNullOrEmpty(m_HotfixEntranceProcedureTypeName.stringValue)
+                ? "Unassigned"
+                : GetProcedureDisplayName(m_HotfixEntranceProcedureTypeName.stringValue);
+            EditorGUILayout.HelpBox($"Current Hotfix Entrance: {currentHotfixEntrance}", MessageType.None);
+        }
+
+        private void DrawProcedureToggle(string procedureTypeName)
+        {
+            bool selected = m_CurrentAvailableProcedureTypeNames.Contains(procedureTypeName);
+            bool isEntrance = procedureTypeName == m_EntranceProcedureTypeName.stringValue;
+            bool isHotfixEntrance = procedureTypeName == m_HotfixEntranceProcedureTypeName.stringValue;
+            var content = new GUIContent(GetProcedureDisplayName(procedureTypeName), procedureTypeName);
+
+            EditorGUILayout.BeginHorizontal();
+            bool toggled = EditorGUILayout.ToggleLeft(content, selected);
+            GUILayout.FlexibleSpace();
+
+            if (isHotfixEntrance)
+            {
+                GUILayout.Label("Hotfix", EditorStyles.miniBoldLabel, GUILayout.Width(48f));
+            }
+
+            if (isEntrance)
+            {
+                GUILayout.Label("Entry", EditorStyles.miniBoldLabel, GUILayout.Width(40f));
+            }
+
+            EditorGUILayout.EndHorizontal();
+
+            if (toggled == selected)
+            {
+                return;
+            }
+
+            if (toggled)
+            {
+                m_CurrentAvailableProcedureTypeNames.Add(procedureTypeName);
+            }
+            else if (procedureTypeName != m_EntranceProcedureTypeName.stringValue)
+            {
+                m_CurrentAvailableProcedureTypeNames.Remove(procedureTypeName);
+            }
+
+            WriteAvailableProcedureTypeNames();
+        }
+
+        private string GetProcedureDisplayName(string procedureTypeName)
+        {
+            if (string.IsNullOrEmpty(procedureTypeName))
+            {
+                return "Unassigned";
+            }
+
+            return ObjectNames.NicifyVariableName(GameWindowChrome.GetShortTypeName(procedureTypeName));
         }
 
         private void DrawSelectionCard(string title, string description, List<string> options, ref int index,
             SerializedProperty property, string emptyMessage)
         {
-            EditorGUILayout.LabelField(title, EditorStyles.boldLabel);
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             {
-                EditorGUILayout.LabelField(description, EditorStyles.wordWrappedMiniLabel);
+                DrawSectionHeader(title, description);
                 GUILayout.Space(6f);
 
                 if (options == null || options.Count == 0)
@@ -357,13 +475,7 @@ namespace LFramework.Editor.Inspector
 
         private void DrawSectionHeader(string title, string subtitle)
         {
-            EditorGUILayout.LabelField(title, EditorStyles.boldLabel);
-            if (!string.IsNullOrEmpty(subtitle))
-            {
-                EditorGUILayout.LabelField(subtitle, EditorStyles.wordWrappedMiniLabel);
-            }
-
-            GUILayout.Space(6f);
+            GameWindowChrome.DrawCompactHeader(title, subtitle);
         }
     }
 }

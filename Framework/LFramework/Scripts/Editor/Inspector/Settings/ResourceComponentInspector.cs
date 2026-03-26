@@ -1,5 +1,6 @@
 using System;
 using GameFramework.Resource;
+using LFramework.Editor;
 using LFramework.Runtime.Settings;
 using UnityEditor;
 using UnityEngine;
@@ -25,35 +26,15 @@ namespace LFramework.Editor.Inspector
             base.OnInspectorGUI();
 
             serializedObject.Update();
+            EditorGUILayout.Space(4f);
 
             EditorGUI.BeginDisabledGroup(EditorApplication.isPlayingOrWillChangePlaymode);
             {
-                EditorGUILayout.PropertyField(m_ResourceMode);
-                m_ResourceHelperInfo.Draw();
-
-                EditorGUILayout.Space();
-                EditorGUILayout.LabelField("Resource Release Settings", EditorStyles.boldLabel);
-                EditorGUILayout.PropertyField(m_MinUnloadInterval);
-                EditorGUILayout.PropertyField(m_MaxUnloadInterval);
-
-                if (m_ResourceMode.enumValueIndex == (int)ResourceMode.YooAsset)
-                {
-                    EditorGUILayout.Space();
-                    EditorGUILayout.LabelField("YooAsset Settings", EditorStyles.boldLabel);
-                    EditorGUILayout.PropertyField(m_YooAssetPackageName);
-                    EditorGUILayout.PropertyField(m_YooAssetPlayMode);
-                }
-                else
-                {
-                    //Addressable in this
-                    EditorGUILayout.Space();
-                    EditorGUILayout.LabelField("Addressable Settings", EditorStyles.boldLabel);
-                    EditorGUILayout.PropertyField(m_AddressableHotfixProfileName);
-                }
-
-                EditorGUILayout.Space();
-                DrawMigrationButtons();
-                
+                DrawOverviewBanner();
+                DrawPipelineSection();
+                DrawReleaseSection();
+                DrawBackendSection();
+                DrawMigrationSection();
             }
             EditorGUI.EndDisabledGroup();
 
@@ -91,25 +72,41 @@ namespace LFramework.Editor.Inspector
 
         private void DrawMigrationButtons()
         {
-            EditorGUILayout.LabelField("Resource Migration", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox(
-                "Main thread handles Unity APIs. Worker threads handle validation, conflict checks, and migration planning.",
-                MessageType.Info);
+            bool useVerticalButtons = EditorGUIUtility.currentViewWidth < 650f;
 
-            using (new EditorGUILayout.HorizontalScope())
+            if (useVerticalButtons)
             {
-                if (GUILayout.Button("YooAssets -> Addressables", GUILayout.Height(28)))
+                if (GUILayout.Button("YooAssets -> Addressables", GUILayout.Height(28f)))
                 {
                     ExecuteMigration(
                         "This will rebuild generated Addressable groups and move matching entries. Continue?",
                         ResourceConfigMigrationHelper.ConvertYooAssetsToAddressables);
                 }
 
-                if (GUILayout.Button("Addressables -> YooAssets", GUILayout.Height(28)))
+                if (GUILayout.Button("Addressables -> YooAssets", GUILayout.Height(28f)))
                 {
                     ExecuteMigration(
                         "This will rebuild the target YooAssets package collectors. Continue?",
                         ResourceConfigMigrationHelper.ConvertAddressablesToYooAssets);
+                }
+            }
+            else
+            {
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    if (GUILayout.Button("YooAssets -> Addressables", GUILayout.Height(28f)))
+                    {
+                        ExecuteMigration(
+                            "This will rebuild generated Addressable groups and move matching entries. Continue?",
+                            ResourceConfigMigrationHelper.ConvertYooAssetsToAddressables);
+                    }
+
+                    if (GUILayout.Button("Addressables -> YooAssets", GUILayout.Height(28f)))
+                    {
+                        ExecuteMigration(
+                            "This will rebuild the target YooAssets package collectors. Continue?",
+                            ResourceConfigMigrationHelper.ConvertAddressablesToYooAssets);
+                    }
                 }
             }
         }
@@ -127,6 +124,101 @@ namespace LFramework.Editor.Inspector
             var dialogTitle = result.Success ? "Migration Success" : "Migration Failed";
             var dialogBody = $"{result.Summary}\nReport: {result.ReportPath}";
             EditorUtility.DisplayDialog(dialogTitle, dialogBody, "OK");
+        }
+
+        private void DrawOverviewBanner()
+        {
+            string modeName = m_ResourceMode.enumDisplayNames[m_ResourceMode.enumValueIndex];
+            string message = m_ResourceMode.enumValueIndex == (int)ResourceMode.YooAsset
+                ? "YooAsset is active. Package name, play mode, and migration actions are shown below."
+                : "Addressables is active. Hotfix profile configuration and migration actions are shown below.";
+
+            EditorGUILayout.HelpBox($"Active Mode: {modeName}\n{message}", MessageType.Info);
+        }
+
+        private void DrawPipelineSection()
+        {
+            BeginSection("Pipeline", "Select the active runtime backend and the helper that serves it.");
+            EditorGUILayout.PropertyField(m_ResourceMode);
+            m_ResourceHelperInfo.Draw();
+            EndSection();
+        }
+
+        private void DrawReleaseSection()
+        {
+            BeginSection("Release Policy", "Tune how aggressively unused resources are released at runtime.");
+            EditorGUILayout.PropertyField(m_MinUnloadInterval);
+            EditorGUILayout.PropertyField(m_MaxUnloadInterval);
+
+            if (m_MinUnloadInterval.floatValue > m_MaxUnloadInterval.floatValue)
+            {
+                EditorGUILayout.HelpBox(
+                    "Min Unload Interval is greater than Max Unload Interval. Runtime release cadence may become confusing.",
+                    MessageType.Warning);
+            }
+            else
+            {
+                EditorGUILayout.HelpBox(
+                    $"Unload Window: {m_MinUnloadInterval.floatValue:0.##}s - {m_MaxUnloadInterval.floatValue:0.##}s",
+                    MessageType.None);
+            }
+
+            EndSection();
+        }
+
+        private void DrawBackendSection()
+        {
+            if (m_ResourceMode.enumValueIndex == (int)ResourceMode.YooAsset)
+            {
+                BeginSection("YooAsset Settings", "Configure the package identity and editor/runtime play mode.");
+                EditorGUILayout.PropertyField(m_YooAssetPackageName);
+                EditorGUILayout.PropertyField(m_YooAssetPlayMode);
+
+                if (string.IsNullOrWhiteSpace(m_YooAssetPackageName.stringValue))
+                {
+                    EditorGUILayout.HelpBox("Package name is empty. YooAsset initialization will need a valid package name.", MessageType.Warning);
+                }
+
+                EndSection();
+                return;
+            }
+
+            BeginSection("Addressables Settings", "Configure the hotfix profile used by the Addressables pipeline.");
+            EditorGUILayout.PropertyField(m_AddressableHotfixProfileName);
+
+            if (string.IsNullOrWhiteSpace(m_AddressableHotfixProfileName.stringValue))
+            {
+                EditorGUILayout.HelpBox("Hotfix profile name is empty. Addressables hotfix content may not resolve the expected profile.", MessageType.Warning);
+            }
+            else
+            {
+                EditorGUILayout.HelpBox($"Hotfix Profile: {m_AddressableHotfixProfileName.stringValue}", MessageType.None);
+            }
+
+            EndSection();
+        }
+
+        private void DrawMigrationSection()
+        {
+            BeginSection("Migration Tools", "Rebuild generated configuration when switching between YooAsset and Addressables.");
+            EditorGUILayout.HelpBox(
+                "Both migration actions keep Unity-side APIs on the main thread and generate a report path after completion.",
+                MessageType.Info);
+            DrawMigrationButtons();
+            EndSection();
+        }
+
+        private static void BeginSection(string title, string subtitle)
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            GameWindowChrome.DrawCompactHeader(title, subtitle);
+            EditorGUILayout.Space(4f);
+        }
+
+        private static void EndSection()
+        {
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.Space(4f);
         }
     }
 }

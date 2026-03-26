@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using GameFramework;
+using LFramework.Editor;
 using LFramework.Runtime;
 using LFramework.Runtime.Settings;
 using Sirenix.Utilities.Editor;
@@ -50,144 +51,17 @@ namespace LFramework.Editor.Inspector
 
             serializedObject.Update();
             var t = GetComponent<BaseComponent>();
-            
+            EditorGUILayout.Space(4f);
+            DrawOverviewBanner();
 
             EditorGUI.BeginDisabledGroup(EditorApplication.isPlayingOrWillChangePlaymode);
             {
-                m_EditorResourceMode.boolValue =
-                    EditorGUILayout.BeginToggleGroup("Editor Resource Mode", m_EditorResourceMode.boolValue);
-                {
-                    EditorGUILayout.HelpBox(
-                        "Editor resource mode option is only for editor mode. Game Framework will use editor resource files, which you should validate first.",
-                        MessageType.Warning);
-                    EditorGUILayout.PropertyField(m_EditorLanguage);
-                    EditorGUILayout.HelpBox("Editor language option is only use for localization test in editor mode.",
-                        MessageType.Info);
-                }
-                EditorGUILayout.EndToggleGroup();
-
-                EditorGUILayout.BeginVertical("box");
-                {
-                    EditorGUILayout.LabelField("Global Helpers", EditorStyles.boldLabel);
-
-                    int textHelperSelectedIndex =
-                        EditorGUILayout.Popup("Text Helper", m_TextHelperTypeNameIndex, m_TextHelperTypeNames);
-                    if (textHelperSelectedIndex != m_TextHelperTypeNameIndex)
-                    {
-                        m_TextHelperTypeNameIndex = textHelperSelectedIndex;
-                        m_TextHelperTypeName.stringValue = textHelperSelectedIndex <= 0
-                            ? null
-                            : m_TextHelperTypeNames[textHelperSelectedIndex];
-                    }
-
-                    int versionHelperSelectedIndex = EditorGUILayout.Popup("Version Helper",
-                        m_VersionHelperTypeNameIndex, m_VersionHelperTypeNames);
-                    if (versionHelperSelectedIndex != m_VersionHelperTypeNameIndex)
-                    {
-                        m_VersionHelperTypeNameIndex = versionHelperSelectedIndex;
-                        m_VersionHelperTypeName.stringValue = versionHelperSelectedIndex <= 0
-                            ? null
-                            : m_VersionHelperTypeNames[versionHelperSelectedIndex];
-                    }
-
-                    int logHelperSelectedIndex =
-                        EditorGUILayout.Popup("Log Helper", m_LogHelperTypeNameIndex, m_LogHelperTypeNames);
-                    if (logHelperSelectedIndex != m_LogHelperTypeNameIndex)
-                    {
-                        m_LogHelperTypeNameIndex = logHelperSelectedIndex;
-                        m_LogHelperTypeName.stringValue = logHelperSelectedIndex <= 0
-                            ? null
-                            : m_LogHelperTypeNames[logHelperSelectedIndex];
-                    }
-
-                    int compressionHelperSelectedIndex = EditorGUILayout.Popup("Compression Helper",
-                        m_CompressionHelperTypeNameIndex, m_CompressionHelperTypeNames);
-                    if (compressionHelperSelectedIndex != m_CompressionHelperTypeNameIndex)
-                    {
-                        m_CompressionHelperTypeNameIndex = compressionHelperSelectedIndex;
-                        m_CompressionHelperTypeName.stringValue = compressionHelperSelectedIndex <= 0
-                            ? null
-                            : m_CompressionHelperTypeNames[compressionHelperSelectedIndex];
-                    }
-
-                    int jsonHelperSelectedIndex =
-                        EditorGUILayout.Popup("JSON Helper", m_JsonHelperTypeNameIndex, m_JsonHelperTypeNames);
-                    if (jsonHelperSelectedIndex != m_JsonHelperTypeNameIndex)
-                    {
-                        m_JsonHelperTypeNameIndex = jsonHelperSelectedIndex;
-                        m_JsonHelperTypeName.stringValue = jsonHelperSelectedIndex <= 0
-                            ? null
-                            : m_JsonHelperTypeNames[jsonHelperSelectedIndex];
-                    }
-                }
-                EditorGUILayout.EndVertical();
+                DrawEditorResourceSection();
+                DrawGlobalHelpersSection();
             }
             EditorGUI.EndDisabledGroup();
 
-            int frameRate = EditorGUILayout.IntSlider("Frame Rate", m_FrameRate.intValue, 1, 120);
-            if (frameRate != m_FrameRate.intValue)
-            {
-                if (EditorApplication.isPlaying)
-                {
-                    t.FrameRate = frameRate;
-                }
-                else
-
-                {
-                    m_FrameRate.intValue = frameRate;
-                }
-            }
-
-            EditorGUILayout.BeginVertical("box");
-            {
-                float gameSpeed = EditorGUILayout.Slider("Game Speed", m_GameSpeed.floatValue, 0f, 8f);
-                int selectedGameSpeed =
-                    GUILayout.SelectionGrid(GetSelectedGameSpeed(gameSpeed), GameSpeedForDisplay, 5);
-                if (selectedGameSpeed >= 0)
-                {
-                    gameSpeed = GetGameSpeed(selectedGameSpeed);
-                }
-
-                if (gameSpeed != m_GameSpeed.floatValue)
-                {
-                    if (EditorApplication.isPlaying)
-                    {
-                        t.GameSpeed = gameSpeed;
-                    }
-                    else
-                    {
-                        m_GameSpeed.floatValue = gameSpeed;
-                    }
-                }
-            }
-            EditorGUILayout.EndVertical();
-
-            bool runInBackground = EditorGUILayout.Toggle("Run in Background", m_RunInBackground.boolValue);
-            if (runInBackground != m_RunInBackground.boolValue)
-            {
-                if (EditorApplication.isPlaying)
-                {
-                    t.RunInBackground = runInBackground;
-                }
-                else
-                {
-                    m_RunInBackground.boolValue = runInBackground;
-                }
-            }
-
-            bool neverSleep = EditorGUILayout.Toggle("Never Sleep", m_NeverSleep.boolValue);
-            if (neverSleep != m_NeverSleep.boolValue)
-            {
-                if (EditorApplication.isPlaying)
-                {
-                    t.NeverSleep = neverSleep;
-                }
-                else
-
-                {
-                    m_NeverSleep.boolValue = neverSleep;
-                }
-            }
+            DrawRuntimeSection(t);
 
             serializedObject.ApplyModifiedProperties();
         }
@@ -215,7 +89,118 @@ namespace LFramework.Editor.Inspector
             m_NeverSleep = serializedObject.FindProperty("m_NeverSleep");
 
             RefreshTypeNames();
-            
+
+        }
+
+        private void DrawOverviewBanner()
+        {
+            string mode = EditorApplication.isPlaying ? "Live Runtime" : "Asset Edit";
+            string message = EditorApplication.isPlaying
+                ? "Frame rate, game speed, and runtime toggles apply to the active BaseComponent immediately."
+                : "Editor-only setup and helper bindings are editable here before entering Play Mode.";
+
+            EditorGUILayout.HelpBox($"Mode: {mode}\n{message}", MessageType.Info);
+        }
+
+        private void DrawEditorResourceSection()
+        {
+            BeginSection("Editor Resource Mode", "Editor-only switches used for local resource validation and localization tests.");
+            m_EditorResourceMode.boolValue =
+                EditorGUILayout.BeginToggleGroup("Enable Editor Resource Mode", m_EditorResourceMode.boolValue);
+            {
+                EditorGUILayout.HelpBox(
+                    "When enabled in the editor, Game Framework uses editor resource files. Validate them before runtime tests.",
+                    MessageType.Warning);
+                EditorGUILayout.PropertyField(m_EditorLanguage);
+                EditorGUILayout.HelpBox(
+                    "Editor Language is only used for localization checks while running inside the editor.",
+                    MessageType.None);
+            }
+            EditorGUILayout.EndToggleGroup();
+            EndSection();
+        }
+
+        private void DrawGlobalHelpersSection()
+        {
+            BeginSection("Global Helpers", "Configure the framework-wide helper implementations used during bootstrap.");
+            DrawHelperPopup("Text Helper", ref m_TextHelperTypeNameIndex, m_TextHelperTypeNames, m_TextHelperTypeName);
+            DrawHelperPopup("Version Helper", ref m_VersionHelperTypeNameIndex, m_VersionHelperTypeNames, m_VersionHelperTypeName);
+            DrawHelperPopup("Log Helper", ref m_LogHelperTypeNameIndex, m_LogHelperTypeNames, m_LogHelperTypeName);
+            DrawHelperPopup("Compression Helper", ref m_CompressionHelperTypeNameIndex, m_CompressionHelperTypeNames, m_CompressionHelperTypeName);
+            DrawHelperPopup("JSON Helper", ref m_JsonHelperTypeNameIndex, m_JsonHelperTypeNames, m_JsonHelperTypeName);
+            EndSection();
+        }
+
+        private void DrawRuntimeSection(BaseComponent component)
+        {
+            BeginSection("Performance & Runtime", "Core pacing and application lifecycle options. These values update live in Play Mode.");
+
+            int frameRate = EditorGUILayout.IntSlider("Frame Rate", m_FrameRate.intValue, 1, 120);
+            if (frameRate != m_FrameRate.intValue)
+            {
+                if (EditorApplication.isPlaying)
+                {
+                    component.FrameRate = frameRate;
+                }
+                else
+                {
+                    m_FrameRate.intValue = frameRate;
+                }
+            }
+
+            EditorGUILayout.Space(2f);
+            GameWindowChrome.DrawCompactHeader("Game Speed", "Use the slider for fine tuning or tap a preset for quick switching.");
+            float gameSpeed = EditorGUILayout.Slider("Speed Value", m_GameSpeed.floatValue, 0f, 8f);
+            int selectedGameSpeed = GUILayout.SelectionGrid(
+                GetSelectedGameSpeed(gameSpeed),
+                GameSpeedForDisplay,
+                GetGameSpeedGridColumns());
+            if (selectedGameSpeed >= 0)
+            {
+                gameSpeed = GetGameSpeed(selectedGameSpeed);
+            }
+
+            if (gameSpeed != m_GameSpeed.floatValue)
+            {
+                if (EditorApplication.isPlaying)
+                {
+                    component.GameSpeed = gameSpeed;
+                }
+                else
+                {
+                    m_GameSpeed.floatValue = gameSpeed;
+                }
+            }
+
+            EditorGUILayout.HelpBox($"Current Speed: {GetGameSpeedDisplay(gameSpeed)}", MessageType.None);
+
+            bool runInBackground = EditorGUILayout.Toggle("Run in Background", m_RunInBackground.boolValue);
+            if (runInBackground != m_RunInBackground.boolValue)
+            {
+                if (EditorApplication.isPlaying)
+                {
+                    component.RunInBackground = runInBackground;
+                }
+                else
+                {
+                    m_RunInBackground.boolValue = runInBackground;
+                }
+            }
+
+            bool neverSleep = EditorGUILayout.Toggle("Never Sleep", m_NeverSleep.boolValue);
+            if (neverSleep != m_NeverSleep.boolValue)
+            {
+                if (EditorApplication.isPlaying)
+                {
+                    component.NeverSleep = neverSleep;
+                }
+                else
+                {
+                    m_NeverSleep.boolValue = neverSleep;
+                }
+            }
+
+            EndSection();
         }
 
         private void RefreshTypeNames()
@@ -316,6 +301,20 @@ namespace LFramework.Editor.Inspector
             serializedObject.ApplyModifiedProperties();
         }
 
+        private void DrawHelperPopup(
+            string label,
+            ref int selectedIndex,
+            string[] options,
+            SerializedProperty targetProperty)
+        {
+            int nextIndex = EditorGUILayout.Popup(label, selectedIndex, options);
+            if (nextIndex != selectedIndex)
+            {
+                selectedIndex = nextIndex;
+                targetProperty.stringValue = nextIndex <= 0 ? null : options[nextIndex];
+            }
+        }
+
         private float GetGameSpeed(int selectedGameSpeed)
         {
             if (selectedGameSpeed < 0)
@@ -342,6 +341,45 @@ namespace LFramework.Editor.Inspector
             }
 
             return -1;
+        }
+
+        private int GetGameSpeedGridColumns()
+        {
+            if (EditorGUIUtility.currentViewWidth < 520f)
+            {
+                return 2;
+            }
+
+            if (EditorGUIUtility.currentViewWidth < 720f)
+            {
+                return 3;
+            }
+
+            return 5;
+        }
+
+        private string GetGameSpeedDisplay(float gameSpeed)
+        {
+            int selectedGameSpeed = GetSelectedGameSpeed(gameSpeed);
+            if (selectedGameSpeed >= 0)
+            {
+                return GameSpeedForDisplay[selectedGameSpeed];
+            }
+
+            return $"{gameSpeed:0.##}x (Custom)";
+        }
+
+        private static void BeginSection(string title, string subtitle)
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            GameWindowChrome.DrawCompactHeader(title, subtitle);
+            EditorGUILayout.Space(4f);
+        }
+
+        private static void EndSection()
+        {
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.Space(4f);
         }
     }
 }
