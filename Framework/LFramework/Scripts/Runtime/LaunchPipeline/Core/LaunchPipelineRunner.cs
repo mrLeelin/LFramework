@@ -85,12 +85,15 @@ namespace LFramework.Runtime.LaunchPipeline
                         executedTasks.Add(result);
                         continue;
                     }
-
+                    //设置当前进行的任务
+                    context.CurrentRunTask = task;
                     // 异步执行任务
                     var taskStopwatch = Stopwatch.StartNew();
+                    context.OnTaskStarted?.Invoke(task);
                     result = await task.ExecuteAsync(context);
+                    context.OnTaskEnded?.Invoke(task);
                     taskStopwatch.Stop();
-
+                    context.CurrentRunTask = null;
                     if (result == null)
                     {
                         result = LaunchTaskResult.CreateFailed(task.TaskName, "Task returned null result.");

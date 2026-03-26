@@ -62,6 +62,7 @@ namespace LFramework.Runtime.LaunchPipeline
         /// 当前进度信息（只读快照）。
         /// </summary>
         public LaunchProgressInfo Current => _current;
+        
 
         /// <summary>
         /// 由 Runner 调用，设置当前正在执行的任务。

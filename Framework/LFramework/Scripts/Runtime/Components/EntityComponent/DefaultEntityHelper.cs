@@ -56,6 +56,7 @@ namespace LFramework.Runtime
             {
                 Log.Fatal("Before on init 'entityInstance' is not 'GameObject'");
             }
+            
             LFrameworkAspect.Instance.DiContainer.InjectGameObjectNotCheck(go);
         }
 

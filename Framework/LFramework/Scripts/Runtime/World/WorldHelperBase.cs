@@ -34,9 +34,25 @@ namespace LFramework.Runtime
         public abstract void StopGame();
 
 
+        /// <summary>
+        /// 获取这个世界
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         protected virtual T GetWorld<T>() where T : WorldBase
         {
             return _worldBase as T;
+        }
+        
+        /// <summary>
+        /// 获取这个世界的帮助类
+        /// </summary>
+        /// <typeparam name="TWorldHelper"></typeparam>
+        /// <returns></returns>
+        protected TWorldHelper GetWorldHelper<TWorldHelper>() where TWorldHelper : WorldHelperBase
+        {
+            var world = GetWorld<WorldBase>();
+            return world.GetWorldHelper<TWorldHelper>();
         }
     }
 }

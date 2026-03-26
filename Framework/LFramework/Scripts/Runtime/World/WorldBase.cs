@@ -139,7 +139,7 @@ namespace LFramework.Runtime
             EventComponent.FireNow(this, gameEventArgs);
         }
 
-        protected T GetWorldHelper<T>() where T : class, IWorldHelper
+        public T GetWorldHelper<T>() where T : class, IWorldHelper
         {
             if (_worldHelpers.TryGetValue(typeof(T), out var result))
             {

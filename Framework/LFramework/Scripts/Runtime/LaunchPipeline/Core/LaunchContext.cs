@@ -9,8 +9,13 @@ namespace LFramework.Runtime.LaunchPipeline
     /// 在任务之间共享数据和状态，支持子类继承以携带项目特定数据。
     /// 镜像 Editor 侧的 <c>BuildPipelineContext</c>。
     /// </summary>
-    public class LaunchContext
+    public partial class LaunchContext
     {
+        
+        /// <summary>
+        /// 当前运行的任务
+        /// </summary>
+        public ILaunchTask CurrentRunTask { get; internal set; }
         
         /// <summary>
         /// 自定义数据字典，用于任务之间传递额外数据。
@@ -41,6 +46,7 @@ namespace LFramework.Runtime.LaunchPipeline
             CancellationToken = cancellationToken;
             CustomData = new Dictionary<string, object>();
             ProgressReporter = new LaunchProgressReporter();
+            CurrentRunTask = null;
         }
 
         /// <summary>
