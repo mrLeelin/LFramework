@@ -186,3 +186,60 @@ namespace LFramework.Editor.Tests.Window
         }
     }
 }
+
+namespace LFramework.Editor.Tests.Inspector
+{
+    public class ComponentSettingBindingDescriptorTests
+    {
+        [Test]
+        public void Create_BuildsUnboundDescriptor_WhenBindingMissing()
+        {
+            object descriptor = InvokeFactory("Create", null, 12);
+
+            Assert.That(descriptor, Is.Not.Null);
+            Assert.That(GetStringProperty(descriptor, "StatusLabel"), Is.EqualTo("Unbound"));
+            Assert.That(GetStringProperty(descriptor, "BindingDisplayName"), Is.EqualTo("No Component Bound"));
+            Assert.That(GetStringProperty(descriptor, "AvailabilityText"), Is.EqualTo("12 runtime component types are available for binding."));
+        }
+
+        [Test]
+        public void Create_BuildsBoundDescriptor_FromFullTypeName()
+        {
+            object descriptor = InvokeFactory("Create", "UnityGameFramework.Runtime.ResourceComponent", 18);
+
+            Assert.That(descriptor, Is.Not.Null);
+            Assert.That(GetStringProperty(descriptor, "StatusLabel"), Is.EqualTo("Bound"));
+            Assert.That(GetStringProperty(descriptor, "BindingDisplayName"), Is.EqualTo("Resource Component"));
+            Assert.That(GetStringProperty(descriptor, "DetailText"), Is.EqualTo("UnityGameFramework.Runtime.ResourceComponent"));
+        }
+
+        [Test]
+        public void Create_ReportsZeroAvailableComponents()
+        {
+            object descriptor = InvokeFactory("Create", "UnityGameFramework.Runtime.UIComponent", 0);
+
+            Assert.That(descriptor, Is.Not.Null);
+            Assert.That(GetStringProperty(descriptor, "AvailabilityText"), Is.EqualTo("No runtime component types were discovered in the current editor domain."));
+        }
+
+        private static object InvokeFactory(string methodName, params object[] args)
+        {
+            Assembly editorAssembly = Assembly.Load("LFramework.Editor");
+            System.Type factoryType = editorAssembly.GetType("LFramework.Editor.Inspector.ComponentSettingBindingDescriptorFactory");
+
+            Assert.That(factoryType, Is.Not.Null, "Expected ComponentSettingBindingDescriptorFactory to exist in LFramework.Editor.");
+
+            MethodInfo createMethod = factoryType.GetMethod(methodName, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+            Assert.That(createMethod, Is.Not.Null, $"Expected ComponentSettingBindingDescriptorFactory.{methodName} to exist.");
+
+            return createMethod.Invoke(null, args);
+        }
+
+        private static string GetStringProperty(object instance, string propertyName)
+        {
+            PropertyInfo property = instance.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            Assert.That(property, Is.Not.Null, $"Expected property '{propertyName}' to exist.");
+            return property.GetValue(instance) as string;
+        }
+    }
+}
