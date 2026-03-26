@@ -44,15 +44,22 @@ namespace LFramework.Editor.Inspector
                 EditorGUILayout.HelpBox("Entrance procedure is invalid.", MessageType.Error);
             }
 
-
             EditorGUI.BeginDisabledGroup(EditorApplication.isPlayingOrWillChangePlaymode);
             {
-                GUILayout.Label("Available Procedures", EditorStyles.boldLabel);
+                DrawSectionHeader("Available Procedures", "Procedures discovered across runtime assemblies.");
+
                 if (m_ProcedureTypeNames.Length > 0)
                 {
-                    EditorGUILayout.BeginVertical("box");
+                    var procedureGroups = GroupProceduresByAssembly(m_ProcedureTypeNames);
+                    var sortedAssemblies = SortAssemblyNames(procedureGroups.Keys);
+
+                    EditorGUILayout.BeginVertical(EditorStyles.helpBox);
                     {
-                        DrawProceduresByAssembly(m_ProcedureTypeNames, "Runtime");
+                        EditorGUILayout.LabelField(
+                            $"{m_ProcedureTypeNames.Length} procedures across {procedureGroups.Count} assemblies.",
+                            EditorStyles.wordWrappedMiniLabel);
+                        GUILayout.Space(6f);
+                        DrawProceduresByAssembly(procedureGroups, sortedAssemblies, "Runtime");
                     }
                     EditorGUILayout.EndVertical();
                 }
@@ -61,36 +68,25 @@ namespace LFramework.Editor.Inspector
                     EditorGUILayout.HelpBox("There is no available procedure.", MessageType.Warning);
                 }
 
-                if (m_CurrentAvailableProcedureTypeNames.Count > 0)
-                {
-                    EditorGUILayout.Separator();
+                GUILayout.Space(12f);
+                DrawSelectionCard(
+                    "Entrance Procedure",
+                    "Select the procedure that runs first when the framework starts.",
+                    m_CurrentAvailableProcedureTypeNames,
+                    ref m_EntranceProcedureIndex,
+                    m_EntranceProcedureTypeName,
+                    "Select available procedures first.");
 
-                    int selectedIndex = EditorGUILayout.Popup("Entrance Procedure", m_EntranceProcedureIndex,
-                        m_CurrentAvailableProcedureTypeNames.ToArray());
-                    if (selectedIndex != m_EntranceProcedureIndex)
-                    {
-                        m_EntranceProcedureIndex = selectedIndex;
-                        m_EntranceProcedureTypeName.stringValue = m_CurrentAvailableProcedureTypeNames[selectedIndex];
-                    }
-                }
-                else
+                if (m_CurrentAvailableHotfixProcedureTypeNames != null)
                 {
-                    EditorGUILayout.HelpBox("Select available procedures first.", MessageType.Info);
-                }
-
-                if (m_CurrentAvailableHotfixProcedureTypeNames != null &&
-                    m_CurrentAvailableHotfixProcedureTypeNames.Count > 0)
-                {
-                    EditorGUILayout.Separator();
-
-                    int selectedIndex = EditorGUILayout.Popup("Hotfix Entrance Procedure",
-                        m_HotfixEntranceProcedureIndex, m_CurrentAvailableHotfixProcedureTypeNames.ToArray());
-                    if (selectedIndex != m_HotfixEntranceProcedureIndex)
-                    {
-                        m_HotfixEntranceProcedureIndex = selectedIndex;
-                        m_HotfixEntranceProcedureTypeName.stringValue =
-                            m_CurrentAvailableHotfixProcedureTypeNames[selectedIndex];
-                    }
+                    GUILayout.Space(12f);
+                    DrawSelectionCard(
+                        "Hotfix Entrance Procedure",
+                        "Pick the hotfix entry point when hotfix assemblies are enabled.",
+                        m_CurrentAvailableHotfixProcedureTypeNames,
+                        ref m_HotfixEntranceProcedureIndex,
+                        m_HotfixEntranceProcedureTypeName,
+                        "Enable hotfix assemblies to populate this list.");
                 }
             }
             EditorGUI.EndDisabledGroup();
@@ -286,47 +282,89 @@ namespace LFramework.Editor.Inspector
         /// <summary>
         /// 绘制按程序集分组的 procedures
         /// </summary>
-        private void DrawProceduresByAssembly(string[] procedureTypeNames, string category)
+        private void DrawProceduresByAssembly(Dictionary<string, List<string>> groups, List<string> sortedAssemblies,
+            string category)
         {
-            var groups = GroupProceduresByAssembly(procedureTypeNames);
-            var sortedAssemblies = SortAssemblyNames(groups.Keys);
-
             foreach (string assemblyName in sortedAssemblies)
             {
                 string sessionKey = SessionStateKeyPrefix + category + "." + assemblyName;
                 bool foldout = SessionState.GetBool(sessionKey, true);
 
-                bool newFoldout = EditorGUILayout.Foldout(foldout, assemblyName, true);
+                var procedures = groups[assemblyName];
+                string label = $"{assemblyName} ({procedures.Count})";
+                bool newFoldout = EditorGUILayout.Foldout(foldout, label, true);
                 if (newFoldout != foldout)
                 {
                     SessionState.SetBool(sessionKey, newFoldout);
                 }
 
-                if (newFoldout)
+                if (!newFoldout)
                 {
-                    EditorGUI.indentLevel++;
+                    continue;
+                }
 
-                    foreach (string procedureTypeName in groups[assemblyName])
+                EditorGUI.indentLevel++;
+
+                foreach (string procedureTypeName in procedures)
+                {
+                    bool selected = m_CurrentAvailableProcedureTypeNames.Contains(procedureTypeName);
+                    bool toggled = EditorGUILayout.ToggleLeft(procedureTypeName, selected);
+                    if (toggled != selected)
                     {
-                        bool selected = m_CurrentAvailableProcedureTypeNames.Contains(procedureTypeName);
-                        if (selected != EditorGUILayout.ToggleLeft(procedureTypeName, selected))
+                        if (toggled)
                         {
-                            if (!selected)
-                            {
-                                m_CurrentAvailableProcedureTypeNames.Add(procedureTypeName);
-                                WriteAvailableProcedureTypeNames();
-                            }
-                            else if (procedureTypeName != m_EntranceProcedureTypeName.stringValue)
-                            {
-                                m_CurrentAvailableProcedureTypeNames.Remove(procedureTypeName);
-                                WriteAvailableProcedureTypeNames();
-                            }
+                            m_CurrentAvailableProcedureTypeNames.Add(procedureTypeName);
                         }
-                    }
+                        else if (procedureTypeName != m_EntranceProcedureTypeName.stringValue)
+                        {
+                            m_CurrentAvailableProcedureTypeNames.Remove(procedureTypeName);
+                        }
 
-                    EditorGUI.indentLevel--;
+                        WriteAvailableProcedureTypeNames();
+                    }
+                }
+
+                EditorGUI.indentLevel--;
+            }
+        }
+
+        private void DrawSelectionCard(string title, string description, List<string> options, ref int index,
+            SerializedProperty property, string emptyMessage)
+        {
+            EditorGUILayout.LabelField(title, EditorStyles.boldLabel);
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            {
+                EditorGUILayout.LabelField(description, EditorStyles.wordWrappedMiniLabel);
+                GUILayout.Space(6f);
+
+                if (options == null || options.Count == 0)
+                {
+                    EditorGUILayout.HelpBox(emptyMessage, MessageType.Info);
+                }
+                else
+                {
+                    int clampedIndex = Mathf.Clamp(index, 0, options.Count - 1);
+                    int selectedIndex = EditorGUILayout.Popup(string.Empty, clampedIndex, options.ToArray());
+                    if (selectedIndex != index)
+                    {
+                        index = selectedIndex;
+                        property.stringValue = options[selectedIndex];
+                    }
                 }
             }
+            EditorGUILayout.EndVertical();
+        }
+
+        private void DrawSectionHeader(string title, string subtitle)
+        {
+            EditorGUILayout.LabelField(title, EditorStyles.boldLabel);
+            if (!string.IsNullOrEmpty(subtitle))
+            {
+                EditorGUILayout.LabelField(subtitle, EditorStyles.wordWrappedMiniLabel);
+            }
+
+            GUILayout.Space(6f);
         }
     }
 }
+
