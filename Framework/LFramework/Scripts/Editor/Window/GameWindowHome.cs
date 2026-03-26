@@ -635,7 +635,7 @@ namespace LFramework.Editor
 
             // 右列 - Scripting Define Symbols 状态
             y = rect.y + 8;
-            bool hasHybridCLR = HasScriptingDefine("USE_HybridCLR");
+            bool hasHybridCLR = HasScriptingDefine("HybridCLR_SUPPORT");
             bool hasYooAsset = HasScriptingDefine("YOOASSET_SUPPORT");
 
             DrawDefineSymbolRow(col2X, y, "HybridCLR", hasHybridCLR);

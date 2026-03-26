@@ -27,7 +27,7 @@
         {
             "name": "com.code-philosophy.hybridclr",
             "expression": "",
-            "define": "USE_HybridCLR"
+            "define": "HybridCLR_SUPPORT"
         },
         {
             "name": "com.tuyoogame.yooasset",

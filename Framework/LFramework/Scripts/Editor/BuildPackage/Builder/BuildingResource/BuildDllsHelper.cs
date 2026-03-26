@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-#if USE_HybridCLR
+#if HybridCLR_SUPPORT
 using HybridCLR.Editor;
 using HybridCLR.Editor.AOT;
 using HybridCLR.Editor.Commands;
@@ -32,7 +32,7 @@ namespace LFramework.Editor
     {
         public static bool CopyDll(BuildSetting buildSetting, HybridCLRSetting hybridClrSetting,string backAotFolder)
         {
-#if USE_HybridCLR
+#if HybridCLR_SUPPORT
             var registrar = CreateRegistrar(buildSetting.resourceSystem);
             if (registrar == null)
             {
@@ -55,7 +55,7 @@ namespace LFramework.Editor
 
         public static bool BuildDll(bool isBuildApp, string backAotFolder)
         {
-#if USE_HybridCLR
+#if HybridCLR_SUPPORT
             CheckInstallHybridClr();
 
             if (isBuildApp)
@@ -79,7 +79,7 @@ namespace LFramework.Editor
             return true;
         }
 
-#if USE_HybridCLR
+#if HybridCLR_SUPPORT
         /// <summary>
         /// 根据 ResourceMode 创建对应的 DLL 资源注册器
         /// </summary>

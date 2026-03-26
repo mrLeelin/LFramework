@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 
-#if USE_HybridCLR
+#if HybridCLR_SUPPORT
 using HybridCLR.Editor.Settings;
 #endif
 
@@ -42,7 +42,7 @@ namespace LFramework.Editor.Builder
 
         private static void EnsureProjectSettingsSynchronized()
         {
-#if USE_HybridCLR
+#if HybridCLR_SUPPORT
             var runtimeSetting = SettingManager.GetSetting<HybridCLRSetting>();
             if (runtimeSetting == null)
             {
@@ -73,7 +73,7 @@ namespace LFramework.Editor.Builder
             }
         }
 
-#if USE_HybridCLR
+#if HybridCLR_SUPPORT
         private static string[] ResolveHotUpdateAssemblyNames(HybridCLRSetting runtimeSetting)
         {
             var sourceAssemblies = runtimeSetting.hotfixAssembliesSort ?? new List<string>();

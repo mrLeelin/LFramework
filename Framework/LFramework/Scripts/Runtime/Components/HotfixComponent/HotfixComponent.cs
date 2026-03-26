@@ -6,7 +6,7 @@ using System.Reflection;
 using GameFramework;
 using Cysharp.Threading.Tasks;
 
-#if USE_HybridCLR
+#if HybridCLR_SUPPORT
 using HybridCLR;
 #endif
 
@@ -78,7 +78,7 @@ namespace LFramework.Runtime
             HotfixCodeResult result = default;
 #if UNITY_EDITOR
             result = LoadEditorHotfixAssemblies();
-#elif USE_HybridCLR
+#elif HybridCLR_SUPPORT
             result = await LoadAotAssemblies();
             if (result.ResultType == LoadAssemblyResultType.Successful)
             {
@@ -185,7 +185,7 @@ namespace LFramework.Runtime
         }
 #endif
 
-#if USE_HybridCLR
+#if HybridCLR_SUPPORT
         /// <summary>
         /// 加载Aot代码
         /// </summary>
@@ -249,7 +249,7 @@ namespace LFramework.Runtime
 #endif
 
 
-#if USE_HybridCLR
+#if HybridCLR_SUPPORT
 
         /// <summary>
         /// 加载热更代码
