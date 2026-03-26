@@ -108,3 +108,81 @@ namespace LFramework.Editor.Tests.BuildPackage
         }
     }
 }
+
+namespace LFramework.Editor.Tests.Window
+{
+    public class GameWindowPageDescriptorTests
+    {
+        [Test]
+        public void CreateForComponent_ReturnsNull_WhenTypeNameMissing()
+        {
+            object descriptor = InvokeFactory("CreateForComponent", null, null);
+
+            Assert.That(descriptor, Is.Null);
+        }
+
+        [Test]
+        public void CreateForComponent_BuildsFrameworkSettingDescriptor()
+        {
+            object descriptor = InvokeFactory(
+                "CreateForComponent",
+                "BaseComponentSetting",
+                "LFramework.Runtime.BaseComponent");
+
+            Assert.That(descriptor, Is.Not.Null);
+            Assert.That(GetStringProperty(descriptor, "ContextLabel"), Is.EqualTo("Framework Setting"));
+            Assert.That(GetStringProperty(descriptor, "Title"), Is.EqualTo("Base"));
+            Assert.That(GetStringProperty(descriptor, "Subtitle"), Is.EqualTo("LFramework.Runtime.BaseComponent"));
+        }
+
+        [Test]
+        public void CreateForProfiled_BuildsFrameworkProfiledDescriptor_FromExplicitMetadata()
+        {
+            object descriptor = InvokeFactory(
+                "CreateForProfiled",
+                "RuntimeCountersProfiled",
+                "Runtime Counters",
+                "Live component metrics");
+
+            Assert.That(descriptor, Is.Not.Null);
+            Assert.That(GetStringProperty(descriptor, "ContextLabel"), Is.EqualTo("Framework Profiled"));
+            Assert.That(GetStringProperty(descriptor, "Title"), Is.EqualTo("Runtime Counters"));
+            Assert.That(GetStringProperty(descriptor, "Subtitle"), Is.EqualTo("Live component metrics"));
+        }
+
+        [Test]
+        public void CreateForProfiled_StripsProfiledSuffix_WhenExplicitTitleMissing()
+        {
+            object descriptor = InvokeFactory(
+                "CreateForProfiled",
+                "NetworkOverviewProfiled",
+                null,
+                null);
+
+            Assert.That(descriptor, Is.Not.Null);
+            Assert.That(GetStringProperty(descriptor, "ContextLabel"), Is.EqualTo("Framework Profiled"));
+            Assert.That(GetStringProperty(descriptor, "Title"), Is.EqualTo("Network Overview"));
+            Assert.That(GetStringProperty(descriptor, "Subtitle"), Is.EqualTo("NetworkOverviewProfiled"));
+        }
+
+        private static object InvokeFactory(string methodName, params object[] args)
+        {
+            Assembly editorAssembly = Assembly.Load("LFramework.Editor");
+            System.Type factoryType = editorAssembly.GetType("LFramework.Editor.Window.GameWindowPageDescriptorFactory");
+
+            Assert.That(factoryType, Is.Not.Null, "Expected GameWindowPageDescriptorFactory to exist in LFramework.Editor.");
+
+            MethodInfo createMethod = factoryType.GetMethod(methodName, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+            Assert.That(createMethod, Is.Not.Null, $"Expected GameWindowPageDescriptorFactory.{methodName} to exist.");
+
+            return createMethod.Invoke(null, args);
+        }
+
+        private static string GetStringProperty(object instance, string propertyName)
+        {
+            PropertyInfo property = instance.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            Assert.That(property, Is.Not.Null, $"Expected property '{propertyName}' to exist.");
+            return property.GetValue(instance) as string;
+        }
+    }
+}
