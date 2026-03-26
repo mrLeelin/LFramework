@@ -1,4 +1,4 @@
-﻿
+using LFramework.Editor;
 using UnityEditor;
 using UnityGameFramework.Runtime;
 
@@ -13,15 +13,25 @@ namespace LFramework.Editor.Window
         internal override void Draw()
         {
             GetComponent(ref _procedureComponent);
+            if (_procedureComponent == null)
+            {
+                EditorGUILayout.HelpBox("ProcedureComponent is unavailable in the current runtime context.", MessageType.Info);
+                return;
+            }
 
-            EditorGUILayout.LabelField("Current Procedure",
+            GameWindowChrome.DrawCompactHeader("Procedure Overview");
+            EditorGUILayout.BeginVertical("box");
+            EditorGUILayout.LabelField(
+                "Current Procedure",
                 _procedureComponent.CurrentProcedure == null
                     ? "None"
                     : _procedureComponent.CurrentProcedure.GetType().ToString());
-            EditorGUILayout.LabelField("Current Procedure Time",
+            EditorGUILayout.LabelField(
+                "Current Procedure Time",
                 _procedureComponent.CurrentProcedure == null
                     ? "N/A"
                     : $"{_procedureComponent.CurrentProcedureTime:F1}s");
+            EditorGUILayout.EndVertical();
         }
     }
 }

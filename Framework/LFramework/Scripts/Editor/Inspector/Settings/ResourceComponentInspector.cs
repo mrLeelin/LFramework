@@ -1,5 +1,6 @@
 using System;
 using GameFramework.Resource;
+using LFramework.Editor;
 using LFramework.Runtime.Settings;
 using UnityEditor;
 using UnityEngine;
@@ -11,92 +12,42 @@ namespace LFramework.Editor.Inspector
     [CustomEditor(typeof(ResourceComponentSetting))]
     internal sealed class ResourceComponentInspector : ComponentSettingInspector
     {
-        private static readonly Color AccentColor = new Color(0.18f, 0.67f, 0.94f);
-        private static readonly Color CardLight = new Color(0.96f, 0.97f, 0.99f, 1f);
-        private static readonly Color CardDark = new Color(0.20f, 0.22f, 0.25f, 1f);
-        private static readonly Color MutedTextLight = new Color(0.35f, 0.39f, 0.44f);
-        private static readonly Color MutedTextDark = new Color(0.67f, 0.71f, 0.76f);
-
-        private SerializedProperty m_ResourceMode;
-        private SerializedProperty m_MinUnloadInterval;
-        private SerializedProperty m_MaxUnloadInterval;
-        private SerializedProperty m_YooAssetPackageName;
-        private SerializedProperty m_YooAssetPlayMode;
+        private SerializedProperty m_ResourceMode = null;
+        private SerializedProperty m_MinUnloadInterval = null;
+        private SerializedProperty m_MaxUnloadInterval = null;
+        private SerializedProperty m_YooAssetPackageName = null;
+        private SerializedProperty m_YooAssetPlayMode = null;
         private SerializedProperty m_AddressableHotfixProfileName;
 
-        private readonly HelperInfo<ResourceHelperBase> m_ResourceHelperInfo = new HelperInfo<ResourceHelperBase>("Resource");
-
-        private GUIStyle _cardTitleStyle;
-        private GUIStyle _cardValueStyle;
-        private GUIStyle _cardDetailStyle;
-        private GUIStyle _sectionHeaderStyle;
-        private GUIStyle _sectionDetailStyle;
-        private GUIStyle _buttonStyle;
-        private bool _stylesInitialized;
+        private HelperInfo<ResourceHelperBase> m_ResourceHelperInfo = new HelperInfo<ResourceHelperBase>("Resource");
 
         public override void OnInspectorGUI()
         {
             base.OnInspectorGUI();
 
             serializedObject.Update();
-            EnsureStyles();
+            EditorGUILayout.Space(4f);
 
-            using (new EditorGUI.DisabledGroupScope(EditorApplication.isPlayingOrWillChangePlaymode))
+            EditorGUI.BeginDisabledGroup(EditorApplication.isPlayingOrWillChangePlaymode);
             {
-                DrawOverviewCard();
-                GUILayout.Space(8f);
-
-                DrawSection(
-                    "Pipeline",
-                    "Select the active resource backend and the helper implementation that will bridge GameFramework and the chosen pipeline.",
-                    () =>
-                    {
-                        EditorGUILayout.PropertyField(m_ResourceMode);
-                        m_ResourceHelperInfo.Draw();
-                    });
-
-                DrawSection(
-                    "Release Strategy",
-                    "Tune the unload cadence that controls how aggressively unused assets are released back to the runtime.",
-                    () =>
-                    {
-                        EditorGUILayout.PropertyField(m_MinUnloadInterval);
-                        EditorGUILayout.PropertyField(m_MaxUnloadInterval);
-                    });
-
-                if (m_ResourceMode.enumValueIndex == (int)ResourceMode.YooAsset)
-                {
-                    DrawSection(
-                        "YooAsset Runtime",
-                        "Configure the package name and play mode used by the YooAsset backend in editor and runtime flows.",
-                        () =>
-                        {
-                            EditorGUILayout.PropertyField(m_YooAssetPackageName);
-                            EditorGUILayout.PropertyField(m_YooAssetPlayMode);
-                        });
-                }
-                else
-                {
-                    DrawSection(
-                        "Addressables Runtime",
-                        "Select the Addressables hotfix profile that should be used when the pipeline switches away from YooAsset.",
-                        () =>
-                        {
-                            EditorGUILayout.PropertyField(m_AddressableHotfixProfileName);
-                        });
-                }
-
+                DrawOverviewBanner();
+                DrawPipelineSection();
+                DrawReleaseSection();
+                DrawBackendSection();
                 DrawMigrationSection();
             }
+            EditorGUI.EndDisabledGroup();
 
             serializedObject.ApplyModifiedProperties();
+
             Repaint();
         }
 
         protected override void OnCompileComplete()
         {
             base.OnCompileComplete();
-            RefreshInspectorState();
+
+            RefreshTypeNames();
         }
 
         protected override void OnEnable()
@@ -107,57 +58,50 @@ namespace LFramework.Editor.Inspector
             m_YooAssetPackageName = serializedObject.FindProperty("_yooAssetPackageName");
             m_YooAssetPlayMode = serializedObject.FindProperty("_yooAssetPlayMode");
             m_AddressableHotfixProfileName = serializedObject.FindProperty("_hotfixProfileName");
-
+            
             m_ResourceHelperInfo.Init(serializedObject);
-            RefreshInspectorState();
+
+            RefreshTypeNames();
         }
 
-        private void DrawOverviewCard()
+        private void RefreshTypeNames()
         {
-            Rect rect = GUILayoutUtility.GetRect(0f, 104f, GUILayout.ExpandWidth(true));
-            DrawCard(rect);
-
-            GUI.Label(new Rect(rect.x + 16f, rect.y + 10f, rect.width - 32f, 18f), "Resource Pipeline Summary", _cardTitleStyle);
-            GUI.Label(new Rect(rect.x + 16f, rect.y + 30f, rect.width - 32f, 24f), GetModeTitle(), _cardValueStyle);
-            GUI.Label(new Rect(rect.x + 16f, rect.y + 56f, rect.width - 32f, 18f), GetModeDetail(), _cardDetailStyle);
-            GUI.Label(new Rect(rect.x + 16f, rect.y + 76f, rect.width - 32f, 18f), GetReleaseDetail(), _sectionDetailStyle);
+            m_ResourceHelperInfo.Refresh();
+            serializedObject.ApplyModifiedProperties();
         }
 
-        private void DrawSection(string title, string detail, Action drawContent)
+        private void DrawMigrationButtons()
         {
-            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+            bool useVerticalButtons = EditorGUIUtility.currentViewWidth < 650f;
+
+            if (useVerticalButtons)
             {
-                EditorGUILayout.LabelField(title, _sectionHeaderStyle);
-                EditorGUILayout.LabelField(detail, _sectionDetailStyle);
-                GUILayout.Space(6f);
-                drawContent?.Invoke();
+                if (GUILayout.Button("YooAssets -> Addressables", GUILayout.Height(28f)))
+                {
+                    ExecuteMigration(
+                        "This will rebuild generated Addressable groups and move matching entries. Continue?",
+                        ResourceConfigMigrationHelper.ConvertYooAssetsToAddressables);
+                }
+
+                if (GUILayout.Button("Addressables -> YooAssets", GUILayout.Height(28f)))
+                {
+                    ExecuteMigration(
+                        "This will rebuild the target YooAssets package collectors. Continue?",
+                        ResourceConfigMigrationHelper.ConvertAddressablesToYooAssets);
+                }
             }
-
-            GUILayout.Space(6f);
-        }
-
-        private void DrawMigrationSection()
-        {
-            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+            else
             {
-                EditorGUILayout.LabelField("Resource Migration", _sectionHeaderStyle);
-                EditorGUILayout.LabelField(
-                    "Rebuild the generated pipeline configuration when you need to switch resource ownership between YooAsset and Addressables.",
-                    _sectionDetailStyle);
-                EditorGUILayout.HelpBox(
-                    "Main thread handles Unity APIs. Worker threads handle validation, conflict checks, and migration planning.",
-                    MessageType.Info);
-
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    if (DrawActionButton("YooAssets -> Addressables"))
+                    if (GUILayout.Button("YooAssets -> Addressables", GUILayout.Height(28f)))
                     {
                         ExecuteMigration(
                             "This will rebuild generated Addressable groups and move matching entries. Continue?",
                             ResourceConfigMigrationHelper.ConvertYooAssetsToAddressables);
                     }
 
-                    if (DrawActionButton("Addressables -> YooAssets"))
+                    if (GUILayout.Button("Addressables -> YooAssets", GUILayout.Height(28f)))
                     {
                         ExecuteMigration(
                             "This will rebuild the target YooAssets package collectors. Continue?",
@@ -165,49 +109,6 @@ namespace LFramework.Editor.Inspector
                     }
                 }
             }
-        }
-
-        private bool DrawActionButton(string label)
-        {
-            Color previousColor = GUI.backgroundColor;
-            GUI.backgroundColor = AccentColor;
-            bool clicked = GUILayout.Button(label, _buttonStyle, GUILayout.Height(30f));
-            GUI.backgroundColor = previousColor;
-            return clicked;
-        }
-
-        private void RefreshInspectorState()
-        {
-            m_ResourceHelperInfo.Refresh();
-        }
-
-        private string GetModeTitle()
-        {
-            return m_ResourceMode.enumValueIndex == (int)ResourceMode.YooAsset
-                ? "YooAsset Delivery"
-                : "Addressables Delivery";
-        }
-
-        private string GetModeDetail()
-        {
-            if (m_ResourceMode.enumValueIndex == (int)ResourceMode.YooAsset)
-            {
-                string packageName = string.IsNullOrWhiteSpace(m_YooAssetPackageName.stringValue)
-                    ? "DefaultPackage"
-                    : m_YooAssetPackageName.stringValue;
-                string playMode = m_YooAssetPlayMode.enumDisplayNames[m_YooAssetPlayMode.enumValueIndex];
-                return $"Package {packageName} · Play Mode {playMode}";
-            }
-
-            string profileName = string.IsNullOrWhiteSpace(m_AddressableHotfixProfileName.stringValue)
-                ? "No hotfix profile configured"
-                : m_AddressableHotfixProfileName.stringValue;
-            return $"Profile {profileName}";
-        }
-
-        private string GetReleaseDetail()
-        {
-            return $"Unload cadence {m_MinUnloadInterval.floatValue:F0}s to {m_MaxUnloadInterval.floatValue:F0}s";
         }
 
         private void ExecuteMigration(
@@ -225,59 +126,99 @@ namespace LFramework.Editor.Inspector
             EditorUtility.DisplayDialog(dialogTitle, dialogBody, "OK");
         }
 
-        private void EnsureStyles()
+        private void DrawOverviewBanner()
         {
-            if (_stylesInitialized)
+            string modeName = m_ResourceMode.enumDisplayNames[m_ResourceMode.enumValueIndex];
+            string message = m_ResourceMode.enumValueIndex == (int)ResourceMode.YooAsset
+                ? "YooAsset is active. Package name, play mode, and migration actions are shown below."
+                : "Addressables is active. Hotfix profile configuration and migration actions are shown below.";
+
+            EditorGUILayout.HelpBox($"Active Mode: {modeName}\n{message}", MessageType.Info);
+        }
+
+        private void DrawPipelineSection()
+        {
+            BeginSection("Pipeline", "Select the active runtime backend and the helper that serves it.");
+            EditorGUILayout.PropertyField(m_ResourceMode);
+            m_ResourceHelperInfo.Draw();
+            EndSection();
+        }
+
+        private void DrawReleaseSection()
+        {
+            BeginSection("Release Policy", "Tune how aggressively unused resources are released at runtime.");
+            EditorGUILayout.PropertyField(m_MinUnloadInterval);
+            EditorGUILayout.PropertyField(m_MaxUnloadInterval);
+
+            if (m_MinUnloadInterval.floatValue > m_MaxUnloadInterval.floatValue)
             {
+                EditorGUILayout.HelpBox(
+                    "Min Unload Interval is greater than Max Unload Interval. Runtime release cadence may become confusing.",
+                    MessageType.Warning);
+            }
+            else
+            {
+                EditorGUILayout.HelpBox(
+                    $"Unload Window: {m_MinUnloadInterval.floatValue:0.##}s - {m_MaxUnloadInterval.floatValue:0.##}s",
+                    MessageType.None);
+            }
+
+            EndSection();
+        }
+
+        private void DrawBackendSection()
+        {
+            if (m_ResourceMode.enumValueIndex == (int)ResourceMode.YooAsset)
+            {
+                BeginSection("YooAsset Settings", "Configure the package identity and editor/runtime play mode.");
+                EditorGUILayout.PropertyField(m_YooAssetPackageName);
+                EditorGUILayout.PropertyField(m_YooAssetPlayMode);
+
+                if (string.IsNullOrWhiteSpace(m_YooAssetPackageName.stringValue))
+                {
+                    EditorGUILayout.HelpBox("Package name is empty. YooAsset initialization will need a valid package name.", MessageType.Warning);
+                }
+
+                EndSection();
                 return;
             }
 
-            _stylesInitialized = true;
+            BeginSection("Addressables Settings", "Configure the hotfix profile used by the Addressables pipeline.");
+            EditorGUILayout.PropertyField(m_AddressableHotfixProfileName);
 
-            _cardTitleStyle = new GUIStyle(EditorStyles.miniBoldLabel)
+            if (string.IsNullOrWhiteSpace(m_AddressableHotfixProfileName.stringValue))
             {
-                fontSize = 10,
-                alignment = TextAnchor.MiddleLeft,
-            };
+                EditorGUILayout.HelpBox("Hotfix profile name is empty. Addressables hotfix content may not resolve the expected profile.", MessageType.Warning);
+            }
+            else
+            {
+                EditorGUILayout.HelpBox($"Hotfix Profile: {m_AddressableHotfixProfileName.stringValue}", MessageType.None);
+            }
 
-            _cardValueStyle = new GUIStyle(EditorStyles.boldLabel)
-            {
-                fontSize = 18,
-                alignment = TextAnchor.MiddleLeft,
-            };
-
-            _cardDetailStyle = new GUIStyle(EditorStyles.label)
-            {
-                fontSize = 11,
-                alignment = TextAnchor.MiddleLeft,
-            };
-            _cardDetailStyle.normal.textColor = EditorGUIUtility.isProSkin ? Color.white : new Color(0.16f, 0.18f, 0.21f);
-
-            _sectionHeaderStyle = new GUIStyle(EditorStyles.boldLabel)
-            {
-                fontSize = 12,
-                alignment = TextAnchor.MiddleLeft,
-            };
-
-            _sectionDetailStyle = new GUIStyle(EditorStyles.label)
-            {
-                fontSize = 11,
-                wordWrap = true,
-            };
-            _sectionDetailStyle.normal.textColor = EditorGUIUtility.isProSkin ? MutedTextDark : MutedTextLight;
-
-            _buttonStyle = new GUIStyle(GUI.skin.button)
-            {
-                fontSize = 11,
-                padding = new RectOffset(12, 12, 6, 6),
-            };
+            EndSection();
         }
 
-        private void DrawCard(Rect rect)
+        private void DrawMigrationSection()
         {
-            EditorGUI.DrawRect(rect, EditorGUIUtility.isProSkin ? CardDark : CardLight);
-            EditorGUI.DrawRect(new Rect(rect.x, rect.y, 4f, rect.height), AccentColor);
-            EditorGUI.DrawRect(new Rect(rect.x, rect.y, rect.width, 2f), new Color(AccentColor.r, AccentColor.g, AccentColor.b, 0.45f));
+            BeginSection("Migration Tools", "Rebuild generated configuration when switching between YooAsset and Addressables.");
+            EditorGUILayout.HelpBox(
+                "Both migration actions keep Unity-side APIs on the main thread and generate a report path after completion.",
+                MessageType.Info);
+            DrawMigrationButtons();
+            EndSection();
+        }
+
+        private static void BeginSection(string title, string subtitle)
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            GameWindowChrome.DrawCompactHeader(title, subtitle);
+            EditorGUILayout.Space(4f);
+        }
+
+        private static void EndSection()
+        {
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.Space(4f);
         }
     }
 }

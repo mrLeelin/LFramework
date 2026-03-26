@@ -1,4 +1,4 @@
-﻿
+using LFramework.Editor;
 using LFramework.Runtime.Settings;
 using UnityEditor;
 using UnityGameFramework.Editor;
@@ -22,90 +22,32 @@ namespace LFramework.Editor.Inspector
         private SerializedProperty m_UIGroups = null;
         private SerializedProperty m_InstanceRootOffset = null;
 
-        private HelperInfo<UIFormHelperBase> m_UIFormHelperInfo = new HelperInfo<UIFormHelperBase>("UIForm");
-        private HelperInfo<UIGroupHelperBase> m_UIGroupHelperInfo = new HelperInfo<UIGroupHelperBase>("UIGroup");
+        private readonly HelperInfo<UIFormHelperBase> m_UIFormHelperInfo = new HelperInfo<UIFormHelperBase>("UIForm");
+        private readonly HelperInfo<UIGroupHelperBase> m_UIGroupHelperInfo = new HelperInfo<UIGroupHelperBase>("UIGroup");
 
-    
         public override void OnInspectorGUI()
         {
             base.OnInspectorGUI();
-            var t = GetComponent<UIComponent>();
+            var component = GetComponent<UIComponent>();
             serializedObject.Update();
-            
-            EditorGUI.BeginDisabledGroup(EditorApplication.isPlayingOrWillChangePlaymode);
-            {
-                EditorGUILayout.PropertyField(m_EnableOpenUIFormSuccessEvent);
-                EditorGUILayout.PropertyField(m_EnableOpenUIFormFailureEvent);
-                EditorGUILayout.PropertyField(m_EnableOpenUIFormUpdateEvent);
-                EditorGUILayout.PropertyField(m_EnableOpenUIFormDependencyAssetEvent);
-                EditorGUILayout.PropertyField(m_EnableCloseUIFormCompleteEvent);
-            }
-            EditorGUI.EndDisabledGroup();
-
-            float instanceAutoReleaseInterval = EditorGUILayout.DelayedFloatField("Instance Auto Release Interval",
-                m_InstanceAutoReleaseInterval.floatValue);
-            if (instanceAutoReleaseInterval != m_InstanceAutoReleaseInterval.floatValue)
-            {
-                if (EditorApplication.isPlaying)
-                {
-                    t.InstanceAutoReleaseInterval = instanceAutoReleaseInterval;
-                }
-                else
-                {
-                    m_InstanceAutoReleaseInterval.floatValue = instanceAutoReleaseInterval;
-                }
-            }
-
-            int instanceCapacity = EditorGUILayout.DelayedIntField("Instance Capacity", m_InstanceCapacity.intValue);
-            if (instanceCapacity != m_InstanceCapacity.intValue)
-            {
-                if (EditorApplication.isPlaying)
-                {
-                    t.InstanceCapacity = instanceCapacity;
-                }
-                else
-                {
-                    m_InstanceCapacity.intValue = instanceCapacity;
-                }
-            }
-
-            float instanceExpireTime =
-                EditorGUILayout.DelayedFloatField("Instance Expire Time", m_InstanceExpireTime.floatValue);
-            if (instanceExpireTime != m_InstanceExpireTime.floatValue)
-            {
-                if (EditorApplication.isPlaying)
-                {
-                    t.InstanceExpireTime = instanceExpireTime;
-                }
-                else
-                {
-                    m_InstanceExpireTime.floatValue = instanceExpireTime;
-                }
-            }
-
-            int instancePriority = EditorGUILayout.DelayedIntField("Instance Priority", m_InstancePriority.intValue);
-            if (instancePriority != m_InstancePriority.intValue)
-            {
-                if (EditorApplication.isPlaying)
-                {
-                    t.InstancePriority = instancePriority;
-                }
-                else
-                {
-                    m_InstancePriority.intValue = instancePriority;
-                }
-            }
+            EditorGUILayout.Space(4f);
+            DrawOverviewBanner();
 
             EditorGUI.BeginDisabledGroup(EditorApplication.isPlayingOrWillChangePlaymode);
             {
-                EditorGUILayout.PropertyField(m_InstanceRoot);
-                EditorGUILayout.PropertyField(m_InstanceRootOffset);
-                m_UIFormHelperInfo.Draw();
-                m_UIGroupHelperInfo.Draw();
-                EditorGUILayout.PropertyField(m_UIGroups, true);
+                DrawEventSection();
             }
             EditorGUI.EndDisabledGroup();
-            
+
+            DrawPoolSection(component);
+
+            EditorGUI.BeginDisabledGroup(EditorApplication.isPlayingOrWillChangePlaymode);
+            {
+                DrawHierarchySection();
+                DrawGroupSection();
+            }
+            EditorGUI.EndDisabledGroup();
+
             serializedObject.ApplyModifiedProperties();
 
             Repaint();
@@ -120,6 +62,7 @@ namespace LFramework.Editor.Inspector
 
         protected override void OnEnable()
         {
+            base.OnEnable();
             m_EnableOpenUIFormSuccessEvent = serializedObject.FindProperty("m_EnableOpenUIFormSuccessEvent");
             m_EnableOpenUIFormFailureEvent = serializedObject.FindProperty("m_EnableOpenUIFormFailureEvent");
             m_EnableOpenUIFormUpdateEvent = serializedObject.FindProperty("m_EnableOpenUIFormUpdateEvent");
@@ -144,6 +87,129 @@ namespace LFramework.Editor.Inspector
             m_UIFormHelperInfo.Refresh();
             m_UIGroupHelperInfo.Refresh();
             serializedObject.ApplyModifiedProperties();
+        }
+
+        private void DrawOverviewBanner()
+        {
+            string mode = EditorApplication.isPlaying ? "Live Runtime" : "Asset Edit";
+            EditorGUILayout.HelpBox(
+                $"Mode: {mode}  UI Groups: {m_UIGroups.arraySize}\n" +
+                "UI events, hierarchy setup, pool settings, and helper bindings are grouped below for faster inspection.",
+                MessageType.Info);
+        }
+
+        private void DrawEventSection()
+        {
+            BeginSection("Event Dispatch", "Choose which UI lifecycle events should be emitted by the framework.");
+            EditorGUILayout.PropertyField(m_EnableOpenUIFormSuccessEvent);
+            EditorGUILayout.PropertyField(m_EnableOpenUIFormFailureEvent);
+            EditorGUILayout.PropertyField(m_EnableOpenUIFormUpdateEvent);
+            EditorGUILayout.PropertyField(m_EnableOpenUIFormDependencyAssetEvent);
+            EditorGUILayout.PropertyField(m_EnableCloseUIFormCompleteEvent);
+            EndSection();
+        }
+
+        private void DrawPoolSection(UIComponent component)
+        {
+            BeginSection("Instance Pool", "These cache settings update live in Play Mode and control UI form instance recycling.");
+
+            float instanceAutoReleaseInterval = EditorGUILayout.DelayedFloatField(
+                "Instance Auto Release Interval",
+                m_InstanceAutoReleaseInterval.floatValue);
+            if (instanceAutoReleaseInterval != m_InstanceAutoReleaseInterval.floatValue)
+            {
+                if (EditorApplication.isPlaying)
+                {
+                    component.InstanceAutoReleaseInterval = instanceAutoReleaseInterval;
+                }
+                else
+                {
+                    m_InstanceAutoReleaseInterval.floatValue = instanceAutoReleaseInterval;
+                }
+            }
+
+            int instanceCapacity = EditorGUILayout.DelayedIntField("Instance Capacity", m_InstanceCapacity.intValue);
+            if (instanceCapacity != m_InstanceCapacity.intValue)
+            {
+                if (EditorApplication.isPlaying)
+                {
+                    component.InstanceCapacity = instanceCapacity;
+                }
+                else
+                {
+                    m_InstanceCapacity.intValue = instanceCapacity;
+                }
+            }
+
+            float instanceExpireTime = EditorGUILayout.DelayedFloatField(
+                "Instance Expire Time",
+                m_InstanceExpireTime.floatValue);
+            if (instanceExpireTime != m_InstanceExpireTime.floatValue)
+            {
+                if (EditorApplication.isPlaying)
+                {
+                    component.InstanceExpireTime = instanceExpireTime;
+                }
+                else
+                {
+                    m_InstanceExpireTime.floatValue = instanceExpireTime;
+                }
+            }
+
+            int instancePriority = EditorGUILayout.DelayedIntField("Instance Priority", m_InstancePriority.intValue);
+            if (instancePriority != m_InstancePriority.intValue)
+            {
+                if (EditorApplication.isPlaying)
+                {
+                    component.InstancePriority = instancePriority;
+                }
+                else
+                {
+                    m_InstancePriority.intValue = instancePriority;
+                }
+            }
+
+            EditorGUILayout.HelpBox(
+                $"Auto Release: {m_InstanceAutoReleaseInterval.floatValue:0.##}s  Capacity: {m_InstanceCapacity.intValue}  " +
+                $"Expire: {m_InstanceExpireTime.floatValue:0.##}s  Priority: {m_InstancePriority.intValue}",
+                MessageType.None);
+            EndSection();
+        }
+
+        private void DrawHierarchySection()
+        {
+            BeginSection("Hierarchy & Helpers", "Configure the UI root transform, root offset, and helper implementations.");
+            EditorGUILayout.PropertyField(m_InstanceRoot);
+            EditorGUILayout.PropertyField(m_InstanceRootOffset);
+            m_UIFormHelperInfo.Draw();
+            m_UIGroupHelperInfo.Draw();
+
+            if (m_InstanceRoot.objectReferenceValue == null)
+            {
+                EditorGUILayout.HelpBox("Instance Root is empty. UIComponent will create a runtime root automatically.", MessageType.Info);
+            }
+
+            EndSection();
+        }
+
+        private void DrawGroupSection()
+        {
+            BeginSection("UI Groups", "Configure UI group names and depths in the same order they should be created.");
+            EditorGUILayout.PropertyField(m_UIGroups, true);
+            EndSection();
+        }
+
+        private static void BeginSection(string title, string subtitle)
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            GameWindowChrome.DrawCompactHeader(title, subtitle);
+            EditorGUILayout.Space(4f);
+        }
+
+        private static void EndSection()
+        {
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.Space(4f);
         }
     }
 }

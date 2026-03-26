@@ -1,19 +1,14 @@
-using System.Collections;
-using System.Collections.Generic;
-using LFramework.Runtime;
+using LFramework.Editor;
 using LFramework.Runtime.Settings;
 using UnityEditor;
-using UnityEngine;
 
 namespace LFramework.Editor.Inspector
 {
-    
     [CustomEditor(typeof(SpriteCollectionComponentSetting))]
-    public class SpriteCollectionComponentInspector : ComponentSettingInspector
+    public sealed class SpriteCollectionComponentInspector : ComponentSettingInspector
     {
-
-        private SerializedProperty m_CheckCanReleaseInterval;
-        private SerializedProperty m_AutoReleaseInterval;
+        private SerializedProperty m_CheckCanReleaseInterval = null;
+        private SerializedProperty m_AutoReleaseInterval = null;
 
         protected override void OnEnable()
         {
@@ -26,12 +21,33 @@ namespace LFramework.Editor.Inspector
         {
             base.OnInspectorGUI();
             serializedObject.Update();
+            EditorGUILayout.Space(4f);
+            EditorGUILayout.HelpBox(
+                $"Check Interval: {m_CheckCanReleaseInterval.floatValue:0.##}s  Auto Release: {m_AutoReleaseInterval.floatValue:0.##}s\n" +
+                "Sprite collection release cadence is grouped below.",
+                MessageType.Info);
+
+            BeginSection("Release Policy", "Tune how often the collection checks for releasable sprites and performs auto release.");
             EditorGUILayout.PropertyField(m_CheckCanReleaseInterval);
             EditorGUILayout.PropertyField(m_AutoReleaseInterval);
+            EndSection();
+
             serializedObject.ApplyModifiedProperties();
 
             Repaint();
         }
-    }
 
+        private static void BeginSection(string title, string subtitle)
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            GameWindowChrome.DrawCompactHeader(title, subtitle);
+            EditorGUILayout.Space(4f);
+        }
+
+        private static void EndSection()
+        {
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.Space(4f);
+        }
+    }
 }
