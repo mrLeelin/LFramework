@@ -21,6 +21,7 @@ namespace LFramework.Editor.Window
         public Action<OdinMenuTree> BuildMenuTreeAction;
         private static List<IGameWindowExtend> _gameWindowExtends;
         private GameWindowHome _gameWindowHome;
+        private GameWindowLocalResourceServer _gameWindowLocalResourceServer;
 
 
         [MenuItem("LFramework/GameSetting")]
@@ -36,6 +37,7 @@ namespace LFramework.Editor.Window
         {
             base.OnEnable();
             _gameWindowHome = new GameWindowHome();
+            _gameWindowLocalResourceServer = new GameWindowLocalResourceServer();
             if (_allProfiled == null)
             {
                 _allProfiled = new List<ProfiledBase>();
@@ -65,6 +67,7 @@ namespace LFramework.Editor.Window
             var tree = new OdinMenuTree(supportsMultiSelect: true)
             {
                 { "Home", _gameWindowHome, EditorIcons.House },
+                { "Local Resource Server", _gameWindowLocalResourceServer, EditorIcons.SettingsCog },
             };
 
             //All Component Setting

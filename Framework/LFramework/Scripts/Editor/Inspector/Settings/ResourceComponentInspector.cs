@@ -5,7 +5,6 @@ using UnityEditor;
 using UnityEngine;
 using UnityGameFramework.Editor;
 using UnityGameFramework.Runtime;
-using LocalResourceServerController = LFramework.Editor.LocalResourceServerController;
 
 namespace LFramework.Editor.Inspector
 {
@@ -20,10 +19,6 @@ namespace LFramework.Editor.Inspector
         private SerializedProperty m_AddressableHotfixProfileName;
 
         private HelperInfo<ResourceHelperBase> m_ResourceHelperInfo = new HelperInfo<ResourceHelperBase>("Resource");
-        private LocalResourceServerController m_LocalResourceServerController;
-        private int m_LocalResourceServerPort;
-        private string m_LocalResourceServerMessage;
-        private MessageType m_LocalResourceServerMessageType = MessageType.Info;
 
         public override void OnInspectorGUI()
         {
@@ -58,8 +53,6 @@ namespace LFramework.Editor.Inspector
 
                 EditorGUILayout.Space();
                 DrawMigrationButtons();
-
-                DrawLocalResourceServerSection();
                 
             }
             EditorGUI.EndDisabledGroup();
@@ -88,9 +81,6 @@ namespace LFramework.Editor.Inspector
             m_ResourceHelperInfo.Init(serializedObject);
 
             RefreshTypeNames();
-
-            m_LocalResourceServerController = new LocalResourceServerController();
-            m_LocalResourceServerPort = m_LocalResourceServerController.Port;
         }
 
         private void RefreshTypeNames()
@@ -137,81 +127,6 @@ namespace LFramework.Editor.Inspector
             var dialogTitle = result.Success ? "Migration Success" : "Migration Failed";
             var dialogBody = $"{result.Summary}\nReport: {result.ReportPath}";
             EditorUtility.DisplayDialog(dialogTitle, dialogBody, "OK");
-        }
-
-        private void DrawLocalResourceServerSection()
-        {
-            if (m_LocalResourceServerController == null)
-            {
-                return;
-            }
-
-            EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Local Resource Server", EditorStyles.boldLabel);
-
-            EditorGUI.BeginDisabledGroup(m_LocalResourceServerController.IsRunning);
-            {
-                var portValue = EditorGUILayout.IntField("Port", m_LocalResourceServerPort);
-                if (portValue != m_LocalResourceServerPort)
-                {
-                    m_LocalResourceServerPort = portValue;
-                    m_LocalResourceServerController.Port = m_LocalResourceServerPort;
-                }
-            }
-            EditorGUI.EndDisabledGroup();
-
-            EditorGUI.BeginDisabledGroup(true);
-            {
-                EditorGUILayout.Toggle("Is Running", m_LocalResourceServerController.IsRunning);
-                EditorGUILayout.TextField("ServerData Path", m_LocalResourceServerController.RootDirectory ?? string.Empty);
-            }
-            EditorGUI.EndDisabledGroup();
-
-            using (new EditorGUILayout.HorizontalScope())
-            {
-                EditorGUI.BeginDisabledGroup(m_LocalResourceServerController.IsRunning);
-                if (GUILayout.Button("Start", GUILayout.Height(28)))
-                {
-                    TryStartLocalResourceServer();
-                }
-                EditorGUI.EndDisabledGroup();
-
-                EditorGUI.BeginDisabledGroup(!m_LocalResourceServerController.IsRunning);
-                if (GUILayout.Button("Stop", GUILayout.Height(28)))
-                {
-                    m_LocalResourceServerController.Stop();
-                    m_LocalResourceServerMessage = "Local resource server stopped.";
-                    m_LocalResourceServerMessageType = MessageType.Info;
-                }
-                EditorGUI.EndDisabledGroup();
-            }
-
-            if (!string.IsNullOrEmpty(m_LocalResourceServerMessage))
-            {
-                EditorGUILayout.HelpBox(m_LocalResourceServerMessage, m_LocalResourceServerMessageType);
-            }
-        }
-
-        private void TryStartLocalResourceServer()
-        {
-            if (m_LocalResourceServerController == null)
-            {
-                return;
-            }
-
-            m_LocalResourceServerController.EnsureServerDataDirectory();
-            m_LocalResourceServerController.Port = m_LocalResourceServerPort;
-
-            if (m_LocalResourceServerController.TryStart(out string errorMessage))
-            {
-                m_LocalResourceServerMessage = $"Local resource server running at {m_LocalResourceServerController.BaseUrl}.";
-                m_LocalResourceServerMessageType = MessageType.Info;
-            }
-            else
-            {
-                m_LocalResourceServerMessage = string.IsNullOrEmpty(errorMessage) ? "Failed to start local resource server." : errorMessage;
-                m_LocalResourceServerMessageType = MessageType.Error;
-            }
         }
     }
 }
