@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using LFramework.Editor;
 using LFramework.Runtime;
 using LFramework.Runtime.Settings;
 using UnityEditor;
@@ -27,8 +28,9 @@ namespace LFramework.Editor.Inspector
                 RefreshTypeNames();
             }
 
-           
-            _index = EditorGUILayout.Popup("[Bind Component Type]", _index, _allComponentNames.ToArray());
+            GameWindowChrome.DrawCompactHeader("Binding", "Choose the runtime component type that this setting asset should bind to.");
+            _index = EditorGUILayout.Popup("Bind Component", _index, _allComponentNames.ToArray());
+            GUILayout.Space(4f);
             if (_index >= 0)
             {
                 _bindTypeName.stringValue = _allComponentNames[_index];

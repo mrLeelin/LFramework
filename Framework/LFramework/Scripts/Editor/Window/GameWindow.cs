@@ -1,12 +1,9 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using GameFramework;
+using LFramework.Editor;
 using LFramework.Editor.Builder;
-using LFramework.Runtime;
 using LFramework.Runtime.Settings;
-using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities;
 using Sirenix.Utilities.Editor;
@@ -19,10 +16,18 @@ namespace LFramework.Editor.Window
     public class GameWindow : OdinMenuEditorWindow
     {
         public Action<OdinMenuTree> BuildMenuTreeAction;
+
         private static List<IGameWindowExtend> _gameWindowExtends;
+
         private GameWindowHome _gameWindowHome;
         private GameWindowLocalResourceServer _gameWindowLocalResourceServer;
-
+        private GameWindowFrameworkSettingOverview _gameWindowFrameworkSettingOverview;
+        private GameWindowFrameworkProfiledOverview _gameWindowFrameworkProfiledOverview;
+        private List<ProfiledBase> _allProfiled;
+        private UnityEditor.Editor _cachedSettingEditor;
+        private UnityEngine.Object _cachedSettingTarget;
+        private Vector2 _frameworkSettingScrollPosition;
+        private Vector2 _frameworkProfiledScrollPosition;
 
         [MenuItem("LFramework/GameSetting")]
         private static void OpenWindow()
@@ -31,13 +36,12 @@ namespace LFramework.Editor.Window
             window.position = GUIHelper.GetEditorWindowRect().AlignCenter(800, 600);
         }
 
-        private List<ProfiledBase> _allProfiled;
-
         protected override void OnEnable()
         {
             base.OnEnable();
             _gameWindowHome = new GameWindowHome();
             _gameWindowLocalResourceServer = new GameWindowLocalResourceServer();
+
             if (_allProfiled == null)
             {
                 _allProfiled = new List<ProfiledBase>();
@@ -45,7 +49,9 @@ namespace LFramework.Editor.Window
                 foreach (var type in profiledBaseTypes)
                 {
                     if (type.IsAbstract || type.IsInterface)
+                    {
                         continue;
+                    }
 
                     try
                     {
@@ -54,12 +60,28 @@ namespace LFramework.Editor.Window
                             _allProfiled.Add(instance);
                         }
                     }
-                    catch (Exception e)
+                    catch (Exception exception)
                     {
-                        Debug.LogWarning($"Failed to create ProfiledBase instance: {type.Name}, Error: {e.Message}");
+                        Debug.LogWarning($"Failed to create ProfiledBase instance: {type.Name}, Error: {exception.Message}");
                     }
                 }
             }
+
+            _gameWindowFrameworkSettingOverview ??= new GameWindowFrameworkSettingOverview();
+            _gameWindowFrameworkProfiledOverview ??=
+                new GameWindowFrameworkProfiledOverview(() => _allProfiled?.Count ?? 0);
+        }
+
+        protected override void OnDisable()
+        {
+            base.OnDisable();
+            if (_cachedSettingEditor != null)
+            {
+                DestroyImmediate(_cachedSettingEditor);
+                _cachedSettingEditor = null;
+            }
+
+            _cachedSettingTarget = null;
         }
 
         protected override OdinMenuTree BuildMenuTree()
@@ -68,90 +90,175 @@ namespace LFramework.Editor.Window
             {
                 { "Home", _gameWindowHome, EditorIcons.House },
                 { "Local Resource Server", _gameWindowLocalResourceServer, EditorIcons.SettingsCog },
+                { "Framework Setting", _gameWindowFrameworkSettingOverview, EditorIcons.SettingsCog },
+                { "Framework Profiled", _gameWindowFrameworkProfiledOverview, EditorIcons.Car },
             };
 
-            //All Component Setting
             AddAllAssetsAtType<ComponentSetting>(tree, "Framework Setting")
                 .AddIcons(EditorIcons.SettingsCog);
 
-
-            // Framework Profiled 子菜单
-            tree.Add("Framework Profiled", null, EditorIcons.Car);
             if (_allProfiled != null)
             {
                 foreach (var profiled in _allProfiled)
                 {
-                    if (profiled == null) continue;
+                    if (profiled == null)
+                    {
+                        continue;
+                    }
+
                     var name = profiled.GetType().Name;
-                    if (name.EndsWith("Profiled"))
+                    if (name.EndsWith("Profiled", StringComparison.Ordinal))
+                    {
                         name = name.Substring(0, name.Length - "Profiled".Length);
+                    }
+
                     tree.AddObjectAtPath("Framework Profiled/" + name, profiled);
                 }
             }
 
-            // Setting Selector - 新的配置管理系统
             AddAllAssetsAtType<SettingSelector>(tree, "Game Setting/Setting Selector")
                 .AddIcons(EditorIcons.SettingsCog);
 
-            // 所有 GameSetting 实例
             AddAllAssetsAtType<BaseSetting>(tree, "Game Setting/GameSettings")
                 .AddIcons(EditorIcons.SettingsCog);
 
-            tree.Add("打包", null, EditorIcons.Airplane);
-            tree.AddObjectAtPath("打包/打包资源", new BuildResourcesData()).AddIcon(EditorIcons.SettingsCog);
-            tree.AddObjectAtPath("打包/打包App", new BuildPackageWindow()).AddIcon(EditorIcons.SettingsCog);
-            tree.AddObjectAtPath("打包/上传版本文件", new BuildVersionWindow()).AddIcon(EditorIcons.Car);
+            tree.Add("Build", null, EditorIcons.Airplane);
+            tree.AddObjectAtPath("Build/Build Resources", new BuildResourcesData()).AddIcon(EditorIcons.SettingsCog);
+            tree.AddObjectAtPath("Build/Build App", new BuildPackageWindow()).AddIcon(EditorIcons.SettingsCog);
+            tree.AddObjectAtPath("Build/Upload Version Files", new BuildVersionWindow()).AddIcon(EditorIcons.Car);
             tree.AddObjectAtPath("Utility/OpenFolder", new OpenFolderInspector()).AddIcon(EditorIcons.ShoppingCart);
-            AddAllExtendItems("功能扩展", tree);
-            /*
-            tree.SortMenuItemsByName();
-            */
+            AddAllExtendItems("Extensions", tree);
             return tree;
         }
 
         protected override void DrawEditors()
         {
-            var selected = this.MenuTree?.Selection?.SelectedValue;
+            var selected = MenuTree?.Selection?.SelectedValue;
             if (selected is ProfiledBase profiledBase)
             {
-                GUILayout.BeginVertical();
+                DrawProfiledPage(profiledBase);
+                return;
+            }
 
-                if (!EditorApplication.isPlaying)
-                {
-                    SirenixEditorGUI.Title("Runtime Only", "此面板仅在 Play Mode 下可用", TextAlignment.Left, true);
-                    GUILayout.EndVertical();
-                    return;
-                }
+            if (selected is ComponentSetting componentSetting)
+            {
+                DrawFrameworkSettingPage(componentSetting);
+                return;
+            }
 
-                if (!profiledBase.CanDraw)
-                {
-                    SirenixEditorGUI.Title("Not Available", "当前监控组件不可用", TextAlignment.Left, true);
-                    GUILayout.EndVertical();
-                    return;
-                }
+            base.DrawEditors();
+        }
 
-                SirenixEditorGUI.Title(
-                    title: string.IsNullOrEmpty(profiledBase.Title)
-                        ? profiledBase.GetType().Name
-                        : profiledBase.Title,
-                    subtitle: string.IsNullOrEmpty(profiledBase.SubTitle)
-                        ? profiledBase.GetType().GetNiceFullName()
-                        : profiledBase.SubTitle,
-                    textAlignment: TextAlignment.Left,
-                    horizontalLine: true
-                );
+        private void DrawFrameworkSettingPage(ComponentSetting componentSetting)
+        {
+            EnsureSettingEditor(componentSetting);
 
-                GUILayout.Space(10);
-                profiledBase.Draw();
-                GUILayout.EndVertical();
-                Repaint();
+            string assetPath = AssetDatabase.GetAssetPath(componentSetting);
+            string title = GameWindowChrome.GetDisplayName(componentSetting.GetType().Name, "ComponentSetting");
+            string bindTypeDisplay = GameWindowChrome.GetShortTypeName(componentSetting.bindTypeName);
+
+            GameWindowChrome.BeginPage(ref _frameworkSettingScrollPosition);
+            GameWindowChrome.DrawHeader(
+                title,
+                "A unified host for the selected setting asset while keeping the original custom editor behavior intact.",
+                new GameWindowBadge("Asset", Path.GetFileNameWithoutExtension(assetPath)),
+                new GameWindowBadge("Mode", EditorApplication.isPlaying ? "Live Preview" : "Asset Edit"));
+            GameWindowChrome.DrawSeparator();
+            GUILayout.Space(12f);
+            GameWindowChrome.DrawStatCards(
+                new GameWindowStatCard(
+                    "Bind Type",
+                    bindTypeDisplay,
+                    string.IsNullOrEmpty(componentSetting.bindTypeName) ? "No runtime component type assigned yet." : componentSetting.bindTypeName,
+                    GameWindowChrome.AccentColor),
+                new GameWindowStatCard(
+                    "Inspector",
+                    _cachedSettingEditor != null ? _cachedSettingEditor.GetType().Name : "Missing Editor",
+                    "Keeps the existing custom inspector fields and behavior.",
+                    GameWindowChrome.SuccessColor),
+                new GameWindowStatCard(
+                    "Location",
+                    string.IsNullOrEmpty(assetPath) ? "Unknown" : Path.GetFileName(assetPath),
+                    GameWindowChrome.GetAssetDirectory(assetPath),
+                    GameWindowChrome.WarningColor));
+            GameWindowChrome.DrawSectionHeader("Configuration", "The original inspector content is rendered below inside the unified shell.");
+            GameWindowChrome.BeginContentCard();
+            if (_cachedSettingEditor != null)
+            {
+                _cachedSettingEditor.OnInspectorGUI();
             }
             else
             {
-                base.DrawEditors();
+                EditorGUILayout.HelpBox("Missing CustomEditor for the selected setting asset.", MessageType.Warning);
             }
+
+            GameWindowChrome.EndContentCard();
+            GameWindowChrome.EndPage();
         }
 
+        private void DrawProfiledPage(ProfiledBase profiledBase)
+        {
+            string title = string.IsNullOrEmpty(profiledBase.Title)
+                ? GameWindowChrome.GetDisplayName(profiledBase.GetType().Name, "Profiled")
+                : profiledBase.Title;
+            string subtitle = string.IsNullOrEmpty(profiledBase.SubTitle)
+                ? "Realtime runtime diagnostics, summary metrics, and module state."
+                : profiledBase.SubTitle;
+
+            GameWindowChrome.BeginPage(ref _frameworkProfiledScrollPosition);
+            GameWindowChrome.DrawHeader(
+                title,
+                subtitle,
+                new GameWindowBadge("Mode", EditorApplication.isPlaying ? "Live Runtime" : "Runtime Only"),
+                new GameWindowBadge("Refresh", "Realtime"));
+            GameWindowChrome.DrawSeparator();
+            GUILayout.Space(12f);
+
+            if (!EditorApplication.isPlaying)
+            {
+                GameWindowChrome.DrawStateBanner("Runtime Only", "This profiled page is only available in Play Mode.", MessageType.Warning);
+                GameWindowChrome.EndPage();
+                return;
+            }
+
+            if (!profiledBase.CanDraw)
+            {
+                GameWindowChrome.DrawStateBanner("Not Available", "The runtime component required by this profiled page is unavailable.", MessageType.Info);
+                GameWindowChrome.EndPage();
+                return;
+            }
+
+            GameWindowChrome.DrawStatCards(
+                new GameWindowStatCard("Panel", title, "The currently selected diagnostic panel.", GameWindowChrome.AccentColor),
+                new GameWindowStatCard("State", "Live", "The window keeps repainting while the game is running.", GameWindowChrome.SuccessColor),
+                new GameWindowStatCard("Host", "Unified Shell", "Adds scroll, state banners, and draw-failure protection.", GameWindowChrome.WarningColor));
+            GameWindowChrome.DrawSectionHeader("Live View", "The body below is still drawn by the original profiled page.");
+            GameWindowChrome.BeginContentCard();
+            try
+            {
+                profiledBase.Draw();
+            }
+            catch (Exception exception)
+            {
+                EditorGUILayout.HelpBox(
+                    $"Profiled page draw failed: {exception.GetType().Name}: {exception.Message}",
+                    MessageType.Error);
+            }
+
+            GameWindowChrome.EndContentCard();
+            GameWindowChrome.EndPage();
+            Repaint();
+        }
+
+        private void EnsureSettingEditor(ComponentSetting componentSetting)
+        {
+            if (_cachedSettingTarget != componentSetting)
+            {
+                _cachedSettingTarget = componentSetting;
+            }
+
+            UnityEditor.Editor.CreateCachedEditor(componentSetting, null, ref _cachedSettingEditor);
+        }
 
         private static void AddAllExtendItems(string baseFold, OdinMenuTree tree)
         {
@@ -169,12 +276,14 @@ namespace LFramework.Editor.Window
                 {
                     continue;
                 }
+
                 foreach (var item in items)
                 {
                     if (item == null || item.Value == null)
                     {
                         continue;
                     }
+
                     tree.AddMenuItemAtPath(baseFold + '/' + extend.FoldName, item);
                 }
             }
@@ -205,28 +314,26 @@ namespace LFramework.Editor.Window
             }
         }
 
-
         private static IEnumerable<OdinMenuItem> AddAllAssetsAtType<T>(OdinMenuTree tree, string menuPath)
             where T : ScriptableObject
         {
             var allSettings = AssetUtilities.GetAllAssetsOfType<T>();
 
-            menuPath = menuPath ?? "";
+            menuPath = menuPath ?? string.Empty;
             menuPath = menuPath.TrimStart('/');
             HashSet<OdinMenuItem> result = new HashSet<OdinMenuItem>();
-            foreach (T setting in allSettings)
+            foreach (var setting in allSettings)
             {
-                if (!(@setting == (UnityEngine.Object)null))
+                if (@setting == (UnityEngine.Object)null)
                 {
-                    var assetsPath = AssetDatabase.GetAssetPath(setting);
-                    string withoutExtension = Path.GetFileNameWithoutExtension(assetsPath);
-                    string path = menuPath;
-                    path = path.Trim('/') + "/" + withoutExtension;
-                    string name;
-                    SplitMenuPath(path, out path, out name);
-                    tree.AddMenuItemAtPath((ICollection<OdinMenuItem>)
-                        result, path, new OdinMenuItem(tree, name, setting));
+                    continue;
                 }
+
+                var assetsPath = AssetDatabase.GetAssetPath(setting);
+                string withoutExtension = Path.GetFileNameWithoutExtension(assetsPath);
+                string path = menuPath.Trim('/') + "/" + withoutExtension;
+                SplitMenuPath(path, out path, out string name);
+                tree.AddMenuItemAtPath(result, path, new OdinMenuItem(tree, name, setting));
             }
 
             return result;
@@ -238,7 +345,7 @@ namespace LFramework.Editor.Window
             int length = menuPath.LastIndexOf('/');
             if (length == -1)
             {
-                path = "";
+                path = string.Empty;
                 name = menuPath;
             }
             else
