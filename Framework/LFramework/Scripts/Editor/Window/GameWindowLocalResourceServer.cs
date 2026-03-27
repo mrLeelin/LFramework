@@ -301,7 +301,7 @@ namespace LFramework.Editor
 
             GUILayout.Space(8f);
 
-            if (DrawActionButton("Copy URL", "d_Clipboard", new Color(0.35f, 0.58f, 0.82f), true))
+            if (DrawActionButton("Copy URL", "Clipboard", new Color(0.35f, 0.58f, 0.82f), true))
             {
                 EditorGUIUtility.systemCopyBuffer = _controller.BaseUrl;
                 SetMessage($"Copied {_controller.BaseUrl} to the clipboard.", MessageType.Info);

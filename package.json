@@ -1,0 +1,27 @@
+{
+  "name": "com.lframework.core",
+  "displayName": "LFramework",
+  "version": "0.1.0",
+  "unity": "6000.3",
+  "unityRelease": "0f1",
+  "description": "LFramework packaged for Unity Package Manager while preserving the original Framework folder layout.",
+  "keywords": [
+    "unity",
+    "framework",
+    "game-framework",
+    "zenject",
+    "unirx",
+    "yooasset",
+    "hybridclr"
+  ],
+  "author": {
+    "name": "LFramework Team"
+  },
+  "dependencies": {
+    "com.tuyoogame.yooasset": "2.3.18",
+    "com.unity.addressables": "2.8.1",
+    "com.unity.mobile.notifications": "2.4.3",
+    "com.unity.test-framework": "1.6.0",
+    "com.unity.ugui": "2.0.0"
+  }
+}

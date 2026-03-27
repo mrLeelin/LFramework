@@ -555,7 +555,7 @@ namespace LFramework.Editor
             GUILayout.Space(8);
             DrawStatCard("预制体", _prefabCount.ToString(), "d_Prefab Icon");
             GUILayout.Space(8);
-            DrawStatCard("框架配置", _componentSettingCount.ToString(), "d_SettingsCog");
+            DrawStatCard("框架配置", _componentSettingCount.ToString(), "d_SettingsIcon");
             GUILayout.Space(8);
             DrawStatCard("游戏配置", _baseSettingCount.ToString(), "d_ScriptableObject Icon");
             GUILayout.Space(8);

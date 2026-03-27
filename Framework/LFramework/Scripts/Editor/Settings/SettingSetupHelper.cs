@@ -1,95 +1,101 @@
-using UnityEngine;
-using UnityEditor;
+using System;
 using System.IO;
 using LFramework.Runtime;
 using LFramework.Runtime.Settings;
+using UnityEditor;
+using UnityEngine;
 
 namespace LFramework.Editor.Settings
 {
     /// <summary>
-    /// Setting 设置助手，用于快速创建示例配置
+    /// Creates example settings assets for LFramework.
     /// </summary>
     public static class SettingSetupHelper
     {
-        private const string SettingsPath = "Assets/Framework/Framework/LFramework/Assets/Settings";
+        private const string SettingSetupHelperScriptGuid = "ba7c8ec35e9a0cc4fbcd7a7b13ddd441";
 
 #if AUTO_CREATE_SETTING
-         [MenuItem("LFramework/Setup/Create Example Settings")]
+        [MenuItem("LFramework/Setup/Create Example Settings")]
 #endif
-       
-        
         public static void CreateExampleSettings()
         {
-            if (!EditorUtility.DisplayDialog("创建示例配置",
-                "这将创建以下示例配置：\n\n" +
-                "• SettingSelector\n" +
-                "• GameSetting (Development/Staging/Production)\n" +
-                "• iOSSetting (Development)\n" +
-                "• AndroidSetting (Development)\n\n" +
-                "是否继续？",
-                "创建", "取消"))
+            string settingsPath = GetSettingsPath();
+
+            if (!EditorUtility.DisplayDialog(
+                    "Create Example Settings",
+                    "This creates example GameSetting, iOSSetting, AndroidSetting, and SettingSelector assets.\n\nContinue?",
+                    "Create",
+                    "Cancel"))
             {
                 return;
             }
 
-            // 确保目录存在
-            EnsureDirectoryExists(SettingsPath);
-            EnsureDirectoryExists($"{SettingsPath}/GameSettings");
-            EnsureDirectoryExists($"{SettingsPath}/iOSSettings");
-            EnsureDirectoryExists($"{SettingsPath}/AndroidSettings");
+            EnsureDirectoryExists(settingsPath);
+            EnsureDirectoryExists($"{settingsPath}/GameSettings");
+            EnsureDirectoryExists($"{settingsPath}/iOSSettings");
+            EnsureDirectoryExists($"{settingsPath}/AndroidSettings");
 
-            // 创建 GameSetting 示例
-            var gameSettingDev = CreateGameSetting("GameSetting_Development", "Development", "http://localhost:8080", "1.0.0.0");
-            var gameSettingStaging = CreateGameSetting("GameSetting_Staging", "Staging", "http://staging.example.com", "1.0.0.0");
-            var gameSettingProd = CreateGameSetting("GameSetting_Production", "Production", "http://api.example.com", "1.0.0.0");
+            GameSetting gameSettingDev = CreateGameSetting("GameSetting_Development", "Development", "http://localhost:8080", "1.0.0.0");
+            CreateGameSetting("GameSetting_Staging", "Staging", "http://staging.example.com", "1.0.0.0");
+            CreateGameSetting("GameSetting_Production", "Production", "http://api.example.com", "1.0.0.0");
 
-            // 创建 iOSSetting 示例
-            var iosSettingDev = CreateiOSSetting("iOSSetting_Development", "com.company.game.dev", "12.0");
-
-            // 创建 AndroidSetting 示例
-            var androidSettingDev = CreateAndroidSetting("AndroidSetting_Development", "com.company.game.dev", 21, 30);
-
-            // 创建 SettingSelector
-            var selector = CreateSettingSelector(gameSettingDev, iosSettingDev, androidSettingDev);
+            iOSSetting iosSettingDev = CreateiOSSetting("iOSSetting_Development", "com.company.game.dev", "12.0");
+            AndroidSetting androidSettingDev = CreateAndroidSetting("AndroidSetting_Development", "com.company.game.dev", 21, 30);
+            SettingSelector selector = CreateSettingSelector(gameSettingDev, iosSettingDev, androidSettingDev);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            EditorUtility.DisplayDialog("创建完成",
-                "示例配置已创建完成！\n\n" +
-                $"配置位置：{SettingsPath}\n\n" +
-                "请在 LFramework/GameSetting 窗口中查看和编辑配置。",
-                "确定");
+            EditorUtility.DisplayDialog(
+                "Create Example Settings",
+                $"Example settings created at:\n{settingsPath}",
+                "OK");
 
-            // 选中 SettingSelector
             Selection.activeObject = selector;
             EditorGUIUtility.PingObject(selector);
         }
 
-        private static void EnsureDirectoryExists(string path)
+        internal static string GetSettingsPath()
         {
-            if (!Directory.Exists(path))
+            string scriptAssetPath = AssetDatabase.GUIDToAssetPath(SettingSetupHelperScriptGuid);
+            if (string.IsNullOrEmpty(scriptAssetPath))
             {
-                Directory.CreateDirectory(path);
+                throw new InvalidOperationException("[SettingSetupHelper] Failed to resolve SettingSetupHelper.cs asset path.");
+            }
+
+            string projectRoot = GetProjectRootPath();
+            string scriptFullPath = Path.GetFullPath(Path.Combine(projectRoot, scriptAssetPath));
+            string scriptDirectory = Path.GetDirectoryName(scriptFullPath);
+            if (string.IsNullOrEmpty(scriptDirectory))
+            {
+                throw new InvalidOperationException("[SettingSetupHelper] Failed to resolve SettingSetupHelper.cs directory.");
+            }
+
+            string settingsFullPath = Path.GetFullPath(Path.Combine(scriptDirectory, "../../../Assets/Settings"));
+            return NormalizeAssetPath(Path.GetRelativePath(projectRoot, settingsFullPath));
+        }
+
+        private static void EnsureDirectoryExists(string assetPath)
+        {
+            string fullPath = Path.GetFullPath(Path.Combine(GetProjectRootPath(), assetPath));
+            if (!Directory.Exists(fullPath))
+            {
+                Directory.CreateDirectory(fullPath);
             }
         }
 
         private static GameSetting CreateGameSetting(string fileName, string channel, string ip, string appVersion)
         {
-            var path = $"{SettingsPath}/GameSettings/{fileName}.asset";
-
-            // 检查是否已存在
-            var existing = AssetDatabase.LoadAssetAtPath<GameSetting>(path);
+            string path = $"{GetSettingsPath()}/GameSettings/{fileName}.asset";
+            GameSetting existing = AssetDatabase.LoadAssetAtPath<GameSetting>(path);
             if (existing != null)
             {
-                Debug.Log($"[SettingSetupHelper] {fileName} 已存在，跳过创建");
+                Debug.Log($"[SettingSetupHelper] {fileName} already exists. Skipping.");
                 return existing;
             }
 
-            var setting = ScriptableObject.CreateInstance<GameSetting>();
+            GameSetting setting = ScriptableObject.CreateInstance<GameSetting>();
             setting.name = fileName;
-
-            // 设置默认值
             setting.isRelease = channel == "Production";
             setting.isResourcesBuildIn = false;
             setting.versionUrl = $"{ip}/version";
@@ -102,28 +108,24 @@ namespace LFramework.Editor.Settings
             setting.cdnUrl = $"{ip}/cdn";
 
             AssetDatabase.CreateAsset(setting, path);
-            Debug.Log($"[SettingSetupHelper] 创建 {fileName} 成功");
-
+            Debug.Log($"[SettingSetupHelper] Created {fileName}.");
             return setting;
         }
 
         private static iOSSetting CreateiOSSetting(string fileName, string bundleId, string targetOS)
         {
-            var path = $"{SettingsPath}/iOSSettings/{fileName}.asset";
-
-            // 检查是否已存在
-            var existing = AssetDatabase.LoadAssetAtPath<iOSSetting>(path);
+            string path = $"{GetSettingsPath()}/iOSSettings/{fileName}.asset";
+            iOSSetting existing = AssetDatabase.LoadAssetAtPath<iOSSetting>(path);
             if (existing != null)
             {
-                Debug.Log($"[SettingSetupHelper] {fileName} 已存在，跳过创建");
+                Debug.Log($"[SettingSetupHelper] {fileName} already exists. Skipping.");
                 return existing;
             }
 
-            var setting = ScriptableObject.CreateInstance<iOSSetting>();
+            iOSSetting setting = ScriptableObject.CreateInstance<iOSSetting>();
             setting.name = fileName;
 
-            // 使用反射设置私有字段
-            var type = typeof(iOSSetting);
+            Type type = typeof(iOSSetting);
             type.GetField("bundleIdentifier", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                 ?.SetValue(setting, bundleId);
             type.GetField("targetOSVersion", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
@@ -132,28 +134,24 @@ namespace LFramework.Editor.Settings
                 ?.SetValue(setting, true);
 
             AssetDatabase.CreateAsset(setting, path);
-            Debug.Log($"[SettingSetupHelper] 创建 {fileName} 成功");
-
+            Debug.Log($"[SettingSetupHelper] Created {fileName}.");
             return setting;
         }
 
         private static AndroidSetting CreateAndroidSetting(string fileName, string bundleId, int minSdk, int targetSdk)
         {
-            var path = $"{SettingsPath}/AndroidSettings/{fileName}.asset";
-
-            // 检查是否已存在
-            var existing = AssetDatabase.LoadAssetAtPath<AndroidSetting>(path);
+            string path = $"{GetSettingsPath()}/AndroidSettings/{fileName}.asset";
+            AndroidSetting existing = AssetDatabase.LoadAssetAtPath<AndroidSetting>(path);
             if (existing != null)
             {
-                Debug.Log($"[SettingSetupHelper] {fileName} 已存在，跳过创建");
+                Debug.Log($"[SettingSetupHelper] {fileName} already exists. Skipping.");
                 return existing;
             }
 
-            var setting = ScriptableObject.CreateInstance<AndroidSetting>();
+            AndroidSetting setting = ScriptableObject.CreateInstance<AndroidSetting>();
             setting.name = fileName;
 
-            // 使用反射设置私有字段
-            var type = typeof(AndroidSetting);
+            Type type = typeof(AndroidSetting);
             type.GetField("bundleIdentifier", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                 ?.SetValue(setting, bundleId);
             type.GetField("minSdkVersion", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
@@ -164,20 +162,17 @@ namespace LFramework.Editor.Settings
                 ?.SetValue(setting, true);
 
             AssetDatabase.CreateAsset(setting, path);
-            Debug.Log($"[SettingSetupHelper] 创建 {fileName} 成功");
-
+            Debug.Log($"[SettingSetupHelper] Created {fileName}.");
             return setting;
         }
 
         private static SettingSelector CreateSettingSelector(GameSetting gameSetting, iOSSetting iosSetting, AndroidSetting androidSetting)
         {
-            var path = $"{SettingsPath}/SettingSelector.asset";
-
-            // 检查是否已存在
-            var existing = AssetDatabase.LoadAssetAtPath<SettingSelector>(path);
+            string path = $"{GetSettingsPath()}/SettingSelector.asset";
+            SettingSelector existing = AssetDatabase.LoadAssetAtPath<SettingSelector>(path);
             if (existing != null)
             {
-                Debug.Log("[SettingSetupHelper] SettingSelector 已存在，更新配置");
+                Debug.Log("[SettingSetupHelper] SettingSelector already exists. Updating values.");
                 existing.SetSetting(gameSetting);
                 existing.SetSetting(iosSetting);
                 existing.SetSetting(androidSetting);
@@ -185,29 +180,26 @@ namespace LFramework.Editor.Settings
                 return existing;
             }
 
-            var selector = ScriptableObject.CreateInstance<SettingSelector>();
+            SettingSelector selector = ScriptableObject.CreateInstance<SettingSelector>();
             selector.name = "SettingSelector";
-
-            // 设置默认选择
             selector.SetSetting(gameSetting);
             selector.SetSetting(iosSetting);
             selector.SetSetting(androidSetting);
 
             AssetDatabase.CreateAsset(selector, path);
-            Debug.Log("[SettingSetupHelper] 创建 SettingSelector 成功");
-
+            Debug.Log("[SettingSetupHelper] Created SettingSelector.");
             return selector;
         }
 
 #if AUTO_CREATE_SETTING
-         [MenuItem("LFramework/Setup/Validate All Settings")]
+        [MenuItem("LFramework/Setup/Validate All Settings")]
 #endif
         public static void ValidateAllSettings()
         {
-            var selector = SettingManager.GetSelector();
+            SettingSelector selector = SettingManager.GetSelector();
             if (selector == null)
             {
-                EditorUtility.DisplayDialog("验证失败", "未找到 SettingSelector！", "确定");
+                EditorUtility.DisplayDialog("Validation Failed", "SettingSelector was not found.", "OK");
                 return;
             }
 
@@ -216,7 +208,7 @@ namespace LFramework.Editor.Settings
             int validCount = 0;
             int invalidCount = 0;
 
-            foreach (var setting in allSettings)
+            foreach (BaseSetting setting in allSettings)
             {
                 if (setting == null)
                 {
@@ -237,8 +229,19 @@ namespace LFramework.Editor.Settings
                 }
             }
 
-            string message = $"验证完成！\n\n✓ 通过: {validCount}\n✗ 失败: {invalidCount}";
-            EditorUtility.DisplayDialog("验证结果", message, "确定");
+            string message = $"Validation finished.\n\nPassed: {validCount}\nFailed: {invalidCount}";
+            string title = allValid ? "Validation Passed" : "Validation Finished";
+            EditorUtility.DisplayDialog(title, message, "OK");
+        }
+
+        private static string GetProjectRootPath()
+        {
+            return Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+        }
+
+        private static string NormalizeAssetPath(string assetPath)
+        {
+            return assetPath.Replace('\\', '/');
         }
     }
 }

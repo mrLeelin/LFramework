@@ -8,17 +8,17 @@ using UnityEngine;
 
 namespace LFramework.Editor.Tests.Window
 {
-    public class GameWindowHomeIconTests
+    public class GameWindowLocalResourceServerIconTests
     {
         private static readonly Regex IconNamePattern = new("\"(?<name>d_[^\"]+)\"", RegexOptions.Compiled);
 
         [Test]
-        public void ConfiguredDarkThemeIconNamesInGameWindowHomeResolveToBuiltinIcons()
+        public void ConfiguredDarkThemeIconNamesInGameWindowLocalResourceServerResolveToBuiltinIcons()
         {
             List<string> missingIconNames = FindMissingIconNames();
             if (missingIconNames.Count > 0)
             {
-                TestContext.WriteLine($"Missing GameWindowHome icons: {string.Join(", ", missingIconNames)}");
+                TestContext.WriteLine($"Missing GameWindowLocalResourceServer icons: {string.Join(", ", missingIconNames)}");
                 WriteReplacementProbeResults(TestContext.WriteLine);
             }
 
@@ -30,13 +30,13 @@ namespace LFramework.Editor.Tests.Window
             List<string> missingIconNames = FindMissingIconNames();
             if (missingIconNames.Count > 0)
             {
-                Debug.LogError($"Missing GameWindowHome icons: {string.Join(", ", missingIconNames)}");
+                Debug.LogError($"Missing GameWindowLocalResourceServer icons: {string.Join(", ", missingIconNames)}");
                 WriteReplacementProbeResults(Debug.Log);
                 EditorApplication.Exit(1);
                 return;
             }
 
-            Debug.Log("GameWindowHome icon validation passed.");
+            Debug.Log("GameWindowLocalResourceServer icon validation passed.");
             EditorApplication.Exit(0);
         }
 
@@ -50,9 +50,9 @@ namespace LFramework.Editor.Tests.Window
                 "Scripts",
                 "Editor",
                 "Window",
-                "GameWindowHome.cs");
+                "GameWindowLocalResourceServer.cs");
 
-            Assert.That(File.Exists(sourcePath), Is.True, $"Expected GameWindowHome source file at '{sourcePath}'.");
+            Assert.That(File.Exists(sourcePath), Is.True, $"Expected GameWindowLocalResourceServer source file at '{sourcePath}'.");
 
             string source = File.ReadAllText(sourcePath);
             string[] iconNames = IconNamePattern.Matches(source)
@@ -61,7 +61,7 @@ namespace LFramework.Editor.Tests.Window
                 .OrderBy(name => name)
                 .ToArray();
 
-            Assert.That(iconNames, Is.Not.Empty, "Expected GameWindowHome to declare built-in dark theme icon names.");
+            Assert.That(iconNames, Is.Not.Empty, "Expected GameWindowLocalResourceServer to declare built-in dark theme icon names.");
 
             var missingIconNames = new List<string>();
             foreach (string iconName in iconNames)
@@ -80,12 +80,12 @@ namespace LFramework.Editor.Tests.Window
         {
             string[] candidates =
             {
-                "d_SettingsIcon",
-                "SettingsIcon",
-                "d_Preset.Context",
-                "Preset.Context",
-                "d_FilterByType",
-                "FilterByType"
+                "d_Clipboard",
+                "Clipboard",
+                "d_TreeEditor.Duplicate",
+                "TreeEditor.Duplicate",
+                "d_Linked",
+                "Linked"
             };
 
             foreach (string candidate in candidates)

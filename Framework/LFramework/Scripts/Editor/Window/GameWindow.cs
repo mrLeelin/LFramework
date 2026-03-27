@@ -94,7 +94,7 @@ namespace LFramework.Editor.Window
                 { "本地Cdn测试服务", _gameWindowLocalResourceServer, EditorIcons.SettingsCog },
             };
 
-            AddAllAssetsAtType<ComponentSetting>(tree, "Framework Setting")
+            AddAllAssetsAtType<ComponentSetting>(tree, "框架设置")
                 .AddIcons(EditorIcons.SettingsCog);
 
             if (_allProfiled != null)
@@ -112,7 +112,7 @@ namespace LFramework.Editor.Window
                         name = name.Substring(0, name.Length - "Profiled".Length);
                     }
 
-                    tree.AddObjectAtPath("Framework Profiled/" + name, profiled);
+                    tree.AddObjectAtPath("运行时预览/" + name, profiled);
                 }
             }
 
