@@ -128,6 +128,17 @@ namespace LFramework.Runtime
             return handle.SerialID;
         }
 
+        private YooAssetDownloadHandler CreateYooAssetHandler(string name, List<string> labels,
+            string packageName, bool autoReleaseHandle, bool checkDownloadedTags = false)
+        {
+            var serialID = GetNextSerialID();
+            var handler = new YooAssetDownloadHandler(name, labels, packageName, serialID,
+                autoReleaseHandle, checkDownloadedTags);
+            RegisterHandler(handler);
+            return handler;
+        }
+#endif
+
         public IResourceDownloadHandler GetHandler(int serialID)
         {
             return _activeUpdateHandler.GetValueOrDefault(serialID);
@@ -171,17 +182,6 @@ namespace LFramework.Runtime
 
             return true;
         }
-
-        private YooAssetDownloadHandler CreateYooAssetHandler(string name, List<string> labels,
-            string packageName, bool autoReleaseHandle, bool checkDownloadedTags = false)
-        {
-            var serialID = GetNextSerialID();
-            var handler = new YooAssetDownloadHandler(name, labels, packageName, serialID,
-                autoReleaseHandle, checkDownloadedTags);
-            RegisterHandler(handler);
-            return handler;
-        }
-#endif
 
         private void RegisterHandler(ResourceDownloadHandlerBase handler)
         {
