@@ -1,3 +1,4 @@
+#if NOTIFICATION_SUPPORT
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -144,3 +145,4 @@ namespace LFramework.Runtime
         }
     }
 }
+#endif

@@ -1,8 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
+#if NOTIFICATION_SUPPORT
 using GameFramework;
-using LFramework.Runtime;
-using UnityEngine;
+
 
 namespace LFramework.Runtime
 {
@@ -25,3 +23,4 @@ namespace LFramework.Runtime
     }
 
 }
+#endif

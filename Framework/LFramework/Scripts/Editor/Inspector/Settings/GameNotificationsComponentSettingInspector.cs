@@ -1,3 +1,4 @@
+#if NOTIFICATION_SUPPORT
 using LFramework.Editor.Inspector;
 using LFramework.Runtime;
 using UnityEditor;
@@ -48,3 +49,4 @@ namespace LFramework.Editor
         }
     }
 }
+#endif

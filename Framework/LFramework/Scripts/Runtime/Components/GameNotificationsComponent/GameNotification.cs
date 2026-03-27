@@ -1,3 +1,4 @@
+#if NOTIFICATION_SUPPORT
 using System;
 using System.Text;
 using Unity.Notifications;
@@ -119,3 +120,4 @@ namespace LFramework.Runtime
         }
     }
 }
+#endif

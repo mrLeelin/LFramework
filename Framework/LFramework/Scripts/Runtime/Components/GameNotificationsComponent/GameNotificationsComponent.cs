@@ -5,7 +5,9 @@ using System.IO;
 using System.Linq;
 using UniRx;
 using UnityEngine;
+#if NOTIFICATION_SUPPORT
 using Unity.Notifications;
+#endif
 using UnityGameFramework.Runtime;
 using Zenject;
 
@@ -16,6 +18,7 @@ namespace LFramework.Runtime
     /// </summary>
     public class GameNotificationsComponent : GameFrameworkComponent
     {
+#if NOTIFICATION_SUPPORT
         [Inject] private EventComponent EventComponent { get; }
 
         // Default filename for notifications serializer
@@ -587,5 +590,6 @@ namespace LFramework.Runtime
         }
 
         #endregion
+#endif
     }
 }

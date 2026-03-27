@@ -1,3 +1,5 @@
+
+#if NOTIFICATION_SUPPORT
 using System;
 
 namespace LFramework.Runtime
@@ -51,3 +53,4 @@ namespace LFramework.Runtime
         }
     }
 }
+#endif

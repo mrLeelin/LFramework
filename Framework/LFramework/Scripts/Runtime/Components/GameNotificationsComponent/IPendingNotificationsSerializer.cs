@@ -1,3 +1,4 @@
+#if NOTIFICATION_SUPPORT
 using System.Collections.Generic;
 
 namespace LFramework.Runtime
@@ -22,3 +23,4 @@ namespace LFramework.Runtime
         IList<PendingNotification> Deserialize(GameNotificationsPlatform platform);
     }
 }
+#endif

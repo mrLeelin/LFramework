@@ -1,4 +1,5 @@
-﻿using UnityGameFramework.Runtime;
+﻿#if YOOASSET_SUPPORT
+using UnityGameFramework.Runtime;
 using YooAsset;
 
 namespace LFramework.Runtime
@@ -29,3 +30,4 @@ namespace LFramework.Runtime
         }
     }
 }
+#endif
