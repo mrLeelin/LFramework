@@ -1,7 +1,7 @@
 {
   "name": "com.lframework.core",
   "displayName": "LFramework",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "unity": "6000.3",
   "unityRelease": "0f1",
   "description": "LFramework packaged for Unity Package Manager while preserving the original Framework folder layout.",
@@ -10,6 +10,7 @@
     "framework",
     "game-framework",
     "zenject",
+    "unitask",
     "unirx",
     "yooasset",
     "hybridclr"
@@ -18,7 +19,6 @@
     "name": "LFramework Team"
   },
   "dependencies": {
-    "com.cysharp.unitask": "2.5.10",
     "com.unity.test-framework" : "1.6.0",
     "com.unity.ugui": "2.0.0"
   }
