@@ -72,6 +72,12 @@ namespace LFramework.Runtime.LaunchPipeline
         /// <returns>当不需要更新时返回 <c>false</c>，否则返回 <c>true</c>。</returns>
         public bool CanExecute(LaunchContext context)
         {
+            if (context.VersionCheckResult == null)
+            {
+                Log.Warning("[DownloadResourceTask] VersionCheckResult is null, skip download.");
+                return false;
+            }
+
             return context.VersionCheckResult.ResultType != VersionCheckResultType.ForceUpdate;
         }
 

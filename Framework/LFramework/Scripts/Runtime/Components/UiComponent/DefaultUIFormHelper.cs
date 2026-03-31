@@ -58,11 +58,17 @@ namespace LFramework.Runtime
             {
                 uiForm.OnRelease();
             }
+
+            if (m_ResourceComponent == null)
+            {
+                Log.Error("Resource component is invalid, cannot unload UI form asset.");
+                return;
+            }
             m_ResourceComponent.UnloadAsset(uiFormAsset);
             Destroy(go);
         }
 
-        private void Start()
+        private void Awake()
         {
             m_ResourceComponent = LFrameworkAspect.Instance.Get<ResourceComponent>();
             if (m_ResourceComponent == null)

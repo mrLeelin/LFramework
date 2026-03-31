@@ -4,6 +4,9 @@ using System.Collections.Generic;
 using System.Runtime.Serialization;
 using UnityEngine;
 
+namespace LFramework.Runtime
+{
+
 public abstract class SerializableDictionaryBase
 {
 	public abstract class Storage {}
@@ -257,3 +260,5 @@ public class SerializableDictionary<TKey, TValue, TValueStorage> : SerializableD
 		storage[i].data = value;
 	}
 }
+
+} // namespace LFramework.Runtime

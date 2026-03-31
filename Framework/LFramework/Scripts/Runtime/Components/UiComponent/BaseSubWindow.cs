@@ -13,7 +13,7 @@ namespace LFramework.Runtime
         public Window BaseWindow { get; private set; }
 
 
-        internal string Getkey() => key;
+        internal string GetKey() => key;
 
         #region Children
 

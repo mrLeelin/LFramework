@@ -14,31 +14,38 @@ namespace LFramework.Runtime.Method
 
         public StaticMethod(Assembly assembly, string typeName, string methodName)
         {
-            this._methodInfo = assembly.GetType(typeName).GetMethod(methodName);
-            var memberInfo = this._methodInfo;
-            if (memberInfo != null)
+            var type = assembly.GetType(typeName);
+            if (type == null)
             {
-                this._param = new object[memberInfo.GetParameters().Length];
+                Log.Fatal($"StaticMethod: Type '{typeName}' not found in assembly '{assembly.FullName}'");
+                return;
             }
-            else
+
+            this._methodInfo = type.GetMethod(methodName);
+            if (this._methodInfo == null)
             {
-                Log.Fatal($"The method '{typeName}' method name '{methodName}' is not found.");
+                Log.Fatal($"StaticMethod: Method '{methodName}' not found in type '{typeName}'");
+                return;
             }
+
+            this._param = new object[this._methodInfo.GetParameters().Length];
         }
 
         public void Run()
         {
-            this._methodInfo.Invoke(null, _param);
+            this._methodInfo?.Invoke(null, _param);
         }
 
         public void Run(object param1)
         {
+            if (this._methodInfo == null) return;
             this._param[0] = param1;
             this._methodInfo.Invoke(null, _param);
         }
 
         public void Run(object param1, object param2)
         {
+            if (this._methodInfo == null) return;
             this._param[0] = param1;
             this._param[1] = param2;
             this._methodInfo.Invoke(null, _param);
@@ -46,6 +53,7 @@ namespace LFramework.Runtime.Method
 
         public void Run(object param1, object param2, object param3)
         {
+            if (this._methodInfo == null) return;
             this._param[0] = param1;
             this._param[1] = param2;
             this._param[2] = param3;

@@ -100,8 +100,9 @@ namespace LFramework.Editor.Builder
                         }
                     }
                 }
-                catch
+                catch (System.Exception ex)
                 {
+                    Debug.Log($"PythonRunner: Path '{path}' probe failed ({ex.GetType().Name}): {ex.Message}");
                 }
             }
 

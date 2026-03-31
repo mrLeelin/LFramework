@@ -79,8 +79,11 @@ namespace LFramework.Hotfix
             }
 
             _worldBase = null;
-            LFrameworkAspect.Instance.DiContainer.Unbind<ISystemProviderRegister>();
-            LFrameworkAspect.Instance.DiContainer.Unbind<IWorldRegister>();
+            if (LFrameworkAspect.Instance != null)
+            {
+                LFrameworkAspect.Instance.DiContainer.Unbind<ISystemProviderRegister>();
+                LFrameworkAspect.Instance.DiContainer.Unbind<IWorldRegister>();
+            }
         }
 
 

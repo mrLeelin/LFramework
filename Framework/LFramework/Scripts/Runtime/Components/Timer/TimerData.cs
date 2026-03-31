@@ -108,7 +108,7 @@ namespace LFramework.Runtime
         {
             if (_running)
             {
-                Timeing();
+                Timing();
             }
         }
 
@@ -133,7 +133,7 @@ namespace LFramework.Runtime
             if (_running)
             {
                 _endTimeStamp -= time.ToTicks();
-                Timeing();
+                Timing();
             }
         }
 
@@ -146,7 +146,7 @@ namespace LFramework.Runtime
 
             _startTimeStamp = _timerComponent.ServerTimeStamp;
             _endTimeStamp = _startTimeStamp + _totalTime;
-            Timeing();
+            Timing();
         }
 
 
@@ -159,11 +159,18 @@ namespace LFramework.Runtime
         {
             if (_callBack != null)
             {
-                _callBack.Invoke(_userData);
+                try
+                {
+                    _callBack.Invoke(_userData);
+                }
+                catch (Exception e)
+                {
+                    Log.Error($"TimerData callback exception: {e}");
+                }
             }
         }
 
-        private void Timeing()
+        private void Timing()
         {
             RefreshRunning();
             if (!Running)

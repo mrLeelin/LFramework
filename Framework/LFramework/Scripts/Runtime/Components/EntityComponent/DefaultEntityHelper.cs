@@ -45,6 +45,12 @@ namespace LFramework.Runtime
             {
                 entity.OnRelease();
             }
+
+            if (m_ResourceComponent == null)
+            {
+                Log.Error("Resource component is invalid, cannot unload entity asset.");
+                return;
+            }
             m_ResourceComponent.UnloadAsset(entityAsset);
             Destroy(go);
         }
@@ -55,12 +61,13 @@ namespace LFramework.Runtime
             if (go == null)
             {
                 Log.Fatal("Before on init 'entityInstance' is not 'GameObject'");
+                return;
             }
             
             LFrameworkAspect.Instance.DiContainer.InjectGameObjectNotCheck(go);
         }
 
-        private void Start()
+        private void Awake()
         {
             m_ResourceComponent = LFrameworkAspect.Instance.Get<ResourceComponent>();
             if (m_ResourceComponent == null)

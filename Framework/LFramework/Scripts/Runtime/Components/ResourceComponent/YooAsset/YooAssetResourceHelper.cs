@@ -538,7 +538,7 @@ namespace LFramework.Runtime
             catch (Exception ex) { handle.SetError(ex.Message); }
         }
 
-        private async void InitializePackageAsync(ResourcePackage package, ResourceInitCallBack callback)
+        protected virtual async void InitializePackageAsync(ResourcePackage package, ResourceInitCallBack callback)
         {
             InitializationOperation initOperation = null;
 
@@ -548,9 +548,10 @@ namespace LFramework.Runtime
                 {
                     var buildResult = EditorSimulateModeHelper.SimulateBuild(ResourceComponent.YooAssetPackageName);
                     var packageRoot = buildResult.PackageRootDirectory;
-                    var createParameters = new EditorSimulateModeParameters();
-                    createParameters.EditorFileSystemParameters =
-                        FileSystemParameters.CreateDefaultEditorFileSystemParameters(packageRoot);
+                    var createParameters = new EditorSimulateModeParameters
+                    {
+                        EditorFileSystemParameters = FileSystemParameters.CreateDefaultEditorFileSystemParameters(packageRoot)
+                    };
                     initOperation = package.InitializeAsync(createParameters);
                 }
                     break;
@@ -565,7 +566,7 @@ namespace LFramework.Runtime
                     break;
                 case YooAssetPlayMode.HostPlayMode:
                 {
-                    IRemoteServices remoteServices = new DefaultRemoteServices(_settingComponent,_gameSetting);
+                    IRemoteServices remoteServices = BuildRemoteService(_settingComponent,_gameSetting);
                     var createParameters = new HostPlayModeParameters
                     {
                         BuildinFileSystemParameters = FileSystemParameters.CreateDefaultBuildinFileSystemParameters(),
@@ -614,6 +615,11 @@ namespace LFramework.Runtime
                 callback?.ResourceInitFailureCallBack?.Invoke(
                     "Unknown YooAsset play mode, initialization failed.");
             }
+        }
+
+        protected virtual IRemoteServices BuildRemoteService(SettingComponent settingComponent, GameSetting gameSetting)
+        {
+            return new DefaultRemoteServices(settingComponent, gameSetting);
         }
 
         #region 调试工具方法

@@ -7,7 +7,7 @@ namespace LFramework.Runtime
 {
 
 
-    public class ResourceDownloadStepEvent :  GameEventArgs<ResourcesDownloadSuccessfulEvent>
+    public class ResourceDownloadStepEvent :  GameEventArgs<ResourceDownloadStepEvent>
     {
       
         public ResourceDownloadStep Step;

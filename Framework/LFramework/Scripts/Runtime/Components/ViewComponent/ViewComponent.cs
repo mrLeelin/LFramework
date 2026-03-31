@@ -61,6 +61,7 @@ namespace LFramework.Runtime
             }
 
             var vm = view.ViewModelObject;
+            view.ViewModelObject = null;
             if (vm != null)
             {
                 if (--vm.References == 0)
@@ -76,7 +77,6 @@ namespace LFramework.Runtime
                     $"View '{view.GetType().FullName}' not exists in list of view. so it was not removed.");
             }
 
-            view.ViewModelObject = null;
             view.OnViewBeDestroy();
         }
 

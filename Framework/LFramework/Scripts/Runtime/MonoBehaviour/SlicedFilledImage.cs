@@ -7,6 +7,9 @@ using UnityEngine.U2D;
 #endif
 using Sprites = UnityEngine.Sprites;
 
+namespace LFramework.Runtime
+{
+
 #if UNITY_EDITOR
 using UnityEditor;
 
@@ -645,3 +648,5 @@ public class SlicedFilledImage : MaskableGraphic, ISerializationCallbackReceiver
 	}
 #endif
 }
+
+} // namespace LFramework.Runtime

@@ -84,8 +84,9 @@ namespace LFramework.Runtime.MonoBehaviour.Variable
 
                 return BitConverter.ToBoolean(Convert.FromBase64String(value), 0);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Debug.LogWarning($"DataConverter.ToBoolean failed for input '{value}': {ex.Message}");
                 return false;
             }
         }
@@ -99,8 +100,9 @@ namespace LFramework.Runtime.MonoBehaviour.Variable
 
                 return BitConverter.ToSingle(Convert.FromBase64String(value), 0);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Debug.LogWarning($"DataConverter.ToSingle failed for input '{value}': {ex.Message}");
                 return 0f;
             }
         }
@@ -114,8 +116,9 @@ namespace LFramework.Runtime.MonoBehaviour.Variable
 
                 return BitConverter.ToInt32(Convert.FromBase64String(value), 0);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Debug.LogWarning($"DataConverter.ToInt32 failed for input '{value}': {ex.Message}");
                 return 0;
             }
         }
@@ -129,8 +132,9 @@ namespace LFramework.Runtime.MonoBehaviour.Variable
 
                 return Encoding.UTF8.GetString(Convert.FromBase64String(value));
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Debug.LogWarning($"DataConverter.ToString failed for input '{value}': {ex.Message}");
                 return string.Empty;
             }
         }
@@ -150,8 +154,9 @@ namespace LFramework.Runtime.MonoBehaviour.Variable
                 color.a = BitConverter.ToSingle(data, 3 * sizeof(float));
                 return color;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Debug.LogWarning($"DataConverter.ToColor failed for input '{value}': {ex.Message}");
                 return Color.white;
             }
         }
@@ -169,8 +174,9 @@ namespace LFramework.Runtime.MonoBehaviour.Variable
                 vector.y = BitConverter.ToSingle(data, 1 * sizeof(float));
                 return vector;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Debug.LogWarning($"DataConverter.ToVector2 failed for input '{value}': {ex.Message}");
                 return Vector2.zero;
             }
         }
@@ -189,8 +195,9 @@ namespace LFramework.Runtime.MonoBehaviour.Variable
                 vector.z = BitConverter.ToSingle(data, 2 * sizeof(float));
                 return vector;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Debug.LogWarning($"DataConverter.ToVector3 failed for input '{value}': {ex.Message}");
                 return Vector3.zero;
             }
         }
@@ -210,8 +217,9 @@ namespace LFramework.Runtime.MonoBehaviour.Variable
                 vector.w = BitConverter.ToSingle(data, 3 * sizeof(float));
                 return vector;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Debug.LogWarning($"DataConverter.ToVector4 failed for input '{value}': {ex.Message}");
                 return Vector4.zero;
             }
         }
@@ -231,8 +239,9 @@ namespace LFramework.Runtime.MonoBehaviour.Variable
                 rect.height = BitConverter.ToSingle(data, 3 * sizeof(float));
                 return rect;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Debug.LogWarning($"DataConverter.ToRect failed for input '{value}': {ex.Message}");
                 return Rect.zero;
             }
         }

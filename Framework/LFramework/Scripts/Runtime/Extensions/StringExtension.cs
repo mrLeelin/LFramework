@@ -7,6 +7,8 @@ namespace LFramework.Runtime
 {
     public static class StringExtension
     {
+        private static readonly Regex PlaceholderRegex = new Regex(@"\{(.*?)\}", RegexOptions.Compiled);
+
         /// <summary>
         ///  替换枚举占位符
         /// </summary>
@@ -17,7 +19,7 @@ namespace LFramework.Runtime
         public static string ReplaceEnumPlaceholders<TEnum>(this string input, Func<TEnum, string> getDescription)
             where TEnum : struct, Enum
         {
-            return Regex.Replace(input, @"\{(.*?)\}", match =>
+            return PlaceholderRegex.Replace(input, match =>
             {
                 var token = match.Groups[1].Value;
                 return Enum.TryParse(token, out TEnum enumValue) ? getDescription(enumValue) : match.Value; // 保留原样
@@ -33,7 +35,7 @@ namespace LFramework.Runtime
         /// <returns></returns>
         public static string ReplacePlaceholders(this string input, Func<string, string> getDescription)
         {
-            return Regex.Replace(input, @"\{(.*?)\}", match =>
+            return PlaceholderRegex.Replace(input, match =>
             {
                 var token = match.Groups[1].Value;
                 return getDescription(token);

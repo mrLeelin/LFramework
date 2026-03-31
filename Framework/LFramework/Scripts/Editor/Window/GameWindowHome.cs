@@ -60,6 +60,16 @@ namespace LFramework.Editor
         private GUIStyle _sectionHeaderStyle;
         private GUIStyle _linkStyle;
         private GUIStyle _footerStyle;
+        private GUIStyle _actionButtonStyle;
+        private GUIStyle _cardTitleRichStyle;
+        private GUIStyle _infoRowLabelStyle;
+        private GUIStyle _infoRowValueStyle;
+        private GUIStyle _statValueStyle;
+        private GUIStyle _statLabelStyle;
+        private GUIStyle _packageNameStyle;
+        private GUIStyle _packageCatStyle;
+        private GUIStyle _defineSymbolLabelStyle;
+        private GUIStyle _defineSymbolStatusStyle;
         private Vector2 _scrollPos;
         private bool _stylesInitialized;
 
@@ -160,6 +170,61 @@ namespace LFramework.Editor
                 fontSize = 10,
                 alignment = TextAnchor.MiddleCenter,
             };
+
+            _actionButtonStyle = new GUIStyle(GUI.skin.button)
+            {
+                fontSize = 11,
+                fixedHeight = 28,
+                padding = new RectOffset(10, 10, 4, 4),
+            };
+
+            _cardTitleRichStyle = new GUIStyle(_cardTitleStyle) { richText = true };
+
+            _infoRowLabelStyle = new GUIStyle(EditorStyles.label)
+            {
+                fontSize = 11,
+                fontStyle = FontStyle.Bold,
+            };
+            _infoRowLabelStyle.normal.textColor = EditorGUIUtility.isProSkin
+                ? new Color(0.65f, 0.65f, 0.65f)
+                : new Color(0.35f, 0.35f, 0.35f);
+
+            _infoRowValueStyle = new GUIStyle(EditorStyles.label) { fontSize = 11 };
+
+            _statValueStyle = new GUIStyle(EditorStyles.boldLabel)
+            {
+                fontSize = 16,
+                alignment = TextAnchor.MiddleLeft,
+            };
+            _statValueStyle.normal.textColor = AccentColor;
+
+            _statLabelStyle = new GUIStyle(EditorStyles.label)
+            {
+                fontSize = 9,
+                alignment = TextAnchor.MiddleLeft,
+            };
+            _statLabelStyle.normal.textColor = EditorGUIUtility.isProSkin
+                ? new Color(0.55f, 0.55f, 0.55f)
+                : new Color(0.4f, 0.4f, 0.4f);
+
+            _packageNameStyle = new GUIStyle(EditorStyles.boldLabel)
+            {
+                fontSize = 11,
+                alignment = TextAnchor.MiddleLeft,
+            };
+
+            _packageCatStyle = new GUIStyle(EditorStyles.label)
+            {
+                fontSize = 9,
+                alignment = TextAnchor.MiddleLeft,
+            };
+            _packageCatStyle.normal.textColor = EditorGUIUtility.isProSkin
+                ? new Color(0.55f, 0.55f, 0.55f)
+                : new Color(0.4f, 0.4f, 0.4f);
+
+            _defineSymbolLabelStyle = new GUIStyle(EditorStyles.label) { fontSize = 11 };
+
+            _defineSymbolStatusStyle = new GUIStyle(EditorStyles.miniLabel) { fontSize = 10 };
         }
 
         // ── Odin 绘制入口 ──
@@ -322,14 +387,7 @@ namespace LFramework.Editor
             var icon = EditorGUIUtility.IconContent(iconName)?.image as Texture2D;
             var content = icon != null ? new GUIContent(" " + label, icon) : new GUIContent(label);
 
-            var style = new GUIStyle(GUI.skin.button)
-            {
-                fontSize = 11,
-                fixedHeight = 28,
-                padding = new RectOffset(10, 10, 4, 4),
-            };
-
-            return GUILayout.Button(content, style, GUILayout.ExpandWidth(false));
+            return GUILayout.Button(content, _actionButtonStyle, GUILayout.ExpandWidth(false));
         }
 
         private void RunMigrationAction(
@@ -406,7 +464,7 @@ namespace LFramework.Editor
             float textX = rect.x + 32;
             var titleRect = new Rect(textX, rect.y + 6, rect.width - 40, 18);
             GUI.Label(titleRect, $"{module.Name}  <color=#888888>{module.Label}</color>",
-                new GUIStyle(_cardTitleStyle) { richText = true });
+                _cardTitleRichStyle);
 
             // 描述
             var descRect = new Rect(textX, rect.y + 26, rect.width - 40, 20);
@@ -449,19 +507,8 @@ namespace LFramework.Editor
             var labelRect = new Rect(x, y, labelWidth, 16);
             var valueRect = new Rect(x + labelWidth + 8, y, 500, 16);
 
-            var labelStyle = new GUIStyle(EditorStyles.label)
-            {
-                fontSize = 11,
-                fontStyle = FontStyle.Bold,
-            };
-            labelStyle.normal.textColor = EditorGUIUtility.isProSkin
-                ? new Color(0.65f, 0.65f, 0.65f)
-                : new Color(0.35f, 0.35f, 0.35f);
-
-            var valueStyle = new GUIStyle(EditorStyles.label) { fontSize = 11 };
-
-            GUI.Label(labelRect, label, labelStyle);
-            GUI.Label(valueRect, value, valueStyle);
+            GUI.Label(labelRect, label, _infoRowLabelStyle);
+            GUI.Label(valueRect, value, _infoRowValueStyle);
         }
 
         // ── 链接 ──
@@ -585,26 +632,12 @@ namespace LFramework.Editor
             }
 
             // 数值
-            var valueStyle = new GUIStyle(EditorStyles.boldLabel)
-            {
-                fontSize = 16,
-                alignment = TextAnchor.MiddleLeft,
-            };
-            valueStyle.normal.textColor = AccentColor;
             var valueRect = new Rect(rect.x + 26, rect.y + 4, rect.width - 34, 22);
-            GUI.Label(valueRect, value, valueStyle);
+            GUI.Label(valueRect, value, _statValueStyle);
 
             // 标签
-            var labelStyle = new GUIStyle(EditorStyles.label)
-            {
-                fontSize = 9,
-                alignment = TextAnchor.MiddleLeft,
-            };
-            labelStyle.normal.textColor = EditorGUIUtility.isProSkin
-                ? new Color(0.55f, 0.55f, 0.55f)
-                : new Color(0.4f, 0.4f, 0.4f);
             var labelRect = new Rect(rect.x + 8, rect.y + 30, rect.width - 16, 18);
-            GUI.Label(labelRect, label, labelStyle);
+            GUI.Label(labelRect, label, _statLabelStyle);
         }
 
         // ── 构建与脚本信息 ──
@@ -665,15 +698,13 @@ namespace LFramework.Editor
             EditorGUI.DrawRect(dotRect, dotColor);
 
             // 标签
-            var labelStyle = new GUIStyle(EditorStyles.label) { fontSize = 11 };
             var labelRect = new Rect(x + 16, y, 200, 16);
-            GUI.Label(labelRect, label, labelStyle);
+            GUI.Label(labelRect, label, _defineSymbolLabelStyle);
 
             // 状态文字
-            var statusStyle = new GUIStyle(EditorStyles.miniLabel) { fontSize = 10 };
-            statusStyle.normal.textColor = enabled ? GreenBadge : GrayBadge;
+            _defineSymbolStatusStyle.normal.textColor = enabled ? GreenBadge : GrayBadge;
             var statusRect = new Rect(x + 160, y + 1, 60, 16);
-            GUI.Label(statusRect, enabled ? "已启用" : "未启用", statusStyle);
+            GUI.Label(statusRect, enabled ? "已启用" : "未启用", _defineSymbolStatusStyle);
         }
 
         // ── 关键依赖包 ──
@@ -727,25 +758,12 @@ namespace LFramework.Editor
             EditorGUI.DrawRect(barRect, new Color(0.55f, 0.36f, 0.86f)); // 紫色区分
 
             // 包名
-            var nameStyle = new GUIStyle(EditorStyles.boldLabel)
-            {
-                fontSize = 11,
-                alignment = TextAnchor.MiddleLeft,
-            };
             var nameRect = new Rect(rect.x + 10, rect.y + 4, rect.width - 18, 16);
-            GUI.Label(nameRect, displayName, nameStyle);
+            GUI.Label(nameRect, displayName, _packageNameStyle);
 
             // 分类标签
-            var catStyle = new GUIStyle(EditorStyles.label)
-            {
-                fontSize = 9,
-                alignment = TextAnchor.MiddleLeft,
-            };
-            catStyle.normal.textColor = EditorGUIUtility.isProSkin
-                ? new Color(0.55f, 0.55f, 0.55f)
-                : new Color(0.4f, 0.4f, 0.4f);
             var catRect = new Rect(rect.x + 10, rect.y + 20, rect.width - 18, 14);
-            GUI.Label(catRect, category, catStyle);
+            GUI.Label(catRect, category, _packageCatStyle);
         }
 
         // ── 分隔线 ──

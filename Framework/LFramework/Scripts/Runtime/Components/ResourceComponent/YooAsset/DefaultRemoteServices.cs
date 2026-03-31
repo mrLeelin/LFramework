@@ -8,7 +8,6 @@ namespace LFramework.Runtime
     {
         private readonly string _defaultHostServer;
         
-
         public DefaultRemoteServices(SettingComponent settingComponent,GameSetting gameSetting)
         {
             var url = gameSetting.GetCdnUrl();

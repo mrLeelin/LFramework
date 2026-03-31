@@ -9,9 +9,9 @@ namespace LFramework.Runtime
         /// </summary>
         Local,
         /// <summary>
-        /// 打包机
+        /// 完整资源包
         /// </summary>
-        DaBaoji,
+        FullPackage,
         
         Debug,
         

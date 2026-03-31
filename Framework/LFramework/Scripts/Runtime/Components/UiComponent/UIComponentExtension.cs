@@ -98,7 +98,7 @@ namespace LFramework.Runtime
         /// <param name="uiComponent"></param>
         /// <param name="uiFormGroups"></param>
         /// <returns></returns>
-        public static bool ExitActiveViewInGroup(this UIComponent uiComponent, List<string> uiFormGroups)
+        public static bool HasActiveViewInGroup(this UIComponent uiComponent, List<string> uiFormGroups)
         {
             if (uiFormGroups == null || uiFormGroups.Count == 0)
             {

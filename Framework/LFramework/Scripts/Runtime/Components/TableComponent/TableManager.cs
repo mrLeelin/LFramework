@@ -303,7 +303,7 @@ namespace LFramework.Runtime
             }
 
             TableBase dataTable = (TableBase)Activator.CreateInstance(tableType, name);
-            dataTable.SetResourceManager(GameFrameworkEntry.GetModule<IResourceManager>());
+            dataTable.SetResourceManager(_resourceManager);
             dataTable.SetDataProviderHelper(_dataProviderHelper);
             _allTables.Add(typeNamePair, dataTable);
             return dataTable;

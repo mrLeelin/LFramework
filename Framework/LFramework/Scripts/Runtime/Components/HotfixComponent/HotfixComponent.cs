@@ -75,48 +75,60 @@ namespace LFramework.Runtime
 
         public async void LoadHotfixAssemblies(Action<HotfixCodeResult> callBack)
         {
-            HotfixCodeResult result = default;
+            try
+            {
+                HotfixCodeResult result = default;
 #if UNITY_EDITOR
-            result = LoadEditorHotfixAssemblies();
+                result = LoadEditorHotfixAssemblies();
 #elif HybridCLR_SUPPORT
-            result = await LoadAotAssemblies();
-            if (result.ResultType == LoadAssemblyResultType.Successful)
-            {
-                result = await LoadHotfixAssembliesInternal();
-            }
+                result = await LoadAotAssemblies();
+                if (result.ResultType == LoadAssemblyResultType.Successful)
+                {
+                    result = await LoadHotfixAssembliesInternal();
+                }
 #endif
-            if (result.ResultType != LoadAssemblyResultType.Successful)
-            {
-                callBack(result);
-                return;
-            }
+                if (result.ResultType != LoadAssemblyResultType.Successful)
+                {
+                    callBack(result);
+                    return;
+                }
 
-            Log.Info("The hotfix scripts loaded successfully.");
-            if (_hotfixAssemblies == null || _hotfixAssemblies.Count == 0)
+                Log.Info("The hotfix scripts loaded successfully.");
+                if (_hotfixAssemblies == null || _hotfixAssemblies.Count == 0)
+                {
+                    callBack(new HotfixCodeResult()
+                    {
+                        ResultType = LoadAssemblyResultType.HotfixError,
+                        Message = "No hotfix assemblies loaded."
+                    });
+                    return;
+                }
+
+                if (null == _mainLogicAssembly)
+                {
+                    callBack(new HotfixCodeResult()
+                    {
+                        ResultType = LoadAssemblyResultType.HotfixError,
+                        Message = "Main logic assembly missing."
+                    });
+                    return;
+                }
+
+                ParseHotfixAssembly();
+                callBack(new HotfixCodeResult()
+                {
+                    ResultType = LoadAssemblyResultType.Successful
+                });
+            }
+            catch (Exception e)
             {
+                Log.Error($"LoadHotfixAssemblies encountered an unhandled exception: {e}");
                 callBack(new HotfixCodeResult()
                 {
                     ResultType = LoadAssemblyResultType.HotfixError,
-                    Message = "No hotfix assemblies loaded."
+                    Message = $"Unhandled exception in LoadHotfixAssemblies: {e.Message}"
                 });
-                return;
             }
-
-            if (null == _mainLogicAssembly)
-            {
-                callBack(new HotfixCodeResult()
-                {
-                    ResultType = LoadAssemblyResultType.HotfixError,
-                    Message = "Main logic assembly missing."
-                });
-                return;
-            }
-
-            ParseHotfixAssembly();
-            callBack(new HotfixCodeResult()
-            {
-                ResultType = LoadAssemblyResultType.Successful
-            });
         }
 
         /// <summary>
@@ -193,11 +205,11 @@ namespace LFramework.Runtime
         private async UniTask<HotfixCodeResult> LoadAotAssemblies()
         {
             List<TextAsset> dlls;
+            ResourceBatchHandle<TextAsset> handle = null;
             try
             {
-                var handle = ResourceComponent.LoadAssetsByTagHandle<TextAsset>(HybridClrSetting.defaultAotDllLabel);
+                handle = ResourceComponent.LoadAssetsByTagHandle<TextAsset>(HybridClrSetting.defaultAotDllLabel);
                 dlls = await handle;
-                handle.Release();
             }
             catch (Exception e)
             {
@@ -207,6 +219,10 @@ namespace LFramework.Runtime
                     ResultType = LoadAssemblyResultType.LoadAotError,
                     Message = e.Message
                 };
+            }
+            finally
+            {
+                handle?.Release();
             }
 
             if (dlls == null || dlls.Count == 0)

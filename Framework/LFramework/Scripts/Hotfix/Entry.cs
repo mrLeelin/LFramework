@@ -66,6 +66,10 @@ namespace LFramework.Hotfix
             {
                 result = attributes.Value;
             }
+            else
+            {
+                result = default;
+            }
 
             return attributes.HasValue;
         }

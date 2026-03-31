@@ -27,7 +27,7 @@ namespace LFramework.Runtime
 
             if (types == null || types.Count == 0)
             {
-                return TempWorldHelpers;
+                return new List<IWorldHelper>(TempWorldHelpers);
             }
 
 
@@ -37,7 +37,7 @@ namespace LFramework.Runtime
                 TempWorldHelpers.Add(instance);
             }
 
-            return TempWorldHelpers;
+            return new List<IWorldHelper>(TempWorldHelpers);
         }
 
         private static List<Type> GetWorldHelperTypes(Type worldType)

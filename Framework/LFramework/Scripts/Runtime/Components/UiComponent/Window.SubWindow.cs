@@ -88,7 +88,7 @@ namespace LFramework.Runtime
 
             foreach (var sm in subModules)
             {
-                if (sm.Getkey().Equals(key))
+                if (sm.GetKey().Equals(key))
                 {
                     return (T)sm;
                 }

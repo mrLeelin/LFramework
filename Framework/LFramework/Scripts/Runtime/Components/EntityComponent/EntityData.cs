@@ -10,11 +10,14 @@ namespace LFramework.Runtime
     {
         [SerializeField] private int m_Id = 0;
 
-        [SerializeField] private Vector3? m_Position = null;
+        [SerializeField] private bool m_HasPosition = false;
+        [SerializeField] private Vector3 m_Position = Vector3.zero;
 
-        [SerializeField] private Quaternion? m_Rotation = null;
+        [SerializeField] private bool m_HasRotation = false;
+        [SerializeField] private Quaternion m_Rotation = Quaternion.identity;
 
-        [SerializeField] private Vector3? m_Size = null;
+        [SerializeField] private bool m_HasSize = false;
+        [SerializeField] private Vector3 m_Size = Vector3.one;
 
         [SerializeField] private string m_EntityAssetsPath;
 
@@ -44,8 +47,8 @@ namespace LFramework.Runtime
         /// </summary>
         public Vector3? Position
         {
-            get { return m_Position; }
-            set { m_Position = value; }
+            get => m_HasPosition ? m_Position : null;
+            set { m_HasPosition = value.HasValue; m_Position = value ?? Vector3.zero; }
         }
 
         /// <summary>
@@ -53,14 +56,14 @@ namespace LFramework.Runtime
         /// </summary>
         public Quaternion? Rotation
         {
-            get { return m_Rotation; }
-            set { m_Rotation = value; }
+            get => m_HasRotation ? m_Rotation : null;
+            set { m_HasRotation = value.HasValue; m_Rotation = value ?? Quaternion.identity; }
         }
 
         public Vector3? Size
         {
-            get => m_Size;
-            set => m_Size = value;
+            get => m_HasSize ? m_Size : null;
+            set { m_HasSize = value.HasValue; m_Size = value ?? Vector3.one; }
         }
 
         public object UserData

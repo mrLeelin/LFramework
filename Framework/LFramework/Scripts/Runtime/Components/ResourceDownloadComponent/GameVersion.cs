@@ -120,9 +120,14 @@ namespace LFramework.Runtime
 
             var clientAppVersion = new Version(client.appVersion);
             var remoteAppVersion = new Version(remote.appVersion);
-            if (remoteAppVersion != clientAppVersion)
+            if (remoteAppVersion > clientAppVersion)
             {
                 return (Result.ForceUpdate, "");
+            }
+
+            if (remoteAppVersion < clientAppVersion)
+            {
+                return (Result.NoUpdate, "");
             }
 
             var clientResVersion = new Version(clientConfig.resourceVersion);
@@ -131,7 +136,6 @@ namespace LFramework.Runtime
             {
                 return (Result.Update, "");
             }
-
 
             return (Result.NoUpdate, "");
         }

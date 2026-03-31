@@ -204,7 +204,7 @@ namespace LFramework.Runtime
             {
                 _isClosing = true;
                 _windowAnimationState = WindowAnimationState.Closing;
-                OnAnimationExistStart();
+                OnAnimationExitStart();
                 _windowAnimation.PlayAnimation(ExitAnimationName, Close);
             }
             else
@@ -234,7 +234,7 @@ namespace LFramework.Runtime
             {
                 _isClosing = true;
                 _windowAnimationState = WindowAnimationState.Closing;
-                OnAnimationExistStart();
+                OnAnimationExitStart();
                 _windowAnimation.PlayAnimation(ExitAnimationName, Close);
             }
             else
@@ -268,7 +268,7 @@ namespace LFramework.Runtime
         {
         }
 
-        protected virtual void OnAnimationExistStart()
+        protected virtual void OnAnimationExitStart()
         {
         }
 

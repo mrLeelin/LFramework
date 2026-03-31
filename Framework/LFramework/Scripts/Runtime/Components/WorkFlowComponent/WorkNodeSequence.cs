@@ -42,13 +42,21 @@ namespace LFramework.Runtime
                 return;
             }
             mCurrentNode = Nodes[mCurrentNodeIndex];
-            while (mCurrentNode.IsEnable == false && mCurrentNodeIndex <= Count - 1)
+            while (mCurrentNode.IsEnable == false)
             {
                 mCurrentNodeIndex++;
+                if (mCurrentNodeIndex > Count - 1)
+                {
+                    mCurrentNode = null;
+                    break;
+                }
                 mCurrentNode = Nodes[mCurrentNodeIndex];
             }
 
-            mCurrentNode.OnStart();
+            if (mCurrentNode != null)
+            {
+                mCurrentNode.OnStart();
+            }
         }
 
         public override WorkFlowStatus OnUpdate()
