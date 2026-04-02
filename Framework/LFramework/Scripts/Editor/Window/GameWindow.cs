@@ -23,6 +23,7 @@ namespace LFramework.Editor.Window
         private GameWindowLocalResourceServer _gameWindowLocalResourceServer;
         private GameWindowFrameworkSettingOverview _gameWindowFrameworkSettingOverview;
         private GameWindowFrameworkProfiledOverview _gameWindowFrameworkProfiledOverview;
+        private GameWindowLubanOverview _gameWindowLubanOverview;
         private List<ProfiledBase> _allProfiled;
         private UnityEditor.Editor _cachedSettingEditor;
         private UnityEngine.Object _cachedSettingTarget;
@@ -70,6 +71,7 @@ namespace LFramework.Editor.Window
             _gameWindowFrameworkSettingOverview ??= new GameWindowFrameworkSettingOverview();
             _gameWindowFrameworkProfiledOverview ??=
                 new GameWindowFrameworkProfiledOverview(() => _allProfiled?.Count ?? 0);
+            _gameWindowLubanOverview ??= new GameWindowLubanOverview();
         }
 
         protected override void OnDisable()
@@ -82,6 +84,7 @@ namespace LFramework.Editor.Window
             }
 
             _cachedSettingTarget = null;
+            _gameWindowLubanOverview?.Dispose();
         }
 
         protected override OdinMenuTree BuildMenuTree()
@@ -89,6 +92,7 @@ namespace LFramework.Editor.Window
             var tree = new OdinMenuTree(supportsMultiSelect: true)
             {
                 { "Home", _gameWindowHome, EditorIcons.House },
+                { "Luban", _gameWindowLubanOverview, EditorIcons.SettingsCog },
                 { "框架设置", _gameWindowFrameworkSettingOverview, EditorIcons.SettingsCog },
                 { "运行时预览", _gameWindowFrameworkProfiledOverview, EditorIcons.Car },
                 { "本地Cdn测试服务", _gameWindowLocalResourceServer, EditorIcons.SettingsCog },

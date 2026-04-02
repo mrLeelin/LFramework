@@ -15,6 +15,12 @@
     "precompiledReferences": [],
     "autoReferenced": false,
     "defineConstraints": [],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "com.code-philosophy.luban",
+            "expression": "",
+            "define": "LUBAN_SUPPORT"
+        }
+    ],
     "noEngineReferences": false
 }

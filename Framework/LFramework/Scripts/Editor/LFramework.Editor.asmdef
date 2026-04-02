@@ -46,6 +46,11 @@
             "name": "com.unity.mobile.notifications",
             "expression": "",
             "define": "NOTIFICATION_SUPPORT"
+        },
+        {
+            "name": "com.code-philosophy.luban",
+            "expression": "",
+            "define": "LUBAN_SUPPORT"
         }
     ],
     "noEngineReferences": false
