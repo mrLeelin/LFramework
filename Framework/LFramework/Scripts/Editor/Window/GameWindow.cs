@@ -89,7 +89,7 @@ namespace LFramework.Editor.Window
 
         protected override OdinMenuTree BuildMenuTree()
         {
-            var tree = new OdinMenuTree(supportsMultiSelect: true)
+            var tree = new OdinMenuTree(supportsMultiSelect: true,OdinMenuStyle.TreeViewStyle)
             {
                 { "Home", _gameWindowHome, EditorIcons.House },
 

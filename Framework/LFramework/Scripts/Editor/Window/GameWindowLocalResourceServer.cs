@@ -189,7 +189,7 @@ namespace LFramework.Editor
         {
             DrawSectionHeader("Overview");
 
-            float availableWidth = EditorGUIUtility.currentViewWidth - 56f;
+            float availableWidth = GameWindowChrome.GetDefaultWidth();
             float cardWidth = (availableWidth - 8f) * 0.5f;
 
             EditorGUILayout.BeginHorizontal();

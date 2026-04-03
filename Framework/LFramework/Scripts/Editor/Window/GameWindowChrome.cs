@@ -64,6 +64,9 @@ namespace LFramework.Editor
         private static GUIStyle _bannerBodyStyle;
         private static bool _stylesInitialized;
 
+
+        internal static float GetDefaultWidth() => 520;
+        
         internal static void BeginPage(ref Vector2 scrollPosition)
         {
             EnsureStyles();
@@ -193,7 +196,7 @@ namespace LFramework.Editor
             }
 
             int columns = GetColumns(cards.Length);
-            float availableWidth = EditorGUIUtility.currentViewWidth - 48f;
+            float availableWidth = GetDefaultWidth();
             float cardWidth = (availableWidth - (columns - 1) * 8f) / columns;
 
             for (int i = 0; i < cards.Length; i += columns)

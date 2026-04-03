@@ -420,7 +420,7 @@ namespace LFramework.Editor
             GUILayout.Space(4);
 
             const int columns = 3;
-            float availableWidth = EditorGUIUtility.currentViewWidth - 48;
+            float availableWidth = GameWindowChrome.GetDefaultWidth();
             float cardWidth = (availableWidth - (columns - 1) * 8) / columns;
 
             for (int i = 0; i < modules.Length; i += columns)
@@ -726,7 +726,7 @@ namespace LFramework.Editor
             GUILayout.Space(4);
 
             const int columns = 4;
-            float availableWidth = EditorGUIUtility.currentViewWidth - 48;
+            float availableWidth = GameWindowChrome.GetDefaultWidth();
             float cardWidth = (availableWidth - (columns - 1) * 8) / columns;
 
             for (int i = 0; i < KeyPackages.Length; i += columns)

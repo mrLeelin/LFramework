@@ -50,7 +50,7 @@ namespace LFramework.Editor.Window
             }
             else
             {
-                _propertyTree.Draw(false);
+                _propertyTree.Draw();
             }
 
             GameWindowChrome.EndContentCard();
