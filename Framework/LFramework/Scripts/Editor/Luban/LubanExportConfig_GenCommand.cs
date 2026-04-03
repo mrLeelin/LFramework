@@ -84,9 +84,12 @@ namespace Luban.Editor
                 sb.Append($"--timeZone {time_zone} {LINE_END}");
             }
 
-            if(!string.IsNullOrEmpty(custom_template_dir))
+            var templateDir = !string.IsNullOrEmpty(custom_template_dir)
+                ? custom_template_dir
+                : DefaultTemplateDir;
+            if(!string.IsNullOrEmpty(templateDir))
             {
-                sb.Append($"--customTemplateDir {custom_template_dir} {LINE_END}");
+                sb.Append($"--customTemplateDir {templateDir} {LINE_END}");
             }
 
             if(output_table is not null && output_table.Count > 0)

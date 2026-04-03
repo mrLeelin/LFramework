@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Sirenix.OdinInspector;
+using UnityEditor;
 using UnityEngine;
 
 namespace Luban.Editor
@@ -8,6 +10,39 @@ namespace Luban.Editor
     public partial class LubanExportConfig
     {
         private static ValueDropdownList<string> _timeZoneDropdownCache;
+        private static string _defaultTemplateDir;
+
+        /// <summary>
+        /// 通过 LFramework.Editor.asmdef 动态定位框架内置 Luban 模板目录。
+        /// 无论 SubModule 还是 UPM Package 引入都能正确定位。
+        /// </summary>
+        internal static string DefaultTemplateDir
+        {
+            get
+            {
+                if (_defaultTemplateDir != null)
+                    return _defaultTemplateDir;
+
+                var guids = AssetDatabase.FindAssets("LFramework.Editor t:AssemblyDefinitionAsset");
+                if (guids.Length > 0)
+                {
+                    // asmdef 路径形如: .../LFramework/Scripts/Editor/LFramework.Editor.asmdef
+                    // 往上 3 级到 LFramework/，再拼模板路径
+                    string asmdefPath = AssetDatabase.GUIDToAssetPath(guids[0]);
+                    string editorDir = Path.GetDirectoryName(asmdefPath);           // .../Scripts/Editor
+                    string scriptsDir = Path.GetDirectoryName(editorDir);            // .../Scripts
+                    string lframeworkDir = Path.GetDirectoryName(scriptsDir);        // .../LFramework
+                    _defaultTemplateDir = Path.Combine(lframeworkDir, "Assets", "Template", "Luban", "Templates")
+                        .Replace("\\", "/");
+                }
+                else
+                {
+                    _defaultTemplateDir = string.Empty;
+                }
+
+                return _defaultTemplateDir;
+            }
+        }
 
         
         [Required]
@@ -29,14 +64,14 @@ namespace Luban.Editor
         [LabelText("luban 配置项")]
         [TabGroup("Split", "参数配置")]
         [BoxGroup("Split/参数配置/必要参数")]
-        [FilePath(Extensions = ".conf")]
+        [Sirenix.OdinInspector.FilePath(Extensions = ".conf")]
         public string luban_conf_path;
 
         [Required]
         [LabelText("luban dll")]
         [TabGroup("Split", "参数配置")]
         [BoxGroup("Split/参数配置/必要参数")]
-        [FilePath(Extensions = "dll", RequireExistingPath = true)]
+        [Sirenix.OdinInspector.FilePath(Extensions = "dll", RequireExistingPath = true)]
         public string luban_dll;
 
         [LabelText("强行加载配置数据")]
@@ -91,7 +126,7 @@ namespace Luban.Editor
         [LabelText("自定义模板目录")]
         [TabGroup("Split", "参数配置")]
         [FoldoutGroup("Split/参数配置/缺省参数")]
-        [Tooltip("自定义template搜索路径，优先级搜索此路径，再搜索默认的Templates路径")]
+        [Tooltip("自定义template搜索路径。留空则自动使用框架内置的 Luban/Templates 目录")]
         public string custom_template_dir;
 
         [LabelText("要生成的 Table")]
