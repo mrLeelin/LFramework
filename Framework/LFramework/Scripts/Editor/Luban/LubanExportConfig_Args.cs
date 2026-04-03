@@ -7,9 +7,12 @@ namespace Luban.Editor
 {
     public partial class LubanExportConfig
     {
+        private static ValueDropdownList<string> _timeZoneDropdownCache;
+
         
         [Required]
         [LabelText("dotnet 路径")]
+        [TabGroup("Split", "参数配置", TabLayouting = TabLayouting.MultiRow)]
         [TabGroup("Split", "参数配置")]
         [BoxGroup("Split/参数配置/必要参数")]
         [ShowIf("IS_MACOS")]
@@ -26,6 +29,7 @@ namespace Luban.Editor
         [LabelText("luban 配置项")]
         [TabGroup("Split", "参数配置")]
         [BoxGroup("Split/参数配置/必要参数")]
+        [FilePath(Extensions = ".conf")]
         public string luban_conf_path;
 
         [Required]
@@ -139,12 +143,14 @@ namespace Luban.Editor
         [LabelText("代码输出目录")]
         [TabGroup("Split", "参数配置")]
         [FoldoutGroup("Split/参数配置/默认额外参数")]
+        [FolderPath]
         [HideIf(nameof(multi_code_target))]
         public string output_code_dir;
 
         [LabelText("数据输出目录")]
         [TabGroup("Split", "参数配置")]
         [FoldoutGroup("Split/参数配置/默认额外参数")]
+        [FolderPath]
         [HideIf(nameof(multi_data_target))]
         public string output_data_dir;
 
@@ -204,8 +210,13 @@ namespace Luban.Editor
         [HideLabel]
         public List<CustomXargs> custom_args;
 
-        private ValueDropdownList<string> _GetAllTimeZone()
+        internal static ValueDropdownList<string> GetTimeZoneDropdownItems()
         {
+            if(_timeZoneDropdownCache != null)
+            {
+                return _timeZoneDropdownCache;
+            }
+
             ValueDropdownList<string> result = new();
 
             foreach(var info in TimeZoneInfo.GetSystemTimeZones())
@@ -217,7 +228,13 @@ namespace Luban.Editor
 
             result.Insert(0, new ValueDropdownItem<string>("无", ""));
 
-            return result;
+            _timeZoneDropdownCache = result;
+            return _timeZoneDropdownCache;
+        }
+
+        private ValueDropdownList<string> _GetAllTimeZone()
+        {
+            return GetTimeZoneDropdownItems();
         }
     }
 }

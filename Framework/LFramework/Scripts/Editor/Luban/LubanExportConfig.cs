@@ -9,6 +9,7 @@ namespace Luban.Editor
     public partial class LubanExportConfig : ScriptableObject
     {
         [HideLabel]
+        [TabGroup("Split", "预配置项", TabLayouting = TabLayouting.MultiRow)]
         [TabGroup("Split", "预配置项")]
         [FoldoutGroup("Split/预配置项/Luban conf 文件配置")]
         public LubanConfig config;
@@ -24,6 +25,16 @@ namespace Luban.Editor
         [Button("重置")]
         public void ResetDropdownDic()
         {
+            bool confirmed = UnityEditor.EditorUtility.DisplayDialog(
+                "确认重置",
+                "这会覆盖当前的下拉配置扩展内容，是否继续？",
+                "继续重置",
+                "取消");
+            if (!confirmed)
+            {
+                return;
+            }
+
             dropdown ??= new CustomDropDownDic();
             dropdown.Clear();
 

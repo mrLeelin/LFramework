@@ -14,6 +14,16 @@ namespace LFramework.Editor.Window
         private LubanExportConfig _config;
         private PropertyTree _propertyTree;
 
+        /// <summary>
+        /// 框架内置 Luban 模板的源目录（Unity 资产路径）。
+        /// </summary>
+        private const string TemplateSrcDir = "Assets/Framework/Framework/LFramework/Assets/Template/Luban";
+
+        /// <summary>
+        /// 模板文件名列表。
+        /// </summary>
+        private static readonly string[] TemplateFileNames = { "table.sbn", "tables.sbn" };
+
         [OnInspectorGUI]
         private void DrawPage()
         {
@@ -39,7 +49,9 @@ namespace LFramework.Editor.Window
 
             GameWindowChrome.DrawSectionHeader("Configuration", "完整的 Luban 配置和执行操作都直接放在当前页签中。");
             GameWindowChrome.BeginContentCard();
-            DrawToolbar();
+            DrawPrimaryAction();
+            GUILayout.Space(4f);
+            DrawSecondaryToolbar();
             GUILayout.Space(8f);
 
             if (_propertyTree == null)
@@ -62,7 +74,7 @@ namespace LFramework.Editor.Window
             _config = null;
         }
 
-        private void DrawToolbar()
+        private void DrawSecondaryToolbar()
         {
             EditorGUILayout.BeginHorizontal();
 
@@ -71,18 +83,31 @@ namespace LFramework.Editor.Window
                 _config?.PreviewCommand();
             }
 
-            if (GUILayout.Button("执行导出", GUILayout.Height(28f)))
-            {
-                _config?.RunCommand();
-            }
-
             if (GUILayout.Button("选中配置资源", GUILayout.Height(28f)))
             {
                 Selection.activeObject = _config;
                 EditorGUIUtility.PingObject(_config);
             }
 
+            if (GUILayout.Button("Copy Cs_Bin 模板文件", GUILayout.Height(28f)))
+            {
+                CopyCsBinTemplates();
+            }
+
             EditorGUILayout.EndHorizontal();
+        }
+
+        private void DrawPrimaryAction()
+        {
+            Color previousBg = GUI.backgroundColor;
+            GUI.backgroundColor = GameWindowChrome.SuccessColor;
+
+            if (GUILayout.Button("执行导出", GUILayout.Height(36f), GUILayout.ExpandWidth(true)))
+            {
+                _config?.RunCommand();
+            }
+
+            GUI.backgroundColor = previousBg;
         }
 
         private void EnsurePropertyTree()
@@ -96,6 +121,69 @@ namespace LFramework.Editor.Window
             _propertyTree?.Dispose();
             _config = config;
             _propertyTree = _config != null ? PropertyTree.Create(new SerializedObject(_config)) : null;
+        }
+
+        /// <summary>
+        /// 将内置 cs-bin 模板文件复制到 Luban DLL 同级的 Templates/cs-bin/ 目录。
+        /// </summary>
+        private void CopyCsBinTemplates()
+        {
+            // 1. 读取 luban_dll 路径
+            string lubanDll = _config?.luban_dll;
+            if (string.IsNullOrEmpty(lubanDll))
+            {
+                EditorUtility.DisplayDialog("错误", "请先配置 luban dll 路径", "确定");
+                return;
+            }
+
+            // 2. 计算目标目录
+            string targetDir = Path.GetFullPath(
+                Path.Combine(Path.GetDirectoryName(lubanDll), "..", "Templates", "cs-bin"));
+
+            // 3. 检查所有源文件是否存在
+            var missingFiles = new System.Collections.Generic.List<string>();
+            foreach (string fileName in TemplateFileNames)
+            {
+                string srcPath = Path.Combine(TemplateSrcDir, fileName);
+                if (!File.Exists(srcPath))
+                {
+                    missingFiles.Add(fileName);
+                }
+            }
+
+            if (missingFiles.Count > 0)
+            {
+                EditorUtility.DisplayDialog("错误",
+                    $"模板源文件缺失:\n{string.Join("\n", missingFiles)}",
+                    "确定");
+                return;
+            }
+
+            // 4. 创建目标目录（幂等）
+            Directory.CreateDirectory(targetDir);
+
+            // 5. 复制文件
+            try
+            {
+                foreach (string fileName in TemplateFileNames)
+                {
+                    string src = Path.Combine(TemplateSrcDir, fileName);
+                    string dst = Path.Combine(targetDir, fileName);
+                    File.Copy(src, dst, true);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                EditorUtility.DisplayDialog("错误",
+                    $"复制模板文件时发生异常:\n{ex.Message}",
+                    "确定");
+                return;
+            }
+
+            // 6. 成功提示
+            EditorUtility.DisplayDialog("成功",
+                $"模板文件已复制到:\n{targetDir}",
+                "确定");
         }
     }
 }

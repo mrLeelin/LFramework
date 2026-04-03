@@ -92,9 +92,15 @@ namespace LFramework.Editor.Window
             var tree = new OdinMenuTree(supportsMultiSelect: true)
             {
                 { "Home", _gameWindowHome, EditorIcons.House },
-                { "Luban", _gameWindowLubanOverview, EditorIcons.SettingsCog },
+
+              
                 { "框架设置", _gameWindowFrameworkSettingOverview, EditorIcons.SettingsCog },
                 { "运行时预览", _gameWindowFrameworkProfiledOverview, EditorIcons.Car },
+                
+#if LUBAN_SUPPORT
+                  { "Luban", _gameWindowLubanOverview, EditorIcons.SettingsCog },
+#endif
+                
                 { "本地Cdn测试服务", _gameWindowLocalResourceServer, EditorIcons.SettingsCog },
             };
 

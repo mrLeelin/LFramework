@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Sirenix.OdinInspector;
 
 namespace Luban.Editor
@@ -7,40 +8,75 @@ namespace Luban.Editor
     [Serializable]
     public class CustomDropDownDic : UnitySerializedDictionary<string, string>
     {
+        private readonly Dictionary<string, CachedDropdown> _dropdownCache = new();
+        private List<ValueDropdownItem<string>> _keyDropdownCache;
+        private string _keyDropdownSignature;
+
         public IEnumerable<ValueDropdownItem<string>> GetKeyDropdown()
         {
-            foreach(var key in Keys)
+            string signature = string.Join("\u001f", Keys.OrderBy(static key => key, StringComparer.Ordinal));
+            if (_keyDropdownCache != null && _keyDropdownSignature == signature)
             {
-                yield return new ValueDropdownItem<string>(key, key);
+                return _keyDropdownCache;
             }
+
+            var items = new List<ValueDropdownItem<string>>();
+            foreach (var key in Keys)
+            {
+                items.Add(new ValueDropdownItem<string>(key, key));
+            }
+
+            _keyDropdownSignature = signature;
+            _keyDropdownCache = items;
+            return items;
         }
 
         public IEnumerable<ValueDropdownItem<string>> GetDropdown(string key, bool append_empty)
         {
-            if(key is null)
+            if (key is null)
             {
-                yield return new ValueDropdownItem<string>("", "");
-                yield break;
+                return append_empty
+                    ? new List<ValueDropdownItem<string>> { new("", "") }
+                    : Array.Empty<ValueDropdownItem<string>>();
             }
 
             TryGetValue(key, out var values);
-
-            if(append_empty)
+            string source = values ?? string.Empty;
+            string cacheKey = $"{key}|{append_empty}";
+            if (_dropdownCache.TryGetValue(cacheKey, out var cached) && cached.Source == source)
             {
-                yield return new ValueDropdownItem<string>("无", "");
+                return cached.Items;
             }
 
-            if(string.IsNullOrEmpty(values))
+            var items = new List<ValueDropdownItem<string>>();
+            if (append_empty)
             {
-                yield break;
+                items.Add(new ValueDropdownItem<string>("无", ""));
             }
 
-            values = values.Replace(" ", "");
-
-            foreach(var value in values.Split(","))
+            if (!string.IsNullOrEmpty(values))
             {
-                yield return new ValueDropdownItem<string>(value, value);
+                source = values.Replace(" ", "");
+                foreach (var value in source.Split(","))
+                {
+                    items.Add(new ValueDropdownItem<string>(value, value));
+                }
             }
+
+            _dropdownCache[cacheKey] = new CachedDropdown(source, items);
+            return items;
+        }
+
+        private readonly struct CachedDropdown
+        {
+            public CachedDropdown(string source, List<ValueDropdownItem<string>> items)
+            {
+                Source = source;
+                Items = items;
+            }
+
+            public string Source { get; }
+            public List<ValueDropdownItem<string>> Items { get; }
         }
     }
 }

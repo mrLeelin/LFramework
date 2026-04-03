@@ -22,6 +22,7 @@ namespace Luban.Editor
 
         internal static readonly string LINE_END = IS_WINDOWS ? "^\n" : "\\\n";
 
+        [TabGroup("Split", "预览命令", TabLayouting = TabLayouting.MultiRow)]
         [TabGroup("Split", "预览命令")]
         [BoxGroup("Split/预览命令/Command")]
         [TextArea(5, 50)]

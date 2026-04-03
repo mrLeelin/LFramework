@@ -73,7 +73,7 @@ namespace LFramework.Runtime.LaunchPipeline
 
                 // 使用 WhenAny 竞速：资源初始化回调 vs 超时
                 var timeoutMs = timeoutSeconds * 1000;
-                var (winIndex, _) = await UniTask.WhenAny(
+                var winIndex = await UniTask.WhenAny(
                     tcs.Task,
                     UniTask.Delay(timeoutMs, cancellationToken: context.CancellationToken)
                 );
