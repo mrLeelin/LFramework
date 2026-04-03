@@ -1,0 +1,47 @@
+using Luban;
+
+{{namespace_with_grace_begin __namespace}}
+public partial class {{__name}}
+{
+    {{~for table in __tables ~}}
+{{~if table.comment != '' ~}}
+    /// <summary>
+    /// {{escape_comment table.comment}}
+    /// </summary>
+{{~end~}}
+    public {{table.full_name}} {{format_property_name __code_style table.name}} {get; private set; }
+    {{~end~}}
+
+    private System.Collections.Generic.Dictionary<string, object> tables;
+
+
+
+    public void LoadAllDataTable(LFramework.Runtime.TableComponent component,ref System.Collections.Generic.List<string> allLoadingTables){
+        tables = new System.Collections.Generic.Dictionary<string, object>();
+
+        {{~for table in __tables ~}}
+        {{table.name}} = component.CreateDataTable<{{table.full_name}}>();
+        var {{table.output_data_file}}_readPath = AssetUtility.GetDataTableAsset("{{table.output_data_file}}");
+        {{table.name}}.ReadData({{table.output_data_file}}_readPath);
+        allLoadingTables.Add({{table.output_data_file}}_readPath);
+        tables.Add("{{table.full_name}}", {{table.name}});
+        {{~end~}}
+    
+    }
+
+
+    public {{__name}}()
+    {
+    
+       
+    }
+    
+    public void ResolveRef()
+    {
+        {{~for table in __tables ~}}
+        {{format_property_name __code_style table.name}}.ResolveRef(this);
+        {{~end~}}
+    }
+}
+
+{{namespace_with_grace_end __namespace}}
