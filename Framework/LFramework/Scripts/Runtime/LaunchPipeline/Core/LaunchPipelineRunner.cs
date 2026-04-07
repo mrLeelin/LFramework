@@ -89,8 +89,10 @@ namespace LFramework.Runtime.LaunchPipeline
                     context.CurrentRunTask = task;
                     // 异步执行任务
                     var taskStopwatch = Stopwatch.StartNew();
+                    task.OnTaskStarted(context);
                     context.OnTaskStarted?.Invoke(task);
                     result = await task.ExecuteAsync(context);
+                    task.OnTaskEnded(context);
                     context.OnTaskEnded?.Invoke(task);
                     taskStopwatch.Stop();
                     context.CurrentRunTask = null;

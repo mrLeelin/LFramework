@@ -2,6 +2,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using GameFramework.Resource;
+using LFramework.Runtime.LaunchPipeline.Basic;
 using UnityGameFramework.Runtime;
 using YooAsset;
 using Zenject;
@@ -11,19 +12,19 @@ namespace LFramework.Runtime.LaunchPipeline
     /// <summary>
     /// YooAsset 资源包清单更新任务。
     /// </summary>
-    public class UpdateYooPackageManifestTask : ILaunchTask
+    public class UpdateYooPackageManifestTask : LaunchTaskBase
     {
         [Inject] private ResourceComponent _resourceComponent;
 
-        public string TaskName => "UpdateYooPackageManifest";
-        public string Description => "更新 YooAsset 资源包清单";
+        public override string TaskName => "UpdateYooPackageManifest";
+        public override string Description => "更新 YooAsset 资源包清单";
 
-        public bool CanExecute(LaunchContext context)
+        public override bool CanExecute(LaunchContext context)
         {
             return _resourceComponent.ResourceMode == ResourceMode.YooAsset;
         }
 
-        public async UniTask<LaunchTaskResult> ExecuteAsync(LaunchContext context)
+        public override async UniTask<LaunchTaskResult> ExecuteAsync(LaunchContext context)
         {
             try
             {

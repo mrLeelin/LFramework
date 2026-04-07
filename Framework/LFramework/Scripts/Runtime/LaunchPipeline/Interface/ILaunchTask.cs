@@ -31,5 +31,16 @@ namespace LFramework.Runtime.LaunchPipeline
         /// <param name="context">启动管线上下文</param>
         /// <returns>任务执行结果</returns>
         UniTask<LaunchTaskResult> ExecuteAsync(LaunchContext context);
+
+        /// <summary>
+        /// 任务开始回调
+        /// </summary>
+        /// <param name="context"></param>
+        void OnTaskStarted(LaunchContext context);
+        /// <summary>
+        /// 任务结束回调
+        /// </summary>
+        /// <param name="context"></param>
+        void OnTaskEnded(LaunchContext context);
     }
 }

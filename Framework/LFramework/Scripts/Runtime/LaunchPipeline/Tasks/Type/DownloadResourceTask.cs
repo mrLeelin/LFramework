@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using GameFramework.Resource;
 using LFramework.Runtime;
+using LFramework.Runtime.LaunchPipeline.Basic;
 
 #if ADDRESSABLE_SUPPORT
 using UnityEngine.AddressableAssets;
@@ -22,7 +23,7 @@ namespace LFramework.Runtime.LaunchPipeline
     /// 通过 <see cref="LaunchContext.CustomData"/> 传递，子项目可通过重写虚方法自定义下载行为。
     /// </para>
     /// </summary>
-    public class DownloadResourceTask : ILaunchTask
+    public class DownloadResourceTask : LaunchTaskBase
     {
         /// <summary>
         /// 资源下载组件，通过 Zenject 依赖注入获取
@@ -57,12 +58,12 @@ namespace LFramework.Runtime.LaunchPipeline
         /// <summary>
         /// 任务名称
         /// </summary>
-        public string TaskName => "DownloadResource";
+        public override string TaskName => "DownloadResource";
 
         /// <summary>
         /// 任务描述
         /// </summary>
-        public string Description => "下载热更资源";
+        public override string Description => "下载热更资源";
 
         /// <summary>
         /// 判断任务是否可以执行。
@@ -70,7 +71,7 @@ namespace LFramework.Runtime.LaunchPipeline
         /// </summary>
         /// <param name="context">启动管线上下文。</param>
         /// <returns>当不需要更新时返回 <c>false</c>，否则返回 <c>true</c>。</returns>
-        public bool CanExecute(LaunchContext context)
+        public override bool CanExecute(LaunchContext context)
         {
             if (context.VersionCheckResult == null)
             {
@@ -88,7 +89,7 @@ namespace LFramework.Runtime.LaunchPipeline
         /// </summary>
         /// <param name="context">启动管线上下文，可通过 CustomData 传递下载配置。</param>
         /// <returns>任务执行结果。</returns>
-        public async UniTask<LaunchTaskResult> ExecuteAsync(LaunchContext context)
+        public override async UniTask<LaunchTaskResult> ExecuteAsync(LaunchContext context)
         {
             IResourceDownloadHandler handler = null;
             try

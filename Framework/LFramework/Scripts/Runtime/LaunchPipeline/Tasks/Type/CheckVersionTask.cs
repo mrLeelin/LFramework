@@ -2,6 +2,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using GameFramework.Event;
 using LFramework.Runtime;
+using LFramework.Runtime.LaunchPipeline.Basic;
 using UnityEngine;
 using UnityGameFramework.Runtime;
 using Zenject;
@@ -13,7 +14,7 @@ namespace LFramework.Runtime.LaunchPipeline
     /// 通过 <see cref="WebRequestComponent"/> 发起 HTTP 请求获取远程版本信息，
     /// 解析 <see cref="GameVersion"/> JSON 数据，比较客户端与远程版本，决定后续流程。
     /// </summary>
-    public class CheckVersionTask : ILaunchTask
+    public class CheckVersionTask : LaunchTaskBase
     {
         /// <summary>
         /// 游戏设置，包含版本 URL、应用版本等配置
@@ -38,23 +39,13 @@ namespace LFramework.Runtime.LaunchPipeline
         /// <summary>
         /// 任务名称
         /// </summary>
-        public string TaskName => "CheckVersion";
+        public override string TaskName => "CheckVersion";
 
         /// <summary>
         /// 任务描述
         /// </summary>
-        public string Description => "检查版本更新";
-
-        /// <summary>
-        /// 判断任务是否可以执行。版本检查任务始终可以执行。
-        /// </summary>
-        /// <param name="context">启动管线上下文。</param>
-        /// <returns>始终返回 <c>true</c>。</returns>
-        public bool CanExecute(LaunchContext context)
-        {
-            return true;
-        }
-
+        public override string Description => "检查版本更新";
+        
         /// <summary>
         /// 异步执行版本检查任务。
         /// 通过 WebRequestComponent 发起请求，监听成功/失败事件，
@@ -62,7 +53,7 @@ namespace LFramework.Runtime.LaunchPipeline
         /// </summary>
         /// <param name="context">启动管线上下文，用于写入版本检查结果。</param>
         /// <returns>任务执行结果。</returns>
-        public async UniTask<LaunchTaskResult> ExecuteAsync(LaunchContext context)
+        public override async UniTask<LaunchTaskResult> ExecuteAsync(LaunchContext context)
         {
             try
             {
@@ -228,6 +219,16 @@ namespace LFramework.Runtime.LaunchPipeline
                 SetFailedResult(context, ex.Message);
                 return LaunchTaskResult.CreateFailed(TaskName, ex.Message);
             }
+        }
+
+        public void OnTaskStarted(LaunchContext context)
+        {
+            
+        }
+
+        public void OnTaskEnded(LaunchContext context)
+        {
+           
         }
 
         /// <summary>

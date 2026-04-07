@@ -1,5 +1,6 @@
 ﻿using System;
 using Cysharp.Threading.Tasks;
+using LFramework.Runtime.LaunchPipeline.Basic;
 using UnityGameFramework.Runtime;
 using Zenject;
 
@@ -9,7 +10,7 @@ namespace LFramework.Runtime.LaunchPipeline
     /// 启动流程任务：加载热更新Assembly文件
     /// 通过 HotfixComponent 加载热更程序集，将回调模式转换为 UniTask 异步等待
     /// </summary>
-    public class LoadAssemblyTask : ILaunchTask
+    public class LoadAssemblyTask : LaunchTaskBase
     {
         /// <summary>
         /// 热更新组件，负责加载热更程序集
@@ -19,29 +20,20 @@ namespace LFramework.Runtime.LaunchPipeline
         /// <summary>
         /// 任务名称
         /// </summary>
-        public string TaskName => nameof(LoadAssemblyTask);
+        public override  string TaskName => nameof(LoadAssemblyTask);
 
         /// <summary>
         /// 任务描述
         /// </summary>
-        public string Description => "加载热更Assembly文件";
-
-        /// <summary>
-        /// 判断任务是否可以执行
-        /// </summary>
-        /// <param name="context">启动上下文</param>
-        /// <returns>始终返回 true，该任务无前置条件</returns>
-        public bool CanExecute(LaunchContext context)
-        {
-            return true;
-        }
+        public override string Description => "加载热更Assembly文件";
+        
 
         /// <summary>
         /// 异步执行加载热更程序集任务
         /// </summary>
         /// <param name="context">启动上下文</param>
         /// <returns>任务执行结果，成功或失败</returns>
-        public async UniTask<LaunchTaskResult> ExecuteAsync(LaunchContext context)
+        public override async UniTask<LaunchTaskResult> ExecuteAsync(LaunchContext context)
         {
             try
             {

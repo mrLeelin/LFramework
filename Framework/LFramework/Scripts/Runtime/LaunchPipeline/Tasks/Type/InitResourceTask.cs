@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using LFramework.Runtime.LaunchPipeline.Basic;
 using UnityGameFramework.Runtime;
 using Zenject;
 
@@ -12,7 +13,7 @@ namespace LFramework.Runtime.LaunchPipeline
     /// 使用 <see cref="UniTaskCompletionSource"/> 将回调模式转换为 UniTask 异步模式。
     /// 支持可配置的超时机制，防止回调永远不触发时导致启动管线永久挂起。
     /// </summary>
-    public class InitResourceTask : ILaunchTask
+    public class InitResourceTask : LaunchTaskBase
     {
         /// <summary>
         /// 自定义数据键：资源初始化超时时间（秒）。
@@ -34,22 +35,12 @@ namespace LFramework.Runtime.LaunchPipeline
         /// <summary>
         /// 任务名称。
         /// </summary>
-        public string TaskName => "InitResource";
+        public override string TaskName => "InitResource";
 
         /// <summary>
         /// 任务描述。
         /// </summary>
-        public string Description => "初始化资源系统";
-
-        /// <summary>
-        /// 判断任务是否可以执行。资源初始化任务始终可以执行。
-        /// </summary>
-        /// <param name="context">启动管线上下文。</param>
-        /// <returns>始终返回 <c>true</c>。</returns>
-        public bool CanExecute(LaunchContext context)
-        {
-            return true;
-        }
+        public override string Description => "初始化资源系统";
 
         /// <summary>
         /// 异步执行资源初始化任务。
@@ -60,7 +51,7 @@ namespace LFramework.Runtime.LaunchPipeline
         /// </summary>
         /// <param name="context">启动管线上下文。</param>
         /// <returns>任务执行结果。</returns>
-        public async UniTask<LaunchTaskResult> ExecuteAsync(LaunchContext context)
+        public override async UniTask<LaunchTaskResult> ExecuteAsync(LaunchContext context)
         {
             try
             {
