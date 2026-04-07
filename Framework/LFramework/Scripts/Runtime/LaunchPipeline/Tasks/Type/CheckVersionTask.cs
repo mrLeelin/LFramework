@@ -137,7 +137,7 @@ namespace LFramework.Runtime.LaunchPipeline
                 }
 
                 // 5. 获取远程版本配置（支持白名单）
-                var remoteVersionConfig = GetRemoteVersionConfig(remoteVersionInfo);
+                var remoteVersionConfig = GetRemoteVersionConfig(remoteVersionInfo, context);
                 if (remoteVersionConfig == null)
                 {
                     Log.Error("[CheckVersionTask] 远程版本配置为空");
@@ -239,8 +239,9 @@ namespace LFramework.Runtime.LaunchPipeline
         /// 获取远程版本配置，支持白名单用户使用独立配置
         /// </summary>
         /// <param name="remoteVersionInfo">远程版本信息</param>
+        /// <param name="context"></param>
         /// <returns>匹配的版本配置，失败返回 null</returns>
-        private GameVersionConfig GetRemoteVersionConfig(GameVersion remoteVersionInfo)
+        private GameVersionConfig GetRemoteVersionConfig(GameVersion remoteVersionInfo, LaunchContext context)
         {
             if (remoteVersionInfo.defaultConfig == null ||
                 string.IsNullOrEmpty(remoteVersionInfo.defaultConfig.resourceVersion))
@@ -256,7 +257,7 @@ namespace LFramework.Runtime.LaunchPipeline
                 return remoteVersionInfo.defaultConfig;
             }
 
-            var isWhiteListUser = IsWhiteListUser(remoteVersionInfo);
+            var isWhiteListUser = IsWhiteListUser(remoteVersionInfo, context);
             Log.Info("[CheckVersionTask] 是否白名单用户: {0}", isWhiteListUser);
             return isWhiteListUser ? remoteVersionInfo.whiteListConfig : remoteVersionInfo.defaultConfig;
         }
@@ -265,15 +266,25 @@ namespace LFramework.Runtime.LaunchPipeline
         /// 判断当前设备是否在白名单中
         /// </summary>
         /// <param name="remoteVersionInfo">远程版本信息</param>
+        /// <param name="context"></param>
         /// <returns>是否为白名单用户</returns>
-        private bool IsWhiteListUser(GameVersion remoteVersionInfo)
+        private bool IsWhiteListUser(GameVersion remoteVersionInfo, LaunchContext context)
         {
             if (string.IsNullOrEmpty(remoteVersionInfo.userList))
             {
                 return false;
             }
 
-            var deviceId = SystemInfo.deviceUniqueIdentifier;
+            string deviceId;
+            if (context.ContainsCustomData("DeviceId"))
+            {
+                deviceId = context.GetCustomData<string>("DeviceId");
+            }
+            else
+            {
+                deviceId = SystemInfo.deviceUniqueIdentifier;
+            }
+
             Log.Info("[CheckVersionTask] 设备 ID: {0}", deviceId);
 
             var userList = remoteVersionInfo.userList.Split(',');

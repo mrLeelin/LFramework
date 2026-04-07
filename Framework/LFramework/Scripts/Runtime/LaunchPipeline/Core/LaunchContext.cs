@@ -82,6 +82,7 @@ namespace LFramework.Runtime.LaunchPipeline
 
             return defaultValue;
         }
+        
 
         /// <summary>
         /// 检查是否包含指定键的自定义数据。
@@ -102,5 +103,7 @@ namespace LFramework.Runtime.LaunchPipeline
         {
             return CustomData.Remove(key);
         }
+        
+        
     }
 }
