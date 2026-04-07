@@ -275,16 +275,7 @@ namespace LFramework.Runtime.LaunchPipeline
                 return false;
             }
 
-            string deviceId;
-            if (context.ContainsCustomData("DeviceId"))
-            {
-                deviceId = context.GetCustomData<string>("DeviceId");
-            }
-            else
-            {
-                deviceId = SystemInfo.deviceUniqueIdentifier;
-            }
-
+            string deviceId = context.GetCustomDeviceId();
             Log.Info("[CheckVersionTask] 设备 ID: {0}", deviceId);
 
             var userList = remoteVersionInfo.userList.Split(',');
