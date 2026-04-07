@@ -220,16 +220,7 @@ namespace LFramework.Runtime.LaunchPipeline
                 return LaunchTaskResult.CreateFailed(TaskName, ex.Message);
             }
         }
-
-        public void OnTaskStarted(LaunchContext context)
-        {
-            
-        }
-
-        public void OnTaskEnded(LaunchContext context)
-        {
-           
-        }
+        
 
         /// <summary>
         /// 更新游戏设置，将远程版本配置写入 GameSetting
