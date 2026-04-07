@@ -23,6 +23,24 @@ namespace LFramework.Runtime
             return --s_SerialId;
         }
 
+        /// <summary>
+        /// 获取Entity Logic
+        /// </summary>
+        /// <param name="entityComponent"></param>
+        /// <param name="id"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public static T GetEntityLogic<T>(this EntityComponent entityComponent, int id) where T : EntityLogic
+        {
+            if (entityComponent == null)
+            {
+                return null;
+            }
+
+            var entity = entityComponent.GetEntity(id);
+            if (entity == null) return null;
+            return entity.FindLogic<T>();
+        }
 
         /// <summary>
         /// Show Entity
@@ -94,7 +112,7 @@ namespace LFramework.Runtime
             {
                 priority = Constant.AssetPriority.EntityAssets;
             }
-            
+
             if (data.Id == 0)
             {
                 data.Id = entityComponent.GenerateSerialId();

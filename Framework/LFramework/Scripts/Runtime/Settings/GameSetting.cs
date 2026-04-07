@@ -127,7 +127,7 @@ namespace LFramework.Runtime
             return version.resVersion;
         }
 
-        public string SetResourceVersion(SettingComponent settingComponent, string newResourceVersion)
+        internal string SetResourceVersion(SettingComponent settingComponent, string newResourceVersion)
         {
 #if UNITY_EDITOR
             resourceVersion = newResourceVersion;

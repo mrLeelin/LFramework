@@ -101,7 +101,7 @@ namespace LFramework.Runtime.LaunchPipeline
                 // 1. 从上下文获取下载配置
                 var labels = GetDownloadLabels(context);
                 var handlerName = GetDownloadHandlerName(context);
-                
+
                 if (labels == null || labels.Count == 0)
                 {
                     Log.Info("[DownloadResourceTask] 没有指定下载标签，跳过下载");
@@ -112,7 +112,7 @@ namespace LFramework.Runtime.LaunchPipeline
                     _resourceComponent.ResourceMode, handlerName, labels.Count);
 
                 // 2. 根据模式创建下载处理器（不自动运行）
-                _handlerSerialId = CreateHandler(context,  _resourceComponent.ResourceMode, handlerName, labels);
+                _handlerSerialId = CreateHandler(context, _resourceComponent.ResourceMode, handlerName, labels);
                 handler = _resourceDownloadComponent.GetHandler(_handlerSerialId);
 
                 if (handler == null)
@@ -127,7 +127,7 @@ namespace LFramework.Runtime.LaunchPipeline
                 handler.DownloadSuccessfulEventHandler += OnDownloadSuccessful;
                 handler.DownloadFailureEventHandler += OnDownloadFailure;
                 handler.DownloadUpdateEventHandler += OnDownloadUpdate;
-
+                handler.DownloadStepEventHandler += OnDownloadStep;
                 // 4. 启动下载
                 handler.CheckAndLoadAsync();
                 Log.Info("[DownloadResourceTask] 下载处理器已启动，等待下载完成");
@@ -159,6 +159,7 @@ namespace LFramework.Runtime.LaunchPipeline
                     handler.DownloadSuccessfulEventHandler -= OnDownloadSuccessful;
                     handler.DownloadFailureEventHandler -= OnDownloadFailure;
                     handler.DownloadUpdateEventHandler -= OnDownloadUpdate;
+                    handler.DownloadStepEventHandler -= OnDownloadStep;
                     _resourceDownloadComponent.RemoveHandler(_handlerSerialId);
                     Log.Info("[DownloadResourceTask] 下载处理器已清理，SerialID: {0}", _handlerSerialId);
                 }
@@ -168,9 +169,18 @@ namespace LFramework.Runtime.LaunchPipeline
         }
 
         /// <summary>
+        /// 步骤改变
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        protected virtual void OnDownloadStep(object sender, ResourceDownloadStepEvent e)
+        {
+        }
+
+        /// <summary>
         /// 下载成功回调
         /// </summary>
-        private void OnDownloadSuccessful(object sender, ResourcesDownloadSuccessfulEvent e)
+        protected virtual void OnDownloadSuccessful(object sender, ResourcesDownloadSuccessfulEvent e)
         {
             _tcs?.TrySetResult(true);
         }
@@ -178,7 +188,7 @@ namespace LFramework.Runtime.LaunchPipeline
         /// <summary>
         /// 下载失败回调
         /// </summary>
-        private void OnDownloadFailure(object sender, ResourcesDownloadFailureEvent e)
+        protected virtual void OnDownloadFailure(object sender, ResourcesDownloadFailureEvent e)
         {
             _errorMessage = $"资源下载失败，错误类型: {e.UpdateResultType}";
             _tcs?.TrySetResult(false);
@@ -187,7 +197,7 @@ namespace LFramework.Runtime.LaunchPipeline
         /// <summary>
         /// 下载进度更新回调
         /// </summary>
-        private void OnDownloadUpdate(object sender, ResourcesDownloadUpdateEvent e)
+        protected virtual void OnDownloadUpdate(object sender, ResourcesDownloadUpdateEvent e)
         {
             var message = string.IsNullOrEmpty(e.TotalDownloadSize)
                 ? $"正在下载资源 {e.Progress:P0}"
@@ -255,7 +265,7 @@ namespace LFramework.Runtime.LaunchPipeline
 
 
 #if ADDRESSABLE_SUPPORT
-         /// <summary>
+        /// <summary>
         /// 获取 Addressable 合并模式。
         /// 默认从 CustomData 的 "MergeMode" 获取，未设置则使用 Union。
         /// </summary>
@@ -266,7 +276,7 @@ namespace LFramework.Runtime.LaunchPipeline
             return context.GetCustomData("MergeMode", Addressables.MergeMode.Union);
         }
 #endif
-       
+
 
         /// <summary>
         /// 获取是否检查已下载标签（仅 YooAsset 模式）。

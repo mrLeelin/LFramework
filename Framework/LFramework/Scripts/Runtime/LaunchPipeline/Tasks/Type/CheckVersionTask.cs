@@ -45,7 +45,7 @@ namespace LFramework.Runtime.LaunchPipeline
         /// 任务描述
         /// </summary>
         public override string Description => "检查版本更新";
-        
+
         /// <summary>
         /// 异步执行版本检查任务。
         /// 通过 WebRequestComponent 发起请求，监听成功/失败事件，
@@ -220,7 +220,7 @@ namespace LFramework.Runtime.LaunchPipeline
                 return LaunchTaskResult.CreateFailed(TaskName, ex.Message);
             }
         }
-        
+
 
         /// <summary>
         /// 更新游戏设置，将远程版本配置写入 GameSetting
@@ -300,6 +300,16 @@ namespace LFramework.Runtime.LaunchPipeline
                 ResultType = VersionCheckResultType.Failed,
                 ErrorMessage = errorMessage
             };
+            OnFailedResult(context, errorMessage);
+        }
+
+        /// <summary>
+        /// 失败回调
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="errorMessage"></param>
+        protected virtual void OnFailedResult(LaunchContext context, string errorMessage)
+        {
         }
     }
 }

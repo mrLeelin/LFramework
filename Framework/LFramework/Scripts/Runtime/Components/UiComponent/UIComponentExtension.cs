@@ -17,6 +17,32 @@ namespace LFramework.Runtime
 
 
         /// <summary>
+        /// 获取Ui上挂载的脚本
+        /// </summary>
+        /// <param name="uiComponent"></param>
+        /// <param name="id"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public static T GetUiBehaviour<T>(this UIComponent uiComponent, int id)
+            where T : UIBehaviour
+        {
+            var uiForm = uiComponent.GetUIForm(id);
+            if (uiForm == null)
+            {
+                return null;
+            }
+
+            var selfUiForm = uiForm as UIForm;
+            if (selfUiForm == null)
+            {
+                return null;
+            }
+
+            return selfUiForm.UIBehaviour as T;
+        }
+
+
+        /// <summary>
         /// 打开Ui界面
         /// </summary>
         /// <param name="uiComponent"></param>
