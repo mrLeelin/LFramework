@@ -1,7 +1,7 @@
 {
   "name": "com.lframework.core",
   "displayName": "LFramework",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "unity": "6000.3",
   "unityRelease": "0f1",
   "description": "LFramework packaged for Unity Package Manager while preserving the original Framework folder layout.",
@@ -21,6 +21,6 @@
   "dependencies": {
     "com.unity.test-framework" : "1.6.0",
     "com.unity.ugui": "2.0.0",
-    "com.sirenix.odininspector": "file:../Packages/com.sirenix.odininspector"
+    "com.sirenix.odininspector": "4.0.0.0"
   }
 }
