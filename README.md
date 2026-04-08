@@ -2,12 +2,29 @@
 
 `LFramework` is a Unity Package Manager package version of the current framework repository. This package intentionally preserves the original internal layout under `Framework/...` instead of reorganizing the code into `Runtime/`, `Editor/`, or `Tests/`.
 
+## Package guide
+
+- Quick start: `Documentation~/QuickStart.md`
+- Architecture overview: `Documentation~/Architecture.md`
+- Public API guidance: `Documentation~/PublicAPI.md`
+- Extension guide: `Documentation~/ExtensionPoints.md`
+- Dependency notes: `Documentation~/Dependencies.md`
+- Upgrade notes: `Documentation~/UpgradeGuide.md`
+- FAQ: `Documentation~/FAQ.md`
+
 ## Included source
 
 - `Framework/LFramework`
 - `Framework/UniRx`
 - `Framework/UnityGameFramework`
 - `Framework/Zenject`
+
+## Included samples
+
+- `Samples~/MinimalBootstrap`
+- `Samples~/ProcedureFlow`
+- `Samples~/UIBasic`
+- `Samples~/HotfixMinimal`
 
 ## Installation
 
@@ -57,3 +74,4 @@ This package declares `com.tuyoogame.yooasset` as a dependency. The consuming pr
 - `SettingSetupHelper` now resolves its settings folder relative to its script location instead of assuming `Assets/Framework/...`.
 - `GenerateBuildVersionHelper` was removed because it wrote to an obsolete fixed project path.
 - If you need to edit package-contained assets, prefer using an embedded or local package workflow.
+- This package currently follows a documentation-first sample strategy: each sample includes runnable integration steps and starter code notes that can be imported into a consumer project.

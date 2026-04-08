@@ -18,6 +18,28 @@
   "author": {
     "name": "LFramework Team"
   },
+  "samples": [
+    {
+      "displayName": "Minimal Bootstrap",
+      "description": "Smallest integration path for booting LFramework in a consumer project.",
+      "path": "Samples~/MinimalBootstrap"
+    },
+    {
+      "displayName": "Procedure Flow",
+      "description": "Shows procedures, providers, and worlds working together.",
+      "path": "Samples~/ProcedureFlow"
+    },
+    {
+      "displayName": "UI Basic",
+      "description": "Documents a minimal UI integration path from procedure flow.",
+      "path": "Samples~/UIBasic"
+    },
+    {
+      "displayName": "Hotfix Minimal",
+      "description": "Documents the minimum hotfix-oriented setup path.",
+      "path": "Samples~/HotfixMinimal"
+    }
+  ],
   "dependencies": {
     "com.unity.test-framework" : "1.6.0",
     "com.unity.ugui": "2.0.0"
