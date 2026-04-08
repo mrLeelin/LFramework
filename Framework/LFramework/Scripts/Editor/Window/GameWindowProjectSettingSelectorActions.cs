@@ -13,6 +13,7 @@ namespace LFramework.Editor.Window
     /// </summary>
     public static class GameWindowProjectSettingSelectorActions
     {
+        
         public static ProjectSettingSelector CollectAllSettings(ProjectSettingSelector selector)
         {
             if (selector == null)
