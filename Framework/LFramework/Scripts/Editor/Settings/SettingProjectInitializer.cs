@@ -74,34 +74,16 @@ namespace LFramework.Editor.Settings
         public static List<ScriptableObject> LoadTemplateAssets(SettingTemplateRegistry registry = null)
         {
             registry ??= FindTemplateRegistry();
-            if (registry != null)
+            if (registry == null)
             {
-                return registry.Entries
-                    .Where(entry => entry != null && entry.templateAsset != null)
-                    .Select(entry => entry.templateAsset)
-                    .Distinct()
-                    .ToList();
+                throw new InvalidOperationException("[SettingProjectInitializer] SettingTemplateRegistry asset not found. Please create or include the registry asset.");
             }
-
-            string settingsRoot = SettingSetupHelper.GetSettingsPath();
-            string[] assetGuids = AssetDatabase.FindAssets("t:ScriptableObject", new[] { settingsRoot });
-            var results = new List<ScriptableObject>();
-            foreach (string guid in assetGuids)
-            {
-                string assetPath = AssetDatabase.GUIDToAssetPath(guid);
-                ScriptableObject asset = AssetDatabase.LoadAssetAtPath<ScriptableObject>(assetPath);
-                if (asset == null || asset is SettingSelector || asset is ProjectSettingSelector || asset is SettingSyncState)
-                {
-                    continue;
-                }
-
-                if (asset is BaseSetting || asset is ComponentSetting)
-                {
-                    results.Add(asset);
-                }
-            }
-
-            return results;
+            
+            return registry.Entries
+                .Where(entry => entry != null && entry.templateAsset != null)
+                .Select(entry => entry.templateAsset)
+                .Distinct()
+                .ToList();
         }
 
         public static SettingTemplateRegistry FindTemplateRegistry()
@@ -206,7 +188,7 @@ namespace LFramework.Editor.Settings
         {
             EnsureFolder("Assets", "Game");
             EnsureFolder("Assets/Game", "Settings");
-            EnsureFolder(SettingProjectPaths.Root, "Selector");
+            EnsureFolder("Assets/Game", "Resources");
             EnsureFolder(SettingProjectPaths.Root, "Base");
             EnsureFolder(SettingProjectPaths.Root, "Components");
             EnsureFolder(SettingProjectPaths.Root, "Sync");

@@ -1,0 +1,163 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4a24b846f9ee774da18b19137cd0ac6, type: 3}
+  m_Name: SettingTemplateRegistry
+  m_EditorClassIdentifier: 
+  entries:
+  - settingId: LFramework.Runtime.Settings.AndroidSetting
+    settingTypeName: LFramework.Runtime.Settings.AndroidSetting, LFramework.Runtime
+    templateAsset: {fileID: 11400000, guid: 8d21766e556a3ff4b912ec29df82aa1d, type: 2}
+    templateVersion: 1
+    category: 2
+    isRequired: 1
+    description: 
+  - settingId: LFramework.Runtime.Settings.BaseComponentSetting
+    settingTypeName: LFramework.Runtime.Settings.BaseComponentSetting, LFramework.Runtime
+    templateAsset: {fileID: 11400000, guid: 86cbf358c358a274ab269a541e4f8d74, type: 2}
+    templateVersion: 1
+    category: 1
+    isRequired: 1
+    description: 
+  - settingId: LFramework.Runtime.Settings.ConfigComponentSetting
+    settingTypeName: LFramework.Runtime.Settings.ConfigComponentSetting, LFramework.Runtime
+    templateAsset: {fileID: 11400000, guid: bcbac01d247c5204c9cd3e8cf8ea3231, type: 2}
+    templateVersion: 1
+    category: 1
+    isRequired: 1
+    description: 
+  - settingId: LFramework.Runtime.Settings.DebuggerComponentSetting
+    settingTypeName: LFramework.Runtime.Settings.DebuggerComponentSetting, LFramework.Runtime
+    templateAsset: {fileID: 11400000, guid: 9d8412acf8b7f2b448ffb930cb7aff8d, type: 2}
+    templateVersion: 1
+    category: 1
+    isRequired: 1
+    description: 
+  - settingId: LFramework.Runtime.Settings.DownloadComponentSetting
+    settingTypeName: LFramework.Runtime.Settings.DownloadComponentSetting, LFramework.Runtime
+    templateAsset: {fileID: 11400000, guid: 6a5000b2e6212434e942332af4303855, type: 2}
+    templateVersion: 1
+    category: 1
+    isRequired: 1
+    description: 
+  - settingId: LFramework.Runtime.Settings.EntityComponentSetting
+    settingTypeName: LFramework.Runtime.Settings.EntityComponentSetting, LFramework.Runtime
+    templateAsset: {fileID: 11400000, guid: 789c894cfd01c3f48aa96dc44ab0fe59, type: 2}
+    templateVersion: 1
+    category: 1
+    isRequired: 1
+    description: 
+  - settingId: LFramework.Runtime.Settings.FileSystemComponentSetting
+    settingTypeName: LFramework.Runtime.Settings.FileSystemComponentSetting, LFramework.Runtime
+    templateAsset: {fileID: 11400000, guid: 4361fc2e627ad624ebb2e4d1aa8ada12, type: 2}
+    templateVersion: 1
+    category: 1
+    isRequired: 1
+    description: 
+  - settingId: LFramework.Runtime.GameSetting
+    settingTypeName: LFramework.Runtime.GameSetting, LFramework.Runtime
+    templateAsset: {fileID: 11400000, guid: 28e6f5f2dc8c27041993cdd0a1df8189, type: 2}
+    templateVersion: 1
+    category: 0
+    isRequired: 1
+    description: 
+  - settingId: LFramework.Runtime.Settings.HybridCLRSetting
+    settingTypeName: LFramework.Runtime.Settings.HybridCLRSetting, LFramework.Runtime
+    templateAsset: {fileID: 11400000, guid: 7db99ec0674cf8a4dbbe601758298cf3, type: 2}
+    templateVersion: 1
+    category: 2
+    isRequired: 1
+    description: 
+  - settingId: LFramework.Runtime.Settings.iOSSetting
+    settingTypeName: LFramework.Runtime.Settings.iOSSetting, LFramework.Runtime
+    templateAsset: {fileID: 11400000, guid: e127e1622bbee484790ecede5863f2e2, type: 2}
+    templateVersion: 1
+    category: 2
+    isRequired: 1
+    description: 
+  - settingId: LFramework.Runtime.Settings.LocalizationComponentSetting
+    settingTypeName: LFramework.Runtime.Settings.LocalizationComponentSetting, LFramework.Runtime
+    templateAsset: {fileID: 11400000, guid: c29c1f64effbbba468499c1ac13bc7aa, type: 2}
+    templateVersion: 1
+    category: 1
+    isRequired: 1
+    description: 
+  - settingId: LFramework.Runtime.Settings.ProcedureComponentSetting
+    settingTypeName: LFramework.Runtime.Settings.ProcedureComponentSetting, LFramework.Runtime
+    templateAsset: {fileID: 11400000, guid: 3854f3c4f7291c448ad5cc833b09576d, type: 2}
+    templateVersion: 1
+    category: 1
+    isRequired: 1
+    description: 
+  - settingId: LFramework.Runtime.Settings.ReferencePoolComponentSetting
+    settingTypeName: LFramework.Runtime.Settings.ReferencePoolComponentSetting, LFramework.Runtime
+    templateAsset: {fileID: 11400000, guid: a58a128b815cba145844b98c76a0bc99, type: 2}
+    templateVersion: 1
+    category: 1
+    isRequired: 1
+    description: 
+  - settingId: LFramework.Runtime.Settings.ResourceComponentSetting
+    settingTypeName: LFramework.Runtime.Settings.ResourceComponentSetting, LFramework.Runtime
+    templateAsset: {fileID: 11400000, guid: b58b3200d73c31a4189eb15e690b5a2d, type: 2}
+    templateVersion: 1
+    category: 1
+    isRequired: 1
+    description: 
+  - settingId: LFramework.Runtime.Settings.SceneComponentSetting
+    settingTypeName: LFramework.Runtime.Settings.SceneComponentSetting, LFramework.Runtime
+    templateAsset: {fileID: 11400000, guid: a594f368611d22646a753450ce5e20a4, type: 2}
+    templateVersion: 1
+    category: 1
+    isRequired: 1
+    description: 
+  - settingId: LFramework.Runtime.Settings.SettingComponentSetting
+    settingTypeName: LFramework.Runtime.Settings.SettingComponentSetting, LFramework.Runtime
+    templateAsset: {fileID: 11400000, guid: 6fbc868a257488f4cb7e879a3c8aa140, type: 2}
+    templateVersion: 1
+    category: 1
+    isRequired: 1
+    description: 
+  - settingId: LFramework.Runtime.Settings.SoundComponentSetting
+    settingTypeName: LFramework.Runtime.Settings.SoundComponentSetting, LFramework.Runtime
+    templateAsset: {fileID: 11400000, guid: 931ec26462b20d54abd826b88ebae3c2, type: 2}
+    templateVersion: 1
+    category: 1
+    isRequired: 1
+    description: 
+  - settingId: LFramework.Runtime.Settings.SpriteCollectionComponentSetting
+    settingTypeName: LFramework.Runtime.Settings.SpriteCollectionComponentSetting,
+      LFramework.Runtime
+    templateAsset: {fileID: 11400000, guid: e9f9b874b84ef344e8b836752542995a, type: 2}
+    templateVersion: 1
+    category: 1
+    isRequired: 1
+    description: 
+  - settingId: LFramework.Runtime.Settings.TableComponentSetting
+    settingTypeName: LFramework.Runtime.Settings.TableComponentSetting, LFramework.Runtime
+    templateAsset: {fileID: 11400000, guid: 8009c6580d1cee94194b56064b835662, type: 2}
+    templateVersion: 1
+    category: 1
+    isRequired: 1
+    description: 
+  - settingId: LFramework.Runtime.Settings.UIComponentSetting
+    settingTypeName: LFramework.Runtime.Settings.UIComponentSetting, LFramework.Runtime
+    templateAsset: {fileID: 11400000, guid: 18ec15fec616153499dc2487b7800d9b, type: 2}
+    templateVersion: 1
+    category: 1
+    isRequired: 1
+    description: 
+  - settingId: LFramework.Runtime.Settings.WebRequestComponentSetting
+    settingTypeName: LFramework.Runtime.Settings.WebRequestComponentSetting, LFramework.Runtime
+    templateAsset: {fileID: 11400000, guid: f7914423731d1f44184ddfcb35d7bd2a, type: 2}
+    templateVersion: 1
+    category: 1
+    isRequired: 1
+    description: 

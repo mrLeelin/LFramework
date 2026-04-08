@@ -45,6 +45,17 @@ namespace LFramework.Editor.Tests.Settings
         }
 
         [Test]
+        public void MissingProjectSelectorGuidance_IncludesGenerationPath()
+        {
+            string message = LSystemApplicationBehaviour.GetMissingProjectSelectorGuidanceMessage();
+
+            Assert.That(message, Does.Contain("ProjectSettingSelector"));
+            Assert.That(message, Does.Contain("LFramework/GameSetting"));
+            Assert.That(message, Does.Contain("Framework Setting"));
+            Assert.That(message, Does.Contain("初始化 Project Settings"));
+        }
+
+        [Test]
         public void Validate_DetectsDuplicateSettingIds()
         {
             var selector = ScriptableObject.CreateInstance<ProjectSettingSelector>();
@@ -118,7 +129,7 @@ namespace LFramework.Editor.Tests.Settings
         }
 
         [Test]
-        public void ResolveComponentSettings_PrefersProjectSelectorOverSerializedFallback()
+        public void ResolveComponentSettings_UsesProjectSelectorOnly()
         {
             var projectSelector = ScriptableObject.CreateInstance<ProjectSettingSelector>();
             var projectComponent = ScriptableObject.CreateInstance<TestComponentSetting>();
@@ -126,13 +137,8 @@ namespace LFramework.Editor.Tests.Settings
             projectComponent.bindTypeName = "Project.Component";
             projectSelector.SetComponentSetting(projectComponent);
 
-            var fallbackComponent = ScriptableObject.CreateInstance<TestComponentSetting>();
-            fallbackComponent.EditorSetSettingId("component.fallback");
-            fallbackComponent.bindTypeName = "Fallback.Component";
-
             var resolved = LSystemApplicationBehaviour.ResolveComponentSettingsForRegistration(
-                projectSelector,
-                new System.Collections.Generic.List<ComponentSetting> { fallbackComponent });
+                projectSelector);
 
             Assert.That(resolved, Has.Count.EqualTo(1));
             Assert.That(resolved[0], Is.SameAs(projectComponent));

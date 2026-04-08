@@ -77,7 +77,7 @@ namespace LFramework.Editor
         private int _csFileCount = -1;
         private int _componentSettingCount = -1;
         private int _baseSettingCount = -1;
-        private int _settingSelectorCount = -1;
+        private int _projectSettingSelectorCount = -1;
         private int _sceneCount = -1;
         private int _prefabCount = -1;
         private double _lastStatsRefreshTime;
@@ -574,8 +574,8 @@ namespace LFramework.Editor
             // BaseSetting 数量
             _baseSettingCount = AssetUtilities.GetAllAssetsOfType<BaseSetting>().Count();
 
-            // SettingSelector 数量
-            _settingSelectorCount = AssetUtilities.GetAllAssetsOfType<SettingSelector>().Count();
+            // ProjectSettingSelector 数量
+            _projectSettingSelectorCount = AssetUtilities.GetAllAssetsOfType<ProjectSettingSelector>().Count();
 
             // 场景数量
             var sceneGuids = AssetDatabase.FindAssets("t:Scene", new[] { "Assets" });
@@ -606,7 +606,7 @@ namespace LFramework.Editor
             GUILayout.Space(8);
             DrawStatCard("游戏配置", _baseSettingCount.ToString(), "d_ScriptableObject Icon");
             GUILayout.Space(8);
-            DrawStatCard("配置选择器", _settingSelectorCount.ToString(), "d_FilterByType");
+            DrawStatCard("项目选择器", _projectSettingSelectorCount.ToString(), "d_FilterByType");
 
             GUILayout.FlexibleSpace();
             GUILayout.Space(16);

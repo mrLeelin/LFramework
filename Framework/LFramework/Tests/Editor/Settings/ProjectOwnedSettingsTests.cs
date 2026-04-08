@@ -105,7 +105,25 @@ namespace LFramework.Editor.Tests.Settings
         }
 
         [Test]
-        public void SettingManager_PrefersProjectSettingSelectorOverLegacySelector()
+        public void ProjectSettingSelector_SetComponentSetting_ReplacesExistingConcreteSetting()
+        {
+            var selector = ScriptableObject.CreateInstance<ProjectSettingSelector>();
+            var first = ScriptableObject.CreateInstance<TestComponentSetting>();
+            var second = ScriptableObject.CreateInstance<TestComponentSetting>();
+            first.name = "FirstComponent";
+            first.bindTypeName = "Test.Component";
+            second.name = "SecondComponent";
+            second.bindTypeName = "Test.Component";
+
+            selector.SetComponentSetting(first);
+            selector.SetComponentSetting(second);
+
+            Assert.That(selector.GetAllComponentSettings(), Has.Count.EqualTo(1));
+            Assert.That(selector.GetComponentSetting<TestComponentSetting>().name, Is.EqualTo("SecondComponent"));
+        }
+
+        [Test]
+        public void SettingManager_LoadsProjectSettingSelector_FromProjectAsset()
         {
             CreateFolder("Assets/__TempProjectOwnedSettingsTests");
 
@@ -114,22 +132,17 @@ namespace LFramework.Editor.Tests.Settings
             projectGameSetting.name = "ProjectGameSetting";
             projectSelector.SetSetting(projectGameSetting);
 
-            var legacySelector = ScriptableObject.CreateInstance<SettingSelector>();
-            var legacyGameSetting = ScriptableObject.CreateInstance<GameSetting>();
-            legacyGameSetting.name = "LegacyGameSetting";
-            legacySelector.SetSetting(legacyGameSetting);
-
             AssetDatabase.CreateAsset(projectSelector, $"{TempRoot}/ProjectSettingSelector.asset");
             AssetDatabase.AddObjectToAsset(projectGameSetting, projectSelector);
-            AssetDatabase.CreateAsset(legacySelector, $"{TempRoot}/SettingSelector.asset");
-            AssetDatabase.AddObjectToAsset(legacyGameSetting, legacySelector);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
             SettingManager.ClearCacheForTests();
 
+            var loadedSelector = SettingManager.GetProjectSelector();
             var resolved = SettingManager.GetSetting<GameSetting>();
 
+            Assert.That(loadedSelector, Is.SameAs(projectSelector));
             Assert.That(resolved, Is.Not.Null);
             Assert.That(resolved.name, Is.EqualTo("ProjectGameSetting"));
         }

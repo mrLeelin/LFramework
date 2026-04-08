@@ -16,11 +16,9 @@ namespace LFramework.Editor.Inspector
     internal class LSystemApplicationBehaviourInspector : GameFrameworkInspector
     {
         private SerializedProperty _allComponentTypes;
-        private SerializedProperty _allSettings;
 
 
         private string[] _currentComponentRegisterTypes;
-        private List<ComponentSetting> _componentSettings;
 
 
         private bool _isCompileComplete;
@@ -29,10 +27,8 @@ namespace LFramework.Editor.Inspector
         private void OnEnable()
         {
             _allComponentTypes = serializedObject.FindProperty("allComponentTypes");
-            _allSettings = serializedObject.FindProperty("allSettings");
 
             RefreshRegisterTypes();
-            RefreshSettings();
 
             _isCompileComplete = true;
         }
@@ -43,7 +39,6 @@ namespace LFramework.Editor.Inspector
             serializedObject.Update();
 
             EditorGUILayout.Popup("ComponentRegister", 0, _currentComponentRegisterTypes);
-            EditorGUILayout.Popup("Settings", 0, _componentSettings.Select(x => x.bindTypeName).ToArray());
 
             if (_isCompileComplete)
             {
@@ -53,14 +48,6 @@ namespace LFramework.Editor.Inspector
                     var registerFullNames = _currentComponentRegisterTypes[i];
                     _allComponentTypes.InsertArrayElementAtIndex(i);
                     _allComponentTypes.GetArrayElementAtIndex(i).stringValue = registerFullNames;
-                }
-
-                _allSettings.ClearArray();
-                for (int i = 0; i < _componentSettings.Count; i++)
-                {
-                    var setting = _componentSettings[i];
-                    _allSettings.InsertArrayElementAtIndex(i);
-                    _allSettings.GetArrayElementAtIndex(i).objectReferenceValue = setting;
                 }
             }
 
@@ -73,7 +60,6 @@ namespace LFramework.Editor.Inspector
             base.OnCompileComplete();
 
             RefreshRegisterTypes();
-            RefreshSettings();
 
             _isCompileComplete = true;
         }
@@ -82,22 +68,6 @@ namespace LFramework.Editor.Inspector
         {
             var componentTypes = Type.GetRuntimeTypes(typeof(GameFrameworkComponent));
             _currentComponentRegisterTypes = componentTypes.Where(x => x != null).Select(x => x.FullName).ToArray();
-        }
-
-        private void RefreshSettings()
-        {
-            var objs = AssetUtilities.GetAllAssetsOfType<ComponentSetting>();
-            _componentSettings ??= new List<ComponentSetting>();
-            _componentSettings.Clear();
-            foreach (var setting in objs)
-            {
-                if (setting == null)
-                {
-                    continue;
-                }
-
-                _componentSettings.Add(setting);
-            }
         }
     }
 }

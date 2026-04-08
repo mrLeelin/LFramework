@@ -15,10 +15,7 @@ namespace LFramework.Runtime.Settings
     public static class SettingManager
     {
         private const string ProjectSelectorResourceName = "ProjectSettingSelector";
-        private const string LegacySelectorResourceName = "SettingSelector";
-
         private static ProjectSettingSelector _projectSelector;
-        private static SettingSelector _selector;
 
         /// <summary>
         /// 获取工程侧 ProjectSettingSelector 实例
@@ -47,44 +44,12 @@ namespace LFramework.Runtime.Settings
         }
 
         /// <summary>
-        /// 获取 SettingSelector 实例
-        /// </summary>
-        public static SettingSelector GetSelector()
-        {
-            if (_selector == null)
-            {
-#if UNITY_EDITOR
-                _selector = LoadFirstAssetOfType<SettingSelector>(false);
-
-                if (_selector == null)
-                {
-                    Log.Error("[SettingManager] No SettingSelector found in project!");
-                }
-#else
-                _selector = Resources.Load<SettingSelector>(LegacySelectorResourceName);
-                if (_selector == null)
-                {
-                    Log.Error("[SettingManager] SettingSelector not found in Resources!");
-                }
-#endif
-            }
-
-            return _selector;
-        }
-
-        /// <summary>
         /// 获取指定类型的 Setting
         /// </summary>
         public static T GetSetting<T>() where T : BaseSetting
         {
             var projectSelector = GetProjectSelector();
-            if (projectSelector != null)
-            {
-                return projectSelector.GetSetting<T>();
-            }
-
-            var legacySelector = GetSelector();
-            return legacySelector?.GetSetting<T>();
+            return projectSelector?.GetSetting<T>();
         }
 
         /// <summary>
@@ -136,7 +101,6 @@ namespace LFramework.Runtime.Settings
         private static void OnScriptsReloaded()
         {
             _projectSelector = null;
-            _selector = null;
         }
 
         /// <summary>
@@ -145,13 +109,11 @@ namespace LFramework.Runtime.Settings
         public static void ClearCacheForTests()
         {
             _projectSelector = null;
-            _selector = null;
         }
 #else
         public static void ClearCacheForTests()
         {
             _projectSelector = null;
-            _selector = null;
         }
 #endif
     }

@@ -29,7 +29,8 @@ namespace LFramework.Editor.Tests.Settings
         public void SettingProjectPaths_UsesCanonicalProjectOwnedLayout()
         {
             Assert.That(SettingProjectPaths.Root, Is.EqualTo("Assets/Game/Settings"));
-            Assert.That(SettingProjectPaths.SelectorAssetPath, Is.EqualTo("Assets/Game/Settings/Selector/ProjectSettingSelector.asset"));
+            Assert.That(SettingProjectPaths.RuntimeResourcesFolder, Is.EqualTo("Assets/Game/Resources"));
+            Assert.That(SettingProjectPaths.SelectorAssetPath, Is.EqualTo("Assets/Game/Resources/ProjectSettingSelector.asset"));
             Assert.That(SettingProjectPaths.SyncStateAssetPath, Is.EqualTo("Assets/Game/Settings/Sync/SettingSyncState.asset"));
             Assert.That(SettingProjectPaths.BaseFolder, Is.EqualTo("Assets/Game/Settings/Base"));
             Assert.That(SettingProjectPaths.ComponentFolder, Is.EqualTo("Assets/Game/Settings/Components"));

@@ -58,13 +58,23 @@ namespace LFramework.Runtime.Settings
         /// </summary>
         public void SetSetting<T>(T setting) where T : BaseSetting
         {
+            SetSetting((BaseSetting)setting);
+        }
+
+        /// <summary>
+        /// 设置普通 Setting，并清理相同类型或相同标识的重复项。
+        /// </summary>
+        public void SetSetting(BaseSetting setting)
+        {
             if (setting == null)
             {
                 return;
             }
 
+            RemoveDuplicateBaseSettings(setting);
+
             var entry = selectedSettings.FirstOrDefault(item =>
-                item.setting != null && item.setting.GetType() == typeof(T));
+                item.setting != null && IsSameSetting(item.setting, setting));
 
             if (entry != null)
             {
@@ -124,8 +134,10 @@ namespace LFramework.Runtime.Settings
                 return;
             }
 
+            RemoveDuplicateComponentSettings(setting);
+
             var entry = selectedComponentSettings.FirstOrDefault(item =>
-                item.setting != null && item.setting.GetType() == setting.GetType());
+                item.setting != null && IsSameSetting(item.setting, setting));
 
             if (entry != null)
             {
@@ -142,6 +154,72 @@ namespace LFramework.Runtime.Settings
         public List<ComponentSetting> GetAllComponentSettings()
         {
             return selectedComponentSettings.Select(entry => entry.setting).Where(setting => setting != null).ToList();
+        }
+
+        private void RemoveDuplicateBaseSettings(BaseSetting setting)
+        {
+            bool kept = false;
+            for (int i = selectedSettings.Count - 1; i >= 0; i--)
+            {
+                var current = selectedSettings[i].setting;
+                if (current == null)
+                {
+                    selectedSettings.RemoveAt(i);
+                    continue;
+                }
+
+                if (!IsSameSetting(current, setting))
+                {
+                    continue;
+                }
+
+                if (!kept)
+                {
+                    kept = true;
+                    continue;
+                }
+
+                selectedSettings.RemoveAt(i);
+            }
+        }
+
+        private void RemoveDuplicateComponentSettings(ComponentSetting setting)
+        {
+            bool kept = false;
+            for (int i = selectedComponentSettings.Count - 1; i >= 0; i--)
+            {
+                var current = selectedComponentSettings[i].setting;
+                if (current == null)
+                {
+                    selectedComponentSettings.RemoveAt(i);
+                    continue;
+                }
+
+                if (!IsSameSetting(current, setting))
+                {
+                    continue;
+                }
+
+                if (!kept)
+                {
+                    kept = true;
+                    continue;
+                }
+
+                selectedComponentSettings.RemoveAt(i);
+            }
+        }
+
+        private static bool IsSameSetting(BaseSetting left, BaseSetting right)
+        {
+            return left.GetType() == right.GetType() ||
+                   (!string.IsNullOrWhiteSpace(left.SettingId) && left.SettingId == right.SettingId);
+        }
+
+        private static bool IsSameSetting(ComponentSetting left, ComponentSetting right)
+        {
+            return left.GetType() == right.GetType() ||
+                   (!string.IsNullOrWhiteSpace(left.SettingId) && left.SettingId == right.SettingId);
         }
     }
 }

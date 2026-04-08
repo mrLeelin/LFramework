@@ -30,9 +30,9 @@ namespace LFramework.Editor.Tests.Window
         }
 
         [Test]
-        public void TryCreate_ReturnsPageModel_ForSettingSelector()
+        public void TryCreate_ReturnsPageModel_ForProjectSettingSelector()
         {
-            var selector = ScriptableObject.CreateInstance<SettingSelector>();
+            var selector = ScriptableObject.CreateInstance<ProjectSettingSelector>();
 
             bool success = GameWindowSettingPageSupport.TryCreate(selector, out GameWindowSettingPageModel model);
 

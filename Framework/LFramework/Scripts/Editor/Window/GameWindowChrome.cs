@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using LFramework.Editor.Settings;
 using LFramework.Runtime.Settings;
 using Sirenix.OdinInspector;
 using Sirenix.Utilities.Editor;
@@ -463,10 +464,46 @@ namespace LFramework.Editor
                 new GameWindowStatCard("Host", "Unified Shell", "Child pages still render through the original custom editor code.", GameWindowChrome.WarningColor));
             GameWindowChrome.DrawSectionHeader("Usage", "Select any concrete setting page from the left tree. The shell adds title, context, and spacing without changing the underlying behavior.");
             GameWindowChrome.BeginContentCard();
+            ProjectSettingSelector selector = SettingManager.GetProjectSelector();
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button(selector == null ? "初始化 Project Settings" : "打开 Project Settings", GUILayout.Height(30f)))
+            {
+                if (selector == null)
+                {
+                    SettingMenuCommands.InitializeProjectSettings();
+                    GUIUtility.ExitGUI();
+                }
+                else
+                {
+                    SettingMenuCommands.OpenProjectSettings(selector);
+                }
+            }
+
+            if (GUILayout.Button("同步 Package 模板", GUILayout.Height(30f)))
+            {
+                SettingMenuCommands.SyncFromPackage();
+                GUIUtility.ExitGUI();
+            }
+
+            if (GUILayout.Button("校验配置", GUILayout.Height(30f)))
+            {
+                SettingMenuCommands.ValidateProjectSettings();
+            }
+
+            EditorGUILayout.EndHorizontal();
+            GUILayout.Space(8f);
+
+            if (selector == null)
+            {
+                EditorGUILayout.HelpBox(
+                    "当前工程还没有 ProjectSettingSelector。请先点击“初始化 Project Settings”生成工程配置，再进行同步或编辑。",
+                    MessageType.Info);
+            }
+
             GUILayout.Label(
-                "- Settings are still saved directly back to the ScriptableObject asset.\n" +
-                "- Runtime-related fields remain controlled by the existing inspector code.\n" +
-                "- Dense pages can be refined later without reworking the menu host again.",
+                "- 所有工程正式配置统一写入 ProjectSettingSelector。\n" +
+                "- Package 模板通过同步进入工程侧，不再直接作为运行时入口。\n" +
+                "- 首次没有工程配置时，可直接在此页初始化。",
                 EditorStyles.wordWrappedLabel);
             GameWindowChrome.EndContentCard();
             GameWindowChrome.EndPage();

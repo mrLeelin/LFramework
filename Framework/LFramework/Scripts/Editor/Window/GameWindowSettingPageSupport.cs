@@ -33,11 +33,11 @@ namespace LFramework.Editor.Window
                         "A unified host for the selected setting asset while keeping the original custom editor behavior intact.");
                     return true;
 
-                case SettingSelector selector:
+                case ProjectSettingSelector selector:
                     model = new GameWindowSettingPageModel(
                         selector,
                         GameWindowChrome.GetDisplayName(selector.GetType().Name, "Selector"),
-                        "A unified host for the selected selector asset while keeping the original custom editor behavior intact.");
+                        "A unified host for the selected project selector asset while keeping the original custom editor behavior intact.");
                     return true;
 
                 case BaseSetting baseSetting:

@@ -8,13 +8,13 @@ namespace LFramework.Editor.Settings
     public static class SettingProjectPaths
     {
         public const string Root = "Assets/Game/Settings";
-        public const string SelectorFolder = Root + "/Selector";
+        public const string RuntimeResourcesFolder = "Assets/Game/Resources";
         public const string BaseFolder = Root + "/Base";
         public const string ComponentFolder = Root + "/Components";
         public const string SyncFolder = Root + "/Sync";
         public const string SnapshotFolder = SyncFolder + "/Snapshots";
 
-        public const string SelectorAssetPath = SelectorFolder + "/ProjectSettingSelector.asset";
+        public const string SelectorAssetPath = RuntimeResourcesFolder + "/ProjectSettingSelector.asset";
         public const string SyncStateAssetPath = SyncFolder + "/SettingSyncState.asset";
 
         public static string GetBaseSettingAssetPath(string fileName)

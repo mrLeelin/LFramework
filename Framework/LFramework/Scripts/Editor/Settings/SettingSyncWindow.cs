@@ -18,7 +18,6 @@ namespace LFramework.Editor.Settings
 
         public SettingSyncReport CurrentReport { get; private set; }
 
-        [MenuItem("LFramework/Settings/Open Sync Window")]
         public static SettingSyncWindow OpenWindow()
         {
             var window = GetWindow<SettingSyncWindow>();

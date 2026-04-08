@@ -161,7 +161,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             if (iosSetting == null)
             {
                 Debug.LogWarning(
-                    "[BuildGameSettingTask] iOSSetting not found in SettingSelector, skipping iOS platform settings.");
+                    "[BuildGameSettingTask] iOSSetting not found in ProjectSettingSelector, skipping iOS platform settings.");
                 return;
             }
 
@@ -184,7 +184,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             var androidSetting = SettingManager.GetSetting<AndroidSetting>();
             if (androidSetting == null)
             {
-                Debug.LogWarning("[BuildGameSettingTask] AndroidSetting not found in SettingSelector, skipping Android platform settings.");
+                Debug.LogWarning("[BuildGameSettingTask] AndroidSetting not found in ProjectSettingSelector, skipping Android platform settings.");
                 return;
             }
 

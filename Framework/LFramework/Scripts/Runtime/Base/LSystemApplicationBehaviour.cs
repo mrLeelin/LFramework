@@ -23,9 +23,6 @@ namespace LFramework.Runtime
   
 
         [SerializeField] private string[] allComponentTypes;
-        [SerializeField] private List<ComponentSetting> allSettings;
-
-
         protected virtual void Awake()
         {
             DontDestroyOnLoad(this.gameObject);
@@ -37,16 +34,15 @@ namespace LFramework.Runtime
             StartApplication();
         }
 
-        protected override void RegisterSetting()
+        protected override bool RegisterSetting()
         {
-            base.RegisterSetting();
 
-            // 使用 SettingManager 获取 SettingSelector
-            var selector = SettingManager.GetSelector();
+            // 使用 SettingManager 获取 ProjectSettingSelector
+            var selector = SettingManager.GetProjectSelector();
             if (selector == null)
             {
-                Log.Fatal("SettingSelector not found! Please create a SettingSelector asset.");
-                return;
+                Debug.LogError(GetMissingProjectSelectorGuidanceMessage());
+                return false;
             }
 
             // 自动绑定所有 Setting 到 DI 容器
@@ -57,15 +53,18 @@ namespace LFramework.Runtime
 
                 var settingType = setting.GetType();
                 DiContainer.Bind(settingType).FromInstance(setting).AsSingle();
-                Log.Info($"[LSystemApplicationBehaviour] {settingType.Name} bound to DI: {setting.name}");
+                Debug.Log($"[LSystemApplicationBehaviour] {settingType.Name} bound to DI: {setting.name}");
             }
 
             // 验证 GameSetting 是否存在
             var gameSetting = SettingManager.GetSetting<GameSetting>();
             if (gameSetting == null)
             {
-                Log.Fatal("GameSetting not found in SettingSelector! Please assign it.");
+                Debug.LogError("GameSetting not found in ProjectSettingSelector! Please assign it.");
+                return false;
             }
+
+            return true;
         }
 
         protected override void RegisterComponents()
@@ -76,7 +75,7 @@ namespace LFramework.Runtime
                 return;
             }
 
-            var effectiveSettings = ResolveComponentSettingsForRegistration(SettingManager.GetProjectSelector(), allSettings);
+            var effectiveSettings = ResolveComponentSettingsForRegistration(SettingManager.GetProjectSelector());
             var settingsDict = SettingToDict(effectiveSettings);
             foreach (var fullName in allComponentTypes)
             {
@@ -107,6 +106,16 @@ namespace LFramework.Runtime
             base.RegisterComponents();
         }
 
+        /// <summary>
+        /// 缺失 ProjectSettingSelector 时的引导信息
+        /// </summary>
+        public static string GetMissingProjectSelectorGuidanceMessage()
+        {
+            return "ProjectSettingSelector not found! " +
+                   "Please open 'LFramework/GameSetting' -> 'Framework Setting' and click '初始化 Project Settings' " +
+                   "to generate 'Assets/Game/Resources/ProjectSettingSelector.asset'.";
+        }
+
         protected override void ResolveApplicationDependencies()
         {
             base.ResolveApplicationDependencies();
@@ -132,8 +141,7 @@ namespace LFramework.Runtime
         /// 优先使用工程侧 ProjectSettingSelector，历史项目回退到序列化列表。
         /// </summary>
         public static List<ComponentSetting> ResolveComponentSettingsForRegistration(
-            ProjectSettingSelector projectSelector,
-            List<ComponentSetting> fallbackSettings)
+            ProjectSettingSelector projectSelector)
         {
             if (projectSelector != null)
             {
@@ -144,7 +152,7 @@ namespace LFramework.Runtime
                 }
             }
 
-            return fallbackSettings ?? new List<ComponentSetting>();
+            return new List<ComponentSetting>();
         }
 
         private Dictionary<string, ComponentSetting> SettingToDict(List<ComponentSetting> settings)

@@ -19,36 +19,10 @@ namespace LFramework.Editor.Settings
 #endif
         public static void CreateExampleSettings()
         {
-            string settingsPath = GetSettingsPath();
-
-            if (!EditorUtility.DisplayDialog(
-                    "Create Example Settings",
-                    "This creates example GameSetting, iOSSetting, AndroidSetting, and SettingSelector assets.\n\nContinue?",
-                    "Create",
-                    "Cancel"))
-            {
-                return;
-            }
-
-            EnsureDirectoryExists(settingsPath);
-            EnsureDirectoryExists($"{settingsPath}/GameSettings");
-            EnsureDirectoryExists($"{settingsPath}/iOSSettings");
-            EnsureDirectoryExists($"{settingsPath}/AndroidSettings");
-
-            GameSetting gameSettingDev = CreateGameSetting("GameSetting_Development", "Development", "http://localhost:8080", "1.0.0.0");
-            CreateGameSetting("GameSetting_Staging", "Staging", "http://staging.example.com", "1.0.0.0");
-            CreateGameSetting("GameSetting_Production", "Production", "http://api.example.com", "1.0.0.0");
-
-            iOSSetting iosSettingDev = CreateiOSSetting("iOSSetting_Development", "com.company.game.dev", "12.0");
-            AndroidSetting androidSettingDev = CreateAndroidSetting("AndroidSetting_Development", "com.company.game.dev", 21, 30);
-            SettingSelector selector = CreateSettingSelector(gameSettingDev, iosSettingDev, androidSettingDev);
-
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-
+            ProjectSettingSelector selector = SettingProjectInitializer.InitializeProjectSettings();
             EditorUtility.DisplayDialog(
                 "Create Example Settings",
-                $"Example settings created at:\n{settingsPath}",
+                $"Project settings created at:\n{SettingProjectPaths.SelectorAssetPath}",
                 "OK");
 
             Selection.activeObject = selector;
@@ -166,40 +140,15 @@ namespace LFramework.Editor.Settings
             return setting;
         }
 
-        private static SettingSelector CreateSettingSelector(GameSetting gameSetting, iOSSetting iosSetting, AndroidSetting androidSetting)
-        {
-            string path = $"{GetSettingsPath()}/SettingSelector.asset";
-            SettingSelector existing = AssetDatabase.LoadAssetAtPath<SettingSelector>(path);
-            if (existing != null)
-            {
-                Debug.Log("[SettingSetupHelper] SettingSelector already exists. Updating values.");
-                existing.SetSetting(gameSetting);
-                existing.SetSetting(iosSetting);
-                existing.SetSetting(androidSetting);
-                EditorUtility.SetDirty(existing);
-                return existing;
-            }
-
-            SettingSelector selector = ScriptableObject.CreateInstance<SettingSelector>();
-            selector.name = "SettingSelector";
-            selector.SetSetting(gameSetting);
-            selector.SetSetting(iosSetting);
-            selector.SetSetting(androidSetting);
-
-            AssetDatabase.CreateAsset(selector, path);
-            Debug.Log("[SettingSetupHelper] Created SettingSelector.");
-            return selector;
-        }
-
 #if AUTO_CREATE_SETTING
         [MenuItem("LFramework/Setup/Validate All Settings")]
 #endif
         public static void ValidateAllSettings()
         {
-            SettingSelector selector = SettingManager.GetSelector();
+            ProjectSettingSelector selector = SettingManager.GetProjectSelector();
             if (selector == null)
             {
-                EditorUtility.DisplayDialog("Validation Failed", "SettingSelector was not found.", "OK");
+                EditorUtility.DisplayDialog("Validation Failed", "ProjectSettingSelector was not found.", "OK");
                 return;
             }
 

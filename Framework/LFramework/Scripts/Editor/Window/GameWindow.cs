@@ -126,7 +126,7 @@ namespace LFramework.Editor.Window
                 }
             }
 
-            AddAllAssetsAtType<SettingSelector>(tree, "Game Setting/Setting Selector")
+            AddAllAssetsAtType<ProjectSettingSelector>(tree, "Game Setting/Project Setting Selector")
                 .AddIcons(EditorIcons.SettingsCog);
 
             AddAllAssetsAtType<BaseSetting>(tree, "Game Setting/GameSettings")

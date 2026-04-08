@@ -10,14 +10,12 @@ namespace LFramework.Editor.Settings
     /// </summary>
     public static class SettingMenuCommands
     {
-        [MenuItem("LFramework/Settings/Initialize Project Settings")]
         public static void InitializeProjectSettings()
         {
             ProjectSettingSelector selector = SettingProjectInitializer.InitializeProjectSettings();
             OpenProjectSettings(selector);
         }
 
-        [MenuItem("LFramework/Settings/Sync From Package")]
         public static void SyncFromPackage()
         {
             ProjectSettingSelector selector = SettingProjectInitializer.InitializeProjectSettings();
@@ -27,7 +25,6 @@ namespace LFramework.Editor.Settings
             OpenProjectSettings(selector);
         }
 
-        [MenuItem("LFramework/Settings/Validate Project Settings")]
         public static void ValidateProjectSettings()
         {
             ProjectSettingSelector selector = SettingManager.GetProjectSelector();
@@ -48,7 +45,6 @@ namespace LFramework.Editor.Settings
             EditorUtility.DisplayDialog("Validate Project Settings", message, "OK");
         }
 
-        [MenuItem("LFramework/Settings/Open Project Settings")]
         public static void OpenProjectSettings()
         {
             OpenProjectSettings(SettingManager.GetProjectSelector());

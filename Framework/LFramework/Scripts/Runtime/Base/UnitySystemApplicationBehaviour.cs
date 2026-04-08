@@ -38,26 +38,78 @@ namespace LFramework.Runtime
                 return;
             }
 
-            try { RegisterSetting(); }
-            catch (Exception e) { Log.Fatal($"StartApplication failed at RegisterSetting: {e}"); return; }
+            try
+            {
+                if (!RegisterSetting())
+                {
+                    return;
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Fatal($"StartApplication failed at RegisterSetting: {e}");
+                return;
+            }
 
-            try { RegisterComponents(); }
-            catch (Exception e) { Log.Fatal($"StartApplication failed at RegisterComponents: {e}"); return; }
+            try
+            {
+                RegisterComponents();
+            }
+            catch (Exception e)
+            {
+                Log.Fatal($"StartApplication failed at RegisterComponents: {e}");
+                return;
+            }
 
-            try { BindComponents(); }
-            catch (Exception e) { Log.Fatal($"StartApplication failed at BindComponents: {e}"); return; }
+            try
+            {
+                BindComponents();
+            }
+            catch (Exception e)
+            {
+                Log.Fatal($"StartApplication failed at BindComponents: {e}");
+                return;
+            }
 
-            try { ResolveApplicationDependencies(); }
-            catch (Exception e) { Log.Fatal($"StartApplication failed at ResolveApplicationDependencies: {e}"); return; }
+            try
+            {
+                ResolveApplicationDependencies();
+            }
+            catch (Exception e)
+            {
+                Log.Fatal($"StartApplication failed at ResolveApplicationDependencies: {e}");
+                return;
+            }
 
-            try { StartComponents(); }
-            catch (Exception e) { Log.Fatal($"StartApplication failed at StartComponents: {e}"); return; }
+            try
+            {
+                StartComponents();
+            }
+            catch (Exception e)
+            {
+                Log.Fatal($"StartApplication failed at StartComponents: {e}");
+                return;
+            }
 
-            try { ApplicationStarted(); }
-            catch (Exception e) { Log.Fatal($"StartApplication failed at ApplicationStarted: {e}"); return; }
+            try
+            {
+                ApplicationStarted();
+            }
+            catch (Exception e)
+            {
+                Log.Fatal($"StartApplication failed at ApplicationStarted: {e}");
+                return;
+            }
 
-            try { SetUpComponents(); }
-            catch (Exception e) { Log.Fatal($"StartApplication failed at SetUpComponents: {e}"); return; }
+            try
+            {
+                SetUpComponents();
+            }
+            catch (Exception e)
+            {
+                Log.Fatal($"StartApplication failed at SetUpComponents: {e}");
+                return;
+            }
         }
 
         protected virtual void Update()
@@ -76,6 +128,7 @@ namespace LFramework.Runtime
             {
                 component.LateUpdate();
             }
+
             SingletonManager.LateUpdate();
         }
 
@@ -124,8 +177,9 @@ namespace LFramework.Runtime
             }
         }
 
-        protected virtual void RegisterSetting()
+        protected virtual bool RegisterSetting()
         {
+            return true;
         }
 
         protected virtual void BindComponents()
