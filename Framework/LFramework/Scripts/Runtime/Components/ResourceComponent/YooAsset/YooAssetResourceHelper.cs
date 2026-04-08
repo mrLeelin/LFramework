@@ -222,7 +222,7 @@ namespace LFramework.Runtime
             LoadSceneCallbacks callbacks, object userData)
         {
             var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
-            var handle = package.LoadSceneAsync(sceneAssetName);
+            var handle = package.LoadSceneAsync(sceneAssetName,LoadSceneMode.Additive);
             StartCoroutine(WaitForSceneLoad(handle, sceneAssetName, callbacks, userData));
         }
 
@@ -443,7 +443,7 @@ namespace LFramework.Runtime
             try
             {
                 var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
-                var op = package.LoadSceneAsync(sceneAssetName);
+                var op = package.LoadSceneAsync(sceneAssetName,LoadSceneMode.Additive);
                 while (!op.IsDone)
                 {
                     handle.SetProgress(op.Progress);

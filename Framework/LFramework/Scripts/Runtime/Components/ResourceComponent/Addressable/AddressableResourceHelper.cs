@@ -126,7 +126,7 @@ namespace LFramework.Runtime
         public override void LoadScene(string sceneAssetName,
             LoadSceneCallbacks callbacks, object userData)
         {
-            var handle = Addressables.LoadSceneAsync(sceneAssetName);
+            var handle = Addressables.LoadSceneAsync(sceneAssetName,LoadSceneMode.Additive);
             handle.Completed += (op) =>
             {
                 if (op.Status == AsyncOperationStatus.Succeeded)
@@ -277,7 +277,7 @@ namespace LFramework.Runtime
         {
             try
             {
-                var op = Addressables.LoadSceneAsync(sceneAssetName);
+                var op = Addressables.LoadSceneAsync(sceneAssetName,LoadSceneMode.Additive);
                 while (!op.IsDone)
                 {
                     handle.SetProgress(op.PercentComplete);
