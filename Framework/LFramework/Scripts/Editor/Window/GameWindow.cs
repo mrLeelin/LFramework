@@ -29,6 +29,7 @@ namespace LFramework.Editor.Window
         private UnityEngine.Object _cachedSettingTarget;
         private Vector2 _frameworkSettingScrollPosition;
         private Vector2 _frameworkProfiledScrollPosition;
+        private const string SettingEditorFocusControlName = "LFramework.GameWindow.SettingEditorHost";
 
         [MenuItem("LFramework/GameSetting")]
         private static void OpenWindow()
@@ -132,12 +133,12 @@ namespace LFramework.Editor.Window
             AddAllAssetsAtType<BaseSetting>(tree, "Game Setting/GameSettings")
                 .AddIcons(EditorIcons.SettingsCog);
 
-            tree.Add("Build", null, EditorIcons.Airplane);
-            tree.AddObjectAtPath("Build/Build Resources", new BuildResourcesData()).AddIcon(EditorIcons.SettingsCog);
-            tree.AddObjectAtPath("Build/Build App", new BuildPackageWindow()).AddIcon(EditorIcons.SettingsCog);
-            tree.AddObjectAtPath("Build/Upload Version Files", new BuildVersionWindow()).AddIcon(EditorIcons.Car);
-            tree.AddObjectAtPath("Utility/OpenFolder", new OpenFolderInspector()).AddIcon(EditorIcons.ShoppingCart);
-            AddAllExtendItems("Extensions", tree);
+            tree.Add("构建", null, EditorIcons.Airplane);
+            tree.AddObjectAtPath("构建/Build Resources", new BuildResourcesData()).AddIcon(EditorIcons.SettingsCog);
+            tree.AddObjectAtPath("构建/Build App", new BuildPackageWindow()).AddIcon(EditorIcons.SettingsCog);
+            tree.AddObjectAtPath("构建/Upload Version Files", new BuildVersionWindow()).AddIcon(EditorIcons.Car);
+            tree.AddObjectAtPath("通用/OpenFolder", new OpenFolderInspector()).AddIcon(EditorIcons.ShoppingCart);
+            AddAllExtendItems("扩展", tree);
             return tree;
         }
 
@@ -179,9 +180,22 @@ namespace LFramework.Editor.Window
             GUILayout.Space(12f);
             DrawSettingStatCards(pageModel.Target, assetPath);
             GameWindowChrome.DrawSectionHeader("Configuration", "The original inspector content is rendered below inside the unified shell.");
-            GameWindowChrome.BeginContentCard();
+            DrawEmbeddedSettingInspector();
+            GameWindowChrome.EndPage();
+        }
+
+        private void DrawEmbeddedSettingInspector()
+        {
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Space(16f);
+            EditorGUILayout.BeginVertical();
+
+            Rect hostRect = GUILayoutUtility.GetRect(0f, 0f, GUILayout.ExpandWidth(true), GUILayout.Height(0f));
+            HandleEmbeddedInspectorFocus(hostRect);
+
             if (_cachedSettingEditor != null)
             {
+                GUI.SetNextControlName(SettingEditorFocusControlName);
                 _cachedSettingEditor.OnInspectorGUI();
             }
             else
@@ -189,8 +203,29 @@ namespace LFramework.Editor.Window
                 EditorGUILayout.HelpBox("Missing CustomEditor for the selected setting asset.", MessageType.Warning);
             }
 
-            GameWindowChrome.EndContentCard();
-            GameWindowChrome.EndPage();
+            EditorGUILayout.EndVertical();
+            GUILayout.Space(16f);
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private void HandleEmbeddedInspectorFocus(Rect hostRect)
+        {
+            Event currentEvent = Event.current;
+            if (currentEvent == null || currentEvent.type != EventType.MouseDown)
+            {
+                return;
+            }
+
+            Rect expandedRect = hostRect;
+            expandedRect.height = Mathf.Max(position.height, 1f);
+
+            if (!expandedRect.Contains(currentEvent.mousePosition))
+            {
+                return;
+            }
+
+            EditorGUI.FocusTextInControl(SettingEditorFocusControlName);
+            Repaint();
         }
 
         private void DrawSettingStatCards(UnityEngine.Object settingTarget, string assetPath)
