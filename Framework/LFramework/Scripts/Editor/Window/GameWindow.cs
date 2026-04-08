@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using LFramework.Editor;
 using LFramework.Editor.Builder;
+using LFramework.Editor.Settings;
 using LFramework.Runtime.Settings;
 using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities;
@@ -179,9 +180,47 @@ namespace LFramework.Editor.Window
             GameWindowChrome.DrawSeparator();
             GUILayout.Space(12f);
             DrawSettingStatCards(pageModel.Target, assetPath);
+            if (pageModel.Target is ProjectSettingSelector projectSettingSelector)
+            {
+                DrawProjectSettingSelectorActions(projectSettingSelector);
+            }
+
             GameWindowChrome.DrawSectionHeader("Configuration", "The original inspector content is rendered below inside the unified shell.");
             DrawEmbeddedSettingInspector();
             GameWindowChrome.EndPage();
+        }
+
+        private void DrawProjectSettingSelectorActions(ProjectSettingSelector selector)
+        {
+            GameWindowChrome.DrawSectionHeader(
+                "Project Setting Selector Actions",
+                "Collect all project-owned settings and validate the selector references with one click.");
+
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Space(16f);
+            if (GUILayout.Button("Collect All Settings", GUILayout.Height(28f)))
+            {
+                GameWindowProjectSettingSelectorActions.CollectAllSettings(selector);
+                EditorUtility.DisplayDialog(
+                    "Collect All Settings",
+                    GameWindowProjectSettingSelectorActions.BuildCollectionSummary(selector),
+                    "OK");
+                Repaint();
+            }
+
+            if (GUILayout.Button("Validate Settings", GUILayout.Height(28f)))
+            {
+                SettingValidationReport report = GameWindowProjectSettingSelectorActions.ValidateAllSettings(selector);
+                EditorUtility.DisplayDialog(
+                    "Validate Settings",
+                    GameWindowProjectSettingSelectorActions.BuildValidationSummary(report),
+                    "OK");
+                Repaint();
+            }
+
+            GUILayout.Space(16f);
+            EditorGUILayout.EndHorizontal();
+            GUILayout.Space(8f);
         }
 
         private void DrawEmbeddedSettingInspector()
@@ -246,6 +285,27 @@ namespace LFramework.Editor.Window
                         GameWindowChrome.SuccessColor),
                     new GameWindowStatCard(
                         "Location",
+                        string.IsNullOrEmpty(assetPath) ? "Unknown" : Path.GetFileName(assetPath),
+                        GameWindowChrome.GetAssetDirectory(assetPath),
+                        GameWindowChrome.WarningColor));
+                return;
+            }
+
+            if (settingTarget is ProjectSettingSelector projectSettingSelector)
+            {
+                GameWindowChrome.DrawStatCards(
+                    new GameWindowStatCard(
+                        "Base Settings",
+                        projectSettingSelector.GetAllSettings().Count.ToString(),
+                        "Collected project-owned base settings referenced by this selector.",
+                        GameWindowChrome.AccentColor),
+                    new GameWindowStatCard(
+                        "Component Settings",
+                        projectSettingSelector.GetAllComponentSettings().Count.ToString(),
+                        "Collected project-owned component settings referenced by this selector.",
+                        GameWindowChrome.SuccessColor),
+                    new GameWindowStatCard(
+                        "Selector Asset",
                         string.IsNullOrEmpty(assetPath) ? "Unknown" : Path.GetFileName(assetPath),
                         GameWindowChrome.GetAssetDirectory(assetPath),
                         GameWindowChrome.WarningColor));

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.14
+
+- Added `ProjectSettingSelector` quick actions in `GameWindow` to collect all project-owned settings automatically and run selector validation without manual dragging.
+
 ## 0.2.13
 
 - Improved `GameWindow` embedded setting inspector interaction so popup-like fields such as `Bind Component` respond more reliably inside the Odin-hosted editor shell.
