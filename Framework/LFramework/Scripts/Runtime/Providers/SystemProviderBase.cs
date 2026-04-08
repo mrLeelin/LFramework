@@ -12,32 +12,38 @@ namespace LFramework.Runtime
     public abstract class SystemProviderBase : ISystemProvider
     {
         [Inject] protected EventComponent EventComponent;
+        private bool _isSubscribed;
 
 
         public virtual void AwakeComponent()
         {
-          
         }
 
         public void SubscribeEvent()
         {
             Subscribe(EventComponent);
+            _isSubscribed = true;
         }
 
         public virtual void SetUp()
         {
-            
         }
 
         public void UnSubscribeEvent()
         {
+            if (!_isSubscribed)
+            {
+                return;
+            }
+
             UnSubscribe(EventComponent);
+            _isSubscribed = false;
         }
 
         public virtual void OnStop()
         {
-         
         }
+
         /*
         public void Dispose()
         {
@@ -50,9 +56,9 @@ namespace LFramework.Runtime
             UnSubscribeEvent();
             OnStop();
         }
+
         public virtual void UpdateComponent(float elapseSeconds, float realElapseSeconds)
         {
-            
         }
 
         #region Event
@@ -110,8 +116,5 @@ namespace LFramework.Runtime
         }
 
         #endregion
-
-
-      
     }
 }
