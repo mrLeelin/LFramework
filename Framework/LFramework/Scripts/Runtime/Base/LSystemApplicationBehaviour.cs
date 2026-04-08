@@ -76,7 +76,8 @@ namespace LFramework.Runtime
                 return;
             }
 
-            var settingsDict = SettingToDict(allSettings);
+            var effectiveSettings = ResolveComponentSettingsForRegistration(SettingManager.GetProjectSelector(), allSettings);
+            var settingsDict = SettingToDict(effectiveSettings);
             foreach (var fullName in allComponentTypes)
             {
                 var fType = Utility.Assembly.GetType(fullName);
@@ -126,10 +127,32 @@ namespace LFramework.Runtime
            
         }
 
+        /// <summary>
+        /// 解析组件注册使用的 Setting 列表。
+        /// 优先使用工程侧 ProjectSettingSelector，历史项目回退到序列化列表。
+        /// </summary>
+        public static List<ComponentSetting> ResolveComponentSettingsForRegistration(
+            ProjectSettingSelector projectSelector,
+            List<ComponentSetting> fallbackSettings)
+        {
+            if (projectSelector != null)
+            {
+                var projectSettings = projectSelector.GetAllComponentSettings();
+                if (projectSettings.Count > 0)
+                {
+                    return projectSettings;
+                }
+            }
+
+            return fallbackSettings ?? new List<ComponentSetting>();
+        }
 
         private Dictionary<string, ComponentSetting> SettingToDict(List<ComponentSetting> settings)
         {
-            return settings.ToDictionary(k => k.bindTypeName, v => v);
+            return settings
+                .Where(setting => setting != null && !string.IsNullOrWhiteSpace(setting.bindTypeName))
+                .GroupBy(setting => setting.bindTypeName)
+                .ToDictionary(group => group.Key, group => group.First());
         }
         
         private void OnGUI()

@@ -82,6 +82,11 @@ namespace LFramework.Editor
 
         internal static void DrawHeader(string title, string subtitle, params GameWindowBadge[] badges)
         {
+            DrawHeader(title, subtitle, badges, null);
+        }
+
+        internal static void DrawHeader(string title, string subtitle, GameWindowBadge[] badges, System.Action<int> onBadgeClicked = null)
+        {
             EnsureStyles();
 
             EditorGUILayout.BeginHorizontal();
@@ -98,14 +103,15 @@ namespace LFramework.Editor
             {
                 GUILayout.Space(6f);
                 EditorGUILayout.BeginHorizontal();
-                foreach (var badge in badges)
+                for (int i = 0; i < badges.Length; i++)
                 {
+                    var badge = badges[i];
                     if (string.IsNullOrEmpty(badge.Label) && string.IsNullOrEmpty(badge.Value))
                     {
                         continue;
                     }
 
-                    DrawBadge(badge.Label, badge.Value);
+                    DrawBadge(badge.Label, badge.Value, onBadgeClicked == null ? null : () => onBadgeClicked(i));
                     GUILayout.Space(8f);
                 }
 
@@ -365,7 +371,7 @@ namespace LFramework.Editor
             };
         }
 
-        private static void DrawBadge(string label, string value)
+        private static void DrawBadge(string label, string value, System.Action onClick = null)
         {
             var content = new GUIContent($"  {label}: {value}  ");
             var size = _badgeStyle.CalcSize(content);
@@ -375,6 +381,14 @@ namespace LFramework.Editor
                 : new Color(0.86f, 0.89f, 0.93f, 0.95f));
             EditorGUI.DrawRect(new Rect(rect.x, rect.y, 3f, rect.height), AccentColor);
             GUI.Label(rect, content, _badgeStyle);
+            if (onClick != null)
+            {
+                EditorGUIUtility.AddCursorRect(rect, MouseCursor.Link);
+                if (GUI.Button(rect, GUIContent.none, GUIStyle.none))
+                {
+                    onClick.Invoke();
+                }
+            }
         }
 
         private static void DrawStatCard(GameWindowStatCard card, float width)

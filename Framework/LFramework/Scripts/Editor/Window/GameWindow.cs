@@ -150,47 +150,34 @@ namespace LFramework.Editor.Window
                 return;
             }
 
-            if (selected is ComponentSetting componentSetting)
+            if (GameWindowSettingPageSupport.TryCreate(selected as UnityEngine.Object, out var settingPageModel))
             {
-                DrawFrameworkSettingPage(componentSetting);
+                DrawSettingAssetPage(settingPageModel);
                 return;
             }
 
             base.DrawEditors();
         }
 
-        private void DrawFrameworkSettingPage(ComponentSetting componentSetting)
+        private void DrawSettingAssetPage(GameWindowSettingPageModel pageModel)
         {
-            EnsureSettingEditor(componentSetting);
+            EnsureSettingEditor(pageModel.Target);
 
-            string assetPath = AssetDatabase.GetAssetPath(componentSetting);
-            string title = GameWindowChrome.GetDisplayName(componentSetting.GetType().Name, "ComponentSetting");
-            string bindTypeDisplay = GameWindowChrome.GetShortTypeName(componentSetting.bindTypeName);
+            string assetPath = AssetDatabase.GetAssetPath(pageModel.Target);
 
             GameWindowChrome.BeginPage(ref _frameworkSettingScrollPosition);
             GameWindowChrome.DrawHeader(
-                title,
-                "A unified host for the selected setting asset while keeping the original custom editor behavior intact.",
-                new GameWindowBadge("Asset", Path.GetFileNameWithoutExtension(assetPath)),
-                new GameWindowBadge("Mode", EditorApplication.isPlaying ? "Live Preview" : "Asset Edit"));
+                pageModel.Title,
+                pageModel.Subtitle,
+                new[]
+                {
+                    new GameWindowBadge("Asset", Path.GetFileNameWithoutExtension(assetPath)),
+                    new GameWindowBadge("Mode", EditorApplication.isPlaying ? "Live Preview" : "Asset Edit")
+                },
+                badgeIndex => GameWindowFrameworkSettingActions.HandleAssetBadgeClick(pageModel.Target, badgeIndex));
             GameWindowChrome.DrawSeparator();
             GUILayout.Space(12f);
-            GameWindowChrome.DrawStatCards(
-                new GameWindowStatCard(
-                    "Bind Type",
-                    bindTypeDisplay,
-                    string.IsNullOrEmpty(componentSetting.bindTypeName) ? "No runtime component type assigned yet." : componentSetting.bindTypeName,
-                    GameWindowChrome.AccentColor),
-                new GameWindowStatCard(
-                    "Inspector",
-                    _cachedSettingEditor != null ? _cachedSettingEditor.GetType().Name : "Missing Editor",
-                    "Keeps the existing custom inspector fields and behavior.",
-                    GameWindowChrome.SuccessColor),
-                new GameWindowStatCard(
-                    "Location",
-                    string.IsNullOrEmpty(assetPath) ? "Unknown" : Path.GetFileName(assetPath),
-                    GameWindowChrome.GetAssetDirectory(assetPath),
-                    GameWindowChrome.WarningColor));
+            DrawSettingStatCards(pageModel.Target, assetPath);
             GameWindowChrome.DrawSectionHeader("Configuration", "The original inspector content is rendered below inside the unified shell.");
             GameWindowChrome.BeginContentCard();
             if (_cachedSettingEditor != null)
@@ -204,6 +191,48 @@ namespace LFramework.Editor.Window
 
             GameWindowChrome.EndContentCard();
             GameWindowChrome.EndPage();
+        }
+
+        private void DrawSettingStatCards(UnityEngine.Object settingTarget, string assetPath)
+        {
+            if (settingTarget is ComponentSetting componentSetting)
+            {
+                string bindTypeDisplay = GameWindowChrome.GetShortTypeName(componentSetting.bindTypeName);
+                GameWindowChrome.DrawStatCards(
+                    new GameWindowStatCard(
+                        "Bind Type",
+                        bindTypeDisplay,
+                        string.IsNullOrEmpty(componentSetting.bindTypeName) ? "No runtime component type assigned yet." : componentSetting.bindTypeName,
+                        GameWindowChrome.AccentColor),
+                    new GameWindowStatCard(
+                        "Inspector",
+                        _cachedSettingEditor != null ? _cachedSettingEditor.GetType().Name : "Missing Editor",
+                        "Keeps the existing custom inspector fields and behavior.",
+                        GameWindowChrome.SuccessColor),
+                    new GameWindowStatCard(
+                        "Location",
+                        string.IsNullOrEmpty(assetPath) ? "Unknown" : Path.GetFileName(assetPath),
+                        GameWindowChrome.GetAssetDirectory(assetPath),
+                        GameWindowChrome.WarningColor));
+                return;
+            }
+
+            GameWindowChrome.DrawStatCards(
+                new GameWindowStatCard(
+                    "Type",
+                    settingTarget.GetType().Name,
+                    "The concrete ScriptableObject type currently selected in GameWindow.",
+                    GameWindowChrome.AccentColor),
+                new GameWindowStatCard(
+                    "Inspector",
+                    _cachedSettingEditor != null ? _cachedSettingEditor.GetType().Name : "Missing Editor",
+                    "Keeps the existing custom inspector fields and behavior.",
+                    GameWindowChrome.SuccessColor),
+                new GameWindowStatCard(
+                    "Location",
+                    string.IsNullOrEmpty(assetPath) ? "Unknown" : Path.GetFileName(assetPath),
+                    GameWindowChrome.GetAssetDirectory(assetPath),
+                    GameWindowChrome.WarningColor));
         }
 
         private void DrawProfiledPage(ProfiledBase profiledBase)
@@ -260,14 +289,14 @@ namespace LFramework.Editor.Window
             Repaint();
         }
 
-        private void EnsureSettingEditor(ComponentSetting componentSetting)
+        private void EnsureSettingEditor(UnityEngine.Object settingTarget)
         {
-            if (_cachedSettingTarget != componentSetting)
+            if (_cachedSettingTarget != settingTarget)
             {
-                _cachedSettingTarget = componentSetting;
+                _cachedSettingTarget = settingTarget;
             }
 
-            UnityEditor.Editor.CreateCachedEditor(componentSetting, null, ref _cachedSettingEditor);
+            UnityEditor.Editor.CreateCachedEditor(settingTarget, null, ref _cachedSettingEditor);
         }
 
         private static void AddAllExtendItems(string baseFold, OdinMenuTree tree)
@@ -327,7 +356,7 @@ namespace LFramework.Editor.Window
         private static IEnumerable<OdinMenuItem> AddAllAssetsAtType<T>(OdinMenuTree tree, string menuPath)
             where T : ScriptableObject
         {
-            var allSettings = AssetUtilities.GetAllAssetsOfType<T>();
+            var allSettings = GameWindowAssetLocator.GetPreferredAssetsAtType<T>();
 
             menuPath = menuPath ?? string.Empty;
             menuPath = menuPath.TrimStart('/');
@@ -340,8 +369,8 @@ namespace LFramework.Editor.Window
                 }
 
                 var assetsPath = AssetDatabase.GetAssetPath(setting);
-                string withoutExtension = Path.GetFileNameWithoutExtension(assetsPath);
-                string path = menuPath.Trim('/') + "/" + withoutExtension;
+                string menuLeafName = GameWindowAssetLocator.GetMenuItemName(setting, allSettings);
+                string path = menuPath.Trim('/') + "/" + menuLeafName;
                 SplitMenuPath(path, out path, out string name);
                 tree.AddMenuItemAtPath(result, path, new OdinMenuItem(tree, name, setting));
             }

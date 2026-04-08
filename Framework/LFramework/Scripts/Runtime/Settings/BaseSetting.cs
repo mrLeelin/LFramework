@@ -8,9 +8,15 @@ namespace LFramework.Runtime.Settings
     /// </summary>
     public abstract class BaseSetting : ScriptableObject
     {
+        [SerializeField] protected string settingId;
         [SerializeField] protected string displayName;
         [SerializeField, TextArea] protected string description;
         [SerializeField] protected List<string> tags = new List<string>();
+
+        /// <summary>
+        /// Setting 稳定标识
+        /// </summary>
+        public string SettingId => string.IsNullOrWhiteSpace(settingId) ? GetType().FullName : settingId;
 
         /// <summary>
         /// 显示名称
@@ -38,5 +44,15 @@ namespace LFramework.Runtime.Settings
         {
             // 子类实现
         }
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// 编辑器下设置稳定标识
+        /// </summary>
+        public void EditorSetSettingId(string newSettingId)
+        {
+            settingId = newSettingId;
+        }
+#endif
     }
 }

@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea6bd9a471264778a069ffc9af901acd, type: 3}
   m_Name: ProcedureComponentSetting
   m_EditorClassIdentifier: 
+  settingId: 
   bindTypeName: UnityGameFramework.Runtime.ProcedureComponent
   m_AvailableProcedureTypeNames:
   - Launch2State
   - LaunchState
-  - LFramework.Runtime.GameLaunchProcedure
   - LunachProcedure
   m_EntranceProcedureTypeName: LaunchState
   m_EntranceHotfixProcedureTypeName: 

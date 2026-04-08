@@ -3,6 +3,7 @@
     "rootNamespace": "LFramework.Editor.Tests",
     "references": [
         "LFramework.Editor",
+        "LFramework.Runtime",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],
