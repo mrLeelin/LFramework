@@ -1,11 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
+using UnityEngine.Scripting;
 
 namespace GameFramework.Resource
 {
     /// <summary>
-    /// 资源管理器（唯一实现）
+    /// 璧勬簮绠＄悊鍣紙鍞竴瀹炵幇锛?
     /// </summary>
+    [Preserve]
     internal sealed class ResourceManager : GameFrameworkModule, IResourceManager
     {
         private string _readOnlyPath;
@@ -14,7 +16,7 @@ namespace GameFramework.Resource
         private IResourceHelper _resourceHelper;
 
         /// <summary>
-        /// 初始化资源管理器
+        /// 鍒濆鍖栬祫婧愮鐞嗗櫒
         /// </summary>
         public ResourceManager()
         {
@@ -25,27 +27,27 @@ namespace GameFramework.Resource
         }
 
         /// <summary>
-        /// 获取资源只读路径
+        /// 鑾峰彇璧勬簮鍙璺緞
         /// </summary>
         public string ReadOnlyPath => _readOnlyPath;
 
         /// <summary>
-        /// 获取资源读写路径
+        /// 鑾峰彇璧勬簮璇诲啓璺緞
         /// </summary>
         public string ReadWritePath => _readWritePath;
 
         /// <summary>
-        /// 获取资源模式
+        /// 鑾峰彇璧勬簮妯″紡
         /// </summary>
         public ResourceMode ResourceMode => _resourceMode;
 
         /// <summary>
-        /// 获取模块优先级
+        /// 鑾峰彇妯″潡浼樺厛绾?
         /// </summary>
         internal override int Priority => 4;
 
         /// <summary>
-        /// 设置资源只读路径
+        /// 璁剧疆璧勬簮鍙璺緞
         /// </summary>
         public void SetReadOnlyPath(string readOnlyPath)
         {
@@ -55,7 +57,7 @@ namespace GameFramework.Resource
         }
 
         /// <summary>
-        /// 设置资源读写路径
+        /// 璁剧疆璧勬簮璇诲啓璺緞
         /// </summary>
         public void SetReadWritePath(string readWritePath)
         {
@@ -65,7 +67,7 @@ namespace GameFramework.Resource
         }
 
         /// <summary>
-        /// 设置资源模式
+        /// 璁剧疆璧勬簮妯″紡
         /// </summary>
         public void SetResourceMode(ResourceMode resourceMode)
         {
@@ -75,7 +77,7 @@ namespace GameFramework.Resource
         }
 
         /// <summary>
-        /// 设置资源辅助器
+        /// 璁剧疆璧勬簮杈呭姪鍣?
         /// </summary>
         public void SetResourceHelper(IResourceHelper resourceHelper)
         {
@@ -83,7 +85,7 @@ namespace GameFramework.Resource
         }
 
         /// <summary>
-        /// 初始化资源
+        /// 鍒濆鍖栬祫婧?
         /// </summary>
         public void InitResources(InitResourcesCompleteCallback callback)
         {
@@ -98,7 +100,7 @@ namespace GameFramework.Resource
         }
 
         /// <summary>
-        /// 查询资源是否存在
+        /// 鏌ヨ璧勬簮鏄惁瀛樺湪
         /// </summary>
         public HasAssetResult HasAsset(string assetName)
         {
@@ -110,7 +112,7 @@ namespace GameFramework.Resource
         }
 
         /// <summary>
-        /// 加载资源
+        /// 鍔犺浇璧勬簮
         /// </summary>
         public void LoadAsset(string assetName, Type assetType, int priority,
                               LoadAssetCallbacks callbacks, object userData)
@@ -126,7 +128,7 @@ namespace GameFramework.Resource
         }
 
         /// <summary>
-        /// 卸载资源
+        /// 鍗歌浇璧勬簮
         /// </summary>
         public void UnloadAsset(object asset)
         {
@@ -141,7 +143,7 @@ namespace GameFramework.Resource
         }
 
         /// <summary>
-        /// 加载场景
+        /// 鍔犺浇鍦烘櫙
         /// </summary>
         public void LoadScene(string sceneAssetName, int priority,
                               LoadSceneCallbacks callbacks, object userData)
@@ -157,7 +159,7 @@ namespace GameFramework.Resource
         }
 
         /// <summary>
-        /// 卸载场景
+        /// 鍗歌浇鍦烘櫙
         /// </summary>
         public void UnloadScene(string sceneAssetName,
                                 UnloadSceneCallbacks callbacks, object userData)
@@ -170,7 +172,7 @@ namespace GameFramework.Resource
         }
 
         /// <summary>
-        /// 加载二进制/原始文件
+        /// 鍔犺浇浜岃繘鍒?鍘熷鏂囦欢
         /// </summary>
         public void LoadBinary(string binaryAssetName,
                                LoadBinaryCallbacks callbacks, object userData)
@@ -186,7 +188,7 @@ namespace GameFramework.Resource
         }
 
         /// <summary>
-        /// 实例化资源
+        /// 瀹炰緥鍖栬祫婧?
         /// </summary>
         public void InstantiateAsset(string assetName, LoadAssetCallbacks callbacks, object userData)
         {
@@ -201,15 +203,15 @@ namespace GameFramework.Resource
         }
 
         /// <summary>
-        /// 游戏框架模块轮询
+        /// 娓告垙妗嗘灦妯″潡杞
         /// </summary>
         internal override void Update(float elapseSeconds, float realElapseSeconds)
         {
-            // Agent 层已移除，无需处理队列
+            // Agent 灞傚凡绉婚櫎锛屾棤闇€澶勭悊闃熷垪
         }
 
         /// <summary>
-        /// 关闭并清理资源管理器
+        /// 鍏抽棴骞舵竻鐞嗚祫婧愮鐞嗗櫒
         /// </summary>
         internal override void Shutdown()
         {

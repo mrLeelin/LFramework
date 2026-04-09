@@ -1,19 +1,21 @@
-﻿//------------------------------------------------------------
+//------------------------------------------------------------
 // Game Framework
-// Copyright © 2013-2021 Jiang Yin. All rights reserved.
+// Copyright 漏 2013-2021 Jiang Yin. All rights reserved.
 // Homepage: https://gameframework.cn/
 // Feedback: mailto:ellan@gameframework.cn
 //------------------------------------------------------------
 
 using GameFramework.Resource;
 using System;
-using System.Collections.Generic;
+using System.Collections.Generic;
+using UnityEngine.Scripting;
 
 namespace GameFramework.DataTable
 {
     /// <summary>
-    /// 数据表管理器。
+    /// 鏁版嵁琛ㄧ鐞嗗櫒銆?
     /// </summary>
+    [Preserve]
     internal sealed partial class DataTableManager : GameFrameworkModule, IDataTableManager
     {
         private readonly Dictionary<TypeNamePair, DataTableBase> m_DataTables;
@@ -22,7 +24,7 @@ namespace GameFramework.DataTable
         private IDataTableHelper m_DataTableHelper;
 
         /// <summary>
-        /// 初始化数据表管理器的新实例。
+        /// 鍒濆鍖栨暟鎹〃绠＄悊鍣ㄧ殑鏂板疄渚嬨€?
         /// </summary>
         public DataTableManager()
         {
@@ -33,7 +35,7 @@ namespace GameFramework.DataTable
         }
 
         /// <summary>
-        /// 获取数据表数量。
+        /// 鑾峰彇鏁版嵁琛ㄦ暟閲忋€?
         /// </summary>
         public int Count
         {
@@ -44,7 +46,7 @@ namespace GameFramework.DataTable
         }
 
         /// <summary>
-        /// 获取缓冲二进制流的大小。
+        /// 鑾峰彇缂撳啿浜岃繘鍒舵祦鐨勫ぇ灏忋€?
         /// </summary>
         public int CachedBytesSize
         {
@@ -55,16 +57,16 @@ namespace GameFramework.DataTable
         }
 
         /// <summary>
-        /// 数据表管理器轮询。
+        /// 鏁版嵁琛ㄧ鐞嗗櫒杞銆?
         /// </summary>
-        /// <param name="elapseSeconds">逻辑流逝时间，以秒为单位。</param>
-        /// <param name="realElapseSeconds">真实流逝时间，以秒为单位。</param>
+        /// <param name="elapseSeconds">閫昏緫娴侀€濇椂闂达紝浠ョ涓哄崟浣嶃€?/param>
+        /// <param name="realElapseSeconds">鐪熷疄娴侀€濇椂闂达紝浠ョ涓哄崟浣嶃€?/param>
         internal override void Update(float elapseSeconds, float realElapseSeconds)
         {
         }
 
         /// <summary>
-        /// 关闭并清理数据表管理器。
+        /// 鍏抽棴骞舵竻鐞嗘暟鎹〃绠＄悊鍣ㄣ€?
         /// </summary>
         internal override void Shutdown()
         {
@@ -77,9 +79,9 @@ namespace GameFramework.DataTable
         }
 
         /// <summary>
-        /// 设置资源管理器。
+        /// 璁剧疆璧勬簮绠＄悊鍣ㄣ€?
         /// </summary>
-        /// <param name="resourceManager">资源管理器。</param>
+        /// <param name="resourceManager">璧勬簮绠＄悊鍣ㄣ€?/param>
         public void SetResourceManager(IResourceManager resourceManager)
         {
             if (resourceManager == null)
@@ -91,9 +93,9 @@ namespace GameFramework.DataTable
         }
 
         /// <summary>
-        /// 设置数据表数据提供者辅助器。
+        /// 璁剧疆鏁版嵁琛ㄦ暟鎹彁渚涜€呰緟鍔╁櫒銆?
         /// </summary>
-        /// <param name="dataProviderHelper">数据表数据提供者辅助器。</param>
+        /// <param name="dataProviderHelper">鏁版嵁琛ㄦ暟鎹彁渚涜€呰緟鍔╁櫒銆?/param>
         public void SetDataProviderHelper(IDataProviderHelper<DataTableBase> dataProviderHelper)
         {
             if (dataProviderHelper == null)
@@ -105,9 +107,9 @@ namespace GameFramework.DataTable
         }
 
         /// <summary>
-        /// 设置数据表辅助器。
+        /// 璁剧疆鏁版嵁琛ㄨ緟鍔╁櫒銆?
         /// </summary>
-        /// <param name="dataTableHelper">数据表辅助器。</param>
+        /// <param name="dataTableHelper">鏁版嵁琛ㄨ緟鍔╁櫒銆?/param>
         public void SetDataTableHelper(IDataTableHelper dataTableHelper)
         {
             if (dataTableHelper == null)
@@ -119,16 +121,16 @@ namespace GameFramework.DataTable
         }
 
         /// <summary>
-        /// 确保二进制流缓存分配足够大小的内存并缓存。
+        /// 纭繚浜岃繘鍒舵祦缂撳瓨鍒嗛厤瓒冲澶у皬鐨勫唴瀛樺苟缂撳瓨銆?
         /// </summary>
-        /// <param name="ensureSize">要确保二进制流缓存分配内存的大小。</param>
+        /// <param name="ensureSize">瑕佺‘淇濅簩杩涘埗娴佺紦瀛樺垎閰嶅唴瀛樼殑澶у皬銆?/param>
         public void EnsureCachedBytesSize(int ensureSize)
         {
             DataProvider<DataTableBase>.EnsureCachedBytesSize(ensureSize);
         }
 
         /// <summary>
-        /// 释放缓存的二进制流。
+        /// 閲婃斁缂撳瓨鐨勪簩杩涘埗娴併€?
         /// </summary>
         public void FreeCachedBytes()
         {
@@ -136,20 +138,20 @@ namespace GameFramework.DataTable
         }
 
         /// <summary>
-        /// 是否存在数据表。
+        /// 鏄惁瀛樺湪鏁版嵁琛ㄣ€?
         /// </summary>
-        /// <typeparam name="T">数据表行的类型。</typeparam>
-        /// <returns>是否存在数据表。</returns>
+        /// <typeparam name="T">鏁版嵁琛ㄨ鐨勭被鍨嬨€?/typeparam>
+        /// <returns>鏄惁瀛樺湪鏁版嵁琛ㄣ€?/returns>
         public bool HasDataTable<T>() where T : IDataRow
         {
             return InternalHasDataTable(new TypeNamePair(typeof(T)));
         }
 
         /// <summary>
-        /// 是否存在数据表。
+        /// 鏄惁瀛樺湪鏁版嵁琛ㄣ€?
         /// </summary>
-        /// <param name="dataRowType">数据表行的类型。</param>
-        /// <returns>是否存在数据表。</returns>
+        /// <param name="dataRowType">鏁版嵁琛ㄨ鐨勭被鍨嬨€?/param>
+        /// <returns>鏄惁瀛樺湪鏁版嵁琛ㄣ€?/returns>
         public bool HasDataTable(Type dataRowType)
         {
             if (dataRowType == null)
@@ -166,22 +168,22 @@ namespace GameFramework.DataTable
         }
 
         /// <summary>
-        /// 是否存在数据表。
+        /// 鏄惁瀛樺湪鏁版嵁琛ㄣ€?
         /// </summary>
-        /// <typeparam name="T">数据表行的类型。</typeparam>
-        /// <param name="name">数据表名称。</param>
-        /// <returns>是否存在数据表。</returns>
+        /// <typeparam name="T">鏁版嵁琛ㄨ鐨勭被鍨嬨€?/typeparam>
+        /// <param name="name">鏁版嵁琛ㄥ悕绉般€?/param>
+        /// <returns>鏄惁瀛樺湪鏁版嵁琛ㄣ€?/returns>
         public bool HasDataTable<T>(string name) where T : IDataRow
         {
             return InternalHasDataTable(new TypeNamePair(typeof(T), name));
         }
 
         /// <summary>
-        /// 是否存在数据表。
+        /// 鏄惁瀛樺湪鏁版嵁琛ㄣ€?
         /// </summary>
-        /// <param name="dataRowType">数据表行的类型。</param>
-        /// <param name="name">数据表名称。</param>
-        /// <returns>是否存在数据表。</returns>
+        /// <param name="dataRowType">鏁版嵁琛ㄨ鐨勭被鍨嬨€?/param>
+        /// <param name="name">鏁版嵁琛ㄥ悕绉般€?/param>
+        /// <returns>鏄惁瀛樺湪鏁版嵁琛ㄣ€?/returns>
         public bool HasDataTable(Type dataRowType, string name)
         {
             if (dataRowType == null)
@@ -198,20 +200,20 @@ namespace GameFramework.DataTable
         }
 
         /// <summary>
-        /// 获取数据表。
+        /// 鑾峰彇鏁版嵁琛ㄣ€?
         /// </summary>
-        /// <typeparam name="T">数据表行的类型。</typeparam>
-        /// <returns>要获取的数据表。</returns>
+        /// <typeparam name="T">鏁版嵁琛ㄨ鐨勭被鍨嬨€?/typeparam>
+        /// <returns>瑕佽幏鍙栫殑鏁版嵁琛ㄣ€?/returns>
         public IDataTable<T> GetDataTable<T>() where T : IDataRow
         {
             return (IDataTable<T>)InternalGetDataTable(new TypeNamePair(typeof(T)));
         }
 
         /// <summary>
-        /// 获取数据表。
+        /// 鑾峰彇鏁版嵁琛ㄣ€?
         /// </summary>
-        /// <param name="dataRowType">数据表行的类型。</param>
-        /// <returns>要获取的数据表。</returns>
+        /// <param name="dataRowType">鏁版嵁琛ㄨ鐨勭被鍨嬨€?/param>
+        /// <returns>瑕佽幏鍙栫殑鏁版嵁琛ㄣ€?/returns>
         public DataTableBase GetDataTable(Type dataRowType)
         {
             if (dataRowType == null)
@@ -228,22 +230,22 @@ namespace GameFramework.DataTable
         }
 
         /// <summary>
-        /// 获取数据表。
+        /// 鑾峰彇鏁版嵁琛ㄣ€?
         /// </summary>
-        /// <typeparam name="T">数据表行的类型。</typeparam>
-        /// <param name="name">数据表名称。</param>
-        /// <returns>要获取的数据表。</returns>
+        /// <typeparam name="T">鏁版嵁琛ㄨ鐨勭被鍨嬨€?/typeparam>
+        /// <param name="name">鏁版嵁琛ㄥ悕绉般€?/param>
+        /// <returns>瑕佽幏鍙栫殑鏁版嵁琛ㄣ€?/returns>
         public IDataTable<T> GetDataTable<T>(string name) where T : IDataRow
         {
             return (IDataTable<T>)InternalGetDataTable(new TypeNamePair(typeof(T), name));
         }
 
         /// <summary>
-        /// 获取数据表。
+        /// 鑾峰彇鏁版嵁琛ㄣ€?
         /// </summary>
-        /// <param name="dataRowType">数据表行的类型。</param>
-        /// <param name="name">数据表名称。</param>
-        /// <returns>要获取的数据表。</returns>
+        /// <param name="dataRowType">鏁版嵁琛ㄨ鐨勭被鍨嬨€?/param>
+        /// <param name="name">鏁版嵁琛ㄥ悕绉般€?/param>
+        /// <returns>瑕佽幏鍙栫殑鏁版嵁琛ㄣ€?/returns>
         public DataTableBase GetDataTable(Type dataRowType, string name)
         {
             if (dataRowType == null)
@@ -260,9 +262,9 @@ namespace GameFramework.DataTable
         }
 
         /// <summary>
-        /// 获取所有数据表。
+        /// 鑾峰彇鎵€鏈夋暟鎹〃銆?
         /// </summary>
-        /// <returns>所有数据表。</returns>
+        /// <returns>鎵€鏈夋暟鎹〃銆?/returns>
         public DataTableBase[] GetAllDataTables()
         {
             int index = 0;
@@ -276,9 +278,9 @@ namespace GameFramework.DataTable
         }
 
         /// <summary>
-        /// 获取所有数据表。
+        /// 鑾峰彇鎵€鏈夋暟鎹〃銆?
         /// </summary>
-        /// <param name="results">所有数据表。</param>
+        /// <param name="results">鎵€鏈夋暟鎹〃銆?/param>
         public void GetAllDataTables(List<DataTableBase> results)
         {
             if (results == null)
@@ -294,31 +296,31 @@ namespace GameFramework.DataTable
         }
 
         /// <summary>
-        /// 创建数据表。
+        /// 鍒涘缓鏁版嵁琛ㄣ€?
         /// </summary>
-        /// <typeparam name="T">数据表行的类型。</typeparam>
-        /// <returns>要创建的数据表。</returns>
+        /// <typeparam name="T">鏁版嵁琛ㄨ鐨勭被鍨嬨€?/typeparam>
+        /// <returns>瑕佸垱寤虹殑鏁版嵁琛ㄣ€?/returns>
         public IDataTable<T> CreateDataTable<T>() where T : class, IDataRow, new()
         {
             return CreateDataTable<T>(string.Empty);
         }
 
         /// <summary>
-        /// 创建数据表。
+        /// 鍒涘缓鏁版嵁琛ㄣ€?
         /// </summary>
-        /// <param name="dataRowType">数据表行的类型。</param>
-        /// <returns>要创建的数据表。</returns>
+        /// <param name="dataRowType">鏁版嵁琛ㄨ鐨勭被鍨嬨€?/param>
+        /// <returns>瑕佸垱寤虹殑鏁版嵁琛ㄣ€?/returns>
         public DataTableBase CreateDataTable(Type dataRowType)
         {
             return CreateDataTable(dataRowType, string.Empty);
         }
 
         /// <summary>
-        /// 创建数据表。
+        /// 鍒涘缓鏁版嵁琛ㄣ€?
         /// </summary>
-        /// <typeparam name="T">数据表行的类型。</typeparam>
-        /// <param name="name">数据表名称。</param>
-        /// <returns>要创建的数据表。</returns>
+        /// <typeparam name="T">鏁版嵁琛ㄨ鐨勭被鍨嬨€?/typeparam>
+        /// <param name="name">鏁版嵁琛ㄥ悕绉般€?/param>
+        /// <returns>瑕佸垱寤虹殑鏁版嵁琛ㄣ€?/returns>
         public IDataTable<T> CreateDataTable<T>(string name) where T : class, IDataRow, new()
         {
             if (m_ResourceManager == null)
@@ -345,11 +347,11 @@ namespace GameFramework.DataTable
         }
 
         /// <summary>
-        /// 创建数据表。
+        /// 鍒涘缓鏁版嵁琛ㄣ€?
         /// </summary>
-        /// <param name="dataRowType">数据表行的类型。</param>
-        /// <param name="name">数据表名称。</param>
-        /// <returns>要创建的数据表。</returns>
+        /// <param name="dataRowType">鏁版嵁琛ㄨ鐨勭被鍨嬨€?/param>
+        /// <param name="name">鏁版嵁琛ㄥ悕绉般€?/param>
+        /// <returns>瑕佸垱寤虹殑鏁版嵁琛ㄣ€?/returns>
         public DataTableBase CreateDataTable(Type dataRowType, string name)
         {
             if (m_ResourceManager == null)
@@ -387,19 +389,19 @@ namespace GameFramework.DataTable
         }
 
         /// <summary>
-        /// 销毁数据表。
+        /// 閿€姣佹暟鎹〃銆?
         /// </summary>
-        /// <typeparam name="T">数据表行的类型。</typeparam>
+        /// <typeparam name="T">鏁版嵁琛ㄨ鐨勭被鍨嬨€?/typeparam>
         public bool DestroyDataTable<T>() where T : IDataRow
         {
             return InternalDestroyDataTable(new TypeNamePair(typeof(T)));
         }
 
         /// <summary>
-        /// 销毁数据表。
+        /// 閿€姣佹暟鎹〃銆?
         /// </summary>
-        /// <param name="dataRowType">数据表行的类型。</param>
-        /// <returns>是否销毁数据表成功。</returns>
+        /// <param name="dataRowType">鏁版嵁琛ㄨ鐨勭被鍨嬨€?/param>
+        /// <returns>鏄惁閿€姣佹暟鎹〃鎴愬姛銆?/returns>
         public bool DestroyDataTable(Type dataRowType)
         {
             if (dataRowType == null)
@@ -416,21 +418,21 @@ namespace GameFramework.DataTable
         }
 
         /// <summary>
-        /// 销毁数据表。
+        /// 閿€姣佹暟鎹〃銆?
         /// </summary>
-        /// <typeparam name="T">数据表行的类型。</typeparam>
-        /// <param name="name">数据表名称。</param>
+        /// <typeparam name="T">鏁版嵁琛ㄨ鐨勭被鍨嬨€?/typeparam>
+        /// <param name="name">鏁版嵁琛ㄥ悕绉般€?/param>
         public bool DestroyDataTable<T>(string name) where T : IDataRow
         {
             return InternalDestroyDataTable(new TypeNamePair(typeof(T), name));
         }
 
         /// <summary>
-        /// 销毁数据表。
+        /// 閿€姣佹暟鎹〃銆?
         /// </summary>
-        /// <param name="dataRowType">数据表行的类型。</param>
-        /// <param name="name">数据表名称。</param>
-        /// <returns>是否销毁数据表成功。</returns>
+        /// <param name="dataRowType">鏁版嵁琛ㄨ鐨勭被鍨嬨€?/param>
+        /// <param name="name">鏁版嵁琛ㄥ悕绉般€?/param>
+        /// <returns>鏄惁閿€姣佹暟鎹〃鎴愬姛銆?/returns>
         public bool DestroyDataTable(Type dataRowType, string name)
         {
             if (dataRowType == null)
@@ -447,11 +449,11 @@ namespace GameFramework.DataTable
         }
 
         /// <summary>
-        /// 销毁数据表。
+        /// 閿€姣佹暟鎹〃銆?
         /// </summary>
-        /// <typeparam name="T">数据表行的类型。</typeparam>
-        /// <param name="dataTable">要销毁的数据表。</param>
-        /// <returns>是否销毁数据表成功。</returns>
+        /// <typeparam name="T">鏁版嵁琛ㄨ鐨勭被鍨嬨€?/typeparam>
+        /// <param name="dataTable">瑕侀攢姣佺殑鏁版嵁琛ㄣ€?/param>
+        /// <returns>鏄惁閿€姣佹暟鎹〃鎴愬姛銆?/returns>
         public bool DestroyDataTable<T>(IDataTable<T> dataTable) where T : IDataRow
         {
             if (dataTable == null)
@@ -463,10 +465,10 @@ namespace GameFramework.DataTable
         }
 
         /// <summary>
-        /// 销毁数据表。
+        /// 閿€姣佹暟鎹〃銆?
         /// </summary>
-        /// <param name="dataTable">要销毁的数据表。</param>
-        /// <returns>是否销毁数据表成功。</returns>
+        /// <param name="dataTable">瑕侀攢姣佺殑鏁版嵁琛ㄣ€?/param>
+        /// <returns>鏄惁閿€姣佹暟鎹〃鎴愬姛銆?/returns>
         public bool DestroyDataTable(DataTableBase dataTable)
         {
             if (dataTable == null)

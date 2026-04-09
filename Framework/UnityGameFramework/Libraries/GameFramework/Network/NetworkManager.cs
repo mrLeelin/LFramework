@@ -1,19 +1,21 @@
-﻿//------------------------------------------------------------
+//------------------------------------------------------------
 // Game Framework
-// Copyright © 2013-2021 Jiang Yin. All rights reserved.
+// Copyright 漏 2013-2021 Jiang Yin. All rights reserved.
 // Homepage: https://gameframework.cn/
 // Feedback: mailto:ellan@gameframework.cn
 //------------------------------------------------------------
 
 using System;
 using System.Collections.Generic;
-using System.Net.Sockets;
+using System.Net.Sockets;
+using UnityEngine.Scripting;
 
 namespace GameFramework.Network
 {
     /// <summary>
-    /// 网络管理器。
+    /// 缃戠粶绠＄悊鍣ㄣ€?
     /// </summary>
+    [Preserve]
     internal sealed partial class NetworkManager : GameFrameworkModule, INetworkManager
     {
         private readonly Dictionary<string, NetworkChannelBase> m_NetworkChannels;
@@ -25,7 +27,7 @@ namespace GameFramework.Network
         private EventHandler<NetworkCustomErrorEventArgs> m_NetworkCustomErrorEventHandler;
 
         /// <summary>
-        /// 初始化网络管理器的新实例。
+        /// 鍒濆鍖栫綉缁滅鐞嗗櫒鐨勬柊瀹炰緥銆?
         /// </summary>
         public NetworkManager()
         {
@@ -38,7 +40,7 @@ namespace GameFramework.Network
         }
 
         /// <summary>
-        /// 获取网络频道数量。
+        /// 鑾峰彇缃戠粶棰戦亾鏁伴噺銆?
         /// </summary>
         public int NetworkChannelCount
         {
@@ -49,7 +51,7 @@ namespace GameFramework.Network
         }
 
         /// <summary>
-        /// 网络连接成功事件。
+        /// 缃戠粶杩炴帴鎴愬姛浜嬩欢銆?
         /// </summary>
         public event EventHandler<NetworkConnectedEventArgs> NetworkConnected
         {
@@ -64,7 +66,7 @@ namespace GameFramework.Network
         }
 
         /// <summary>
-        /// 网络连接关闭事件。
+        /// 缃戠粶杩炴帴鍏抽棴浜嬩欢銆?
         /// </summary>
         public event EventHandler<NetworkClosedEventArgs> NetworkClosed
         {
@@ -79,7 +81,7 @@ namespace GameFramework.Network
         }
 
         /// <summary>
-        /// 网络心跳包丢失事件。
+        /// 缃戠粶蹇冭烦鍖呬涪澶变簨浠躲€?
         /// </summary>
         public event EventHandler<NetworkMissHeartBeatEventArgs> NetworkMissHeartBeat
         {
@@ -94,7 +96,7 @@ namespace GameFramework.Network
         }
 
         /// <summary>
-        /// 网络错误事件。
+        /// 缃戠粶閿欒浜嬩欢銆?
         /// </summary>
         public event EventHandler<NetworkErrorEventArgs> NetworkError
         {
@@ -109,7 +111,7 @@ namespace GameFramework.Network
         }
 
         /// <summary>
-        /// 用户自定义网络错误事件。
+        /// 鐢ㄦ埛鑷畾涔夌綉缁滈敊璇簨浠躲€?
         /// </summary>
         public event EventHandler<NetworkCustomErrorEventArgs> NetworkCustomError
         {
@@ -124,10 +126,10 @@ namespace GameFramework.Network
         }
 
         /// <summary>
-        /// 网络管理器轮询。
+        /// 缃戠粶绠＄悊鍣ㄨ疆璇€?
         /// </summary>
-        /// <param name="elapseSeconds">逻辑流逝时间，以秒为单位。</param>
-        /// <param name="realElapseSeconds">真实流逝时间，以秒为单位。</param>
+        /// <param name="elapseSeconds">閫昏緫娴侀€濇椂闂达紝浠ョ涓哄崟浣嶃€?/param>
+        /// <param name="realElapseSeconds">鐪熷疄娴侀€濇椂闂达紝浠ョ涓哄崟浣嶃€?/param>
         internal override void Update(float elapseSeconds, float realElapseSeconds)
         {
             foreach (KeyValuePair<string, NetworkChannelBase> networkChannel in m_NetworkChannels)
@@ -137,7 +139,7 @@ namespace GameFramework.Network
         }
 
         /// <summary>
-        /// 关闭并清理网络管理器。
+        /// 鍏抽棴骞舵竻鐞嗙綉缁滅鐞嗗櫒銆?
         /// </summary>
         internal override void Shutdown()
         {
@@ -156,20 +158,20 @@ namespace GameFramework.Network
         }
 
         /// <summary>
-        /// 检查是否存在网络频道。
+        /// 妫€鏌ユ槸鍚﹀瓨鍦ㄧ綉缁滈閬撱€?
         /// </summary>
-        /// <param name="name">网络频道名称。</param>
-        /// <returns>是否存在网络频道。</returns>
+        /// <param name="name">缃戠粶棰戦亾鍚嶇О銆?/param>
+        /// <returns>鏄惁瀛樺湪缃戠粶棰戦亾銆?/returns>
         public bool HasNetworkChannel(string name)
         {
             return m_NetworkChannels.ContainsKey(name ?? string.Empty);
         }
 
         /// <summary>
-        /// 获取网络频道。
+        /// 鑾峰彇缃戠粶棰戦亾銆?
         /// </summary>
-        /// <param name="name">网络频道名称。</param>
-        /// <returns>要获取的网络频道。</returns>
+        /// <param name="name">缃戠粶棰戦亾鍚嶇О銆?/param>
+        /// <returns>瑕佽幏鍙栫殑缃戠粶棰戦亾銆?/returns>
         public INetworkChannel GetNetworkChannel(string name)
         {
             NetworkChannelBase networkChannel = null;
@@ -182,9 +184,9 @@ namespace GameFramework.Network
         }
 
         /// <summary>
-        /// 获取所有网络频道。
+        /// 鑾峰彇鎵€鏈夌綉缁滈閬撱€?
         /// </summary>
-        /// <returns>所有网络频道。</returns>
+        /// <returns>鎵€鏈夌綉缁滈閬撱€?/returns>
         public INetworkChannel[] GetAllNetworkChannels()
         {
             int index = 0;
@@ -198,9 +200,9 @@ namespace GameFramework.Network
         }
 
         /// <summary>
-        /// 获取所有网络频道。
+        /// 鑾峰彇鎵€鏈夌綉缁滈閬撱€?
         /// </summary>
-        /// <param name="results">所有网络频道。</param>
+        /// <param name="results">鎵€鏈夌綉缁滈閬撱€?/param>
         public void GetAllNetworkChannels(List<INetworkChannel> results)
         {
             if (results == null)
@@ -216,12 +218,12 @@ namespace GameFramework.Network
         }
 
         /// <summary>
-        /// 创建网络频道。
+        /// 鍒涘缓缃戠粶棰戦亾銆?
         /// </summary>
-        /// <param name="name">网络频道名称。</param>
-        /// <param name="serviceType">网络服务类型。</param>
-        /// <param name="networkChannelHelper">网络频道辅助器。</param>
-        /// <returns>要创建的网络频道。</returns>
+        /// <param name="name">缃戠粶棰戦亾鍚嶇О銆?/param>
+        /// <param name="serviceType">缃戠粶鏈嶅姟绫诲瀷銆?/param>
+        /// <param name="networkChannelHelper">缃戠粶棰戦亾杈呭姪鍣ㄣ€?/param>
+        /// <returns>瑕佸垱寤虹殑缃戠粶棰戦亾銆?/returns>
         public INetworkChannel CreateNetworkChannel(string name, ServiceType serviceType, INetworkChannelHelper networkChannelHelper)
         {
             if (networkChannelHelper == null)
@@ -264,10 +266,10 @@ namespace GameFramework.Network
         }
 
         /// <summary>
-        /// 销毁网络频道。
+        /// 閿€姣佺綉缁滈閬撱€?
         /// </summary>
-        /// <param name="name">网络频道名称。</param>
-        /// <returns>是否销毁网络频道成功。</returns>
+        /// <param name="name">缃戠粶棰戦亾鍚嶇О銆?/param>
+        /// <returns>鏄惁閿€姣佺綉缁滈閬撴垚鍔熴€?/returns>
         public bool DestroyNetworkChannel(string name)
         {
             NetworkChannelBase networkChannel = null;

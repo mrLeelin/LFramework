@@ -1,24 +1,26 @@
-﻿//------------------------------------------------------------
+//------------------------------------------------------------
 // Game Framework
-// Copyright © 2013-2021 Jiang Yin. All rights reserved.
+// Copyright 漏 2013-2021 Jiang Yin. All rights reserved.
 // Homepage: https://gameframework.cn/
 // Feedback: mailto:ellan@gameframework.cn
 //------------------------------------------------------------
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Generic;
+using UnityEngine.Scripting;
 
 namespace GameFramework.Setting
 {
     /// <summary>
-    /// 游戏配置管理器。
+    /// 娓告垙閰嶇疆绠＄悊鍣ㄣ€?
     /// </summary>
+    [Preserve]
     internal sealed class SettingManager : GameFrameworkModule, ISettingManager
     {
         private ISettingHelper m_SettingHelper;
 
         /// <summary>
-        /// 初始化游戏配置管理器的新实例。
+        /// 鍒濆鍖栨父鎴忛厤缃鐞嗗櫒鐨勬柊瀹炰緥銆?
         /// </summary>
         public SettingManager()
         {
@@ -26,7 +28,7 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 获取游戏配置项数量。
+        /// 鑾峰彇娓告垙閰嶇疆椤规暟閲忋€?
         /// </summary>
         public int Count
         {
@@ -42,16 +44,16 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 游戏配置管理器轮询。
+        /// 娓告垙閰嶇疆绠＄悊鍣ㄨ疆璇€?
         /// </summary>
-        /// <param name="elapseSeconds">逻辑流逝时间，以秒为单位。</param>
-        /// <param name="realElapseSeconds">真实流逝时间，以秒为单位。</param>
+        /// <param name="elapseSeconds">閫昏緫娴侀€濇椂闂达紝浠ョ涓哄崟浣嶃€?/param>
+        /// <param name="realElapseSeconds">鐪熷疄娴侀€濇椂闂达紝浠ョ涓哄崟浣嶃€?/param>
         internal override void Update(float elapseSeconds, float realElapseSeconds)
         {
         }
 
         /// <summary>
-        /// 关闭并清理游戏配置管理器。
+        /// 鍏抽棴骞舵竻鐞嗘父鎴忛厤缃鐞嗗櫒銆?
         /// </summary>
         internal override void Shutdown()
         {
@@ -59,9 +61,9 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 设置游戏配置辅助器。
+        /// 璁剧疆娓告垙閰嶇疆杈呭姪鍣ㄣ€?
         /// </summary>
-        /// <param name="settingHelper">游戏配置辅助器。</param>
+        /// <param name="settingHelper">娓告垙閰嶇疆杈呭姪鍣ㄣ€?/param>
         public void SetSettingHelper(ISettingHelper settingHelper)
         {
             if (settingHelper == null)
@@ -73,9 +75,9 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 加载游戏配置。
+        /// 鍔犺浇娓告垙閰嶇疆銆?
         /// </summary>
-        /// <returns>是否加载游戏配置成功。</returns>
+        /// <returns>鏄惁鍔犺浇娓告垙閰嶇疆鎴愬姛銆?/returns>
         public bool Load()
         {
             if (m_SettingHelper == null)
@@ -87,9 +89,9 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 保存游戏配置。
+        /// 淇濆瓨娓告垙閰嶇疆銆?
         /// </summary>
-        /// <returns>是否保存游戏配置成功。</returns>
+        /// <returns>鏄惁淇濆瓨娓告垙閰嶇疆鎴愬姛銆?/returns>
         public bool Save()
         {
             if (m_SettingHelper == null)
@@ -101,9 +103,9 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 获取所有游戏配置项的名称。
+        /// 鑾峰彇鎵€鏈夋父鎴忛厤缃」鐨勫悕绉般€?
         /// </summary>
-        /// <returns>所有游戏配置项的名称。</returns>
+        /// <returns>鎵€鏈夋父鎴忛厤缃」鐨勫悕绉般€?/returns>
         public string[] GetAllSettingNames()
         {
             if (m_SettingHelper == null)
@@ -115,9 +117,9 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 获取所有游戏配置项的名称。
+        /// 鑾峰彇鎵€鏈夋父鎴忛厤缃」鐨勫悕绉般€?
         /// </summary>
-        /// <param name="results">所有游戏配置项的名称。</param>
+        /// <param name="results">鎵€鏈夋父鎴忛厤缃」鐨勫悕绉般€?/param>
         public void GetAllSettingNames(List<string> results)
         {
             if (m_SettingHelper == null)
@@ -129,10 +131,10 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 检查是否存在指定游戏配置项。
+        /// 妫€鏌ユ槸鍚﹀瓨鍦ㄦ寚瀹氭父鎴忛厤缃」銆?
         /// </summary>
-        /// <param name="settingName">要检查游戏配置项的名称。</param>
-        /// <returns>指定的游戏配置项是否存在。</returns>
+        /// <param name="settingName">瑕佹鏌ユ父鎴忛厤缃」鐨勫悕绉般€?/param>
+        /// <returns>鎸囧畾鐨勬父鎴忛厤缃」鏄惁瀛樺湪銆?/returns>
         public bool HasSetting(string settingName)
         {
             if (m_SettingHelper == null)
@@ -149,10 +151,10 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 移除指定游戏配置项。
+        /// 绉婚櫎鎸囧畾娓告垙閰嶇疆椤广€?
         /// </summary>
-        /// <param name="settingName">要移除游戏配置项的名称。</param>
-        /// <returns>是否移除指定游戏配置项成功。</returns>
+        /// <param name="settingName">瑕佺Щ闄ゆ父鎴忛厤缃」鐨勫悕绉般€?/param>
+        /// <returns>鏄惁绉婚櫎鎸囧畾娓告垙閰嶇疆椤规垚鍔熴€?/returns>
         public bool RemoveSetting(string settingName)
         {
             if (m_SettingHelper == null)
@@ -169,7 +171,7 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 清空所有游戏配置项。
+        /// 娓呯┖鎵€鏈夋父鎴忛厤缃」銆?
         /// </summary>
         public void RemoveAllSettings()
         {
@@ -182,10 +184,10 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 从指定游戏配置项中读取布尔值。
+        /// 浠庢寚瀹氭父鎴忛厤缃」涓鍙栧竷灏斿€笺€?
         /// </summary>
-        /// <param name="settingName">要获取游戏配置项的名称。</param>
-        /// <returns>读取的布尔值。</returns>
+        /// <param name="settingName">瑕佽幏鍙栨父鎴忛厤缃」鐨勫悕绉般€?/param>
+        /// <returns>璇诲彇鐨勫竷灏斿€笺€?/returns>
         public bool GetBool(string settingName)
         {
             if (m_SettingHelper == null)
@@ -202,11 +204,11 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 从指定游戏配置项中读取布尔值。
+        /// 浠庢寚瀹氭父鎴忛厤缃」涓鍙栧竷灏斿€笺€?
         /// </summary>
-        /// <param name="settingName">要获取游戏配置项的名称。</param>
-        /// <param name="defaultValue">当指定的游戏配置项不存在时，返回此默认值。</param>
-        /// <returns>读取的布尔值。</returns>
+        /// <param name="settingName">瑕佽幏鍙栨父鎴忛厤缃」鐨勫悕绉般€?/param>
+        /// <param name="defaultValue">褰撴寚瀹氱殑娓告垙閰嶇疆椤逛笉瀛樺湪鏃讹紝杩斿洖姝ら粯璁ゅ€笺€?/param>
+        /// <returns>璇诲彇鐨勫竷灏斿€笺€?/returns>
         public bool GetBool(string settingName, bool defaultValue)
         {
             if (m_SettingHelper == null)
@@ -223,10 +225,10 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 向指定游戏配置项写入布尔值。
+        /// 鍚戞寚瀹氭父鎴忛厤缃」鍐欏叆甯冨皵鍊笺€?
         /// </summary>
-        /// <param name="settingName">要写入游戏配置项的名称。</param>
-        /// <param name="value">要写入的布尔值。</param>
+        /// <param name="settingName">瑕佸啓鍏ユ父鎴忛厤缃」鐨勫悕绉般€?/param>
+        /// <param name="value">瑕佸啓鍏ョ殑甯冨皵鍊笺€?/param>
         public void SetBool(string settingName, bool value)
         {
             if (m_SettingHelper == null)
@@ -243,10 +245,10 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 从指定游戏配置项中读取整数值。
+        /// 浠庢寚瀹氭父鎴忛厤缃」涓鍙栨暣鏁板€笺€?
         /// </summary>
-        /// <param name="settingName">要获取游戏配置项的名称。</param>
-        /// <returns>读取的整数值。</returns>
+        /// <param name="settingName">瑕佽幏鍙栨父鎴忛厤缃」鐨勫悕绉般€?/param>
+        /// <returns>璇诲彇鐨勬暣鏁板€笺€?/returns>
         public int GetInt(string settingName)
         {
             if (m_SettingHelper == null)
@@ -263,11 +265,11 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 从指定游戏配置项中读取整数值。
+        /// 浠庢寚瀹氭父鎴忛厤缃」涓鍙栨暣鏁板€笺€?
         /// </summary>
-        /// <param name="settingName">要获取游戏配置项的名称。</param>
-        /// <param name="defaultValue">当指定的游戏配置项不存在时，返回此默认值。</param>
-        /// <returns>读取的整数值。</returns>
+        /// <param name="settingName">瑕佽幏鍙栨父鎴忛厤缃」鐨勫悕绉般€?/param>
+        /// <param name="defaultValue">褰撴寚瀹氱殑娓告垙閰嶇疆椤逛笉瀛樺湪鏃讹紝杩斿洖姝ら粯璁ゅ€笺€?/param>
+        /// <returns>璇诲彇鐨勬暣鏁板€笺€?/returns>
         public int GetInt(string settingName, int defaultValue)
         {
             if (m_SettingHelper == null)
@@ -284,10 +286,10 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 向指定游戏配置项写入整数值。
+        /// 鍚戞寚瀹氭父鎴忛厤缃」鍐欏叆鏁存暟鍊笺€?
         /// </summary>
-        /// <param name="settingName">要写入游戏配置项的名称。</param>
-        /// <param name="value">要写入的整数值。</param>
+        /// <param name="settingName">瑕佸啓鍏ユ父鎴忛厤缃」鐨勫悕绉般€?/param>
+        /// <param name="value">瑕佸啓鍏ョ殑鏁存暟鍊笺€?/param>
         public void SetInt(string settingName, int value)
         {
             if (m_SettingHelper == null)
@@ -304,10 +306,10 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 从指定游戏配置项中读取浮点数值。
+        /// 浠庢寚瀹氭父鎴忛厤缃」涓鍙栨诞鐐规暟鍊笺€?
         /// </summary>
-        /// <param name="settingName">要获取游戏配置项的名称。</param>
-        /// <returns>读取的浮点数值。</returns>
+        /// <param name="settingName">瑕佽幏鍙栨父鎴忛厤缃」鐨勫悕绉般€?/param>
+        /// <returns>璇诲彇鐨勬诞鐐规暟鍊笺€?/returns>
         public float GetFloat(string settingName)
         {
             if (m_SettingHelper == null)
@@ -324,11 +326,11 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 从指定游戏配置项中读取浮点数值。
+        /// 浠庢寚瀹氭父鎴忛厤缃」涓鍙栨诞鐐规暟鍊笺€?
         /// </summary>
-        /// <param name="settingName">要获取游戏配置项的名称。</param>
-        /// <param name="defaultValue">当指定的游戏配置项不存在时，返回此默认值。</param>
-        /// <returns>读取的浮点数值。</returns>
+        /// <param name="settingName">瑕佽幏鍙栨父鎴忛厤缃」鐨勫悕绉般€?/param>
+        /// <param name="defaultValue">褰撴寚瀹氱殑娓告垙閰嶇疆椤逛笉瀛樺湪鏃讹紝杩斿洖姝ら粯璁ゅ€笺€?/param>
+        /// <returns>璇诲彇鐨勬诞鐐规暟鍊笺€?/returns>
         public float GetFloat(string settingName, float defaultValue)
         {
             if (m_SettingHelper == null)
@@ -345,10 +347,10 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 向指定游戏配置项写入浮点数值。
+        /// 鍚戞寚瀹氭父鎴忛厤缃」鍐欏叆娴偣鏁板€笺€?
         /// </summary>
-        /// <param name="settingName">要写入游戏配置项的名称。</param>
-        /// <param name="value">要写入的浮点数值。</param>
+        /// <param name="settingName">瑕佸啓鍏ユ父鎴忛厤缃」鐨勫悕绉般€?/param>
+        /// <param name="value">瑕佸啓鍏ョ殑娴偣鏁板€笺€?/param>
         public void SetFloat(string settingName, float value)
         {
             if (m_SettingHelper == null)
@@ -365,10 +367,10 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 从指定游戏配置项中读取字符串值。
+        /// 浠庢寚瀹氭父鎴忛厤缃」涓鍙栧瓧绗︿覆鍊笺€?
         /// </summary>
-        /// <param name="settingName">要获取游戏配置项的名称。</param>
-        /// <returns>读取的字符串值。</returns>
+        /// <param name="settingName">瑕佽幏鍙栨父鎴忛厤缃」鐨勫悕绉般€?/param>
+        /// <returns>璇诲彇鐨勫瓧绗︿覆鍊笺€?/returns>
         public string GetString(string settingName)
         {
             if (m_SettingHelper == null)
@@ -385,11 +387,11 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 从指定游戏配置项中读取字符串值。
+        /// 浠庢寚瀹氭父鎴忛厤缃」涓鍙栧瓧绗︿覆鍊笺€?
         /// </summary>
-        /// <param name="settingName">要获取游戏配置项的名称。</param>
-        /// <param name="defaultValue">当指定的游戏配置项不存在时，返回此默认值。</param>
-        /// <returns>读取的字符串值。</returns>
+        /// <param name="settingName">瑕佽幏鍙栨父鎴忛厤缃」鐨勫悕绉般€?/param>
+        /// <param name="defaultValue">褰撴寚瀹氱殑娓告垙閰嶇疆椤逛笉瀛樺湪鏃讹紝杩斿洖姝ら粯璁ゅ€笺€?/param>
+        /// <returns>璇诲彇鐨勫瓧绗︿覆鍊笺€?/returns>
         public string GetString(string settingName, string defaultValue)
         {
             if (m_SettingHelper == null)
@@ -406,10 +408,10 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 向指定游戏配置项写入字符串值。
+        /// 鍚戞寚瀹氭父鎴忛厤缃」鍐欏叆瀛楃涓插€笺€?
         /// </summary>
-        /// <param name="settingName">要写入游戏配置项的名称。</param>
-        /// <param name="value">要写入的字符串值。</param>
+        /// <param name="settingName">瑕佸啓鍏ユ父鎴忛厤缃」鐨勫悕绉般€?/param>
+        /// <param name="value">瑕佸啓鍏ョ殑瀛楃涓插€笺€?/param>
         public void SetString(string settingName, string value)
         {
             if (m_SettingHelper == null)
@@ -426,11 +428,11 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 从指定游戏配置项中读取对象。
+        /// 浠庢寚瀹氭父鎴忛厤缃」涓鍙栧璞°€?
         /// </summary>
-        /// <typeparam name="T">要读取对象的类型。</typeparam>
-        /// <param name="settingName">要获取游戏配置项的名称。</param>
-        /// <returns>读取的对象。</returns>
+        /// <typeparam name="T">瑕佽鍙栧璞＄殑绫诲瀷銆?/typeparam>
+        /// <param name="settingName">瑕佽幏鍙栨父鎴忛厤缃」鐨勫悕绉般€?/param>
+        /// <returns>璇诲彇鐨勫璞°€?/returns>
         public T GetObject<T>(string settingName)
         {
             if (m_SettingHelper == null)
@@ -447,11 +449,11 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 从指定游戏配置项中读取对象。
+        /// 浠庢寚瀹氭父鎴忛厤缃」涓鍙栧璞°€?
         /// </summary>
-        /// <param name="objectType">要读取对象的类型。</param>
-        /// <param name="settingName">要获取游戏配置项的名称。</param>
-        /// <returns>读取的对象。</returns>
+        /// <param name="objectType">瑕佽鍙栧璞＄殑绫诲瀷銆?/param>
+        /// <param name="settingName">瑕佽幏鍙栨父鎴忛厤缃」鐨勫悕绉般€?/param>
+        /// <returns>璇诲彇鐨勫璞°€?/returns>
         public object GetObject(Type objectType, string settingName)
         {
             if (m_SettingHelper == null)
@@ -473,12 +475,12 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 从指定游戏配置项中读取对象。
+        /// 浠庢寚瀹氭父鎴忛厤缃」涓鍙栧璞°€?
         /// </summary>
-        /// <typeparam name="T">要读取对象的类型。</typeparam>
-        /// <param name="settingName">要获取游戏配置项的名称。</param>
-        /// <param name="defaultObj">当指定的游戏配置项不存在时，返回此默认对象。</param>
-        /// <returns>读取的对象。</returns>
+        /// <typeparam name="T">瑕佽鍙栧璞＄殑绫诲瀷銆?/typeparam>
+        /// <param name="settingName">瑕佽幏鍙栨父鎴忛厤缃」鐨勫悕绉般€?/param>
+        /// <param name="defaultObj">褰撴寚瀹氱殑娓告垙閰嶇疆椤逛笉瀛樺湪鏃讹紝杩斿洖姝ら粯璁ゅ璞°€?/param>
+        /// <returns>璇诲彇鐨勫璞°€?/returns>
         public T GetObject<T>(string settingName, T defaultObj)
         {
             if (m_SettingHelper == null)
@@ -495,12 +497,12 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 从指定游戏配置项中读取对象。
+        /// 浠庢寚瀹氭父鎴忛厤缃」涓鍙栧璞°€?
         /// </summary>
-        /// <param name="objectType">要读取对象的类型。</param>
-        /// <param name="settingName">要获取游戏配置项的名称。</param>
-        /// <param name="defaultObj">当指定的游戏配置项不存在时，返回此默认对象。</param>
-        /// <returns>读取的对象。</returns>
+        /// <param name="objectType">瑕佽鍙栧璞＄殑绫诲瀷銆?/param>
+        /// <param name="settingName">瑕佽幏鍙栨父鎴忛厤缃」鐨勫悕绉般€?/param>
+        /// <param name="defaultObj">褰撴寚瀹氱殑娓告垙閰嶇疆椤逛笉瀛樺湪鏃讹紝杩斿洖姝ら粯璁ゅ璞°€?/param>
+        /// <returns>璇诲彇鐨勫璞°€?/returns>
         public object GetObject(Type objectType, string settingName, object defaultObj)
         {
             if (m_SettingHelper == null)
@@ -522,11 +524,11 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 向指定游戏配置项写入对象。
+        /// 鍚戞寚瀹氭父鎴忛厤缃」鍐欏叆瀵硅薄銆?
         /// </summary>
-        /// <typeparam name="T">要写入对象的类型。</typeparam>
-        /// <param name="settingName">要写入游戏配置项的名称。</param>
-        /// <param name="obj">要写入的对象。</param>
+        /// <typeparam name="T">瑕佸啓鍏ュ璞＄殑绫诲瀷銆?/typeparam>
+        /// <param name="settingName">瑕佸啓鍏ユ父鎴忛厤缃」鐨勫悕绉般€?/param>
+        /// <param name="obj">瑕佸啓鍏ョ殑瀵硅薄銆?/param>
         public void SetObject<T>(string settingName, T obj)
         {
             if (m_SettingHelper == null)
@@ -543,10 +545,10 @@ namespace GameFramework.Setting
         }
 
         /// <summary>
-        /// 向指定游戏配置项写入对象。
+        /// 鍚戞寚瀹氭父鎴忛厤缃」鍐欏叆瀵硅薄銆?
         /// </summary>
-        /// <param name="settingName">要写入游戏配置项的名称。</param>
-        /// <param name="obj">要写入的对象。</param>
+        /// <param name="settingName">瑕佸啓鍏ユ父鎴忛厤缃」鐨勫悕绉般€?/param>
+        /// <param name="obj">瑕佸啓鍏ョ殑瀵硅薄銆?/param>
         public void SetObject(string settingName, object obj)
         {
             if (m_SettingHelper == null)

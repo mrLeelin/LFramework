@@ -1,26 +1,28 @@
-﻿//------------------------------------------------------------
+//------------------------------------------------------------
 // Game Framework
-// Copyright © 2013-2021 Jiang Yin. All rights reserved.
+// Copyright 漏 2013-2021 Jiang Yin. All rights reserved.
 // Homepage: https://gameframework.cn/
 // Feedback: mailto:ellan@gameframework.cn
 //------------------------------------------------------------
 
 using GameFramework.Fsm;
 using System;
-using System.Collections.Generic;
+using System.Collections.Generic;
+using UnityEngine.Scripting;
 
 namespace GameFramework.Procedure
 {
     /// <summary>
-    /// 流程管理器。
+    /// 娴佺▼绠＄悊鍣ㄣ€?
     /// </summary>
+    [Preserve]
     internal sealed class ProcedureManager : GameFrameworkModule, IProcedureManager
     {
         private IFsmManager m_FsmManager;
         private IFsm<IProcedureManager> m_ProcedureFsm;
 
         /// <summary>
-        /// 初始化流程管理器的新实例。
+        /// 鍒濆鍖栨祦绋嬬鐞嗗櫒鐨勬柊瀹炰緥銆?
         /// </summary>
         public ProcedureManager()
         {
@@ -29,16 +31,16 @@ namespace GameFramework.Procedure
         }
 
         /// <summary>
-        /// 获取游戏框架模块优先级。
+        /// 鑾峰彇娓告垙妗嗘灦妯″潡浼樺厛绾с€?
         /// </summary>
-        /// <remarks>优先级较高的模块会优先轮询，并且关闭操作会后进行。</remarks>
+        /// <remarks>浼樺厛绾ц緝楂樼殑妯″潡浼氫紭鍏堣疆璇紝骞朵笖鍏抽棴鎿嶄綔浼氬悗杩涜銆?/remarks>
         internal override int Priority
         {
             get { return -2; }
         }
 
         /// <summary>
-        /// 获取当前流程。
+        /// 鑾峰彇褰撳墠娴佺▼銆?
         /// </summary>
         public ProcedureBase CurrentProcedure
         {
@@ -54,7 +56,7 @@ namespace GameFramework.Procedure
         }
 
         /// <summary>
-        /// 获取当前流程持续时间。
+        /// 鑾峰彇褰撳墠娴佺▼鎸佺画鏃堕棿銆?
         /// </summary>
         public float CurrentProcedureTime
         {
@@ -70,16 +72,16 @@ namespace GameFramework.Procedure
         }
 
         /// <summary>
-        /// 流程管理器轮询。
+        /// 娴佺▼绠＄悊鍣ㄨ疆璇€?
         /// </summary>
-        /// <param name="elapseSeconds">逻辑流逝时间，以秒为单位。</param>
-        /// <param name="realElapseSeconds">真实流逝时间，以秒为单位。</param>
+        /// <param name="elapseSeconds">閫昏緫娴侀€濇椂闂达紝浠ョ涓哄崟浣嶃€?/param>
+        /// <param name="realElapseSeconds">鐪熷疄娴侀€濇椂闂达紝浠ョ涓哄崟浣嶃€?/param>
         internal override void Update(float elapseSeconds, float realElapseSeconds)
         {
         }
 
         /// <summary>
-        /// 关闭并清理流程管理器。
+        /// 鍏抽棴骞舵竻鐞嗘祦绋嬬鐞嗗櫒銆?
         /// </summary>
         internal override void Shutdown()
         {
@@ -96,10 +98,10 @@ namespace GameFramework.Procedure
         }
 
         /// <summary>
-        /// 初始化流程管理器。
+        /// 鍒濆鍖栨祦绋嬬鐞嗗櫒銆?
         /// </summary>
-        /// <param name="fsmManager">有限状态机管理器。</param>
-        /// <param name="procedures">流程管理器包含的流程。</param>
+        /// <param name="fsmManager">鏈夐檺鐘舵€佹満绠＄悊鍣ㄣ€?/param>
+        /// <param name="procedures">娴佺▼绠＄悊鍣ㄥ寘鍚殑娴佺▼銆?/param>
         public void Initialize(IFsmManager fsmManager, params ProcedureBase[] procedures)
         {
             if (fsmManager == null)
@@ -117,9 +119,9 @@ namespace GameFramework.Procedure
         }
 
         /// <summary>
-        /// 开始流程。
+        /// 寮€濮嬫祦绋嬨€?
         /// </summary>
-        /// <typeparam name="T">要开始的流程类型。</typeparam>
+        /// <typeparam name="T">瑕佸紑濮嬬殑娴佺▼绫诲瀷銆?/typeparam>
         public void StartProcedure<T>() where T : ProcedureBase
         {
             if (m_ProcedureFsm == null)
@@ -132,9 +134,9 @@ namespace GameFramework.Procedure
 
 
         /// <summary>
-        /// 开始流程。
+        /// 寮€濮嬫祦绋嬨€?
         /// </summary>
-        /// <param name="procedureType">要开始的流程类型。</param>
+        /// <param name="procedureType">瑕佸紑濮嬬殑娴佺▼绫诲瀷銆?/param>
         public void StartProcedure(Type procedureType)
         {
             if (m_ProcedureFsm == null)
@@ -146,10 +148,10 @@ namespace GameFramework.Procedure
         }
 
         /// <summary>
-        /// 是否存在流程。
+        /// 鏄惁瀛樺湪娴佺▼銆?
         /// </summary>
-        /// <typeparam name="T">要检查的流程类型。</typeparam>
-        /// <returns>是否存在流程。</returns>
+        /// <typeparam name="T">瑕佹鏌ョ殑娴佺▼绫诲瀷銆?/typeparam>
+        /// <returns>鏄惁瀛樺湪娴佺▼銆?/returns>
         public bool HasProcedure<T>() where T : ProcedureBase
         {
             if (m_ProcedureFsm == null)
@@ -161,10 +163,10 @@ namespace GameFramework.Procedure
         }
 
         /// <summary>
-        /// 是否存在流程。
+        /// 鏄惁瀛樺湪娴佺▼銆?
         /// </summary>
-        /// <param name="procedureType">要检查的流程类型。</param>
-        /// <returns>是否存在流程。</returns>
+        /// <param name="procedureType">瑕佹鏌ョ殑娴佺▼绫诲瀷銆?/param>
+        /// <returns>鏄惁瀛樺湪娴佺▼銆?/returns>
         public bool HasProcedure(Type procedureType)
         {
             if (m_ProcedureFsm == null)
@@ -176,10 +178,10 @@ namespace GameFramework.Procedure
         }
 
         /// <summary>
-        /// 获取流程。
+        /// 鑾峰彇娴佺▼銆?
         /// </summary>
-        /// <typeparam name="T">要获取的流程类型。</typeparam>
-        /// <returns>要获取的流程。</returns>
+        /// <typeparam name="T">瑕佽幏鍙栫殑娴佺▼绫诲瀷銆?/typeparam>
+        /// <returns>瑕佽幏鍙栫殑娴佺▼銆?/returns>
         public ProcedureBase GetProcedure<T>() where T : ProcedureBase
         {
             if (m_ProcedureFsm == null)
@@ -191,10 +193,10 @@ namespace GameFramework.Procedure
         }
 
         /// <summary>
-        /// 获取流程。
+        /// 鑾峰彇娴佺▼銆?
         /// </summary>
-        /// <param name="procedureType">要获取的流程类型。</param>
-        /// <returns>要获取的流程。</returns>
+        /// <param name="procedureType">瑕佽幏鍙栫殑娴佺▼绫诲瀷銆?/param>
+        /// <returns>瑕佽幏鍙栫殑娴佺▼銆?/returns>
         public ProcedureBase GetProcedure(Type procedureType)
         {
             if (m_ProcedureFsm == null)

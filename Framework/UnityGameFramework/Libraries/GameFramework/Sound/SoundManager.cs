@@ -1,19 +1,21 @@
-﻿//------------------------------------------------------------
+//------------------------------------------------------------
 // Game Framework
-// Copyright © 2013-2021 Jiang Yin. All rights reserved.
+// Copyright 漏 2013-2021 Jiang Yin. All rights reserved.
 // Homepage: https://gameframework.cn/
 // Feedback: mailto:ellan@gameframework.cn
 //------------------------------------------------------------
 
 using GameFramework.Resource;
 using System;
-using System.Collections.Generic;
+using System.Collections.Generic;
+using UnityEngine.Scripting;
 
 namespace GameFramework.Sound
 {
     /// <summary>
-    /// 声音管理器。
+    /// 澹伴煶绠＄悊鍣ㄣ€?
     /// </summary>
+    [Preserve]
     internal sealed partial class SoundManager : GameFrameworkModule, ISoundManager
     {
         private readonly Dictionary<string, SoundGroup> m_SoundGroups;
@@ -29,7 +31,7 @@ namespace GameFramework.Sound
         private EventHandler<PlaySoundDependencyAssetEventArgs> m_PlaySoundDependencyAssetEventHandler;
 
         /// <summary>
-        /// 初始化声音管理器的新实例。
+        /// 鍒濆鍖栧０闊崇鐞嗗櫒鐨勬柊瀹炰緥銆?
         /// </summary>
         public SoundManager()
         {
@@ -47,7 +49,7 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 获取声音组数量。
+        /// 鑾峰彇澹伴煶缁勬暟閲忋€?
         /// </summary>
         public int SoundGroupCount
         {
@@ -58,7 +60,7 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 播放声音成功事件。
+        /// 鎾斁澹伴煶鎴愬姛浜嬩欢銆?
         /// </summary>
         public event EventHandler<PlaySoundSuccessEventArgs> PlaySoundSuccess
         {
@@ -73,7 +75,7 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 播放声音失败事件。
+        /// 鎾斁澹伴煶澶辫触浜嬩欢銆?
         /// </summary>
         public event EventHandler<PlaySoundFailureEventArgs> PlaySoundFailure
         {
@@ -88,7 +90,7 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 播放声音更新事件。
+        /// 鎾斁澹伴煶鏇存柊浜嬩欢銆?
         /// </summary>
         public event EventHandler<PlaySoundUpdateEventArgs> PlaySoundUpdate
         {
@@ -103,7 +105,7 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 播放声音时加载依赖资源事件。
+        /// 鎾斁澹伴煶鏃跺姞杞戒緷璧栬祫婧愪簨浠躲€?
         /// </summary>
         public event EventHandler<PlaySoundDependencyAssetEventArgs> PlaySoundDependencyAsset
         {
@@ -118,16 +120,16 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 声音管理器轮询。
+        /// 澹伴煶绠＄悊鍣ㄨ疆璇€?
         /// </summary>
-        /// <param name="elapseSeconds">逻辑流逝时间，以秒为单位。</param>
-        /// <param name="realElapseSeconds">真实流逝时间，以秒为单位。</param>
+        /// <param name="elapseSeconds">閫昏緫娴侀€濇椂闂达紝浠ョ涓哄崟浣嶃€?/param>
+        /// <param name="realElapseSeconds">鐪熷疄娴侀€濇椂闂达紝浠ョ涓哄崟浣嶃€?/param>
         internal override void Update(float elapseSeconds, float realElapseSeconds)
         {
         }
 
         /// <summary>
-        /// 关闭并清理声音管理器。
+        /// 鍏抽棴骞舵竻鐞嗗０闊崇鐞嗗櫒銆?
         /// </summary>
         internal override void Shutdown()
         {
@@ -138,9 +140,9 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 设置资源管理器。
+        /// 璁剧疆璧勬簮绠＄悊鍣ㄣ€?
         /// </summary>
-        /// <param name="resourceManager">资源管理器。</param>
+        /// <param name="resourceManager">璧勬簮绠＄悊鍣ㄣ€?/param>
         public void SetResourceManager(IResourceManager resourceManager)
         {
             if (resourceManager == null)
@@ -152,9 +154,9 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 设置声音辅助器。
+        /// 璁剧疆澹伴煶杈呭姪鍣ㄣ€?
         /// </summary>
-        /// <param name="soundHelper">声音辅助器。</param>
+        /// <param name="soundHelper">澹伴煶杈呭姪鍣ㄣ€?/param>
         public void SetSoundHelper(ISoundHelper soundHelper)
         {
             if (soundHelper == null)
@@ -166,10 +168,10 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 是否存在指定声音组。
+        /// 鏄惁瀛樺湪鎸囧畾澹伴煶缁勩€?
         /// </summary>
-        /// <param name="soundGroupName">声音组名称。</param>
-        /// <returns>指定声音组是否存在。</returns>
+        /// <param name="soundGroupName">澹伴煶缁勫悕绉般€?/param>
+        /// <returns>鎸囧畾澹伴煶缁勬槸鍚﹀瓨鍦ㄣ€?/returns>
         public bool HasSoundGroup(string soundGroupName)
         {
             if (string.IsNullOrEmpty(soundGroupName))
@@ -181,10 +183,10 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 获取指定声音组。
+        /// 鑾峰彇鎸囧畾澹伴煶缁勩€?
         /// </summary>
-        /// <param name="soundGroupName">声音组名称。</param>
-        /// <returns>要获取的声音组。</returns>
+        /// <param name="soundGroupName">澹伴煶缁勫悕绉般€?/param>
+        /// <returns>瑕佽幏鍙栫殑澹伴煶缁勩€?/returns>
         public ISoundGroup GetSoundGroup(string soundGroupName)
         {
             if (string.IsNullOrEmpty(soundGroupName))
@@ -202,9 +204,9 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 获取所有声音组。
+        /// 鑾峰彇鎵€鏈夊０闊崇粍銆?
         /// </summary>
-        /// <returns>所有声音组。</returns>
+        /// <returns>鎵€鏈夊０闊崇粍銆?/returns>
         public ISoundGroup[] GetAllSoundGroups()
         {
             int index = 0;
@@ -218,9 +220,9 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 获取所有声音组。
+        /// 鑾峰彇鎵€鏈夊０闊崇粍銆?
         /// </summary>
-        /// <param name="results">所有声音组。</param>
+        /// <param name="results">鎵€鏈夊０闊崇粍銆?/param>
         public void GetAllSoundGroups(List<ISoundGroup> results)
         {
             if (results == null)
@@ -236,25 +238,25 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 增加声音组。
+        /// 澧炲姞澹伴煶缁勩€?
         /// </summary>
-        /// <param name="soundGroupName">声音组名称。</param>
-        /// <param name="soundGroupHelper">声音组辅助器。</param>
-        /// <returns>是否增加声音组成功。</returns>
+        /// <param name="soundGroupName">澹伴煶缁勫悕绉般€?/param>
+        /// <param name="soundGroupHelper">澹伴煶缁勮緟鍔╁櫒銆?/param>
+        /// <returns>鏄惁澧炲姞澹伴煶缁勬垚鍔熴€?/returns>
         public bool AddSoundGroup(string soundGroupName, ISoundGroupHelper soundGroupHelper)
         {
             return AddSoundGroup(soundGroupName, false, Constant.DefaultMute, Constant.DefaultVolume, soundGroupHelper);
         }
 
         /// <summary>
-        /// 增加声音组。
+        /// 澧炲姞澹伴煶缁勩€?
         /// </summary>
-        /// <param name="soundGroupName">声音组名称。</param>
-        /// <param name="soundGroupAvoidBeingReplacedBySamePriority">声音组中的声音是否避免被同优先级声音替换。</param>
-        /// <param name="soundGroupMute">声音组是否静音。</param>
-        /// <param name="soundGroupVolume">声音组音量。</param>
-        /// <param name="soundGroupHelper">声音组辅助器。</param>
-        /// <returns>是否增加声音组成功。</returns>
+        /// <param name="soundGroupName">澹伴煶缁勫悕绉般€?/param>
+        /// <param name="soundGroupAvoidBeingReplacedBySamePriority">澹伴煶缁勪腑鐨勫０闊虫槸鍚﹂伩鍏嶈鍚屼紭鍏堢骇澹伴煶鏇挎崲銆?/param>
+        /// <param name="soundGroupMute">澹伴煶缁勬槸鍚﹂潤闊炽€?/param>
+        /// <param name="soundGroupVolume">澹伴煶缁勯煶閲忋€?/param>
+        /// <param name="soundGroupHelper">澹伴煶缁勮緟鍔╁櫒銆?/param>
+        /// <returns>鏄惁澧炲姞澹伴煶缁勬垚鍔熴€?/returns>
         public bool AddSoundGroup(string soundGroupName, bool soundGroupAvoidBeingReplacedBySamePriority, bool soundGroupMute, float soundGroupVolume, ISoundGroupHelper soundGroupHelper)
         {
             if (string.IsNullOrEmpty(soundGroupName))
@@ -285,10 +287,10 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 增加声音代理辅助器。
+        /// 澧炲姞澹伴煶浠ｇ悊杈呭姪鍣ㄣ€?
         /// </summary>
-        /// <param name="soundGroupName">声音组名称。</param>
-        /// <param name="soundAgentHelper">要增加的声音代理辅助器。</param>
+        /// <param name="soundGroupName">澹伴煶缁勫悕绉般€?/param>
+        /// <param name="soundAgentHelper">瑕佸鍔犵殑澹伴煶浠ｇ悊杈呭姪鍣ㄣ€?/param>
         public void AddSoundAgentHelper(string soundGroupName, ISoundAgentHelper soundAgentHelper)
         {
             if (m_SoundHelper == null)
@@ -306,18 +308,18 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 获取所有正在加载声音的序列编号。
+        /// 鑾峰彇鎵€鏈夋鍦ㄥ姞杞藉０闊崇殑搴忓垪缂栧彿銆?
         /// </summary>
-        /// <returns>所有正在加载声音的序列编号。</returns>
+        /// <returns>鎵€鏈夋鍦ㄥ姞杞藉０闊崇殑搴忓垪缂栧彿銆?/returns>
         public int[] GetAllLoadingSoundSerialIds()
         {
             return m_SoundsBeingLoaded.ToArray();
         }
 
         /// <summary>
-        /// 获取所有正在加载声音的序列编号。
+        /// 鑾峰彇鎵€鏈夋鍦ㄥ姞杞藉０闊崇殑搴忓垪缂栧彿銆?
         /// </summary>
-        /// <param name="results">所有正在加载声音的序列编号。</param>
+        /// <param name="results">鎵€鏈夋鍦ㄥ姞杞藉０闊崇殑搴忓垪缂栧彿銆?/param>
         public void GetAllLoadingSoundSerialIds(List<int> results)
         {
             if (results == null)
@@ -330,110 +332,110 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 是否正在加载声音。
+        /// 鏄惁姝ｅ湪鍔犺浇澹伴煶銆?
         /// </summary>
-        /// <param name="serialId">声音序列编号。</param>
-        /// <returns>是否正在加载声音。</returns>
+        /// <param name="serialId">澹伴煶搴忓垪缂栧彿銆?/param>
+        /// <returns>鏄惁姝ｅ湪鍔犺浇澹伴煶銆?/returns>
         public bool IsLoadingSound(int serialId)
         {
             return m_SoundsBeingLoaded.Contains(serialId);
         }
 
         /// <summary>
-        /// 播放声音。
+        /// 鎾斁澹伴煶銆?
         /// </summary>
-        /// <param name="soundAssetName">声音资源名称。</param>
-        /// <param name="soundGroupName">声音组名称。</param>
-        /// <returns>声音的序列编号。</returns>
+        /// <param name="soundAssetName">澹伴煶璧勬簮鍚嶇О銆?/param>
+        /// <param name="soundGroupName">澹伴煶缁勫悕绉般€?/param>
+        /// <returns>澹伴煶鐨勫簭鍒楃紪鍙枫€?/returns>
         public int PlaySound(string soundAssetName, string soundGroupName)
         {
             return PlaySound(soundAssetName, soundGroupName, Constant.DefaultPriority, null, null);
         }
 
         /// <summary>
-        /// 播放声音。
+        /// 鎾斁澹伴煶銆?
         /// </summary>
-        /// <param name="soundAssetName">声音资源名称。</param>
-        /// <param name="soundGroupName">声音组名称。</param>
-        /// <param name="priority">加载声音资源的优先级。</param>
-        /// <returns>声音的序列编号。</returns>
+        /// <param name="soundAssetName">澹伴煶璧勬簮鍚嶇О銆?/param>
+        /// <param name="soundGroupName">澹伴煶缁勫悕绉般€?/param>
+        /// <param name="priority">鍔犺浇澹伴煶璧勬簮鐨勪紭鍏堢骇銆?/param>
+        /// <returns>澹伴煶鐨勫簭鍒楃紪鍙枫€?/returns>
         public int PlaySound(string soundAssetName, string soundGroupName, int priority)
         {
             return PlaySound(soundAssetName, soundGroupName, priority, null, null);
         }
 
         /// <summary>
-        /// 播放声音。
+        /// 鎾斁澹伴煶銆?
         /// </summary>
-        /// <param name="soundAssetName">声音资源名称。</param>
-        /// <param name="soundGroupName">声音组名称。</param>
-        /// <param name="playSoundParams">播放声音参数。</param>
-        /// <returns>声音的序列编号。</returns>
+        /// <param name="soundAssetName">澹伴煶璧勬簮鍚嶇О銆?/param>
+        /// <param name="soundGroupName">澹伴煶缁勫悕绉般€?/param>
+        /// <param name="playSoundParams">鎾斁澹伴煶鍙傛暟銆?/param>
+        /// <returns>澹伴煶鐨勫簭鍒楃紪鍙枫€?/returns>
         public int PlaySound(string soundAssetName, string soundGroupName, PlaySoundParams playSoundParams)
         {
             return PlaySound(soundAssetName, soundGroupName, Constant.DefaultPriority, playSoundParams, null);
         }
 
         /// <summary>
-        /// 播放声音。
+        /// 鎾斁澹伴煶銆?
         /// </summary>
-        /// <param name="soundAssetName">声音资源名称。</param>
-        /// <param name="soundGroupName">声音组名称。</param>
-        /// <param name="userData">用户自定义数据。</param>
-        /// <returns>声音的序列编号。</returns>
+        /// <param name="soundAssetName">澹伴煶璧勬簮鍚嶇О銆?/param>
+        /// <param name="soundGroupName">澹伴煶缁勫悕绉般€?/param>
+        /// <param name="userData">鐢ㄦ埛鑷畾涔夋暟鎹€?/param>
+        /// <returns>澹伴煶鐨勫簭鍒楃紪鍙枫€?/returns>
         public int PlaySound(string soundAssetName, string soundGroupName, object userData)
         {
             return PlaySound(soundAssetName, soundGroupName, Constant.DefaultPriority, null, userData);
         }
 
         /// <summary>
-        /// 播放声音。
+        /// 鎾斁澹伴煶銆?
         /// </summary>
-        /// <param name="soundAssetName">声音资源名称。</param>
-        /// <param name="soundGroupName">声音组名称。</param>
-        /// <param name="priority">加载声音资源的优先级。</param>
-        /// <param name="playSoundParams">播放声音参数。</param>
-        /// <returns>声音的序列编号。</returns>
+        /// <param name="soundAssetName">澹伴煶璧勬簮鍚嶇О銆?/param>
+        /// <param name="soundGroupName">澹伴煶缁勫悕绉般€?/param>
+        /// <param name="priority">鍔犺浇澹伴煶璧勬簮鐨勪紭鍏堢骇銆?/param>
+        /// <param name="playSoundParams">鎾斁澹伴煶鍙傛暟銆?/param>
+        /// <returns>澹伴煶鐨勫簭鍒楃紪鍙枫€?/returns>
         public int PlaySound(string soundAssetName, string soundGroupName, int priority, PlaySoundParams playSoundParams)
         {
             return PlaySound(soundAssetName, soundGroupName, priority, playSoundParams, null);
         }
 
         /// <summary>
-        /// 播放声音。
+        /// 鎾斁澹伴煶銆?
         /// </summary>
-        /// <param name="soundAssetName">声音资源名称。</param>
-        /// <param name="soundGroupName">声音组名称。</param>
-        /// <param name="priority">加载声音资源的优先级。</param>
-        /// <param name="userData">用户自定义数据。</param>
-        /// <returns>声音的序列编号。</returns>
+        /// <param name="soundAssetName">澹伴煶璧勬簮鍚嶇О銆?/param>
+        /// <param name="soundGroupName">澹伴煶缁勫悕绉般€?/param>
+        /// <param name="priority">鍔犺浇澹伴煶璧勬簮鐨勪紭鍏堢骇銆?/param>
+        /// <param name="userData">鐢ㄦ埛鑷畾涔夋暟鎹€?/param>
+        /// <returns>澹伴煶鐨勫簭鍒楃紪鍙枫€?/returns>
         public int PlaySound(string soundAssetName, string soundGroupName, int priority, object userData)
         {
             return PlaySound(soundAssetName, soundGroupName, priority, null, userData);
         }
 
         /// <summary>
-        /// 播放声音。
+        /// 鎾斁澹伴煶銆?
         /// </summary>
-        /// <param name="soundAssetName">声音资源名称。</param>
-        /// <param name="soundGroupName">声音组名称。</param>
-        /// <param name="playSoundParams">播放声音参数。</param>
-        /// <param name="userData">用户自定义数据。</param>
-        /// <returns>声音的序列编号。</returns>
+        /// <param name="soundAssetName">澹伴煶璧勬簮鍚嶇О銆?/param>
+        /// <param name="soundGroupName">澹伴煶缁勫悕绉般€?/param>
+        /// <param name="playSoundParams">鎾斁澹伴煶鍙傛暟銆?/param>
+        /// <param name="userData">鐢ㄦ埛鑷畾涔夋暟鎹€?/param>
+        /// <returns>澹伴煶鐨勫簭鍒楃紪鍙枫€?/returns>
         public int PlaySound(string soundAssetName, string soundGroupName, PlaySoundParams playSoundParams, object userData)
         {
             return PlaySound(soundAssetName, soundGroupName,Constant.DefaultPriority, playSoundParams, userData);
         }
 
         /// <summary>
-        /// 播放声音。
+        /// 鎾斁澹伴煶銆?
         /// </summary>
-        /// <param name="soundAssetName">声音资源名称。</param>
-        /// <param name="soundGroupName">声音组名称。</param>
-        /// <param name="priority">加载声音资源的优先级。</param>
-        /// <param name="playSoundParams">播放声音参数。</param>
-        /// <param name="userData">用户自定义数据。</param>
-        /// <returns>声音的序列编号。</returns>
+        /// <param name="soundAssetName">澹伴煶璧勬簮鍚嶇О銆?/param>
+        /// <param name="soundGroupName">澹伴煶缁勫悕绉般€?/param>
+        /// <param name="priority">鍔犺浇澹伴煶璧勬簮鐨勪紭鍏堢骇銆?/param>
+        /// <param name="playSoundParams">鎾斁澹伴煶鍙傛暟銆?/param>
+        /// <param name="userData">鐢ㄦ埛鑷畾涔夋暟鎹€?/param>
+        /// <returns>澹伴煶鐨勫簭鍒楃紪鍙枫€?/returns>
         public int PlaySound(string soundAssetName, string soundGroupName, int priority, PlaySoundParams playSoundParams, object userData)
         {
             if (m_ResourceManager == null)
@@ -491,21 +493,21 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 停止播放声音。
+        /// 鍋滄鎾斁澹伴煶銆?
         /// </summary>
-        /// <param name="serialId">要停止播放声音的序列编号。</param>
-        /// <returns>是否停止播放声音成功。</returns>
+        /// <param name="serialId">瑕佸仠姝㈡挱鏀惧０闊崇殑搴忓垪缂栧彿銆?/param>
+        /// <returns>鏄惁鍋滄鎾斁澹伴煶鎴愬姛銆?/returns>
         public bool StopSound(int serialId)
         {
             return StopSound(serialId, Constant.DefaultFadeOutSeconds);
         }
 
         /// <summary>
-        /// 停止播放声音。
+        /// 鍋滄鎾斁澹伴煶銆?
         /// </summary>
-        /// <param name="serialId">要停止播放声音的序列编号。</param>
-        /// <param name="fadeOutSeconds">声音淡出时间，以秒为单位。</param>
-        /// <returns>是否停止播放声音成功。</returns>
+        /// <param name="serialId">瑕佸仠姝㈡挱鏀惧０闊崇殑搴忓垪缂栧彿銆?/param>
+        /// <param name="fadeOutSeconds">澹伴煶娣″嚭鏃堕棿锛屼互绉掍负鍗曚綅銆?/param>
+        /// <returns>鏄惁鍋滄鎾斁澹伴煶鎴愬姛銆?/returns>
         public bool StopSound(int serialId, float fadeOutSeconds)
         {
             if (IsLoadingSound(serialId))
@@ -527,7 +529,7 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 停止所有已加载的声音。
+        /// 鍋滄鎵€鏈夊凡鍔犺浇鐨勫０闊炽€?
         /// </summary>
         public void StopAllLoadedSounds()
         {
@@ -535,9 +537,9 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 停止所有已加载的声音。
+        /// 鍋滄鎵€鏈夊凡鍔犺浇鐨勫０闊炽€?
         /// </summary>
-        /// <param name="fadeOutSeconds">声音淡出时间，以秒为单位。</param>
+        /// <param name="fadeOutSeconds">澹伴煶娣″嚭鏃堕棿锛屼互绉掍负鍗曚綅銆?/param>
         public void StopAllLoadedSounds(float fadeOutSeconds)
         {
             foreach (KeyValuePair<string, SoundGroup> soundGroup in m_SoundGroups)
@@ -547,7 +549,7 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 停止所有正在加载的声音。
+        /// 鍋滄鎵€鏈夋鍦ㄥ姞杞界殑澹伴煶銆?
         /// </summary>
         public void StopAllLoadingSounds()
         {
@@ -558,19 +560,19 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 暂停播放声音。
+        /// 鏆傚仠鎾斁澹伴煶銆?
         /// </summary>
-        /// <param name="serialId">要暂停播放声音的序列编号。</param>
+        /// <param name="serialId">瑕佹殏鍋滄挱鏀惧０闊崇殑搴忓垪缂栧彿銆?/param>
         public void PauseSound(int serialId)
         {
             PauseSound(serialId, Constant.DefaultFadeOutSeconds);
         }
 
         /// <summary>
-        /// 暂停播放声音。
+        /// 鏆傚仠鎾斁澹伴煶銆?
         /// </summary>
-        /// <param name="serialId">要暂停播放声音的序列编号。</param>
-        /// <param name="fadeOutSeconds">声音淡出时间，以秒为单位。</param>
+        /// <param name="serialId">瑕佹殏鍋滄挱鏀惧０闊崇殑搴忓垪缂栧彿銆?/param>
+        /// <param name="fadeOutSeconds">澹伴煶娣″嚭鏃堕棿锛屼互绉掍负鍗曚綅銆?/param>
         public void PauseSound(int serialId, float fadeOutSeconds)
         {
             foreach (KeyValuePair<string, SoundGroup> soundGroup in m_SoundGroups)
@@ -585,19 +587,19 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
-        /// 恢复播放声音。
+        /// 鎭㈠鎾斁澹伴煶銆?
         /// </summary>
-        /// <param name="serialId">要恢复播放声音的序列编号。</param>
+        /// <param name="serialId">瑕佹仮澶嶆挱鏀惧０闊崇殑搴忓垪缂栧彿銆?/param>
         public void ResumeSound(int serialId)
         {
             ResumeSound(serialId, Constant.DefaultFadeInSeconds);
         }
 
         /// <summary>
-        /// 恢复播放声音。
+        /// 鎭㈠鎾斁澹伴煶銆?
         /// </summary>
-        /// <param name="serialId">要恢复播放声音的序列编号。</param>
-        /// <param name="fadeInSeconds">声音淡入时间，以秒为单位。</param>
+        /// <param name="serialId">瑕佹仮澶嶆挱鏀惧０闊崇殑搴忓垪缂栧彿銆?/param>
+        /// <param name="fadeInSeconds">澹伴煶娣″叆鏃堕棿锛屼互绉掍负鍗曚綅銆?/param>
         public void ResumeSound(int serialId, float fadeInSeconds)
         {
             foreach (KeyValuePair<string, SoundGroup> soundGroup in m_SoundGroups)

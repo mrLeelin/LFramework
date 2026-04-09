@@ -1,25 +1,27 @@
-﻿//------------------------------------------------------------
+//------------------------------------------------------------
 // Game Framework
-// Copyright © 2013-2021 Jiang Yin. All rights reserved.
+// Copyright 漏 2013-2021 Jiang Yin. All rights reserved.
 // Homepage: https://gameframework.cn/
 // Feedback: mailto:ellan@gameframework.cn
 //------------------------------------------------------------
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Generic;
+using UnityEngine.Scripting;
 
 namespace GameFramework.Fsm
 {
     /// <summary>
-    /// 有限状态机管理器。
+    /// 鏈夐檺鐘舵€佹満绠＄悊鍣ㄣ€?
     /// </summary>
+    [Preserve]
     internal sealed class FsmManager : GameFrameworkModule, IFsmManager
     {
         private readonly Dictionary<TypeNamePair, FsmBase> m_Fsms;
         private readonly List<FsmBase> m_TempFsms;
 
         /// <summary>
-        /// 初始化有限状态机管理器的新实例。
+        /// 鍒濆鍖栨湁闄愮姸鎬佹満绠＄悊鍣ㄧ殑鏂板疄渚嬨€?
         /// </summary>
         public FsmManager()
         {
@@ -28,9 +30,9 @@ namespace GameFramework.Fsm
         }
 
         /// <summary>
-        /// 获取游戏框架模块优先级。
+        /// 鑾峰彇娓告垙妗嗘灦妯″潡浼樺厛绾с€?
         /// </summary>
-        /// <remarks>优先级较高的模块会优先轮询，并且关闭操作会后进行。</remarks>
+        /// <remarks>浼樺厛绾ц緝楂樼殑妯″潡浼氫紭鍏堣疆璇紝骞朵笖鍏抽棴鎿嶄綔浼氬悗杩涜銆?/remarks>
         internal override int Priority
         {
             get
@@ -40,7 +42,7 @@ namespace GameFramework.Fsm
         }
 
         /// <summary>
-        /// 获取有限状态机数量。
+        /// 鑾峰彇鏈夐檺鐘舵€佹満鏁伴噺銆?
         /// </summary>
         public int Count
         {
@@ -51,10 +53,10 @@ namespace GameFramework.Fsm
         }
 
         /// <summary>
-        /// 有限状态机管理器轮询。
+        /// 鏈夐檺鐘舵€佹満绠＄悊鍣ㄨ疆璇€?
         /// </summary>
-        /// <param name="elapseSeconds">逻辑流逝时间，以秒为单位。</param>
-        /// <param name="realElapseSeconds">真实流逝时间，以秒为单位。</param>
+        /// <param name="elapseSeconds">閫昏緫娴侀€濇椂闂达紝浠ョ涓哄崟浣嶃€?/param>
+        /// <param name="realElapseSeconds">鐪熷疄娴侀€濇椂闂达紝浠ョ涓哄崟浣嶃€?/param>
         internal override void Update(float elapseSeconds, float realElapseSeconds)
         {
             m_TempFsms.Clear();
@@ -80,7 +82,7 @@ namespace GameFramework.Fsm
         }
 
         /// <summary>
-        /// 关闭并清理有限状态机管理器。
+        /// 鍏抽棴骞舵竻鐞嗘湁闄愮姸鎬佹満绠＄悊鍣ㄣ€?
         /// </summary>
         internal override void Shutdown()
         {
@@ -94,20 +96,20 @@ namespace GameFramework.Fsm
         }
 
         /// <summary>
-        /// 检查是否存在有限状态机。
+        /// 妫€鏌ユ槸鍚﹀瓨鍦ㄦ湁闄愮姸鎬佹満銆?
         /// </summary>
-        /// <typeparam name="T">有限状态机持有者类型。</typeparam>
-        /// <returns>是否存在有限状态机。</returns>
+        /// <typeparam name="T">鏈夐檺鐘舵€佹満鎸佹湁鑰呯被鍨嬨€?/typeparam>
+        /// <returns>鏄惁瀛樺湪鏈夐檺鐘舵€佹満銆?/returns>
         public bool HasFsm<T>() where T : class
         {
             return InternalHasFsm(new TypeNamePair(typeof(T)));
         }
 
         /// <summary>
-        /// 检查是否存在有限状态机。
+        /// 妫€鏌ユ槸鍚﹀瓨鍦ㄦ湁闄愮姸鎬佹満銆?
         /// </summary>
-        /// <param name="ownerType">有限状态机持有者类型。</param>
-        /// <returns>是否存在有限状态机。</returns>
+        /// <param name="ownerType">鏈夐檺鐘舵€佹満鎸佹湁鑰呯被鍨嬨€?/param>
+        /// <returns>鏄惁瀛樺湪鏈夐檺鐘舵€佹満銆?/returns>
         public bool HasFsm(Type ownerType)
         {
             if (ownerType == null)
@@ -119,22 +121,22 @@ namespace GameFramework.Fsm
         }
 
         /// <summary>
-        /// 检查是否存在有限状态机。
+        /// 妫€鏌ユ槸鍚﹀瓨鍦ㄦ湁闄愮姸鎬佹満銆?
         /// </summary>
-        /// <typeparam name="T">有限状态机持有者类型。</typeparam>
-        /// <param name="name">有限状态机名称。</param>
-        /// <returns>是否存在有限状态机。</returns>
+        /// <typeparam name="T">鏈夐檺鐘舵€佹満鎸佹湁鑰呯被鍨嬨€?/typeparam>
+        /// <param name="name">鏈夐檺鐘舵€佹満鍚嶇О銆?/param>
+        /// <returns>鏄惁瀛樺湪鏈夐檺鐘舵€佹満銆?/returns>
         public bool HasFsm<T>(string name) where T : class
         {
             return InternalHasFsm(new TypeNamePair(typeof(T), name));
         }
 
         /// <summary>
-        /// 检查是否存在有限状态机。
+        /// 妫€鏌ユ槸鍚﹀瓨鍦ㄦ湁闄愮姸鎬佹満銆?
         /// </summary>
-        /// <param name="ownerType">有限状态机持有者类型。</param>
-        /// <param name="name">有限状态机名称。</param>
-        /// <returns>是否存在有限状态机。</returns>
+        /// <param name="ownerType">鏈夐檺鐘舵€佹満鎸佹湁鑰呯被鍨嬨€?/param>
+        /// <param name="name">鏈夐檺鐘舵€佹満鍚嶇О銆?/param>
+        /// <returns>鏄惁瀛樺湪鏈夐檺鐘舵€佹満銆?/returns>
         public bool HasFsm(Type ownerType, string name)
         {
             if (ownerType == null)
@@ -146,20 +148,20 @@ namespace GameFramework.Fsm
         }
 
         /// <summary>
-        /// 获取有限状态机。
+        /// 鑾峰彇鏈夐檺鐘舵€佹満銆?
         /// </summary>
-        /// <typeparam name="T">有限状态机持有者类型。</typeparam>
-        /// <returns>要获取的有限状态机。</returns>
+        /// <typeparam name="T">鏈夐檺鐘舵€佹満鎸佹湁鑰呯被鍨嬨€?/typeparam>
+        /// <returns>瑕佽幏鍙栫殑鏈夐檺鐘舵€佹満銆?/returns>
         public IFsm<T> GetFsm<T>() where T : class
         {
             return (IFsm<T>)InternalGetFsm(new TypeNamePair(typeof(T)));
         }
 
         /// <summary>
-        /// 获取有限状态机。
+        /// 鑾峰彇鏈夐檺鐘舵€佹満銆?
         /// </summary>
-        /// <param name="ownerType">有限状态机持有者类型。</param>
-        /// <returns>要获取的有限状态机。</returns>
+        /// <param name="ownerType">鏈夐檺鐘舵€佹満鎸佹湁鑰呯被鍨嬨€?/param>
+        /// <returns>瑕佽幏鍙栫殑鏈夐檺鐘舵€佹満銆?/returns>
         public FsmBase GetFsm(Type ownerType)
         {
             if (ownerType == null)
@@ -171,22 +173,22 @@ namespace GameFramework.Fsm
         }
 
         /// <summary>
-        /// 获取有限状态机。
+        /// 鑾峰彇鏈夐檺鐘舵€佹満銆?
         /// </summary>
-        /// <typeparam name="T">有限状态机持有者类型。</typeparam>
-        /// <param name="name">有限状态机名称。</param>
-        /// <returns>要获取的有限状态机。</returns>
+        /// <typeparam name="T">鏈夐檺鐘舵€佹満鎸佹湁鑰呯被鍨嬨€?/typeparam>
+        /// <param name="name">鏈夐檺鐘舵€佹満鍚嶇О銆?/param>
+        /// <returns>瑕佽幏鍙栫殑鏈夐檺鐘舵€佹満銆?/returns>
         public IFsm<T> GetFsm<T>(string name) where T : class
         {
             return (IFsm<T>)InternalGetFsm(new TypeNamePair(typeof(T), name));
         }
 
         /// <summary>
-        /// 获取有限状态机。
+        /// 鑾峰彇鏈夐檺鐘舵€佹満銆?
         /// </summary>
-        /// <param name="ownerType">有限状态机持有者类型。</param>
-        /// <param name="name">有限状态机名称。</param>
-        /// <returns>要获取的有限状态机。</returns>
+        /// <param name="ownerType">鏈夐檺鐘舵€佹満鎸佹湁鑰呯被鍨嬨€?/param>
+        /// <param name="name">鏈夐檺鐘舵€佹満鍚嶇О銆?/param>
+        /// <returns>瑕佽幏鍙栫殑鏈夐檺鐘舵€佹満銆?/returns>
         public FsmBase GetFsm(Type ownerType, string name)
         {
             if (ownerType == null)
@@ -198,9 +200,9 @@ namespace GameFramework.Fsm
         }
 
         /// <summary>
-        /// 获取所有有限状态机。
+        /// 鑾峰彇鎵€鏈夋湁闄愮姸鎬佹満銆?
         /// </summary>
-        /// <returns>所有有限状态机。</returns>
+        /// <returns>鎵€鏈夋湁闄愮姸鎬佹満銆?/returns>
         public FsmBase[] GetAllFsms()
         {
             int index = 0;
@@ -214,9 +216,9 @@ namespace GameFramework.Fsm
         }
 
         /// <summary>
-        /// 获取所有有限状态机。
+        /// 鑾峰彇鎵€鏈夋湁闄愮姸鎬佹満銆?
         /// </summary>
-        /// <param name="results">所有有限状态机。</param>
+        /// <param name="results">鎵€鏈夋湁闄愮姸鎬佹満銆?/param>
         public void GetAllFsms(List<FsmBase> results)
         {
             if (results == null)
@@ -232,25 +234,25 @@ namespace GameFramework.Fsm
         }
 
         /// <summary>
-        /// 创建有限状态机。
+        /// 鍒涘缓鏈夐檺鐘舵€佹満銆?
         /// </summary>
-        /// <typeparam name="T">有限状态机持有者类型。</typeparam>
-        /// <param name="owner">有限状态机持有者。</param>
-        /// <param name="states">有限状态机状态集合。</param>
-        /// <returns>要创建的有限状态机。</returns>
+        /// <typeparam name="T">鏈夐檺鐘舵€佹満鎸佹湁鑰呯被鍨嬨€?/typeparam>
+        /// <param name="owner">鏈夐檺鐘舵€佹満鎸佹湁鑰呫€?/param>
+        /// <param name="states">鏈夐檺鐘舵€佹満鐘舵€侀泦鍚堛€?/param>
+        /// <returns>瑕佸垱寤虹殑鏈夐檺鐘舵€佹満銆?/returns>
         public IFsm<T> CreateFsm<T>(T owner, params FsmState<T>[] states) where T : class
         {
             return CreateFsm(string.Empty, owner, states);
         }
 
         /// <summary>
-        /// 创建有限状态机。
+        /// 鍒涘缓鏈夐檺鐘舵€佹満銆?
         /// </summary>
-        /// <typeparam name="T">有限状态机持有者类型。</typeparam>
-        /// <param name="name">有限状态机名称。</param>
-        /// <param name="owner">有限状态机持有者。</param>
-        /// <param name="states">有限状态机状态集合。</param>
-        /// <returns>要创建的有限状态机。</returns>
+        /// <typeparam name="T">鏈夐檺鐘舵€佹満鎸佹湁鑰呯被鍨嬨€?/typeparam>
+        /// <param name="name">鏈夐檺鐘舵€佹満鍚嶇О銆?/param>
+        /// <param name="owner">鏈夐檺鐘舵€佹満鎸佹湁鑰呫€?/param>
+        /// <param name="states">鏈夐檺鐘舵€佹満鐘舵€侀泦鍚堛€?/param>
+        /// <returns>瑕佸垱寤虹殑鏈夐檺鐘舵€佹満銆?/returns>
         public IFsm<T> CreateFsm<T>(string name, T owner, params FsmState<T>[] states) where T : class
         {
             TypeNamePair typeNamePair = new TypeNamePair(typeof(T), name);
@@ -265,25 +267,25 @@ namespace GameFramework.Fsm
         }
 
         /// <summary>
-        /// 创建有限状态机。
+        /// 鍒涘缓鏈夐檺鐘舵€佹満銆?
         /// </summary>
-        /// <typeparam name="T">有限状态机持有者类型。</typeparam>
-        /// <param name="owner">有限状态机持有者。</param>
-        /// <param name="states">有限状态机状态集合。</param>
-        /// <returns>要创建的有限状态机。</returns>
+        /// <typeparam name="T">鏈夐檺鐘舵€佹満鎸佹湁鑰呯被鍨嬨€?/typeparam>
+        /// <param name="owner">鏈夐檺鐘舵€佹満鎸佹湁鑰呫€?/param>
+        /// <param name="states">鏈夐檺鐘舵€佹満鐘舵€侀泦鍚堛€?/param>
+        /// <returns>瑕佸垱寤虹殑鏈夐檺鐘舵€佹満銆?/returns>
         public IFsm<T> CreateFsm<T>(T owner, List<FsmState<T>> states) where T : class
         {
             return CreateFsm(string.Empty, owner, states);
         }
 
         /// <summary>
-        /// 创建有限状态机。
+        /// 鍒涘缓鏈夐檺鐘舵€佹満銆?
         /// </summary>
-        /// <typeparam name="T">有限状态机持有者类型。</typeparam>
-        /// <param name="name">有限状态机名称。</param>
-        /// <param name="owner">有限状态机持有者。</param>
-        /// <param name="states">有限状态机状态集合。</param>
-        /// <returns>要创建的有限状态机。</returns>
+        /// <typeparam name="T">鏈夐檺鐘舵€佹満鎸佹湁鑰呯被鍨嬨€?/typeparam>
+        /// <param name="name">鏈夐檺鐘舵€佹満鍚嶇О銆?/param>
+        /// <param name="owner">鏈夐檺鐘舵€佹満鎸佹湁鑰呫€?/param>
+        /// <param name="states">鏈夐檺鐘舵€佹満鐘舵€侀泦鍚堛€?/param>
+        /// <returns>瑕佸垱寤虹殑鏈夐檺鐘舵€佹満銆?/returns>
         public IFsm<T> CreateFsm<T>(string name, T owner, List<FsmState<T>> states) where T : class
         {
             TypeNamePair typeNamePair = new TypeNamePair(typeof(T), name);
@@ -298,20 +300,20 @@ namespace GameFramework.Fsm
         }
 
         /// <summary>
-        /// 销毁有限状态机。
+        /// 閿€姣佹湁闄愮姸鎬佹満銆?
         /// </summary>
-        /// <typeparam name="T">有限状态机持有者类型。</typeparam>
-        /// <returns>是否销毁有限状态机成功。</returns>
+        /// <typeparam name="T">鏈夐檺鐘舵€佹満鎸佹湁鑰呯被鍨嬨€?/typeparam>
+        /// <returns>鏄惁閿€姣佹湁闄愮姸鎬佹満鎴愬姛銆?/returns>
         public bool DestroyFsm<T>() where T : class
         {
             return InternalDestroyFsm(new TypeNamePair(typeof(T)));
         }
 
         /// <summary>
-        /// 销毁有限状态机。
+        /// 閿€姣佹湁闄愮姸鎬佹満銆?
         /// </summary>
-        /// <param name="ownerType">有限状态机持有者类型。</param>
-        /// <returns>是否销毁有限状态机成功。</returns>
+        /// <param name="ownerType">鏈夐檺鐘舵€佹満鎸佹湁鑰呯被鍨嬨€?/param>
+        /// <returns>鏄惁閿€姣佹湁闄愮姸鎬佹満鎴愬姛銆?/returns>
         public bool DestroyFsm(Type ownerType)
         {
             if (ownerType == null)
@@ -323,22 +325,22 @@ namespace GameFramework.Fsm
         }
 
         /// <summary>
-        /// 销毁有限状态机。
+        /// 閿€姣佹湁闄愮姸鎬佹満銆?
         /// </summary>
-        /// <typeparam name="T">有限状态机持有者类型。</typeparam>
-        /// <param name="name">要销毁的有限状态机名称。</param>
-        /// <returns>是否销毁有限状态机成功。</returns>
+        /// <typeparam name="T">鏈夐檺鐘舵€佹満鎸佹湁鑰呯被鍨嬨€?/typeparam>
+        /// <param name="name">瑕侀攢姣佺殑鏈夐檺鐘舵€佹満鍚嶇О銆?/param>
+        /// <returns>鏄惁閿€姣佹湁闄愮姸鎬佹満鎴愬姛銆?/returns>
         public bool DestroyFsm<T>(string name) where T : class
         {
             return InternalDestroyFsm(new TypeNamePair(typeof(T), name));
         }
 
         /// <summary>
-        /// 销毁有限状态机。
+        /// 閿€姣佹湁闄愮姸鎬佹満銆?
         /// </summary>
-        /// <param name="ownerType">有限状态机持有者类型。</param>
-        /// <param name="name">要销毁的有限状态机名称。</param>
-        /// <returns>是否销毁有限状态机成功。</returns>
+        /// <param name="ownerType">鏈夐檺鐘舵€佹満鎸佹湁鑰呯被鍨嬨€?/param>
+        /// <param name="name">瑕侀攢姣佺殑鏈夐檺鐘舵€佹満鍚嶇О銆?/param>
+        /// <returns>鏄惁閿€姣佹湁闄愮姸鎬佹満鎴愬姛銆?/returns>
         public bool DestroyFsm(Type ownerType, string name)
         {
             if (ownerType == null)
@@ -350,11 +352,11 @@ namespace GameFramework.Fsm
         }
 
         /// <summary>
-        /// 销毁有限状态机。
+        /// 閿€姣佹湁闄愮姸鎬佹満銆?
         /// </summary>
-        /// <typeparam name="T">有限状态机持有者类型。</typeparam>
-        /// <param name="fsm">要销毁的有限状态机。</param>
-        /// <returns>是否销毁有限状态机成功。</returns>
+        /// <typeparam name="T">鏈夐檺鐘舵€佹満鎸佹湁鑰呯被鍨嬨€?/typeparam>
+        /// <param name="fsm">瑕侀攢姣佺殑鏈夐檺鐘舵€佹満銆?/param>
+        /// <returns>鏄惁閿€姣佹湁闄愮姸鎬佹満鎴愬姛銆?/returns>
         public bool DestroyFsm<T>(IFsm<T> fsm) where T : class
         {
             if (fsm == null)
@@ -366,10 +368,10 @@ namespace GameFramework.Fsm
         }
 
         /// <summary>
-        /// 销毁有限状态机。
+        /// 閿€姣佹湁闄愮姸鎬佹満銆?
         /// </summary>
-        /// <param name="fsm">要销毁的有限状态机。</param>
-        /// <returns>是否销毁有限状态机成功。</returns>
+        /// <param name="fsm">瑕侀攢姣佺殑鏈夐檺鐘舵€佹満銆?/param>
+        /// <returns>鏄惁閿€姣佹湁闄愮姸鎬佹満鎴愬姛銆?/returns>
         public bool DestroyFsm(FsmBase fsm)
         {
             if (fsm == null)

@@ -1,19 +1,21 @@
-﻿//------------------------------------------------------------
+//------------------------------------------------------------
 // Game Framework
-// Copyright © 2013-2021 Jiang Yin. All rights reserved.
+// Copyright 漏 2013-2021 Jiang Yin. All rights reserved.
 // Homepage: https://gameframework.cn/
 // Feedback: mailto:ellan@gameframework.cn
 //------------------------------------------------------------
 
 using System;
 using System.Collections.Generic;
-using System.IO;
+using System.IO;
+using UnityEngine.Scripting;
 
 namespace GameFramework.FileSystem
 {
     /// <summary>
-    /// 文件系统管理器。
+    /// 鏂囦欢绯荤粺绠＄悊鍣ㄣ€?
     /// </summary>
+    [Preserve]
     internal sealed class FileSystemManager : GameFrameworkModule, IFileSystemManager
     {
         private readonly Dictionary<string, FileSystem> m_FileSystems;
@@ -21,7 +23,7 @@ namespace GameFramework.FileSystem
         private IFileSystemHelper m_FileSystemHelper;
 
         /// <summary>
-        /// 初始化文件系统管理器的新实例。
+        /// 鍒濆鍖栨枃浠剁郴缁熺鐞嗗櫒鐨勬柊瀹炰緥銆?
         /// </summary>
         public FileSystemManager()
         {
@@ -30,9 +32,9 @@ namespace GameFramework.FileSystem
         }
 
         /// <summary>
-        /// 获取游戏框架模块优先级。
+        /// 鑾峰彇娓告垙妗嗘灦妯″潡浼樺厛绾с€?
         /// </summary>
-        /// <remarks>优先级较高的模块会优先轮询，并且关闭操作会后进行。</remarks>
+        /// <remarks>浼樺厛绾ц緝楂樼殑妯″潡浼氫紭鍏堣疆璇紝骞朵笖鍏抽棴鎿嶄綔浼氬悗杩涜銆?/remarks>
         internal override int Priority
         {
             get
@@ -42,7 +44,7 @@ namespace GameFramework.FileSystem
         }
 
         /// <summary>
-        /// 获取文件系统数量。
+        /// 鑾峰彇鏂囦欢绯荤粺鏁伴噺銆?
         /// </summary>
         public int Count
         {
@@ -53,16 +55,16 @@ namespace GameFramework.FileSystem
         }
 
         /// <summary>
-        /// 文件系统管理器轮询。
+        /// 鏂囦欢绯荤粺绠＄悊鍣ㄨ疆璇€?
         /// </summary>
-        /// <param name="elapseSeconds">逻辑流逝时间，以秒为单位。</param>
-        /// <param name="realElapseSeconds">真实流逝时间，以秒为单位。</param>
+        /// <param name="elapseSeconds">閫昏緫娴侀€濇椂闂达紝浠ョ涓哄崟浣嶃€?/param>
+        /// <param name="realElapseSeconds">鐪熷疄娴侀€濇椂闂达紝浠ョ涓哄崟浣嶃€?/param>
         internal override void Update(float elapseSeconds, float realElapseSeconds)
         {
         }
 
         /// <summary>
-        /// 关闭并清理文件系统管理器。
+        /// 鍏抽棴骞舵竻鐞嗘枃浠剁郴缁熺鐞嗗櫒銆?
         /// </summary>
         internal override void Shutdown()
         {
@@ -77,9 +79,9 @@ namespace GameFramework.FileSystem
         }
 
         /// <summary>
-        /// 设置文件系统辅助器。
+        /// 璁剧疆鏂囦欢绯荤粺杈呭姪鍣ㄣ€?
         /// </summary>
-        /// <param name="fileSystemHelper">文件系统辅助器。</param>
+        /// <param name="fileSystemHelper">鏂囦欢绯荤粺杈呭姪鍣ㄣ€?/param>
         public void SetFileSystemHelper(IFileSystemHelper fileSystemHelper)
         {
             if (fileSystemHelper == null)
@@ -91,10 +93,10 @@ namespace GameFramework.FileSystem
         }
 
         /// <summary>
-        /// 检查是否存在文件系统。
+        /// 妫€鏌ユ槸鍚﹀瓨鍦ㄦ枃浠剁郴缁熴€?
         /// </summary>
-        /// <param name="fullPath">要检查的文件系统的完整路径。</param>
-        /// <returns>是否存在文件系统。</returns>
+        /// <param name="fullPath">瑕佹鏌ョ殑鏂囦欢绯荤粺鐨勫畬鏁磋矾寰勩€?/param>
+        /// <returns>鏄惁瀛樺湪鏂囦欢绯荤粺銆?/returns>
         public bool HasFileSystem(string fullPath)
         {
             if (string.IsNullOrEmpty(fullPath))
@@ -106,10 +108,10 @@ namespace GameFramework.FileSystem
         }
 
         /// <summary>
-        /// 获取文件系统。
+        /// 鑾峰彇鏂囦欢绯荤粺銆?
         /// </summary>
-        /// <param name="fullPath">要获取的文件系统的完整路径。</param>
-        /// <returns>获取的文件系统。</returns>
+        /// <param name="fullPath">瑕佽幏鍙栫殑鏂囦欢绯荤粺鐨勫畬鏁磋矾寰勩€?/param>
+        /// <returns>鑾峰彇鐨勬枃浠剁郴缁熴€?/returns>
         public IFileSystem GetFileSystem(string fullPath)
         {
             if (string.IsNullOrEmpty(fullPath))
@@ -127,13 +129,13 @@ namespace GameFramework.FileSystem
         }
 
         /// <summary>
-        /// 创建文件系统。
+        /// 鍒涘缓鏂囦欢绯荤粺銆?
         /// </summary>
-        /// <param name="fullPath">要创建的文件系统的完整路径。</param>
-        /// <param name="access">要创建的文件系统的访问方式。</param>
-        /// <param name="maxFileCount">要创建的文件系统的最大文件数量。</param>
-        /// <param name="maxBlockCount">要创建的文件系统的最大块数据数量。</param>
-        /// <returns>创建的文件系统。</returns>
+        /// <param name="fullPath">瑕佸垱寤虹殑鏂囦欢绯荤粺鐨勫畬鏁磋矾寰勩€?/param>
+        /// <param name="access">瑕佸垱寤虹殑鏂囦欢绯荤粺鐨勮闂柟寮忋€?/param>
+        /// <param name="maxFileCount">瑕佸垱寤虹殑鏂囦欢绯荤粺鐨勬渶澶ф枃浠舵暟閲忋€?/param>
+        /// <param name="maxBlockCount">瑕佸垱寤虹殑鏂囦欢绯荤粺鐨勬渶澶у潡鏁版嵁鏁伴噺銆?/param>
+        /// <returns>鍒涘缓鐨勬枃浠剁郴缁熴€?/returns>
         public IFileSystem CreateFileSystem(string fullPath, FileSystemAccess access, int maxFileCount, int maxBlockCount)
         {
             if (m_FileSystemHelper == null)
@@ -179,11 +181,11 @@ namespace GameFramework.FileSystem
         }
 
         /// <summary>
-        /// 加载文件系统。
+        /// 鍔犺浇鏂囦欢绯荤粺銆?
         /// </summary>
-        /// <param name="fullPath">要加载的文件系统的完整路径。</param>
-        /// <param name="access">要加载的文件系统的访问方式。</param>
-        /// <returns>加载的文件系统。</returns>
+        /// <param name="fullPath">瑕佸姞杞界殑鏂囦欢绯荤粺鐨勫畬鏁磋矾寰勩€?/param>
+        /// <param name="access">瑕佸姞杞界殑鏂囦欢绯荤粺鐨勮闂柟寮忋€?/param>
+        /// <returns>鍔犺浇鐨勬枃浠剁郴缁熴€?/returns>
         public IFileSystem LoadFileSystem(string fullPath, FileSystemAccess access)
         {
             if (m_FileSystemHelper == null)
@@ -225,10 +227,10 @@ namespace GameFramework.FileSystem
         }
 
         /// <summary>
-        /// 销毁文件系统。
+        /// 閿€姣佹枃浠剁郴缁熴€?
         /// </summary>
-        /// <param name="fileSystem">要销毁的文件系统。</param>
-        /// <param name="deletePhysicalFile">是否删除文件系统对应的物理文件。</param>
+        /// <param name="fileSystem">瑕侀攢姣佺殑鏂囦欢绯荤粺銆?/param>
+        /// <param name="deletePhysicalFile">鏄惁鍒犻櫎鏂囦欢绯荤粺瀵瑰簲鐨勭墿鐞嗘枃浠躲€?/param>
         public void DestroyFileSystem(IFileSystem fileSystem, bool deletePhysicalFile)
         {
             if (fileSystem == null)
@@ -247,9 +249,9 @@ namespace GameFramework.FileSystem
         }
 
         /// <summary>
-        /// 获取所有文件系统集合。
+        /// 鑾峰彇鎵€鏈夋枃浠剁郴缁熼泦鍚堛€?
         /// </summary>
-        /// <returns>获取的所有文件系统集合。</returns>
+        /// <returns>鑾峰彇鐨勬墍鏈夋枃浠剁郴缁熼泦鍚堛€?/returns>
         public IFileSystem[] GetAllFileSystems()
         {
             int index = 0;
@@ -263,9 +265,9 @@ namespace GameFramework.FileSystem
         }
 
         /// <summary>
-        /// 获取所有文件系统集合。
+        /// 鑾峰彇鎵€鏈夋枃浠剁郴缁熼泦鍚堛€?
         /// </summary>
-        /// <param name="results">获取的所有文件系统集合。</param>
+        /// <param name="results">鑾峰彇鐨勬墍鏈夋枃浠剁郴缁熼泦鍚堛€?/param>
         public void GetAllFileSystems(List<IFileSystem> results)
         {
             if (results == null)

@@ -1,18 +1,20 @@
-﻿//------------------------------------------------------------
+//------------------------------------------------------------
 // Game Framework
-// Copyright © 2013-2021 Jiang Yin. All rights reserved.
+// Copyright 漏 2013-2021 Jiang Yin. All rights reserved.
 // Homepage: https://gameframework.cn/
 // Feedback: mailto:ellan@gameframework.cn
 //------------------------------------------------------------
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Generic;
+using UnityEngine.Scripting;
 
 namespace GameFramework.ObjectPool
 {
     /// <summary>
-    /// 对象池管理器。
+    /// 瀵硅薄姹犵鐞嗗櫒銆?
     /// </summary>
+    [Preserve]
     internal sealed partial class ObjectPoolManager : GameFrameworkModule, IObjectPoolManager
     {
         private const int DefaultCapacity = int.MaxValue;
@@ -24,7 +26,7 @@ namespace GameFramework.ObjectPool
         private readonly Comparison<ObjectPoolBase> m_ObjectPoolComparer;
 
         /// <summary>
-        /// 初始化对象池管理器的新实例。
+        /// 鍒濆鍖栧璞℃睜绠＄悊鍣ㄧ殑鏂板疄渚嬨€?
         /// </summary>
         public ObjectPoolManager()
         {
@@ -34,9 +36,9 @@ namespace GameFramework.ObjectPool
         }
 
         /// <summary>
-        /// 获取游戏框架模块优先级。
+        /// 鑾峰彇娓告垙妗嗘灦妯″潡浼樺厛绾с€?
         /// </summary>
-        /// <remarks>优先级较高的模块会优先轮询，并且关闭操作会后进行。</remarks>
+        /// <remarks>浼樺厛绾ц緝楂樼殑妯″潡浼氫紭鍏堣疆璇紝骞朵笖鍏抽棴鎿嶄綔浼氬悗杩涜銆?/remarks>
         internal override int Priority
         {
             get
@@ -46,7 +48,7 @@ namespace GameFramework.ObjectPool
         }
 
         /// <summary>
-        /// 获取对象池数量。
+        /// 鑾峰彇瀵硅薄姹犳暟閲忋€?
         /// </summary>
         public int Count
         {
@@ -57,10 +59,10 @@ namespace GameFramework.ObjectPool
         }
 
         /// <summary>
-        /// 对象池管理器轮询。
+        /// 瀵硅薄姹犵鐞嗗櫒杞銆?
         /// </summary>
-        /// <param name="elapseSeconds">逻辑流逝时间，以秒为单位。</param>
-        /// <param name="realElapseSeconds">真实流逝时间，以秒为单位。</param>
+        /// <param name="elapseSeconds">閫昏緫娴侀€濇椂闂达紝浠ョ涓哄崟浣嶃€?/param>
+        /// <param name="realElapseSeconds">鐪熷疄娴侀€濇椂闂达紝浠ョ涓哄崟浣嶃€?/param>
         internal override void Update(float elapseSeconds, float realElapseSeconds)
         {
             foreach (KeyValuePair<TypeNamePair, ObjectPoolBase> objectPool in m_ObjectPools)
@@ -70,7 +72,7 @@ namespace GameFramework.ObjectPool
         }
 
         /// <summary>
-        /// 关闭并清理对象池管理器。
+        /// 鍏抽棴骞舵竻鐞嗗璞℃睜绠＄悊鍣ㄣ€?
         /// </summary>
         internal override void Shutdown()
         {
@@ -84,20 +86,20 @@ namespace GameFramework.ObjectPool
         }
 
         /// <summary>
-        /// 检查是否存在对象池。
+        /// 妫€鏌ユ槸鍚﹀瓨鍦ㄥ璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <returns>是否存在对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <returns>鏄惁瀛樺湪瀵硅薄姹犮€?/returns>
         public bool HasObjectPool<T>() where T : ObjectBase
         {
             return InternalHasObjectPool(new TypeNamePair(typeof(T)));
         }
 
         /// <summary>
-        /// 检查是否存在对象池。
+        /// 妫€鏌ユ槸鍚﹀瓨鍦ㄥ璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <returns>是否存在对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <returns>鏄惁瀛樺湪瀵硅薄姹犮€?/returns>
         public bool HasObjectPool(Type objectType)
         {
             if (objectType == null)
@@ -114,22 +116,22 @@ namespace GameFramework.ObjectPool
         }
 
         /// <summary>
-        /// 检查是否存在对象池。
+        /// 妫€鏌ユ槸鍚﹀瓨鍦ㄥ璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="name">对象池名称。</param>
-        /// <returns>是否存在对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <returns>鏄惁瀛樺湪瀵硅薄姹犮€?/returns>
         public bool HasObjectPool<T>(string name) where T : ObjectBase
         {
             return InternalHasObjectPool(new TypeNamePair(typeof(T), name));
         }
 
         /// <summary>
-        /// 检查是否存在对象池。
+        /// 妫€鏌ユ槸鍚﹀瓨鍦ㄥ璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="name">对象池名称。</param>
-        /// <returns>是否存在对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <returns>鏄惁瀛樺湪瀵硅薄姹犮€?/returns>
         public bool HasObjectPool(Type objectType, string name)
         {
             if (objectType == null)
@@ -146,10 +148,10 @@ namespace GameFramework.ObjectPool
         }
 
         /// <summary>
-        /// 检查是否存在对象池。
+        /// 妫€鏌ユ槸鍚﹀瓨鍦ㄥ璞℃睜銆?
         /// </summary>
-        /// <param name="condition">要检查的条件。</param>
-        /// <returns>是否存在对象池。</returns>
+        /// <param name="condition">瑕佹鏌ョ殑鏉′欢銆?/param>
+        /// <returns>鏄惁瀛樺湪瀵硅薄姹犮€?/returns>
         public bool HasObjectPool(Predicate<ObjectPoolBase> condition)
         {
             if (condition == null)
@@ -169,20 +171,20 @@ namespace GameFramework.ObjectPool
         }
 
         /// <summary>
-        /// 获取对象池。
+        /// 鑾峰彇瀵硅薄姹犮€?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <returns>要获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <returns>瑕佽幏鍙栫殑瀵硅薄姹犮€?/returns>
         public IObjectPool<T> GetObjectPool<T>() where T : ObjectBase
         {
             return (IObjectPool<T>)InternalGetObjectPool(new TypeNamePair(typeof(T)));
         }
 
         /// <summary>
-        /// 获取对象池。
+        /// 鑾峰彇瀵硅薄姹犮€?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <returns>要获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <returns>瑕佽幏鍙栫殑瀵硅薄姹犮€?/returns>
         public ObjectPoolBase GetObjectPool(Type objectType)
         {
             if (objectType == null)
@@ -199,22 +201,22 @@ namespace GameFramework.ObjectPool
         }
 
         /// <summary>
-        /// 获取对象池。
+        /// 鑾峰彇瀵硅薄姹犮€?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="name">对象池名称。</param>
-        /// <returns>要获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <returns>瑕佽幏鍙栫殑瀵硅薄姹犮€?/returns>
         public IObjectPool<T> GetObjectPool<T>(string name) where T : ObjectBase
         {
             return (IObjectPool<T>)InternalGetObjectPool(new TypeNamePair(typeof(T), name));
         }
 
         /// <summary>
-        /// 获取对象池。
+        /// 鑾峰彇瀵硅薄姹犮€?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="name">对象池名称。</param>
-        /// <returns>要获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <returns>瑕佽幏鍙栫殑瀵硅薄姹犮€?/returns>
         public ObjectPoolBase GetObjectPool(Type objectType, string name)
         {
             if (objectType == null)
@@ -231,10 +233,10 @@ namespace GameFramework.ObjectPool
         }
 
         /// <summary>
-        /// 获取对象池。
+        /// 鑾峰彇瀵硅薄姹犮€?
         /// </summary>
-        /// <param name="condition">要检查的条件。</param>
-        /// <returns>要获取的对象池。</returns>
+        /// <param name="condition">瑕佹鏌ョ殑鏉′欢銆?/param>
+        /// <returns>瑕佽幏鍙栫殑瀵硅薄姹犮€?/returns>
         public ObjectPoolBase GetObjectPool(Predicate<ObjectPoolBase> condition)
         {
             if (condition == null)
@@ -254,10 +256,10 @@ namespace GameFramework.ObjectPool
         }
 
         /// <summary>
-        /// 获取对象池。
+        /// 鑾峰彇瀵硅薄姹犮€?
         /// </summary>
-        /// <param name="condition">要检查的条件。</param>
-        /// <returns>要获取的对象池。</returns>
+        /// <param name="condition">瑕佹鏌ョ殑鏉′欢銆?/param>
+        /// <returns>瑕佽幏鍙栫殑瀵硅薄姹犮€?/returns>
         public ObjectPoolBase[] GetObjectPools(Predicate<ObjectPoolBase> condition)
         {
             if (condition == null)
@@ -278,10 +280,10 @@ namespace GameFramework.ObjectPool
         }
 
         /// <summary>
-        /// 获取对象池。
+        /// 鑾峰彇瀵硅薄姹犮€?
         /// </summary>
-        /// <param name="condition">要检查的条件。</param>
-        /// <param name="results">要获取的对象池。</param>
+        /// <param name="condition">瑕佹鏌ョ殑鏉′欢銆?/param>
+        /// <param name="results">瑕佽幏鍙栫殑瀵硅薄姹犮€?/param>
         public void GetObjectPools(Predicate<ObjectPoolBase> condition, List<ObjectPoolBase> results)
         {
             if (condition == null)
@@ -305,28 +307,28 @@ namespace GameFramework.ObjectPool
         }
 
         /// <summary>
-        /// 获取所有对象池。
+        /// 鑾峰彇鎵€鏈夊璞℃睜銆?
         /// </summary>
-        /// <returns>所有对象池。</returns>
+        /// <returns>鎵€鏈夊璞℃睜銆?/returns>
         public ObjectPoolBase[] GetAllObjectPools()
         {
             return GetAllObjectPools(false);
         }
 
         /// <summary>
-        /// 获取所有对象池。
+        /// 鑾峰彇鎵€鏈夊璞℃睜銆?
         /// </summary>
-        /// <param name="results">所有对象池。</param>
+        /// <param name="results">鎵€鏈夊璞℃睜銆?/param>
         public void GetAllObjectPools(List<ObjectPoolBase> results)
         {
             GetAllObjectPools(false, results);
         }
 
         /// <summary>
-        /// 获取所有对象池。
+        /// 鑾峰彇鎵€鏈夊璞℃睜銆?
         /// </summary>
-        /// <param name="sort">是否根据对象池的优先级排序。</param>
-        /// <returns>所有对象池。</returns>
+        /// <param name="sort">鏄惁鏍规嵁瀵硅薄姹犵殑浼樺厛绾ф帓搴忋€?/param>
+        /// <returns>鎵€鏈夊璞℃睜銆?/returns>
         public ObjectPoolBase[] GetAllObjectPools(bool sort)
         {
             if (sort)
@@ -354,10 +356,10 @@ namespace GameFramework.ObjectPool
         }
 
         /// <summary>
-        /// 获取所有对象池。
+        /// 鑾峰彇鎵€鏈夊璞℃睜銆?
         /// </summary>
-        /// <param name="sort">是否根据对象池的优先级排序。</param>
-        /// <param name="results">所有对象池。</param>
+        /// <param name="sort">鏄惁鏍规嵁瀵硅薄姹犵殑浼樺厛绾ф帓搴忋€?/param>
+        /// <param name="results">鎵€鏈夊璞℃睜銆?/param>
         public void GetAllObjectPools(bool sort, List<ObjectPoolBase> results)
         {
             if (results == null)
@@ -378,756 +380,756 @@ namespace GameFramework.ObjectPool
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateSingleSpawnObjectPool<T>() where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(string.Empty, false, DefaultExpireTime, DefaultCapacity, DefaultExpireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateSingleSpawnObjectPool(Type objectType)
         {
             return InternalCreateObjectPool(objectType, string.Empty, false, DefaultExpireTime, DefaultCapacity, DefaultExpireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="name">对象池名称。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateSingleSpawnObjectPool<T>(string name) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(name, false, DefaultExpireTime, DefaultCapacity, DefaultExpireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="name">对象池名称。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateSingleSpawnObjectPool(Type objectType, string name)
         {
             return InternalCreateObjectPool(objectType, name, false, DefaultExpireTime, DefaultCapacity, DefaultExpireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateSingleSpawnObjectPool<T>(int capacity) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(string.Empty, false, DefaultExpireTime, capacity, DefaultExpireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateSingleSpawnObjectPool(Type objectType, int capacity)
         {
             return InternalCreateObjectPool(objectType, string.Empty, false, DefaultExpireTime, capacity, DefaultExpireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateSingleSpawnObjectPool<T>(float expireTime) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(string.Empty, false, expireTime, DefaultCapacity, expireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateSingleSpawnObjectPool(Type objectType, float expireTime)
         {
             return InternalCreateObjectPool(objectType, string.Empty, false, expireTime, DefaultCapacity, expireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateSingleSpawnObjectPool<T>(string name, int capacity) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(name, false, DefaultExpireTime, capacity, DefaultExpireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateSingleSpawnObjectPool(Type objectType, string name, int capacity)
         {
             return InternalCreateObjectPool(objectType, name, false, DefaultExpireTime, capacity, DefaultExpireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateSingleSpawnObjectPool<T>(string name, float expireTime) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(name, false, expireTime, DefaultCapacity, expireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateSingleSpawnObjectPool(Type objectType, string name, float expireTime)
         {
             return InternalCreateObjectPool(objectType, name, false, expireTime, DefaultCapacity, expireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateSingleSpawnObjectPool<T>(int capacity, float expireTime) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(string.Empty, false, expireTime, capacity, expireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateSingleSpawnObjectPool(Type objectType, int capacity, float expireTime)
         {
             return InternalCreateObjectPool(objectType, string.Empty, false, expireTime, capacity, expireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateSingleSpawnObjectPool<T>(int capacity, int priority) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(string.Empty, false, DefaultExpireTime, capacity, DefaultExpireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateSingleSpawnObjectPool(Type objectType, int capacity, int priority)
         {
             return InternalCreateObjectPool(objectType, string.Empty, false, DefaultExpireTime, capacity, DefaultExpireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateSingleSpawnObjectPool<T>(float expireTime, int priority) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(string.Empty, false, expireTime, DefaultCapacity, expireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateSingleSpawnObjectPool(Type objectType, float expireTime, int priority)
         {
             return InternalCreateObjectPool(objectType, string.Empty, false, expireTime, DefaultCapacity, expireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateSingleSpawnObjectPool<T>(string name, int capacity, float expireTime) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(name, false, expireTime, capacity, expireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateSingleSpawnObjectPool(Type objectType, string name, int capacity, float expireTime)
         {
             return InternalCreateObjectPool(objectType, name, false, expireTime, capacity, expireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateSingleSpawnObjectPool<T>(string name, int capacity, int priority) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(name, false, DefaultExpireTime, capacity, DefaultExpireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateSingleSpawnObjectPool(Type objectType, string name, int capacity, int priority)
         {
             return InternalCreateObjectPool(objectType, name, false, DefaultExpireTime, capacity, DefaultExpireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateSingleSpawnObjectPool<T>(string name, float expireTime, int priority) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(name, false, expireTime, DefaultCapacity, expireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateSingleSpawnObjectPool(Type objectType, string name, float expireTime, int priority)
         {
             return InternalCreateObjectPool(objectType, name, false, expireTime, DefaultCapacity, expireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateSingleSpawnObjectPool<T>(int capacity, float expireTime, int priority) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(string.Empty, false, expireTime, capacity, expireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateSingleSpawnObjectPool(Type objectType, int capacity, float expireTime, int priority)
         {
             return InternalCreateObjectPool(objectType, string.Empty, false, expireTime, capacity, expireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateSingleSpawnObjectPool<T>(string name, int capacity, float expireTime, int priority) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(name, false, expireTime, capacity, expireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateSingleSpawnObjectPool(Type objectType, string name, int capacity, float expireTime, int priority)
         {
             return InternalCreateObjectPool(objectType, name, false, expireTime, capacity, expireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="autoReleaseInterval">对象池自动释放可释放对象的间隔秒数。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="autoReleaseInterval">瀵硅薄姹犺嚜鍔ㄩ噴鏀惧彲閲婃斁瀵硅薄鐨勯棿闅旂鏁般€?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateSingleSpawnObjectPool<T>(string name, float autoReleaseInterval, int capacity, float expireTime, int priority) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(name, false, autoReleaseInterval, capacity, expireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许单次获取的对象池。
+        /// 鍒涘缓鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="autoReleaseInterval">对象池自动释放可释放对象的间隔秒数。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许单次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="autoReleaseInterval">瀵硅薄姹犺嚜鍔ㄩ噴鏀惧彲閲婃斁瀵硅薄鐨勯棿闅旂鏁般€?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽鍗曟鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateSingleSpawnObjectPool(Type objectType, string name, float autoReleaseInterval, int capacity, float expireTime, int priority)
         {
             return InternalCreateObjectPool(objectType, name, false, autoReleaseInterval, capacity, expireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateMultiSpawnObjectPool<T>() where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(string.Empty, true, DefaultExpireTime, DefaultCapacity, DefaultExpireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateMultiSpawnObjectPool(Type objectType)
         {
             return InternalCreateObjectPool(objectType, string.Empty, true, DefaultExpireTime, DefaultCapacity, DefaultExpireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="name">对象池名称。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateMultiSpawnObjectPool<T>(string name) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(name, true, DefaultExpireTime, DefaultCapacity, DefaultExpireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="name">对象池名称。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateMultiSpawnObjectPool(Type objectType, string name)
         {
             return InternalCreateObjectPool(objectType, name, true, DefaultExpireTime, DefaultCapacity, DefaultExpireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateMultiSpawnObjectPool<T>(int capacity) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(string.Empty, true, DefaultExpireTime, capacity, DefaultExpireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateMultiSpawnObjectPool(Type objectType, int capacity)
         {
             return InternalCreateObjectPool(objectType, string.Empty, true, DefaultExpireTime, capacity, DefaultExpireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateMultiSpawnObjectPool<T>(float expireTime) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(string.Empty, true, expireTime, DefaultCapacity, expireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateMultiSpawnObjectPool(Type objectType, float expireTime)
         {
             return InternalCreateObjectPool(objectType, string.Empty, true, expireTime, DefaultCapacity, expireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateMultiSpawnObjectPool<T>(string name, int capacity) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(name, true, DefaultExpireTime, capacity, DefaultExpireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateMultiSpawnObjectPool(Type objectType, string name, int capacity)
         {
             return InternalCreateObjectPool(objectType, name, true, DefaultExpireTime, capacity, DefaultExpireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateMultiSpawnObjectPool<T>(string name, float expireTime) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(name, true, expireTime, DefaultCapacity, expireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateMultiSpawnObjectPool(Type objectType, string name, float expireTime)
         {
             return InternalCreateObjectPool(objectType, name, true, expireTime, DefaultCapacity, expireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateMultiSpawnObjectPool<T>(int capacity, float expireTime) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(string.Empty, true, expireTime, capacity, expireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateMultiSpawnObjectPool(Type objectType, int capacity, float expireTime)
         {
             return InternalCreateObjectPool(objectType, string.Empty, true, expireTime, capacity, expireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateMultiSpawnObjectPool<T>(int capacity, int priority) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(string.Empty, true, DefaultExpireTime, capacity, DefaultExpireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateMultiSpawnObjectPool(Type objectType, int capacity, int priority)
         {
             return InternalCreateObjectPool(objectType, string.Empty, true, DefaultExpireTime, capacity, DefaultExpireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateMultiSpawnObjectPool<T>(float expireTime, int priority) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(string.Empty, true, expireTime, DefaultCapacity, expireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateMultiSpawnObjectPool(Type objectType, float expireTime, int priority)
         {
             return InternalCreateObjectPool(objectType, string.Empty, true, expireTime, DefaultCapacity, expireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateMultiSpawnObjectPool<T>(string name, int capacity, float expireTime) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(name, true, expireTime, capacity, expireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateMultiSpawnObjectPool(Type objectType, string name, int capacity, float expireTime)
         {
             return InternalCreateObjectPool(objectType, name, true, expireTime, capacity, expireTime, DefaultPriority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateMultiSpawnObjectPool<T>(string name, int capacity, int priority) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(name, true, DefaultExpireTime, capacity, DefaultExpireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateMultiSpawnObjectPool(Type objectType, string name, int capacity, int priority)
         {
             return InternalCreateObjectPool(objectType, name, true, DefaultExpireTime, capacity, DefaultExpireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateMultiSpawnObjectPool<T>(string name, float expireTime, int priority) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(name, true, expireTime, DefaultCapacity, expireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateMultiSpawnObjectPool(Type objectType, string name, float expireTime, int priority)
         {
             return InternalCreateObjectPool(objectType, name, true, expireTime, DefaultCapacity, expireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateMultiSpawnObjectPool<T>(int capacity, float expireTime, int priority) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(string.Empty, true, expireTime, capacity, expireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateMultiSpawnObjectPool(Type objectType, int capacity, float expireTime, int priority)
         {
             return InternalCreateObjectPool(objectType, string.Empty, true, expireTime, capacity, expireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateMultiSpawnObjectPool<T>(string name, int capacity, float expireTime, int priority) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(name, true, expireTime, capacity, expireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateMultiSpawnObjectPool(Type objectType, string name, int capacity, float expireTime, int priority)
         {
             return InternalCreateObjectPool(objectType, name, true, expireTime, capacity, expireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="autoReleaseInterval">对象池自动释放可释放对象的间隔秒数。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="autoReleaseInterval">瀵硅薄姹犺嚜鍔ㄩ噴鏀惧彲閲婃斁瀵硅薄鐨勯棿闅旂鏁般€?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public IObjectPool<T> CreateMultiSpawnObjectPool<T>(string name, float autoReleaseInterval, int capacity, float expireTime, int priority) where T : ObjectBase
         {
             return InternalCreateObjectPool<T>(name, true, autoReleaseInterval, capacity, expireTime, priority);
         }
 
         /// <summary>
-        /// 创建允许多次获取的对象池。
+        /// 鍒涘缓鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="name">对象池名称。</param>
-        /// <param name="autoReleaseInterval">对象池自动释放可释放对象的间隔秒数。</param>
-        /// <param name="capacity">对象池的容量。</param>
-        /// <param name="expireTime">对象池对象过期秒数。</param>
-        /// <param name="priority">对象池的优先级。</param>
-        /// <returns>要创建的允许多次获取的对象池。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="name">瀵硅薄姹犲悕绉般€?/param>
+        /// <param name="autoReleaseInterval">瀵硅薄姹犺嚜鍔ㄩ噴鏀惧彲閲婃斁瀵硅薄鐨勯棿闅旂鏁般€?/param>
+        /// <param name="capacity">瀵硅薄姹犵殑瀹归噺銆?/param>
+        /// <param name="expireTime">瀵硅薄姹犲璞¤繃鏈熺鏁般€?/param>
+        /// <param name="priority">瀵硅薄姹犵殑浼樺厛绾с€?/param>
+        /// <returns>瑕佸垱寤虹殑鍏佽澶氭鑾峰彇鐨勫璞℃睜銆?/returns>
         public ObjectPoolBase CreateMultiSpawnObjectPool(Type objectType, string name, float autoReleaseInterval, int capacity, float expireTime, int priority)
         {
             return InternalCreateObjectPool(objectType, name, true, autoReleaseInterval, capacity, expireTime, priority);
         }
 
         /// <summary>
-        /// 销毁对象池。
+        /// 閿€姣佸璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <returns>是否销毁对象池成功。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <returns>鏄惁閿€姣佸璞℃睜鎴愬姛銆?/returns>
         public bool DestroyObjectPool<T>() where T : ObjectBase
         {
             return InternalDestroyObjectPool(new TypeNamePair(typeof(T)));
         }
 
         /// <summary>
-        /// 销毁对象池。
+        /// 閿€姣佸璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <returns>是否销毁对象池成功。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <returns>鏄惁閿€姣佸璞℃睜鎴愬姛銆?/returns>
         public bool DestroyObjectPool(Type objectType)
         {
             if (objectType == null)
@@ -1144,22 +1146,22 @@ namespace GameFramework.ObjectPool
         }
 
         /// <summary>
-        /// 销毁对象池。
+        /// 閿€姣佸璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="name">要销毁的对象池名称。</param>
-        /// <returns>是否销毁对象池成功。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="name">瑕侀攢姣佺殑瀵硅薄姹犲悕绉般€?/param>
+        /// <returns>鏄惁閿€姣佸璞℃睜鎴愬姛銆?/returns>
         public bool DestroyObjectPool<T>(string name) where T : ObjectBase
         {
             return InternalDestroyObjectPool(new TypeNamePair(typeof(T), name));
         }
 
         /// <summary>
-        /// 销毁对象池。
+        /// 閿€姣佸璞℃睜銆?
         /// </summary>
-        /// <param name="objectType">对象类型。</param>
-        /// <param name="name">要销毁的对象池名称。</param>
-        /// <returns>是否销毁对象池成功。</returns>
+        /// <param name="objectType">瀵硅薄绫诲瀷銆?/param>
+        /// <param name="name">瑕侀攢姣佺殑瀵硅薄姹犲悕绉般€?/param>
+        /// <returns>鏄惁閿€姣佸璞℃睜鎴愬姛銆?/returns>
         public bool DestroyObjectPool(Type objectType, string name)
         {
             if (objectType == null)
@@ -1176,11 +1178,11 @@ namespace GameFramework.ObjectPool
         }
 
         /// <summary>
-        /// 销毁对象池。
+        /// 閿€姣佸璞℃睜銆?
         /// </summary>
-        /// <typeparam name="T">对象类型。</typeparam>
-        /// <param name="objectPool">要销毁的对象池。</param>
-        /// <returns>是否销毁对象池成功。</returns>
+        /// <typeparam name="T">瀵硅薄绫诲瀷銆?/typeparam>
+        /// <param name="objectPool">瑕侀攢姣佺殑瀵硅薄姹犮€?/param>
+        /// <returns>鏄惁閿€姣佸璞℃睜鎴愬姛銆?/returns>
         public bool DestroyObjectPool<T>(IObjectPool<T> objectPool) where T : ObjectBase
         {
             if (objectPool == null)
@@ -1192,10 +1194,10 @@ namespace GameFramework.ObjectPool
         }
 
         /// <summary>
-        /// 销毁对象池。
+        /// 閿€姣佸璞℃睜銆?
         /// </summary>
-        /// <param name="objectPool">要销毁的对象池。</param>
-        /// <returns>是否销毁对象池成功。</returns>
+        /// <param name="objectPool">瑕侀攢姣佺殑瀵硅薄姹犮€?/param>
+        /// <returns>鏄惁閿€姣佸璞℃睜鎴愬姛銆?/returns>
         public bool DestroyObjectPool(ObjectPoolBase objectPool)
         {
             if (objectPool == null)
@@ -1207,7 +1209,7 @@ namespace GameFramework.ObjectPool
         }
 
         /// <summary>
-        /// 释放对象池中的可释放对象。
+        /// 閲婃斁瀵硅薄姹犱腑鐨勫彲閲婃斁瀵硅薄銆?
         /// </summary>
         public void Release()
         {
@@ -1219,7 +1221,7 @@ namespace GameFramework.ObjectPool
         }
 
         /// <summary>
-        /// 释放对象池中的所有未使用对象。
+        /// 閲婃斁瀵硅薄姹犱腑鐨勬墍鏈夋湭浣跨敤瀵硅薄銆?
         /// </summary>
         public void ReleaseAllUnused()
         {
