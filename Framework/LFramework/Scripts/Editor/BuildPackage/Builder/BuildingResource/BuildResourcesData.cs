@@ -30,13 +30,13 @@ namespace LFramework.Editor.Builder
         public BuilderTarget BuilderTarget;
 
         [ShowIf("BuilderTarget", BuilderTarget.iOS)]
-        public BuildIOSChannel IOSChannel;
+        public string IOSChannel = "AppStore";
 
         [ShowIf("BuilderTarget", BuilderTarget.Windows)]
-        public BuildWindowsChannel WindowsChannel;
+        public string WindowsChannel = "WindowStore";
 
         [ShowIf("BuilderTarget", BuilderTarget.Android)]
-        public BuildAndroidChannel AndroidChannel;
+        public string AndroidChannel = "GoogleStore";
 
         /// <summary>
         /// 母包版本（例如：0.0.0.1）
@@ -81,7 +81,7 @@ namespace LFramework.Editor.Builder
                 versionCode = data.VersionCode,
                 resourcesVersion = data.ResourcesVersion,
                 isResourcesBuildIn = data.IsResourcesBuildIn,
-                isBuildDll = data.IsBuildDll,
+                isbuildDll = data.IsBuildDll,
                 isForceUpdate = data.IsForceUpdate,
                 buildType = data.BuildType,
                 cdnType = (CdnType)data.BuildResourcesServerModel

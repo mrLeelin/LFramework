@@ -22,13 +22,13 @@ namespace LFramework.Editor.Builder
         public BuilderTarget BuilderTarget;
 
         [ShowIf("BuilderTarget", BuilderTarget.Windows)]
-        public BuildWindowsChannel BuildWindowsChannel;
+        public string BuildWindowsChannel = "WindowStore";
 
         [ShowIf("BuilderTarget", BuilderTarget.Android)]
-        public BuildAndroidChannel BuildAndroidChannel;
+        public string BuildAndroidChannel = "GoogleStore";
 
         [ShowIf("BuilderTarget", BuilderTarget.iOS)]
-        public BuildIOSChannel BuildIOSChannel;
+        public string BuildIOSChannel = "AppStore";
 
         public BuildType BuildType;
         public bool IsBuildDll;
@@ -39,8 +39,8 @@ namespace LFramework.Editor.Builder
         public string VersionCode;
        
 
-        [ShowIf("BuildType", BuildType.APP)] public bool IsBuildResources;
-        [ShowIf("BuildType", BuildType.APP)] public bool IsResourcesBuildIn;
+        [ShowIf("BuildType", BuildType.App)] public bool IsBuildResources;
+        [ShowIf("BuildType", BuildType.App)] public bool IsResourcesBuildIn;
 
         [HideIf("IsResourcesBuildIn")] public string ResourcesVersion;
         public CdnType CdnType;
@@ -60,7 +60,7 @@ namespace LFramework.Editor.Builder
                 androidChannel = BuildAndroidChannel,
                 iosChannel = BuildIOSChannel,
                 buildType = BuildType,
-                isBuildDll = IsBuildDll,
+                isbuildDll = IsBuildDll,
                 isDeepProfiler = IsDeepProfiler,
                 isRelease = IsRelease,
                 appVersion = AppVersion,

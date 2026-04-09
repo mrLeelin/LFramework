@@ -80,7 +80,7 @@ namespace LFramework.Editor.Builder
         {
             switch (buildType)
             {
-                case BuildType.APP:
+                case BuildType.App:
                     return new AppBuildPipeline();
 
                 case BuildType.ResourcesUpdate:

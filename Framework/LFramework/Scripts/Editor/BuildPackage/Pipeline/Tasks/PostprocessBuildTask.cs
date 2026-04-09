@@ -32,7 +32,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             }
 
             // 仅在构建 APP 时执行后处理
-            return context.BuildSetting.buildType == BuildType.APP;
+            return context.BuildSetting.buildType == BuildType.App;
         }
 
         /// <summary>

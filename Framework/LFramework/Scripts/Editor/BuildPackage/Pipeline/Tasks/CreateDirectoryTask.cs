@@ -33,7 +33,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             }
 
             // 仅在构建 APP 时创建目录
-            return context.BuildSetting.buildType == BuildType.APP;
+            return context.BuildSetting.buildType == BuildType.App;
         }
 
         /// <summary>

@@ -28,13 +28,13 @@ namespace LFramework.Editor
         public BuilderTarget BuilderTarget;
 
         [ShowIf("BuilderTarget", BuilderTarget.iOS)]
-        public BuildIOSChannel IOSChannel;
+        public string IOSChannel = "AppStore";
 
         [ShowIf("BuilderTarget", BuilderTarget.Windows)]
-        public BuildWindowsChannel WindowsChannel;
+        public string WindowsChannel = "WindowStore";
 
         [ShowIf("BuilderTarget", BuilderTarget.Android)]
-        public BuildAndroidChannel AndroidChannel;
+        public string AndroidChannel = "GoogleStore";
 
         public CdnType CdnType;
 

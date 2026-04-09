@@ -27,7 +27,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             }
 
             // 仅在需要构建 DLL 时执行
-            return context.BuildSetting.isBuildDll;
+            return context.BuildSetting.isbuildDll;
         }
 
         public BuildTaskResult Execute(BuildPipelineContext context)
@@ -42,7 +42,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                 string backupPath = GetBackupPath(buildSetting);
 
                 // 构建 DLL
-                if (!BuildDllsHelper.BuildDll(buildSetting.buildType == BuildType.APP, backupPath))
+                if (!BuildDllsHelper.BuildDll(buildSetting.buildType == BuildType.App, backupPath))
                 {
                     return BuildTaskResult.CreateFailed(TaskName, "Build DLL failed.");
                 }

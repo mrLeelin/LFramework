@@ -36,7 +36,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             }
 
             // 仅在构建 APP 时设置宏定义
-            return context.BuildSetting.buildType == BuildType.APP;
+            return context.BuildSetting.buildType == BuildType.App;
         }
 
         /// <summary>

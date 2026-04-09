@@ -2,7 +2,7 @@
 {
     public enum BuildType
     {
-        APP,
+        App,
         ResourcesUpdate,  
     }
 }

@@ -19,7 +19,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                 return false;
             }
 
-            return context.BuildSetting.buildType == BuildType.APP;
+            return context.BuildSetting.buildType == BuildType.App;
         }
 
         public BuildTaskResult Execute(BuildPipelineContext context)

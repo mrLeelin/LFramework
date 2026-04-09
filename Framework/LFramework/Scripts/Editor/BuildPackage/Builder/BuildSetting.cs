@@ -7,6 +7,7 @@ using LFramework.Editor.Builder;
 using LFramework.Editor.Builder.BuildingResource;
 using LFramework.Runtime;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace LFramework.Editor
 {
@@ -33,15 +34,15 @@ namespace LFramework.Editor
         /// <summary>
         /// window 渠道
         /// </summary>
-        public BuildWindowsChannel windowsChannel = BuildWindowsChannel.WindowStore;
+        public string windowsChannel = "WindowStore";
         /// <summary>
         /// android 渠道
         /// </summary>
-        public BuildAndroidChannel androidChannel = BuildAndroidChannel.GoogleStore;
+        public string androidChannel = "GoogleStore";
         /// <summary>
         /// ios 渠道
         /// </summary>
-        public BuildIOSChannel iosChannel = BuildIOSChannel.AppStore;
+        public string iosChannel = "AppStore";
         
         /// <summary>
         /// android 打包类型
@@ -50,7 +51,7 @@ namespace LFramework.Editor
         /// <summary>
         /// 资源更新还是出包
         /// </summary>
-        public BuildType buildType = BuildType.APP;
+        public BuildType buildType = BuildType.App;
         public bool isDeepProfiler = false;
         public bool isRelease = false;
         public string appVersion = "1.0.0";
@@ -64,7 +65,7 @@ namespace LFramework.Editor
         /// <summary>
         /// 是否打包Dll
         /// </summary>
-        public bool isBuildDll = false;
+        public bool isbuildDll = false;
 
         public string GetAppVersion() => appVersion + "." + versionCode;
 
@@ -88,7 +89,7 @@ namespace LFramework.Editor
             stringBuilder.AppendLine($"resourcesVersion:{resourcesVersion}");
             stringBuilder.AppendLine($"cdnType:{cdnType}");
             stringBuilder.AppendLine($"isForceUpdate:{isForceUpdate}");
-            stringBuilder.AppendLine($"isBuildDll:{isBuildDll}");
+            stringBuilder.AppendLine($"isBuildDll:{isbuildDll}");
             return stringBuilder.ToString();
         }
     }

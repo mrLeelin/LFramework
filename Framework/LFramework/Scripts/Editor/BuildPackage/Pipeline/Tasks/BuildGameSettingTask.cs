@@ -38,7 +38,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             }
 
             // 仅在构建 APP 时更新游戏设置
-            return context.BuildSetting.buildType == BuildType.APP;
+            return context.BuildSetting.buildType == BuildType.App;
         }
 
         /// <summary>
