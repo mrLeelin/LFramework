@@ -169,24 +169,28 @@ namespace LFramework.Runtime
         /// <summary>
         /// 实例化资源
         /// </summary>
-        public override void InstantiateAsset(string assetName,
+        public override async void InstantiateAsset(string assetName,
             LoadAssetCallbacks callbacks, object userData)
         {
             var handle = Addressables.InstantiateAsync(assetName);
-            handle.Completed += (op) =>
+
+            while (!handle.IsDone)
             {
-                if (op.Status == AsyncOperationStatus.Succeeded)
-                {
-                    callbacks.LoadAssetSuccessCallback?.Invoke(
-                        assetName, op.Result, 0f, userData);
-                }
-                else
-                {
-                    callbacks.LoadAssetFailureCallback?.Invoke(
-                        assetName, LoadResourceStatus.NotExist,
-                        op.OperationException?.Message ?? "Instantiate failed.", userData);
-                }
-            };
+                callbacks.LoadAssetUpdateCallback?.Invoke(assetName, handle.PercentComplete, userData);
+                await UniTask.Yield();
+            }
+
+            if (handle.Status == AsyncOperationStatus.Succeeded)
+            {
+                callbacks.LoadAssetSuccessCallback?.Invoke(
+                    assetName, handle.Result, 0f, userData);
+            }
+            else
+            {
+                callbacks.LoadAssetFailureCallback?.Invoke(
+                    assetName, LoadResourceStatus.NotExist,
+                    handle.OperationException?.Message ?? "Instantiate failed.", userData);
+            }
         }
 
         // ─── Handle 异步 API 实现 ───

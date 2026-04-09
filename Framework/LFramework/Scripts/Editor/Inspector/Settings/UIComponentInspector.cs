@@ -1,6 +1,7 @@
 using LFramework.Editor;
 using LFramework.Runtime.Settings;
 using UnityEditor;
+using UnityEngine;
 using UnityGameFramework.Editor;
 using UnityGameFramework.Runtime;
 
@@ -183,7 +184,9 @@ namespace LFramework.Editor.Inspector
             BeginSection("Hierarchy & Helpers", "Configure the UI root transform, root offset, and helper implementations.");
             EditorGUILayout.PropertyField(m_InstanceRoot);
             EditorGUILayout.PropertyField(m_InstanceRootOffset);
-            EditorGUILayout.PropertyField(m_VertexColorAlwaysGammaSpace);
+            EditorGUILayout.PropertyField(
+                m_VertexColorAlwaysGammaSpace,
+                new GUIContent("Vertex Color Always Gamma Space"));
             m_UIFormHelperInfo.Draw();
             m_UIGroupHelperInfo.Draw();
 

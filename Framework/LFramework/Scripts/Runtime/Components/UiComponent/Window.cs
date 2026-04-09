@@ -16,6 +16,7 @@ namespace LFramework.Runtime
         private const int DepthFactor = 10;
         private UIComponent _uiComponent;
         private Canvas _canvas;
+        private CanvasGroup _canvasGroup;
         private bool _isClosing;
         private readonly List<Canvas> _canvasContainer = new List<Canvas>();
         private IAnimation _windowAnimation;
@@ -55,7 +56,7 @@ namespace LFramework.Runtime
             _canvas.overrideSorting = true;
             _canvas.vertexColorAlwaysGammaSpace = UIComponent.VertexColorAlwaysGammaSpace;
             OriginalDepth = _canvas.sortingOrder;
-            gameObject.GetOrAddComponent<CanvasGroup>();
+            _canvasGroup = gameObject.GetOrAddComponent<CanvasGroup>();
             CacheRectTransform.anchorMax = Vector2.one;
             CacheRectTransform.anchorMin = Vector2.zero;
             CacheRectTransform.anchoredPosition = Vector2.zero;
@@ -72,6 +73,12 @@ namespace LFramework.Runtime
 
         public override void OnOpen(object userData)
         {
+            bool shouldHideBeforeEnterAnimation = AutoPlayEnterAnimation && _windowAnimation != null;
+            if (shouldHideBeforeEnterAnimation)
+            {
+                PrepareForEnterAnimation();
+            }
+
             base.OnOpen(userData);
             Subscribe(LFrameworkAspect.Instance.Get<EventComponent>());
             _windowAnimationState = WindowAnimationState.None;
@@ -79,6 +86,10 @@ namespace LFramework.Runtime
             if (AutoPlayEnterAnimation)
             {
                 PlayEnterAnimation(userData);
+            }
+            else
+            {
+                RestoreAfterEnterAnimation();
             }
 
             foreach (var subWindow in subModuleList)
@@ -247,6 +258,7 @@ namespace LFramework.Runtime
         {
             if (_windowAnimation == null)
             {
+                RestoreAfterEnterAnimation();
                 return;
             }
 
@@ -255,6 +267,7 @@ namespace LFramework.Runtime
             void AnimationEnterCompleted()
             {
                 _windowAnimationState = WindowAnimationState.None;
+                RestoreAfterEnterAnimation();
                 OnAnimationEnterCompleted();
                 LFrameworkAspect.Instance
                     .Fire(this,
@@ -288,6 +301,30 @@ namespace LFramework.Runtime
         }
 
         protected virtual bool CanBeCloseExternallyInternal() => true;
+
+        private void PrepareForEnterAnimation()
+        {
+            if (_canvasGroup == null)
+            {
+                return;
+            }
+
+            _canvasGroup.alpha = 0f;
+            _canvasGroup.interactable = false;
+            _canvasGroup.blocksRaycasts = false;
+        }
+
+        private void RestoreAfterEnterAnimation()
+        {
+            if (_canvasGroup == null)
+            {
+                return;
+            }
+
+            _canvasGroup.alpha = 1f;
+            _canvasGroup.interactable = true;
+            _canvasGroup.blocksRaycasts = true;
+        }
 
         protected T As<T>(object userData)
             where T : class

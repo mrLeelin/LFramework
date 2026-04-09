@@ -280,21 +280,15 @@ namespace LFramework.Runtime
         /// <summary>
         /// 实例化资源
         /// </summary>
-        public override void InstantiateAsset(string assetName,
+        public override async void InstantiateAsset(string assetName,
             LoadAssetCallbacks callbacks, object userData)
         {
             var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
             var handle = package.LoadAssetAsync<GameObject>(assetName);
-            StartCoroutine(WaitForInstantiateAsset(handle, assetName, callbacks, userData));
-        }
-
-        private IEnumerator WaitForInstantiateAsset(AssetHandle handle, string assetName,
-            LoadAssetCallbacks callbacks, object userData)
-        {
             while (!handle.IsDone)
             {
                 callbacks.LoadAssetUpdateCallback?.Invoke(assetName, handle.Progress, userData);
-                yield return null;
+                await UniTask.Yield();
             }
 
             if (handle.Status == EOperationStatus.Succeed)
@@ -303,7 +297,8 @@ namespace LFramework.Runtime
 
                 while (!instantiateOp.IsDone)
                 {
-                    yield return null;
+                    callbacks.LoadAssetUpdateCallback?.Invoke(assetName, 0.5f + instantiateOp.Progress * 0.5f, userData);
+                    await UniTask.Yield();
                 }
 
                 if (instantiateOp.Status == EOperationStatus.Succeed &&
