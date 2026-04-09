@@ -77,7 +77,8 @@ namespace GameFramework
                 moduleName = implementorAttribute.ImplementorTypeName;
             }
           
-            Type moduleType = Type.GetType(moduleName);
+            Type moduleType = Utility.Assembly.GetType(moduleName);
+
             if (moduleType == null)
             {
                 throw new GameFrameworkException(Utility.Text.Format("Can not find Game Framework module type '{0}'.", moduleName));

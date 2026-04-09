@@ -18,12 +18,14 @@ namespace GameFramework
         /// </summary>
         public static class Assembly
         {
-            private static readonly System.Reflection.Assembly[] s_Assemblies = null;
+            private static readonly object s_AssembliesLock = new object();
+            private static readonly List<System.Reflection.Assembly> s_Assemblies = new List<System.Reflection.Assembly>();
             private static readonly Dictionary<string, Type> s_CachedTypes = new Dictionary<string, Type>(StringComparer.Ordinal);
 
             static Assembly()
             {
-                s_Assemblies = AppDomain.CurrentDomain.GetAssemblies();
+                s_Assemblies.AddRange(AppDomain.CurrentDomain.GetAssemblies());
+                AppDomain.CurrentDomain.AssemblyLoad += OnAssemblyLoad;
             }
 
             /// <summary>
@@ -32,7 +34,10 @@ namespace GameFramework
             /// <returns>已加载的程序集。</returns>
             public static System.Reflection.Assembly[] GetAssemblies()
             {
-                return s_Assemblies;
+                lock (s_AssembliesLock)
+                {
+                    return s_Assemblies.ToArray();
+                }
             }
 
             /// <summary>
@@ -42,7 +47,7 @@ namespace GameFramework
             public static Type[] GetTypes()
             {
                 List<Type> results = new List<Type>();
-                foreach (System.Reflection.Assembly assembly in s_Assemblies)
+                foreach (System.Reflection.Assembly assembly in GetAssemblies())
                 {
                     results.AddRange(assembly.GetTypes());
                 }
@@ -81,7 +86,7 @@ namespace GameFramework
                 }
 
                 results.Clear();
-                foreach (System.Reflection.Assembly assembly in s_Assemblies)
+                foreach (System.Reflection.Assembly assembly in GetAssemblies())
                 {
                     results.AddRange(assembly.GetTypes());
                 }
@@ -112,7 +117,7 @@ namespace GameFramework
                     return type;
                 }
 
-                foreach (System.Reflection.Assembly assembly in s_Assemblies)
+                foreach (System.Reflection.Assembly assembly in GetAssemblies())
                 {
                     type = Type.GetType(Text.Format("{0}, {1}", typeName, assembly.FullName));
                     if (type != null)
@@ -123,6 +128,22 @@ namespace GameFramework
                 }
 
                 return null;
+            }
+
+            private static void OnAssemblyLoad(object sender, AssemblyLoadEventArgs args)
+            {
+                if (args?.LoadedAssembly == null)
+                {
+                    return;
+                }
+
+                lock (s_AssembliesLock)
+                {
+                    if (!s_Assemblies.Contains(args.LoadedAssembly))
+                    {
+                        s_Assemblies.Add(args.LoadedAssembly);
+                    }
+                }
             }
             
         }
