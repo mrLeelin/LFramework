@@ -350,7 +350,7 @@ namespace LFramework.Runtime
             try
             {
                 var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
-                var op = package.LoadAssetAsync<object>(assetName);
+                var op = package.LoadAssetAsync(assetName,typeof(System.Object));
                 while (!op.IsDone)
                 {
                     handle.SetProgress(op.Progress);
