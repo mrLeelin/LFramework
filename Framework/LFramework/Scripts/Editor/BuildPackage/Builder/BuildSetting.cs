@@ -24,7 +24,7 @@ namespace LFramework.Editor
         /// <summary>
         /// 资源系统类型（Addressable 或 YooAssets）
         /// </summary>
-        public ResourceMode resourceSystem;
+        public ResourceMode ResourceSystem { get; set; }
 
         /// <summary>
         /// 打包的目标
@@ -72,7 +72,7 @@ namespace LFramework.Editor
         {
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.AppendLine($"ip:{ip}");
-            stringBuilder.AppendLine($"resourceSystem:{resourceSystem}");
+            stringBuilder.AppendLine($"resourceSystem:{ResourceSystem}");
             stringBuilder.AppendLine($"builderTarget:{builderTarget}");
             stringBuilder.AppendLine($"windowsChannel:{windowsChannel}");
             stringBuilder.AppendLine($"androidChannel:{androidChannel}");

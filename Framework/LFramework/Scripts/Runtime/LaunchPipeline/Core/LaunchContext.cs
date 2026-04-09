@@ -38,6 +38,46 @@ namespace LFramework.Runtime.LaunchPipeline
         public VersionCheckResult VersionCheckResult { get; set; }
 
         /// <summary>
+        /// 默认重试次数（不包含第一次执行）。
+        /// </summary>
+        public int DefaultRetryCount { get; set; } = 3;
+
+        /// <summary>
+        /// 默认重试间隔（秒）。
+        /// </summary>
+        public float DefaultRetryDelaySeconds { get; set; } = 1f;
+
+        /// <summary>
+        /// 是否使用指数退避。
+        /// </summary>
+        public bool UseExponentialBackoff { get; set; } = true;
+
+        /// <summary>
+        /// 上一次失败任务名称。
+        /// </summary>
+        public string LastFailedTaskName { get; set; }
+
+        /// <summary>
+        /// 上一次失败错误信息。
+        /// </summary>
+        public string LastErrorMessage { get; set; }
+
+        /// <summary>
+        /// 上一次失败错误分类。
+        /// </summary>
+        public LaunchErrorCategory LastErrorCategory { get; set; } = LaunchErrorCategory.None;
+
+        /// <summary>
+        /// 已执行的重试次数。
+        /// </summary>
+        public int LastRetryCount { get; set; }
+
+        /// <summary>
+        /// 最近一次失败对应的尝试索引（从 0 开始）。
+        /// </summary>
+        public int LastAttemptIndex { get; set; }
+
+        /// <summary>
         /// 构造函数。
         /// </summary>
         /// <param name="cancellationToken">可选的取消令牌。</param>

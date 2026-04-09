@@ -33,7 +33,7 @@ namespace LFramework.Editor
         public static bool CopyDll(BuildSetting buildSetting, HybridCLRSetting hybridClrSetting,string backAotFolder)
         {
 #if HybridCLR_SUPPORT
-            var registrar = CreateRegistrar(buildSetting.resourceSystem);
+            var registrar = CreateRegistrar(buildSetting.ResourceSystem);
             if (registrar == null)
             {
                 return false;

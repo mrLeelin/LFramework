@@ -30,20 +30,20 @@ namespace LFramework.Editor.Builder
             }
 
             // 检查资源系统是否受支持
-            if (!ResourceBuildSystemFactory.IsSupported(buildSetting.resourceSystem))
+            if (!ResourceBuildSystemFactory.IsSupported(buildSetting.ResourceSystem))
             {
-                Debug.LogError($"[BuildResourcesService] Resource system '{buildSetting.resourceSystem}' is not supported. Please check your configuration.");
+                Debug.LogError($"[BuildResourcesService] Resource system '{buildSetting.ResourceSystem}' is not supported. Please check your configuration.");
                 return;
             }
 
-            Debug.Log($"[BuildResourcesService] Using resource system: {ResourceBuildSystemFactory.GetDisplayName(buildSetting.resourceSystem)}");
+            Debug.Log($"[BuildResourcesService] Using resource system: {ResourceBuildSystemFactory.GetDisplayName(buildSetting.ResourceSystem)}");
 
             // 设置构建目标平台
             SetBuildTarget(BuildPackageWindow.ConvertToBuilderTarget(buildSetting.builderTarget));
 
             // 使用工厂模式创建资源构建系统
             Debug.Log($"[BuildResourcesService] Creating resource build system...");
-            var buildSystem = ResourceBuildSystemFactory.Create(buildSetting.resourceSystem);
+            var buildSystem = ResourceBuildSystemFactory.Create(buildSetting.ResourceSystem);
 
             // 执行构建 - 每个系统自己负责获取所需的配置
             Debug.Log($"[BuildResourcesService] Executing resource build...");

@@ -98,7 +98,7 @@ namespace LFramework.Editor.Builder
                 return;
             }
 
-            _buildSetting.resourceSystem = resSetting.ResourceMode;
+            _buildSetting.ResourceSystem = resSetting.ResourceMode;
         }
 
         /// <summary>

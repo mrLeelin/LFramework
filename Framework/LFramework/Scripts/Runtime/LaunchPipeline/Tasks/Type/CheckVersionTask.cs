@@ -14,7 +14,7 @@ namespace LFramework.Runtime.LaunchPipeline
     /// 通过 <see cref="WebRequestComponent"/> 发起 HTTP 请求获取远程版本信息，
     /// 解析 <see cref="GameVersion"/> JSON 数据，比较客户端与远程版本，决定后续流程。
     /// </summary>
-    public class CheckVersionTask : LaunchTaskBase
+    public class CheckVersionTask : RetryableLaunchTaskBase
     {
         /// <summary>
         /// 游戏设置，包含版本 URL、应用版本等配置
@@ -53,10 +53,22 @@ namespace LFramework.Runtime.LaunchPipeline
         /// </summary>
         /// <param name="context">启动管线上下文，用于写入版本检查结果。</param>
         /// <returns>任务执行结果。</returns>
-        public override async UniTask<LaunchTaskResult> ExecuteAsync(LaunchContext context)
+        protected override async UniTask<LaunchTaskResult> ExecuteOnceAsync(LaunchContext context)
         {
             try
             {
+                if (_gameSetting == null)
+                {
+                    SetFailedResult(context, "GameSetting is null");
+                    return LaunchTaskResult.CreateFailed(TaskName, "GameSetting is null");
+                }
+
+                if (string.IsNullOrWhiteSpace(_gameSetting.versionUrl))
+                {
+                    SetFailedResult(context, "versionUrl is empty");
+                    return LaunchTaskResult.CreateFailed(TaskName, "versionUrl is empty");
+                }
+
                 // 1. 构造版本检查 URL
                 var url = $"{_gameSetting.versionUrl}/{_gameSetting.GetVersionRootDir()}";
                 Log.Info("[CheckVersionTask] 版本检查 URL: {0}", url);
@@ -221,6 +233,63 @@ namespace LFramework.Runtime.LaunchPipeline
             }
         }
 
+        protected override bool ShouldRetry(LaunchTaskResult result, Exception exception, LaunchErrorCategory errorCategory,
+            LaunchContext context)
+        {
+            return errorCategory == LaunchErrorCategory.Network ||
+                   errorCategory == LaunchErrorCategory.Timeout ||
+                   errorCategory == LaunchErrorCategory.Server;
+        }
+
+        protected override LaunchErrorCategory ClassifyFailure(LaunchTaskResult result, Exception exception, LaunchContext context)
+        {
+            string errorMessage = result?.ErrorMessage ?? exception?.Message;
+            if (string.IsNullOrWhiteSpace(errorMessage))
+            {
+                return LaunchErrorCategory.Unknown;
+            }
+
+            if (ContainsAny(errorMessage, "timeout", "timed out", "超时"))
+            {
+                return LaunchErrorCategory.Timeout;
+            }
+
+            if (ContainsAny(errorMessage, "json", "解析"))
+            {
+                return LaunchErrorCategory.Parse;
+            }
+
+            if (ContainsAny(errorMessage, "versionurl", "defaultconfig", "配置为空", "gamesetting is null"))
+            {
+                return LaunchErrorCategory.Config;
+            }
+
+            if (ContainsAny(errorMessage, "500", "502", "503", "504", "server", "服务"))
+            {
+                return LaunchErrorCategory.Server;
+            }
+
+            if (ContainsAny(errorMessage, "network", "socket", "dns", "resolve", "连接", "reachable", "web request"))
+            {
+                return LaunchErrorCategory.Network;
+            }
+
+            return LaunchErrorCategory.Unknown;
+        }
+
+        protected override UniTask BeforeRetryAsync(int attempt, LaunchContext context, LaunchTaskResult result, Exception exception)
+        {
+            string message = $"版本检查失败，正在重试 ({attempt}/{GetMaxRetryCount(context)})...";
+            Log.Warning("[CheckVersionTask] {0} Error: {1}", message, result?.ErrorMessage ?? exception?.Message);
+            context.ProgressReporter.ReportProgress(0.1f, message);
+            return UniTask.CompletedTask;
+        }
+
+        protected override int GetMaxRetryCount(LaunchContext context)
+        {
+            return context.GetCustomData("CheckVersionRetryCount", context.DefaultRetryCount);
+        }
+
 
         /// <summary>
         /// 更新游戏设置，将远程版本配置写入 GameSetting
@@ -312,6 +381,19 @@ namespace LFramework.Runtime.LaunchPipeline
         /// <param name="errorMessage"></param>
         protected virtual void OnFailedResult(LaunchContext context, string errorMessage)
         {
+        }
+
+        private static bool ContainsAny(string source, params string[] values)
+        {
+            foreach (var value in values)
+            {
+                if (source.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

@@ -23,7 +23,7 @@ namespace LFramework.Runtime.LaunchPipeline
     /// 通过 <see cref="LaunchContext.CustomData"/> 传递，子项目可通过重写虚方法自定义下载行为。
     /// </para>
     /// </summary>
-    public class DownloadResourceTask : LaunchTaskBase
+    public class DownloadResourceTask : RetryableLaunchTaskBase
     {
         /// <summary>
         /// 资源下载组件，通过 Zenject 依赖注入获取
@@ -89,7 +89,7 @@ namespace LFramework.Runtime.LaunchPipeline
         /// </summary>
         /// <param name="context">启动管线上下文，可通过 CustomData 传递下载配置。</param>
         /// <returns>任务执行结果。</returns>
-        public override async UniTask<LaunchTaskResult> ExecuteAsync(LaunchContext context)
+        protected override async UniTask<LaunchTaskResult> ExecuteOnceAsync(LaunchContext context)
         {
             IResourceDownloadHandler handler = null;
             try
@@ -106,6 +106,11 @@ namespace LFramework.Runtime.LaunchPipeline
                 {
                     Log.Info("[DownloadResourceTask] 没有指定下载标签，跳过下载");
                     return LaunchTaskResult.CreateSuccess(TaskName);
+                }
+
+                if (_resourceDownloadComponent == null || _resourceComponent == null)
+                {
+                    return LaunchTaskResult.CreateFailed(TaskName, "Resource components are not ready.");
                 }
 
                 Log.Info("[DownloadResourceTask] 下载模式: {0}, 处理器名称: {1}, 标签数量: {2}",
@@ -153,19 +158,67 @@ namespace LFramework.Runtime.LaunchPipeline
             }
             finally
             {
-                // 6. 清理：取消订阅事件 + 移除处理器
-                if (handler != null)
-                {
-                    handler.DownloadSuccessfulEventHandler -= OnDownloadSuccessful;
-                    handler.DownloadFailureEventHandler -= OnDownloadFailure;
-                    handler.DownloadUpdateEventHandler -= OnDownloadUpdate;
-                    handler.DownloadStepEventHandler -= OnDownloadStep;
-                    _resourceDownloadComponent.RemoveHandler(_handlerSerialId);
-                    Log.Info("[DownloadResourceTask] 下载处理器已清理，SerialID: {0}", _handlerSerialId);
-                }
-
-                _context = null;
+                CleanupHandler(handler);
             }
+        }
+
+        protected override bool ShouldRetry(LaunchTaskResult result, Exception exception, LaunchErrorCategory errorCategory,
+            LaunchContext context)
+        {
+            return errorCategory == LaunchErrorCategory.Network ||
+                   errorCategory == LaunchErrorCategory.Timeout ||
+                   errorCategory == LaunchErrorCategory.Server;
+        }
+
+        protected override LaunchErrorCategory ClassifyFailure(LaunchTaskResult result, Exception exception, LaunchContext context)
+        {
+            string errorMessage = result?.ErrorMessage ?? exception?.Message;
+            if (string.IsNullOrWhiteSpace(errorMessage))
+            {
+                return LaunchErrorCategory.Unknown;
+            }
+
+            if (ContainsAny(errorMessage, "timeout", "timed out", "超时"))
+            {
+                return LaunchErrorCategory.Timeout;
+            }
+
+            if (ContainsAny(errorMessage, "label", "handler", "创建下载处理器失败", "not ready"))
+            {
+                return LaunchErrorCategory.Config;
+            }
+
+            if (ContainsAny(errorMessage, "catalog", "manifest", "package"))
+            {
+                return LaunchErrorCategory.Server;
+            }
+
+            if (ContainsAny(errorMessage, "network", "downloadfailure", "notreachable", "连接", "reachable"))
+            {
+                return LaunchErrorCategory.Network;
+            }
+
+            return LaunchErrorCategory.Unknown;
+        }
+
+        protected override UniTask BeforeRetryAsync(int attempt, LaunchContext context, LaunchTaskResult result, Exception exception)
+        {
+            CleanupHandler();
+            string message = $"资源下载失败，正在重试 ({attempt}/{GetMaxRetryCount(context)})...";
+            Log.Warning("[DownloadResourceTask] {0} Error: {1}", message, result?.ErrorMessage ?? exception?.Message);
+            context.ProgressReporter.ReportProgress(0f, message);
+            return UniTask.CompletedTask;
+        }
+
+        protected override UniTask AfterFailureAsync(LaunchContext context, LaunchTaskResult result, Exception exception)
+        {
+            CleanupHandler();
+            return UniTask.CompletedTask;
+        }
+
+        protected override int GetMaxRetryCount(LaunchContext context)
+        {
+            return context.GetCustomData("DownloadRetryCount", context.DefaultRetryCount);
         }
 
         /// <summary>
@@ -290,5 +343,41 @@ namespace LFramework.Runtime.LaunchPipeline
         }
 
         #endregion
+
+        private void CleanupHandler(IResourceDownloadHandler handler = null)
+        {
+            handler ??= _handlerSerialId > 0 ? _resourceDownloadComponent?.GetHandler(_handlerSerialId) : null;
+            if (handler != null)
+            {
+                handler.DownloadSuccessfulEventHandler -= OnDownloadSuccessful;
+                handler.DownloadFailureEventHandler -= OnDownloadFailure;
+                handler.DownloadUpdateEventHandler -= OnDownloadUpdate;
+                handler.DownloadStepEventHandler -= OnDownloadStep;
+            }
+
+            if (_handlerSerialId > 0)
+            {
+                _resourceDownloadComponent?.RemoveHandler(_handlerSerialId);
+                Log.Info("[DownloadResourceTask] 下载处理器已清理，SerialID: {0}", _handlerSerialId);
+            }
+
+            _handlerSerialId = 0;
+            _tcs = null;
+            _errorMessage = null;
+            _context = null;
+        }
+
+        private static bool ContainsAny(string source, params string[] values)
+        {
+            foreach (var value in values)
+            {
+                if (source.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 }
