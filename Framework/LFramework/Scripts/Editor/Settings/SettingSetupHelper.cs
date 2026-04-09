@@ -77,7 +77,7 @@ namespace LFramework.Editor.Settings
             setting.webSocketIp = ip.Replace("http://", "ws://").Replace("https://", "wss://") + "/ws";
             setting.appVersion = appVersion;
             setting.resourceVersion = "1.0.0.0";
-            setting.cdnType = CdnType.FullPackage;
+            setting.cdnType = CdnType.Debug;
             setting.channel = channel;
             setting.cdnUrl = $"{ip}/cdn";
 

@@ -6,6 +6,8 @@ using LFramework.Editor.Builder.Pipeline;
 using LFramework.Editor.Builder.Pipeline.Pipelines;
 using LFramework.Runtime;
 using LFramework.Runtime.Settings;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEngine;
@@ -199,7 +201,10 @@ namespace LFramework.Editor.Builder
             Debug.Log($"======[BuildingSetting: {buildSettingJson}]======");
             try
             {
-                var buildSetting = JsonUtility.FromJson<BuildSetting>(buildSettingJson);
+                var serializerSettings = new JsonSerializerSettings();
+                serializerSettings.Converters.Add(new StringEnumConverter());
+
+                var buildSetting = JsonConvert.DeserializeObject<BuildSetting>(buildSettingJson, serializerSettings);
                 if (buildSetting == null)
                 {
                     Debug.LogError($"==========[BuildSettingJson parse error. json '{buildSettingJson}']==========");

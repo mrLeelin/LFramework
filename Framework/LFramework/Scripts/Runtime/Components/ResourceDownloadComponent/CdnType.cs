@@ -9,12 +9,12 @@ namespace LFramework.Runtime
         /// </summary>
         Local,
         /// <summary>
-        /// 完整资源包
+        /// Debug
         /// </summary>
-        FullPackage,
-        
         Debug,
-        
+        /// <summary>
+        /// Release
+        /// </summary>
         Release
     }
 }
