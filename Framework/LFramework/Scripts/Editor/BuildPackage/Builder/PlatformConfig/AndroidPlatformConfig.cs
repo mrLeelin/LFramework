@@ -53,8 +53,9 @@ namespace LFramework.Editor.Builder.PlatformConfig
 
             if (!buildSetting.isRelease)
             {
+                /*
                 options.options |= BuildOptions.AllowDebugging | BuildOptions.Development;
-
+                */
                 if (buildSetting.isDeepProfiler)
                 {
                     options.options |= BuildOptions.EnableDeepProfilingSupport;
