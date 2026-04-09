@@ -350,7 +350,7 @@ namespace LFramework.Runtime
             try
             {
                 var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
-                var op = package.LoadAssetAsync<T>(assetName);
+                var op = package.LoadAssetAsync<object>(assetName);
                 while (!op.IsDone)
                 {
                     handle.SetProgress(op.Progress);
@@ -358,8 +358,21 @@ namespace LFramework.Runtime
                 }
                 if (op.Status == EOperationStatus.Succeed)
                 {
-                    handle.RegisterReleaseAction(() => op.Release());
-                    handle.SetResult(op.AssetObject as T);
+                    if (ResourceAssetTypeUtility.TryConvertLoadedObject(
+                            op.AssetObject,
+                            typeof(T),
+                            assetName,
+                            out var typedAsset,
+                            out var errorMessage))
+                    {
+                        handle.RegisterReleaseAction(() => op.Release());
+                        handle.SetResult((T)typedAsset);
+                    }
+                    else
+                    {
+                        handle.SetError(errorMessage);
+                        op.Release();
+                    }
                 }
                 else
                 {

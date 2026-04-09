@@ -211,7 +211,7 @@ namespace LFramework.Runtime
         {
             try
             {
-                var op = Addressables.LoadAssetAsync<T>(assetName);
+                var op = Addressables.LoadAssetAsync<object>(assetName);
                 while (!op.IsDone)
                 {
                     handle.SetProgress(op.PercentComplete);
@@ -219,8 +219,21 @@ namespace LFramework.Runtime
                 }
                 if (op.Status == AsyncOperationStatus.Succeeded)
                 {
-                    handle.RegisterReleaseAction(() => Addressables.Release(op));
-                    handle.SetResult(op.Result);
+                    if (ResourceAssetTypeUtility.TryConvertLoadedObject(
+                            op.Result,
+                            typeof(T),
+                            assetName,
+                            out var typedAsset,
+                            out var errorMessage))
+                    {
+                        handle.RegisterReleaseAction(() => Addressables.Release(op));
+                        handle.SetResult((T)typedAsset);
+                    }
+                    else
+                    {
+                        handle.SetError(errorMessage);
+                        Addressables.Release(op);
+                    }
                 }
                 else
                 {
