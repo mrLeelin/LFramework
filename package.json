@@ -1,7 +1,7 @@
 {
   "name": "com.lframework.core",
   "displayName": "LFramework",
-  "version": "0.2.19",
+  "version": "0.2.20",
   "unity": "6000.3",
   "unityRelease": "0f1",
   "description": "LFramework packaged for Unity Package Manager while preserving the original Framework folder layout.",

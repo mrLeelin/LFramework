@@ -73,28 +73,19 @@ namespace LFramework.Runtime
 
         public override void OnOpen(object userData)
         {
-            bool shouldHideBeforeEnterAnimation = AutoPlayEnterAnimation && _windowAnimation != null;
-            if (shouldHideBeforeEnterAnimation)
-            {
-                PrepareForEnterAnimation();
-            }
-
+            PrepareForEnterAnimation();
             base.OnOpen(userData);
             Subscribe(LFrameworkAspect.Instance.Get<EventComponent>());
             _windowAnimationState = WindowAnimationState.None;
             _isClosing = false;
-            if (AutoPlayEnterAnimation)
-            {
-                PlayEnterAnimation(userData);
-            }
-            else
-            {
-                RestoreAfterEnterAnimation();
-            }
-
             foreach (var subWindow in subModuleList)
             {
                 subWindow.OnOpen(userData);
+            }
+            RestoreAfterEnterAnimation();
+            if (AutoPlayEnterAnimation)
+            {
+                PlayEnterAnimation(userData);
             }
         }
 
@@ -258,7 +249,6 @@ namespace LFramework.Runtime
         {
             if (_windowAnimation == null)
             {
-                RestoreAfterEnterAnimation();
                 return;
             }
 
@@ -267,7 +257,6 @@ namespace LFramework.Runtime
             void AnimationEnterCompleted()
             {
                 _windowAnimationState = WindowAnimationState.None;
-                RestoreAfterEnterAnimation();
                 OnAnimationEnterCompleted();
                 LFrameworkAspect.Instance
                     .Fire(this,
