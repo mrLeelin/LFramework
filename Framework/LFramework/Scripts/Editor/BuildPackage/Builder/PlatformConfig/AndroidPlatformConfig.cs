@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using LFramework.Runtime.Settings;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
@@ -84,8 +85,24 @@ namespace LFramework.Editor.Builder.PlatformConfig
             // 配置签名（仅 Release 且非导出项目时）
             if (buildSetting.isRelease && buildSetting.buildAndroidAppType != BuildAndroidAppType.ExportAndroidProject)
             {
-                ConfigureKeystore();
-                PlayerSettings.Android.useCustomKeystore = true;
+                var androidSetting = SettingManager.GetSetting<AndroidSetting>();
+                if (androidSetting == null)
+                {
+                    throw new InvalidOperationException(
+                        "AndroidSetting not found in ProjectSettingSelector, unable to configure Android keystore.");
+                }
+
+                if (!androidSetting.Validate(out var errorMessage))
+                {
+                    throw new InvalidOperationException(
+                        $"AndroidSetting validation failed, unable to configure Android keystore. {errorMessage}");
+                }
+
+                ConfigureKeystore(androidSetting);
+            }
+            else
+            {
+                PlayerSettings.Android.useCustomKeystore = false;
             }
         }
 
@@ -139,13 +156,24 @@ namespace LFramework.Editor.Builder.PlatformConfig
             return result;
         }
 
-        private void ConfigureKeystore()
+        private void ConfigureKeystore(AndroidSetting androidSetting)
         {
-            PlayerSettings.Android.keystoreName = Path.GetFullPath(
-                Path.Combine(Application.dataPath, "../BuildBat/keystore/partygo.keystore"));
-            PlayerSettings.Android.keystorePass = "123456";
-            PlayerSettings.Android.keyaliasName = "partygo";
-            PlayerSettings.Android.keyaliasPass = "123456";
+            if (!androidSetting.UseCustomKeystore)
+            {
+                PlayerSettings.Android.useCustomKeystore = false;
+                Debug.Log("[AndroidPlatformConfig] Custom keystore disabled by AndroidSetting.");
+                return;
+            }
+
+            string resolvedKeystorePath = Path.IsPathRooted(androidSetting.KeystorePath)
+                ? Path.GetFullPath(androidSetting.KeystorePath)
+                : Path.GetFullPath(Path.Combine(Application.dataPath, "..", androidSetting.KeystorePath));
+
+            PlayerSettings.Android.keystoreName = resolvedKeystorePath;
+            PlayerSettings.Android.keystorePass = androidSetting.KeystorePass;
+            PlayerSettings.Android.keyaliasName = androidSetting.KeyaliasName;
+            PlayerSettings.Android.keyaliasPass = androidSetting.KeyaliasPass;
+            PlayerSettings.Android.useCustomKeystore = true;
         }
     }
 }
