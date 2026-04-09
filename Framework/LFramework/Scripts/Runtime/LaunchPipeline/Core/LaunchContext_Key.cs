@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace LFramework.Runtime.LaunchPipeline
 {
@@ -7,14 +8,43 @@ namespace LFramework.Runtime.LaunchPipeline
         /// <summary>
         /// 自定义设备id
         /// </summary>
-        public const string CustomDeviceId = "DeviceId";
+        private const string CustomDeviceId = "DeviceId";
+
+        private const string DownloadLabels = "DownloadLabels";
+
+
+        /// <summary>
+        /// 获取下载标签列表。
+        /// 默认从 <see cref="LaunchContext.CustomData"/> 中以 "DownloadLabels" 键获取。
+        /// </summary>
+        /// <returns>下载标签列表，返回 <c>null</c> 或空列表表示无需下载。</returns>
+        internal virtual List<string> GetDownloadLabels()
+        {
+            if (!ContainsCustomData(DownloadLabels))
+            {
+                return new List<string>(0);
+            }
+
+            var result = this.GetCustomData<List<string>>(DownloadLabels);
+            result ??= new List<string>();
+            return result;
+        }
+
+        /// <summary>
+        /// 设置下载标签列表
+        /// </summary>
+        /// <param name="labels"></param>
+        public void SetDownloadLabels(List<string> labels)
+        {
+            SetCustomData(DownloadLabels, labels);
+        }
 
 
         /// <summary>
         /// 获取设备唯一id
         /// </summary>
         /// <returns></returns>
-        public string GetCustomDeviceId()
+        internal virtual string GetCustomDeviceId()
         {
             if (!ContainsCustomData(CustomDeviceId))
             {

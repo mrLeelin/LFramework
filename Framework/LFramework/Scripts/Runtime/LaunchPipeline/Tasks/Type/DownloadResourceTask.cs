@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using GameFramework.Resource;
 using LFramework.Runtime;
 using LFramework.Runtime.LaunchPipeline.Basic;
+using LFramework.Runtime.Settings;
 
 #if ADDRESSABLE_SUPPORT
 using UnityEngine.AddressableAssets;
@@ -99,10 +100,12 @@ namespace LFramework.Runtime.LaunchPipeline
                 context.ProgressReporter.ReportProgress(0f, "正在准备下载...");
 
                 // 1. 从上下文获取下载配置
-                var labels = GetDownloadLabels(context);
+                var labels = context.GetDownloadLabels();
+                //默认加上init标签
+                labels.Add(SettingManager.GetSetting<HybridCLRSetting>().defaultInitLabel);
                 var handlerName = GetDownloadHandlerName(context);
 
-                if (labels == null || labels.Count == 0)
+                if (labels.Count == 0)
                 {
                     Log.Info("[DownloadResourceTask] 没有指定下载标签，跳过下载");
                     return LaunchTaskResult.CreateSuccess(TaskName);
@@ -294,16 +297,7 @@ namespace LFramework.Runtime.LaunchPipeline
 
         #region 虚方法 - 子项目可重写
 
-        /// <summary>
-        /// 获取下载标签列表。
-        /// 默认从 <see cref="LaunchContext.CustomData"/> 中以 "DownloadLabels" 键获取。
-        /// </summary>
-        /// <param name="context">启动管线上下文。</param>
-        /// <returns>下载标签列表，返回 <c>null</c> 或空列表表示无需下载。</returns>
-        protected virtual List<string> GetDownloadLabels(LaunchContext context)
-        {
-            return context.GetCustomData<List<string>>("DownloadLabels");
-        }
+       
 
         /// <summary>
         /// 获取下载处理器名称。
