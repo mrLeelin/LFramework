@@ -27,6 +27,12 @@ namespace LFramework.Runtime
                 return null;
             }
 
+            if (isNewInstance)
+            {
+                // 新实例默认是激活的，先隐藏避免进入 OnOpen / 入场动画前渲染出原始界面一帧。
+                gameObject.SetActive(false);
+            }
+
             Transform transform = gameObject.transform;
             transform.SetParent(((UnityEngine.MonoBehaviour)uiGroup.Helper).transform);
             transform.localScale = Vector3.one;

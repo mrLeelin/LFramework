@@ -25,6 +25,7 @@ MonoBehaviour:
   m_InstanceRoot: {fileID: 1359759352226229096, guid: 82a1ddea6a651e64c88d540da46f55f3,
     type: 3}
   m_InstanceRootOffset: {x: -1000, y: 100}
+  m_VertexColorAlwaysGammaSpace: 1
   m_UIFormHelperTypeName: LFramework.Runtime.DefaultUIFormHelper
   m_CustomUIFormHelper: {fileID: 0}
   m_UIGroupHelperTypeName: LFramework.Runtime.DefaultUIGroupHelper

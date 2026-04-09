@@ -13,6 +13,9 @@ using UnityGameFramework.Runtime;
 
 namespace LFramework.Runtime.Settings
 {
+    /// <summary>
+    /// UI 组件配置。
+    /// </summary>
     [CreateAssetMenu(order = 1, fileName = "UIComponentSetting",
         menuName = "LFramework/Settings/UIComponentSetting")]
     public sealed class UIComponentSetting : ComponentSetting
@@ -49,6 +52,9 @@ namespace LFramework.Runtime.Settings
 
         [SerializeField]
         private Vector2 m_InstanceRootOffset = Vector2.zero;
+
+        [SerializeField]
+        private bool m_VertexColorAlwaysGammaSpace = true;
         
         [SerializeField]
         private string m_UIFormHelperTypeName = "UnityGameFramework.Runtime.DefaultUIFormHelper";
@@ -64,8 +70,11 @@ namespace LFramework.Runtime.Settings
 
         [SerializeField]
         private UIComponent.UIGroup[] m_UIGroups = null;
-        
-      
+
+        /// <summary>
+        /// 是否让 Canvas 顶点颜色始终使用 Gamma 空间。
+        /// </summary>
+        public bool VertexColorAlwaysGammaSpace => m_VertexColorAlwaysGammaSpace;
     }
     
 }

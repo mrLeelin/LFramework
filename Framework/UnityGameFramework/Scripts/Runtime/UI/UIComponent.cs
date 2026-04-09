@@ -63,6 +63,9 @@ namespace UnityGameFramework.Runtime
         private Vector2 m_InstanceRootOffset = Vector2.zero;
 
         [SerializeField]
+        private bool m_VertexColorAlwaysGammaSpace = true;
+
+        [SerializeField]
         private string m_UIFormHelperTypeName = "UnityGameFramework.Runtime.DefaultUIFormHelper";
 
         [SerializeField]
@@ -156,6 +159,11 @@ namespace UnityGameFramework.Runtime
 
         
         public RectTransform CanvasRootSizeDelta { get; private set; }
+
+        /// <summary>
+        /// 是否让窗口 Canvas 顶点颜色始终使用 Gamma 空间。
+        /// </summary>
+        public bool VertexColorAlwaysGammaSpace => m_VertexColorAlwaysGammaSpace;
         
         /// <summary>
         /// 游戏框架组件初始化。

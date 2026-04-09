@@ -53,7 +53,7 @@ namespace LFramework.Runtime
             _windowAnimation = gameObject.GetComponent<IAnimation>();
             _canvas = gameObject.GetOrAddComponent<Canvas>();
             _canvas.overrideSorting = true;
-            //_canvas.vertexColorAlwaysGammaSpace = true;
+            _canvas.vertexColorAlwaysGammaSpace = UIComponent.VertexColorAlwaysGammaSpace;
             OriginalDepth = _canvas.sortingOrder;
             gameObject.GetOrAddComponent<CanvasGroup>();
             CacheRectTransform.anchorMax = Vector2.one;

@@ -5,7 +5,11 @@
         "LFramework.Editor",
         "LFramework.Runtime",
         "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner"
+        "UnityEditor.TestRunner",
+        "UniTask",
+        "UnityGameFramework.Runtime",
+        "GameFramework",
+        "Zenject"
     ],
     "includePlatforms": [
         "Editor"

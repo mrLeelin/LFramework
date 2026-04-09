@@ -21,6 +21,7 @@ namespace LFramework.Editor.Inspector
         private SerializedProperty m_InstanceRoot = null;
         private SerializedProperty m_UIGroups = null;
         private SerializedProperty m_InstanceRootOffset = null;
+        private SerializedProperty m_VertexColorAlwaysGammaSpace = null;
 
         private readonly HelperInfo<UIFormHelperBase> m_UIFormHelperInfo = new HelperInfo<UIFormHelperBase>("UIForm");
         private readonly HelperInfo<UIGroupHelperBase> m_UIGroupHelperInfo = new HelperInfo<UIGroupHelperBase>("UIGroup");
@@ -76,6 +77,7 @@ namespace LFramework.Editor.Inspector
             m_InstanceRoot = serializedObject.FindProperty("m_InstanceRoot");
             m_UIGroups = serializedObject.FindProperty("m_UIGroups");
             m_InstanceRootOffset = serializedObject.FindProperty("m_InstanceRootOffset");
+            m_VertexColorAlwaysGammaSpace = serializedObject.FindProperty("m_VertexColorAlwaysGammaSpace");
             m_UIFormHelperInfo.Init(serializedObject);
             m_UIGroupHelperInfo.Init(serializedObject);
 
@@ -181,6 +183,7 @@ namespace LFramework.Editor.Inspector
             BeginSection("Hierarchy & Helpers", "Configure the UI root transform, root offset, and helper implementations.");
             EditorGUILayout.PropertyField(m_InstanceRoot);
             EditorGUILayout.PropertyField(m_InstanceRootOffset);
+            EditorGUILayout.PropertyField(m_VertexColorAlwaysGammaSpace);
             m_UIFormHelperInfo.Draw();
             m_UIGroupHelperInfo.Draw();
 
