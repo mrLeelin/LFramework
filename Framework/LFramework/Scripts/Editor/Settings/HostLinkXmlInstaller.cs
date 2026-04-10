@@ -3,6 +3,8 @@ using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 using UnityEditor;
+using UnityEditor.Build;
+using UnityEditor.Build.Reporting;
 using UnityEngine;
 
 namespace LFramework.Editor.Settings
@@ -24,16 +26,15 @@ namespace LFramework.Editor.Settings
             "Zenject-usage"
         };
 
-        [MenuItem("LFramework/Setup/Install Host Link.xml")]
-        private static void InstallHostLinkXmlMenu()
-        {
-            EnsureHostLinkXml(logResult: true);
-        }
-
         [InitializeOnLoadMethod]
         private static void EnsureHostLinkXmlOnLoad()
         {
             EnsureHostLinkXml(logResult: false);
+        }
+
+        internal static void EnsureHostLinkXmlBeforeBuild()
+        {
+            EnsureHostLinkXml(logResult: true);
         }
 
         private static void EnsureHostLinkXml(bool logResult)
@@ -140,6 +141,26 @@ namespace LFramework.Editor.Settings
             }
 
             return fullPath;
+        }
+    }
+
+    /// <summary>
+    /// 在构建前确保宿主项目的 link.xml 已同步完成。
+    /// </summary>
+    internal sealed class HostLinkXmlBuildPreprocessor : IPreprocessBuildWithReport
+    {
+        /// <summary>
+        /// 构建预处理回调顺序。
+        /// </summary>
+        public int callbackOrder => 0;
+
+        /// <summary>
+        /// 构建前执行 link.xml 安装与校验。
+        /// </summary>
+        /// <param name="report">当前构建报告。</param>
+        public void OnPreprocessBuild(BuildReport report)
+        {
+            HostLinkXmlInstaller.EnsureHostLinkXmlBeforeBuild();
         }
     }
 }

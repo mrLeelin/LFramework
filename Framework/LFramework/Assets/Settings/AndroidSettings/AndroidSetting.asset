@@ -12,10 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04b1dcfed8c408d4ba46f976ef998119, type: 3}
   m_Name: AndroidSetting
   m_EditorClassIdentifier: 
+  settingId: 
   displayName: 
   description: 
   tags: []
-  bundleIdentifier: com.company.game.dev
-  minSdkVersion: 25
-  targetSdkVersion: 35
-  useIL2CPP: 1
+  useCustomKeystore: 1
+  keystorePath: BuildBat/keystore/partygo.keystore
+  keystorePass: 123456
+  keyaliasName: partygo
+  keyaliasPass: 123456

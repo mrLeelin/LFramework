@@ -1,4 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using UnityEngine;
 
 namespace LFramework.Editor.Builder.PlatformConfig
 {
@@ -21,20 +25,17 @@ namespace LFramework.Editor.Builder.PlatformConfig
                 throw new ArgumentNullException(nameof(buildSetting));
             }
 
-            switch (builderTarget)
+            IPlatformConfigRegistryProvider provider = SelectProvider(builderTarget);
+            IPlatformConfig config = provider.CreateConfig(builderTarget, buildSetting);
+            if (config == null)
             {
-                case BuilderTarget.Windows:
-                    return new WindowsPlatformConfig(buildSetting);
-
-                case BuilderTarget.Android:
-                    return new AndroidPlatformConfig(buildSetting);
-
-                case BuilderTarget.iOS:
-                    return new iOSPlatformConfig(buildSetting);
-
-                default:
-                    throw new ArgumentException($"Unsupported builder target: {builderTarget}", nameof(builderTarget));
+                throw new InvalidOperationException(
+                    $"Platform config provider '{provider.ProviderName}' returned null for target '{builderTarget}'.");
             }
+
+            Debug.Log(
+                $"[PlatformConfigFactory] Selected provider '{provider.ProviderName}' for target '{builderTarget}', config '{config.GetType().Name}'.");
+            return config;
         }
 
         /// <summary>
@@ -42,9 +43,15 @@ namespace LFramework.Editor.Builder.PlatformConfig
         /// </summary>
         public static bool IsSupported(BuilderTarget builderTarget)
         {
-            return builderTarget == BuilderTarget.Windows ||
-                   builderTarget == BuilderTarget.Android ||
-                   builderTarget == BuilderTarget.iOS;
+            try
+            {
+                SelectProvider(builderTarget);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         /// <summary>
@@ -62,6 +69,84 @@ namespace LFramework.Editor.Builder.PlatformConfig
                     return "iOS";
                 default:
                     return "Unknown";
+            }
+        }
+
+        private static IPlatformConfigRegistryProvider SelectProvider(BuilderTarget builderTarget)
+        {
+            List<IPlatformConfigRegistryProvider> providers = GetAllProviders()
+                .Where(provider => provider.IsActive)
+                .ToList();
+            if (providers.Count == 0)
+            {
+                providers.Add(new DefaultPlatformConfigRegistryProvider());
+            }
+
+            int highestPriority = providers.Max(provider => provider.Priority);
+            List<IPlatformConfigRegistryProvider> highestPriorityProviders = providers
+                .Where(provider => provider.Priority == highestPriority)
+                .ToList();
+            if (highestPriorityProviders.Count > 1)
+            {
+                string providerNames = string.Join(", ",
+                    highestPriorityProviders.Select(provider => provider.ProviderName));
+                throw new InvalidOperationException(
+                    $"Multiple platform config providers share the highest priority {highestPriority}: {providerNames}");
+            }
+
+            IPlatformConfigRegistryProvider selectedProvider = highestPriorityProviders[0];
+            if (!selectedProvider.Supports(builderTarget))
+            {
+                throw new InvalidOperationException(
+                    $"Platform config provider '{selectedProvider.ProviderName}' does not support target '{builderTarget}'.");
+            }
+
+            return selectedProvider;
+        }
+
+        private static List<IPlatformConfigRegistryProvider> GetAllProviders()
+        {
+            List<IPlatformConfigRegistryProvider> providers = new List<IPlatformConfigRegistryProvider>();
+            foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                foreach (Type type in GetLoadableTypes(assembly))
+                {
+                    if (!typeof(IPlatformConfigRegistryProvider).IsAssignableFrom(type))
+                    {
+                        continue;
+                    }
+
+                    if (type.IsAbstract || type.IsInterface)
+                    {
+                        continue;
+                    }
+
+                    if (type.GetConstructor(Type.EmptyTypes) == null)
+                    {
+                        Debug.LogWarning(
+                            $"[PlatformConfigFactory] Skip provider '{type.FullName}' because it does not have a parameterless constructor.");
+                        continue;
+                    }
+
+                    if (Activator.CreateInstance(type) is IPlatformConfigRegistryProvider provider)
+                    {
+                        providers.Add(provider);
+                    }
+                }
+            }
+
+            return providers;
+        }
+
+        private static IEnumerable<Type> GetLoadableTypes(Assembly assembly)
+        {
+            try
+            {
+                return assembly.GetTypes();
+            }
+            catch (ReflectionTypeLoadException exception)
+            {
+                return exception.Types.Where(type => type != null);
             }
         }
     }
