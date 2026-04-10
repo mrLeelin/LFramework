@@ -2,6 +2,12 @@
 
 `LFramework` is a Unity Package Manager package version of the current framework repository. This package intentionally preserves the original internal layout under `Framework/...` instead of reorganizing the code into `Runtime/`, `Editor/`, or `Tests/`.
 
+## Latest package highlights
+
+- Project-owned platform config registry providers can now take over the full `BuilderTarget -> IPlatformConfig` mapping with pure code.
+- `PlatformConfigFactory` now selects active providers by priority and reports provider conflicts or invalid results more clearly.
+- Host `Assets/link.xml` maintenance is now automatic on editor load and before player builds.
+
 ## Package guide
 
 - Quick start: `Documentation~/QuickStart.md`
