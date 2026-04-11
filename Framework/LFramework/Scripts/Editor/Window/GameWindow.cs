@@ -25,6 +25,7 @@ namespace LFramework.Editor.Window
         private GameWindowFrameworkSettingOverview _gameWindowFrameworkSettingOverview;
         private GameWindowFrameworkProfiledOverview _gameWindowFrameworkProfiledOverview;
         private GameWindowLubanOverview _gameWindowLubanOverview;
+        private GameWindowLubanPrimaryKeyOverview _gameWindowLubanPrimaryKeyOverview;
         private List<ProfiledBase> _allProfiled;
         private UnityEditor.Editor _cachedSettingEditor;
         private UnityEngine.Object _cachedSettingTarget;
@@ -74,6 +75,7 @@ namespace LFramework.Editor.Window
             _gameWindowFrameworkProfiledOverview ??=
                 new GameWindowFrameworkProfiledOverview(() => _allProfiled?.Count ?? 0);
             _gameWindowLubanOverview ??= new GameWindowLubanOverview();
+            _gameWindowLubanPrimaryKeyOverview ??= new GameWindowLubanPrimaryKeyOverview();
         }
 
         protected override void OnDisable()
@@ -87,6 +89,7 @@ namespace LFramework.Editor.Window
 
             _cachedSettingTarget = null;
             _gameWindowLubanOverview?.Dispose();
+            _gameWindowLubanPrimaryKeyOverview?.Dispose();
         }
 
         protected override OdinMenuTree BuildMenuTree()
@@ -101,6 +104,7 @@ namespace LFramework.Editor.Window
                 
 #if LUBAN_SUPPORT
                   { "Luban", _gameWindowLubanOverview, EditorIcons.SettingsCog },
+                  { "Luban/主键生成", _gameWindowLubanPrimaryKeyOverview, EditorIcons.SettingsCog },
 #endif
                 
                 { "本地Cdn测试服务", _gameWindowLocalResourceServer, EditorIcons.SettingsCog },
@@ -488,5 +492,6 @@ namespace LFramework.Editor.Window
                 name = menuPath.Substring(length + 1);
             }
         }
+        
     }
 }

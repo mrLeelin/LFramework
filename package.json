@@ -1,7 +1,7 @@
 {
   "name": "com.lframework.core",
   "displayName": "LFramework",
-  "version": "0.2.31",
+  "version": "0.2.32",
   "unity": "6000.3",
   "unityRelease": "0f1",
   "description": "LFramework packaged for Unity Package Manager with project-owned platform config provider support, automatic host link.xml installation, and the original Framework folder layout preserved.",

@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using CliWrap;
 using JetBrains.Annotations;
+using Luban.Editor.PrimaryKey;
 using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEditor;
@@ -293,6 +294,7 @@ namespace Luban.Editor
             try
             {
                 cli.ExecuteAsync().GetAwaiter().GetResult();
+                LubanPrimaryKeyClassGenerator.GenerateAll(this, LubanPrimaryKeyGenerateConfigRegister.GetOrCreate());
             }
             catch(Exception e)
             {

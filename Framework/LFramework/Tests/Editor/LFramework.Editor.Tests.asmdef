@@ -9,7 +9,9 @@
         "UniTask",
         "UnityGameFramework.Runtime",
         "GameFramework",
-        "Zenject"
+        "Zenject",
+        "Luban.Runtime",
+        "Luban.Editor"
     ],
     "includePlatforms": [
         "Editor"
