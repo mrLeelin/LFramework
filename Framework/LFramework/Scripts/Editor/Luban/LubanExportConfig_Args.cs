@@ -11,6 +11,7 @@ namespace Luban.Editor
     {
         private static ValueDropdownList<string> _timeZoneDropdownCache;
         private static string _defaultTemplateDir;
+        private static Func<string, string> _packageRootResolverForTests;
 
         /// <summary>
         /// 通过 LFramework.Editor.asmdef 动态定位框架内置 Luban 模板目录。
@@ -42,6 +43,75 @@ namespace Luban.Editor
 
                 return _defaultTemplateDir;
             }
+        }
+
+        internal static string ResolveExternalToolPath(string path)
+        {
+            if(string.IsNullOrWhiteSpace(path))
+            {
+                return path;
+            }
+
+            string normalizedPath = path.Replace("\\", "/");
+            if(Path.IsPathRooted(normalizedPath))
+            {
+                return Path.GetFullPath(normalizedPath).Replace("\\", "/");
+            }
+
+            if(TryResolvePackageAssetPath(normalizedPath, out string resolvedPackagePath))
+            {
+                return resolvedPackagePath;
+            }
+
+            return Path.GetFullPath(normalizedPath).Replace("\\", "/");
+        }
+
+        internal static void SetPackageRootResolverForTests(Func<string, string> packageRootResolver)
+        {
+            _packageRootResolverForTests = packageRootResolver;
+        }
+
+        private static bool TryResolvePackageAssetPath(string assetPath, out string resolvedPath)
+        {
+            resolvedPath = null;
+            if(!assetPath.StartsWith("Packages/", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            string packageAssetRoot = GetPackageAssetRoot(assetPath);
+            if(string.IsNullOrEmpty(packageAssetRoot))
+            {
+                return false;
+            }
+
+            string resolvedPackageRoot = _packageRootResolverForTests?.Invoke(assetPath);
+            if(string.IsNullOrEmpty(resolvedPackageRoot))
+            {
+                UnityEditor.PackageManager.PackageInfo packageInfo =
+                    UnityEditor.PackageManager.PackageInfo.FindForAssetPath(assetPath);
+                resolvedPackageRoot = packageInfo?.resolvedPath;
+            }
+
+            if(string.IsNullOrEmpty(resolvedPackageRoot))
+            {
+                return false;
+            }
+
+            string relativePath = assetPath.Substring(packageAssetRoot.Length).TrimStart('/', '\\');
+            resolvedPath = Path.Combine(resolvedPackageRoot, relativePath).Replace("\\", "/");
+            return true;
+        }
+
+        private static string GetPackageAssetRoot(string assetPath)
+        {
+            string[] segments = assetPath.Split(new[] {'/'}, StringSplitOptions.RemoveEmptyEntries);
+            if(segments.Length < 2)
+            {
+                return null;
+            }
+
+            return $"{segments[0]}/{segments[1]}";
         }
 
         

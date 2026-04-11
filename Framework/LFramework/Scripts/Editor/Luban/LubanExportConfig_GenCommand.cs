@@ -40,9 +40,11 @@ namespace Luban.Editor
         public void PreviewCommand()
         {
             var sb = new StringBuilder();
+            string resolvedLubanDllPath = ResolveExternalToolPath(luban_dll);
+            string resolvedLubanConfPath = ResolveExternalToolPath(luban_conf_path);
 
-            sb.Append($"{luban_dll} {LINE_END}");
-            sb.Append($"--conf {luban_conf_path} {LINE_END}");
+            sb.Append($"{resolvedLubanDllPath} {LINE_END}");
+            sb.Append($"--conf {resolvedLubanConfPath} {LINE_END}");
             sb.Append($"-t {target} {LINE_END}");
 
             if(force_load_table_datas)
@@ -90,7 +92,7 @@ namespace Luban.Editor
                 : DefaultTemplateDir;
             if(!string.IsNullOrEmpty(templateDir))
             {
-                sb.Append($"--customTemplateDir {templateDir} {LINE_END}");
+                sb.Append($"--customTemplateDir {ResolveExternalToolPath(templateDir)} {LINE_END}");
             }
 
             if(output_table is not null && output_table.Count > 0)
@@ -149,12 +151,12 @@ namespace Luban.Editor
                         continue;
                     }
 
-                    sb.Append($"-x {target.code_type}.outputCodeDir={target.output_dir} {LINE_END}");
+                    sb.Append($"-x {target.code_type}.outputCodeDir={ResolveExternalToolPath(target.output_dir)} {LINE_END}");
                 }
             }
             else if(!string.IsNullOrEmpty(output_code_dir))
             {
-                sb.Append($"-x outputCodeDir={output_code_dir} {LINE_END}");
+                sb.Append($"-x outputCodeDir={ResolveExternalToolPath(output_code_dir)} {LINE_END}");
             }
 
             if(multi_data_target)
@@ -166,12 +168,12 @@ namespace Luban.Editor
                         continue;
                     }
 
-                    sb.Append($"-x {target.data_type}.outputDataDir={target.output_dir} {LINE_END}");
+                    sb.Append($"-x {target.data_type}.outputDataDir={ResolveExternalToolPath(target.output_dir)} {LINE_END}");
                 }
             }
             else if(!string.IsNullOrEmpty(output_data_dir))
             {
-                sb.Append($"-x outputDataDir={output_data_dir} {LINE_END}");
+                sb.Append($"-x outputDataDir={ResolveExternalToolPath(output_data_dir)} {LINE_END}");
             }
 
             if(!string.IsNullOrEmpty(code_style))
@@ -206,7 +208,7 @@ namespace Luban.Editor
 
             if(!string.IsNullOrEmpty(l10n_text_provider_file))
             {
-                sb.Append($"-x l10n.textProviderFile={l10n_text_provider_file} {LINE_END}");
+                sb.Append($"-x l10n.textProviderFile={ResolveExternalToolPath(l10n_text_provider_file)} {LINE_END}");
             }
 
             if(!string.IsNullOrEmpty(l10n_text_list_file))
@@ -216,7 +218,7 @@ namespace Luban.Editor
 
             if(!string.IsNullOrEmpty(path_validator_root_dir))
             {
-                sb.Append($"-x pathValidator.rootDir={path_validator_root_dir} {LINE_END}");
+                sb.Append($"-x pathValidator.rootDir={ResolveExternalToolPath(path_validator_root_dir)} {LINE_END}");
             }
 
             if(custom_args is not null && custom_args.Count > 0)
@@ -253,7 +255,7 @@ namespace Luban.Editor
         {
             PreviewCommand();
 
-            var full_path = Path.GetFullPath(luban_conf_path);
+            var full_path = ResolveExternalToolPath(luban_conf_path);
 
             var dir = Path.GetDirectoryName(full_path);
 
