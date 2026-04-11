@@ -104,7 +104,7 @@ namespace LFramework.Editor.Window
                 
 #if LUBAN_SUPPORT
                   { "Luban", _gameWindowLubanOverview, EditorIcons.SettingsCog },
-                  { "Luban/主键生成", _gameWindowLubanPrimaryKeyOverview, EditorIcons.SettingsCog },
+                  { "Luban/主键映射", _gameWindowLubanPrimaryKeyOverview, EditorIcons.SettingsCog },
 #endif
                 
                 { "本地Cdn测试服务", _gameWindowLocalResourceServer, EditorIcons.SettingsCog },

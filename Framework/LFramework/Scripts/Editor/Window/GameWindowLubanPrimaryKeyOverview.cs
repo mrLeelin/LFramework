@@ -36,15 +36,15 @@ namespace LFramework.Editor.Window
 
             GameWindowChrome.BeginPage(ref _scrollPosition);
             GameWindowChrome.DrawHeader(
-                "主键生成",
-                "在这里维护 Luban 表的公共输出配置和表级主键生成规则，导表成功后自动生成表名 + SerialID 常量类。",
+                "主键映射",
+                "在这里维护 Luban 表的公共输出配置和表级主键映射规则，可直接生成表名 + SerialID 常量类。",
                 new GameWindowBadge("Asset", string.IsNullOrEmpty(assetPath) ? "Auto Create" : Path.GetFileNameWithoutExtension(assetPath)),
                 new GameWindowBadge("Enabled", enabledRuleCount.ToString()));
             GameWindowChrome.DrawSeparator();
             GUILayout.Space(12f);
             GameWindowChrome.DrawStatCards(
-                new GameWindowStatCard("Rules", totalRuleCount.ToString(), "配置资产里的全部主键生成规则数量。", GameWindowChrome.AccentColor),
-                new GameWindowStatCard("Enabled", enabledRuleCount.ToString(), "导表成功后会实际执行的规则数量。", GameWindowChrome.SuccessColor),
+                new GameWindowStatCard("Rules", totalRuleCount.ToString(), "配置资产里的全部主键映射规则数量。", GameWindowChrome.AccentColor),
+                new GameWindowStatCard("Enabled", enabledRuleCount.ToString(), "当前会实际参与生成的规则数量。", GameWindowChrome.SuccessColor),
                 new GameWindowStatCard("Output", Path.GetFileName(outputDirectory), outputDirectory, GameWindowChrome.WarningColor));
 
             GameWindowChrome.DrawSectionHeader("Shared Settings", "命名空间和输出目录是整份配置共享的公共设置。");
@@ -52,7 +52,7 @@ namespace LFramework.Editor.Window
             DrawSharedSettings();
             GameWindowChrome.EndContentCard();
 
-            GameWindowChrome.DrawSectionHeader("Rules", "列表里只维护表级字段：表名、主键字段和多列注释字段。");
+            GameWindowChrome.DrawSectionHeader("Rules", "列表里维护表名、主键字段和多列注释字段；表名与主键字段只能通过右侧选择。");
             GameWindowChrome.BeginContentCard();
             DrawToolbar();
             GUILayout.Space(8f);
@@ -86,6 +86,11 @@ namespace LFramework.Editor.Window
                 }
             }
 
+            if (GUILayout.Button("直接生成主键类", GUILayout.Height(28f)))
+            {
+                RunPrimaryKeyGeneration();
+            }
+
             if (GUILayout.Button("新增规则", GUILayout.Height(28f)))
             {
                 Undo.RecordObject(_config, "Add Luban Primary Key Rule");
@@ -101,7 +106,7 @@ namespace LFramework.Editor.Window
         {
             if (_config == null)
             {
-                EditorGUILayout.HelpBox("主键生成配置暂时不可用。", MessageType.Warning);
+                EditorGUILayout.HelpBox("主键映射配置暂时不可用。", MessageType.Warning);
                 return;
             }
 
@@ -151,7 +156,7 @@ namespace LFramework.Editor.Window
 
             if (_config.Rules == null || _config.Rules.Count == 0)
             {
-                EditorGUILayout.HelpBox("当前没有主键生成规则，点击上面的“新增规则”创建。", MessageType.Info);
+                EditorGUILayout.HelpBox("当前没有主键映射规则，点击上面的“新增规则”创建。", MessageType.Info);
                 return;
             }
 
@@ -176,7 +181,7 @@ namespace LFramework.Editor.Window
                 EditorGUILayout.EndHorizontal();
 
                 DrawTableNameField(rule);
-                DrawSingleSelectableField("Primary Key Field", rule.PrimaryKeyField, value => rule.PrimaryKeyField = value, rule);
+                DrawPrimaryKeyField(rule);
                 DrawCommentFields(rule);
 
                 string outputClassName = string.IsNullOrWhiteSpace(rule.TableName)
@@ -196,7 +201,10 @@ namespace LFramework.Editor.Window
         {
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.PrefixLabel("Table Name");
-            rule.TableName = EditorGUILayout.TextField(rule.TableName ?? string.Empty);
+            using (new EditorGUI.DisabledGroupScope(true))
+            {
+                EditorGUILayout.TextField(rule.TableName ?? string.Empty);
+            }
 
             if (GUILayout.Button("选表", GUILayout.Width(56f)))
             {
@@ -205,6 +213,8 @@ namespace LFramework.Editor.Window
                 {
                     Undo.RecordObject(_config, "Select Luban Workbook");
                     rule.TableName = LubanPrimaryKeyWorkbookReader.GetTableNameFromWorkbookPath(selectedWorkbookPath);
+                    rule.PrimaryKeyField = string.Empty;
+                    rule.CommentFields?.Clear();
                     EditorUtility.SetDirty(_config);
                 }
             }
@@ -212,20 +222,22 @@ namespace LFramework.Editor.Window
             EditorGUILayout.EndHorizontal();
         }
 
-        private void DrawSingleSelectableField(string label, string currentValue, System.Action<string> setter, LubanPrimaryKeyGenerateRule rule)
+        private void DrawPrimaryKeyField(LubanPrimaryKeyGenerateRule rule)
         {
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.PrefixLabel(label);
-            string updatedValue = EditorGUILayout.TextField(currentValue ?? string.Empty);
-            if (!string.Equals(updatedValue, currentValue, System.StringComparison.Ordinal))
+            EditorGUILayout.PrefixLabel("Primary Key Field");
+            using (new EditorGUI.DisabledGroupScope(true))
             {
-                setter(updatedValue);
-                EditorUtility.SetDirty(_config);
+                EditorGUILayout.TextField(rule.PrimaryKeyField ?? string.Empty);
             }
 
             if (GUILayout.Button("选列", GUILayout.Width(56f)))
             {
-                ShowHeaderSelectionMenu(rule, setter);
+                ShowHeaderSelectionMenu(rule, value =>
+                {
+                    rule.PrimaryKeyField = value;
+                    EditorUtility.SetDirty(_config);
+                });
             }
 
             EditorGUILayout.EndHorizontal();
@@ -255,7 +267,7 @@ namespace LFramework.Editor.Window
         {
             if (rule == null || string.IsNullOrWhiteSpace(rule.TableName))
             {
-                EditorUtility.DisplayDialog("Select Column", "请先选择 TableName。", "OK");
+                EditorUtility.DisplayDialog("Select Column", "请先通过“选表”设置 TableName。", "OK");
                 return;
             }
 
@@ -274,7 +286,6 @@ namespace LFramework.Editor.Window
                 {
                     Undo.RecordObject(_config, "Select Luban Column");
                     setter(headerName);
-                    EditorUtility.SetDirty(_config);
                 });
             }
 
@@ -285,7 +296,7 @@ namespace LFramework.Editor.Window
         {
             if (rule == null || string.IsNullOrWhiteSpace(rule.TableName))
             {
-                EditorUtility.DisplayDialog("Select Comment Columns", "请先选择 TableName。", "OK");
+                EditorUtility.DisplayDialog("Select Comment Columns", "请先通过“选表”设置 TableName。", "OK");
                 return;
             }
 
@@ -318,6 +329,21 @@ namespace LFramework.Editor.Window
             }
 
             menu.ShowAsContext();
+        }
+
+        private void RunPrimaryKeyGeneration()
+        {
+            try
+            {
+                LubanExportConfig exportConfig = LubanExportConfig.GetOrCreate();
+                LubanPrimaryKeyClassGenerator.GenerateAll(exportConfig, _config);
+                EditorUtility.DisplayDialog("Primary Key Mapping", "已按当前启用规则生成主键类。", "OK");
+            }
+            catch (System.Exception exception)
+            {
+                Debug.LogException(exception);
+                EditorUtility.DisplayDialog("Primary Key Mapping", exception.Message, "OK");
+            }
         }
 
         private string SelectWorkbookPath()
