@@ -75,7 +75,7 @@ namespace LFramework.Runtime
         /// </summary>
         /// <typeparam name="TProcedure"></typeparam>
         /// <returns></returns>
-        protected virtual TProcedure GetLinkProcedure<TProcedure>() where TProcedure : ProcedureBase
+        public virtual TProcedure GetLinkProcedure<TProcedure>() where TProcedure : ProcedureBase
         {
             if (_linkProcedure == null)
             {
@@ -241,6 +241,7 @@ namespace LFramework.Runtime
             {
                 BuildWorldHelpers(worldHelper);
                 var interfaceType = worldHelper.GetType().GetDerivedInterfaces(
+                    typeof(IWorld),
                     typeof(IWorldHelper), 
                     typeof(IWorldUpdate),
                     typeof(IWorldLateUpdate),

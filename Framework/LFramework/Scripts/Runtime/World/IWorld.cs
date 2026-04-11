@@ -18,6 +18,20 @@ namespace LFramework.Runtime
         /// </summary>
         /// <param name="procedure"></param>
         void LinkProcedure(ProcedureBase procedure);
+        
+        /// <summary>
+        /// 获取链接的流程
+        /// </summary>
+        /// <typeparam name="TProcedure"></typeparam>
+        /// <returns></returns>
+        public TProcedure GetLinkProcedure<TProcedure>() where TProcedure : ProcedureBase;
+
+        /// <summary>
+        /// 获取世界帮助类
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public T GetWorldHelper<T>() where T : class, IWorldHelper;
     }
 
 }
