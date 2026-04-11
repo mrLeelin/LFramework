@@ -1,4 +1,5 @@
 using System.IO;
+using System;
 using Sirenix.OdinInspector.Editor;
 using UnityEditor;
 using UnityEngine;
@@ -7,6 +8,14 @@ namespace Luban.Editor
 {
     public partial class LubanExportConfig
     {
+        private static string _cachedAssetGuid;
+        private static Func<string[]> _assetLookupForTests;
+
+        static LubanExportConfig()
+        {
+            EditorApplication.projectChanged += ResetCachedInstance;
+        }
+
         public static LubanExportConfig Instance
         {
             get
@@ -24,7 +33,18 @@ namespace Luban.Editor
 
         public static LubanExportConfig GetOrCreate()
         {
-            var guids = AssetDatabase.FindAssets("t:LubanExportConfig");
+            if (_instance != null)
+            {
+                return _instance;
+            }
+
+            if (TryLoadCachedAsset(out LubanExportConfig cachedAsset))
+            {
+                _instance = cachedAsset;
+                return _instance;
+            }
+
+            var guids = FindConfigGuids();
 
             if(guids.Length > 1)
             {
@@ -42,12 +62,68 @@ namespace Luban.Editor
                     }
 
                     AssetDatabase.CreateAsset(setting, "Assets/Editor/LubanExportConfig.asset");
-                    return setting;
+                    CacheAsset(setting, "Assets/Editor/LubanExportConfig.asset");
+                    return _instance;
 
                 default:
                     var path = AssetDatabase.GUIDToAssetPath(guids[0]);
-                    return AssetDatabase.LoadAssetAtPath<LubanExportConfig>(path);
+                    _instance = AssetDatabase.LoadAssetAtPath<LubanExportConfig>(path);
+                    CacheAsset(_instance, path);
+                    return _instance;
             }
+        }
+
+        internal static void SetAssetLookupForTests(Func<string[]> assetLookup)
+        {
+            _assetLookupForTests = assetLookup;
+        }
+
+        internal static void ResetCacheForTests()
+        {
+            ResetCachedInstance();
+        }
+
+        private static string[] FindConfigGuids()
+        {
+            return _assetLookupForTests?.Invoke() ?? AssetDatabase.FindAssets("t:LubanExportConfig");
+        }
+
+        private static bool TryLoadCachedAsset(out LubanExportConfig config)
+        {
+            config = null;
+
+            if (string.IsNullOrEmpty(_cachedAssetGuid))
+            {
+                return false;
+            }
+
+            string path = AssetDatabase.GUIDToAssetPath(_cachedAssetGuid);
+            if (string.IsNullOrEmpty(path))
+            {
+                _cachedAssetGuid = null;
+                return false;
+            }
+
+            config = AssetDatabase.LoadAssetAtPath<LubanExportConfig>(path);
+            if (config == null)
+            {
+                _cachedAssetGuid = null;
+                return false;
+            }
+
+            return true;
+        }
+
+        private static void CacheAsset(LubanExportConfig config, string assetPath)
+        {
+            _instance = config;
+            _cachedAssetGuid = string.IsNullOrEmpty(assetPath) ? null : AssetDatabase.AssetPathToGUID(assetPath);
+        }
+
+        private static void ResetCachedInstance()
+        {
+            _instance = null;
+            _cachedAssetGuid = null;
         }
     }
 
