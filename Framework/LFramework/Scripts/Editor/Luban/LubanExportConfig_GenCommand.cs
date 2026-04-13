@@ -45,8 +45,8 @@ namespace Luban.Editor
             string resolvedLubanDllPath = ResolveExternalToolPath(luban_dll);
             string resolvedLubanConfPath = ResolveExternalToolPath(luban_conf_path);
 
-            sb.Append($"{resolvedLubanDllPath} {LINE_END}");
-            sb.Append($"--conf {resolvedLubanConfPath} {LINE_END}");
+            sb.Append($"\"{resolvedLubanDllPath}\" {LINE_END}");
+            sb.Append($"--conf \"{resolvedLubanConfPath}\" {LINE_END}");
             sb.Append($"-t {target} {LINE_END}");
 
             if(force_load_table_datas)
