@@ -20,6 +20,8 @@ namespace Luban.Editor
         internal static readonly bool IS_MACOS = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
 
         internal static readonly string BAT_FILE = "gen.bat";
+        internal static readonly Encoding CLI_OUTPUT_ENCODING = Encoding.UTF8;
+        private static readonly UTF8Encoding Utf8WithBom = new(true);
 
         internal static readonly string LINE_END = IS_WINDOWS ? "^\n" : "\\\n";
 
@@ -273,7 +275,7 @@ namespace Luban.Editor
 
             var json = JsonConvert.SerializeObject(config, Formatting.Indented);
 
-            File.WriteAllText(full_path, json);
+            File.WriteAllText(full_path, json, Encoding.UTF8);
 
             string exe;
             string args;
@@ -283,7 +285,7 @@ namespace Luban.Editor
                 exe  = "cmd";
                 args = $"/c \"{BAT_FILE}\"";
 
-                File.WriteAllText($"./{BAT_FILE}", command);
+                File.WriteAllBytes($"./{BAT_FILE}", BuildWindowsBatchFileBytes(command));
             }
             else
             {
@@ -291,7 +293,11 @@ namespace Luban.Editor
                 args = _command_args;
             }
 
-            var cli = Cli.Wrap(exe).WithArguments(args).WithWorkingDirectory(".") | (Debug.Log, Debug.LogError);
+            var cli = Cli.Wrap(exe)
+                .WithArguments(args)
+                .WithWorkingDirectory(".")
+                .WithStandardOutputPipe(PipeTarget.ToDelegate(LogCommandOutput, CLI_OUTPUT_ENCODING))
+                .WithStandardErrorPipe(PipeTarget.ToDelegate(Debug.LogError, CLI_OUTPUT_ENCODING));
 
             try
             {
@@ -310,6 +316,33 @@ namespace Luban.Editor
                     File.Delete(BAT_FILE);
                 }
             }
+        }
+
+        internal static byte[] BuildWindowsBatchFileBytes(string commandText)
+        {
+            string normalizedCommand = string.IsNullOrWhiteSpace(commandText) ? string.Empty : commandText.Trim();
+            string batchContent =
+                $"@echo off{Environment.NewLine}" +
+                $"chcp 65001 >nul{Environment.NewLine}" +
+                $"{normalizedCommand}{Environment.NewLine}";
+            return Utf8WithBom.GetBytes(batchContent);
+        }
+
+        internal static bool ShouldLogCommandOutputAsError(string message)
+        {
+            return !string.IsNullOrEmpty(message)
+                && message.IndexOf("Error", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static void LogCommandOutput(string message)
+        {
+            if(ShouldLogCommandOutputAsError(message))
+            {
+                Debug.LogError(message);
+                return;
+            }
+
+            Debug.Log(message);
         }
     }
 }
