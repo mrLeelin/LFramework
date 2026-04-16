@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using GameFramework.Event;
 using UnityEngine;
 using UnityGameFramework.Runtime;
+using VContainer;
 using Zenject;
 
 namespace LFramework.Runtime
@@ -11,6 +12,7 @@ namespace LFramework.Runtime
     public sealed class LFrameworkAspect : Singleton<LFrameworkAspect>
     {
         private readonly DiContainer _diContainer;
+        private readonly FrameworkResolverContext _resolverContext;
         private EventComponent _cacheEventComponent;
 
         public LFrameworkAspect()
@@ -24,16 +26,26 @@ namespace LFramework.Runtime
             _diContainer = diContainer;
         }
 
+        public LFrameworkAspect(FrameworkResolverContext resolverContext)
+        {
+            _resolverContext = resolverContext ?? throw new ArgumentNullException(nameof(resolverContext));
+        }
+
         public override void Dispose()
         {
             base.Dispose();
-            DiContainer.UnbindAll();
+            _cacheEventComponent = null;
+            DiContainer?.UnbindAll();
         }
 
         /// <summary>
         /// DiContainer
         /// </summary>
         public DiContainer DiContainer => _diContainer;
+
+        public FrameworkResolverContext ResolverContext => _resolverContext;
+
+        public IObjectResolver RootResolver => _resolverContext?.RootResolver;
 
         /// <summary>
         /// Get Anything
@@ -42,11 +54,21 @@ namespace LFramework.Runtime
         /// <returns></returns>
         public T Get<T>()
         {
+            if (RootResolver != null)
+            {
+                return RootResolver.Resolve<T>();
+            }
+
             return DiContainer.Resolve<T>();
         }
 
         public bool HasBinding<T>()
         {
+            if (RootResolver != null)
+            {
+                return RootResolver.TryResolve<T>(out _);
+            }
+
             return DiContainer.HasBinding<T>();
         }
         
@@ -58,7 +80,7 @@ namespace LFramework.Runtime
         /// <param name="gameEventArgs"></param>
         public void Fire(object sender, GameEventArgs gameEventArgs)
         {
-            _cacheEventComponent ??= DiContainer.Resolve<EventComponent>();
+            _cacheEventComponent ??= Get<EventComponent>();
             _cacheEventComponent.Fire(sender, gameEventArgs);
         }
 
@@ -69,7 +91,7 @@ namespace LFramework.Runtime
         /// <param name="gameEventArgs"></param>
         public void FireNow(object sender, GameEventArgs gameEventArgs)
         {
-            _cacheEventComponent ??= DiContainer.Resolve<EventComponent>();
+            _cacheEventComponent ??= Get<EventComponent>();
             _cacheEventComponent?.FireNow(sender, gameEventArgs);
         }
     }

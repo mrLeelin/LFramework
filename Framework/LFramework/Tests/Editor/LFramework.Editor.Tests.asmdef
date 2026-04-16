@@ -10,6 +10,7 @@
         "UnityGameFramework.Runtime",
         "GameFramework",
         "Zenject",
+        "VContainer",
         "Luban.Runtime",
         "Luban.Editor"
     ],
