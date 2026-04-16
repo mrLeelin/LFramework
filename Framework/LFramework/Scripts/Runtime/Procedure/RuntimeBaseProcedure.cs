@@ -11,6 +11,13 @@ namespace LFramework.Runtime.Procedure
         protected override void OnEnter(IFsm<IProcedureManager> procedureOwner)
         {
             base.OnEnter(procedureOwner);
+            if (LFrameworkAspect.Instance?.ProcedureScopeRegistry != null)
+            {
+                LFrameworkAspect.Instance.ProcedureScopeRegistry.EnterProcedureScope(this);
+                LFrameworkAspect.Instance.FrameworkInjector.Inject(this);
+                return;
+            }
+
             LFrameworkAspect.Instance.DiContainer.Inject(this);
         }
     }

@@ -13,6 +13,8 @@ namespace LFramework.Runtime
     {
         private readonly DiContainer _diContainer;
         private readonly FrameworkResolverContext _resolverContext;
+        private readonly FrameworkInjector _frameworkInjector;
+        private readonly RuntimeProcedureScopeRegistry _procedureScopeRegistry;
         private EventComponent _cacheEventComponent;
 
         public LFrameworkAspect()
@@ -29,6 +31,8 @@ namespace LFramework.Runtime
         public LFrameworkAspect(FrameworkResolverContext resolverContext)
         {
             _resolverContext = resolverContext ?? throw new ArgumentNullException(nameof(resolverContext));
+            _frameworkInjector = new FrameworkInjector(_resolverContext);
+            _procedureScopeRegistry = new RuntimeProcedureScopeRegistry(_resolverContext);
         }
 
         public override void Dispose()
@@ -46,6 +50,10 @@ namespace LFramework.Runtime
         public FrameworkResolverContext ResolverContext => _resolverContext;
 
         public IObjectResolver RootResolver => _resolverContext?.RootResolver;
+
+        public FrameworkInjector FrameworkInjector => _frameworkInjector;
+
+        public RuntimeProcedureScopeRegistry ProcedureScopeRegistry => _procedureScopeRegistry;
 
         /// <summary>
         /// Get Anything
