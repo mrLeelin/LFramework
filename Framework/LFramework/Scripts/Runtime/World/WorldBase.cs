@@ -13,8 +13,8 @@ namespace LFramework.Runtime
 {
     public abstract class WorldBase : IWorld
     {
-        [Inject] protected EventComponent EventComponent { get; }
-        [Inject] protected HotfixComponent HotfixComponent { get; }
+        [Inject] protected EventComponent EventComponent { get; private set; }
+        [Inject] protected HotfixComponent HotfixComponent { get; private set; }
 
         private readonly Dictionary<Type, IWorldHelper> _worldHelpers = new();
         private readonly List<IWorldUpdate> _worldUpdates = new();

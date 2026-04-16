@@ -20,9 +20,9 @@ namespace LFramework.Runtime
 {
     public class ResourceDownloadComponent : GameFrameworkComponent
     {
-        [Inject] private GameSetting GameSetting { get; }
-        [Inject] private SettingComponent SettingComponent { get; }
-        [Inject] private ResourceComponent ResourceComponent { get; }
+        [Inject] private GameSetting GameSetting { get; set; }
+        [Inject] private SettingComponent SettingComponent { get; set; }
+        [Inject] private ResourceComponent ResourceComponent { get; set; }
 
 
         private int _nextSerialID;

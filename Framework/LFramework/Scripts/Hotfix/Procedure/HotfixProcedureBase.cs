@@ -1,11 +1,6 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using GameFramework.Fsm;
 using GameFramework.Procedure;
-using LFramework.Hotfix;
 using LFramework.Runtime;
-using UnityEngine;
 using UnityGameFramework.Runtime;
 using VContainer;
 
@@ -34,14 +29,10 @@ namespace LFramework.Hotfix.Procedure
             }
 
             var resolver = LFrameworkAspect.Instance.ProcedureScopeRegistry.EnterProcedureScope(this);
-            var providerRegister = resolver.Resolve(typeof(ISystemProviderRegister));
-            providerRegister.GetType()
-                .GetMethod(nameof(ISystemProviderRegister.TryRegisterProvider))
-                ?.Invoke(providerRegister, new object[] { ProcedureState });
-            var worldRegister = resolver.Resolve(typeof(IWorldRegister));
-            var world = worldRegister.GetType()
-                .GetMethod(nameof(IWorldRegister.TryRegisterWorld))
-                ?.Invoke(worldRegister, new object[] { ProcedureState }) as IWorld;
+            var providerRegister = (ISystemProviderRegister)resolver.Resolve(typeof(ISystemProviderRegister));
+            providerRegister.TryRegisterProvider(ProcedureState);
+            var worldRegister = (IWorldRegister)resolver.Resolve(typeof(IWorldRegister));
+            var world = worldRegister.TryRegisterWorld(ProcedureState);
             if (world != null)
             {
                 _linkWorld = world;
@@ -65,14 +56,10 @@ namespace LFramework.Hotfix.Procedure
             }
 
             var resolver = LFrameworkAspect.Instance.ResolverContext.ProcedureResolver;
-            var providerRegister = resolver.Resolve(typeof(ISystemProviderRegister));
-            providerRegister.GetType()
-                .GetMethod(nameof(ISystemProviderRegister.TryUnRegisterProvider))
-                ?.Invoke(providerRegister, new object[] { ProcedureState });
-            var worldRegister = resolver.Resolve(typeof(IWorldRegister));
-            worldRegister.GetType()
-                .GetMethod(nameof(IWorldRegister.TryUnRegisterWorld))
-                ?.Invoke(worldRegister, null);
+            var providerRegister = (ISystemProviderRegister)resolver.Resolve(typeof(ISystemProviderRegister));
+            providerRegister.TryUnRegisterProvider(ProcedureState);
+            var worldRegister = (IWorldRegister)resolver.Resolve(typeof(IWorldRegister));
+            worldRegister.TryUnRegisterWorld();
             LFrameworkAspect.Instance.ProcedureScopeRegistry.ExitProcedureScope();
             _linkWorld = null;
         }

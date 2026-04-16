@@ -13,7 +13,7 @@ namespace LFramework.Runtime
     public class LanguageComponent : GameFrameworkComponent
     {
 
-        [Inject] private BaseComponent BaseComponent { get; }
+        [Inject] private BaseComponent BaseComponent { get; set; }
         
         private ILanguageHelper _localizationHelper;
         private Language _language;

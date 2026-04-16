@@ -7,7 +7,7 @@ namespace LFramework.Runtime
     [MonoBehaviourValidation]
     public class UIChildEntityLogic : EntityLogic<UIChildEntityData>
     {
-        [Inject] private EntityComponent EntityComponent { get; }
+        [Inject] private EntityComponent EntityComponent { get; set; }
 
         private Transform _originParent;
         private bool _isSetParent;

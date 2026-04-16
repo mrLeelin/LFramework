@@ -18,8 +18,8 @@ namespace LFramework.Runtime
     /// </summary>
     public class LSystemApplicationBehaviour : UnitySystemApplicationBehaviour
     {
-        [Inject] private DebuggerComponent DebuggerComponent { get; }
-        [Inject] private EventComponent EventComponent { get; }
+        [Inject] private DebuggerComponent DebuggerComponent { get; set; }
+        [Inject] private EventComponent EventComponent { get; set; }
   
 
         [SerializeField] private string[] allComponentTypes;
