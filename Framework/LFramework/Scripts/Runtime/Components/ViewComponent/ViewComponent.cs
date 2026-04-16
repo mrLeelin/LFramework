@@ -1,19 +1,15 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using GameFramework;
 using UnityEngine;
 using UnityGameFramework.Runtime;
-using Zenject;
 
 namespace LFramework.Runtime
 {
     public class ViewComponent : GameFrameworkComponent
     {
         private readonly HashSet<IView> _views = new HashSet<IView>();
-
-
-        
+        private readonly Dictionary<(Type, string), IViewModel> _viewModelCache = new();
 
         public override void AwakeComponent()
         {
@@ -24,6 +20,7 @@ namespace LFramework.Runtime
         {
             base.ShutDown();
             _views.Clear();
+            _viewModelCache.Clear();
         }
 
         public void ViewCreated(IView view)
@@ -80,7 +77,6 @@ namespace LFramework.Runtime
             view.OnViewBeDestroy();
         }
 
-
         /// <summary>
         /// Find already exist view model
         /// </summary>
@@ -92,35 +88,27 @@ namespace LFramework.Runtime
                 return;
             }
 
-            var bindingId = new BindingId()
+            var key = (view.ViewModelType,
+                string.IsNullOrEmpty(view.Identifier) ? null : view.Identifier);
+
+            if (_viewModelCache.TryGetValue(key, out var existing))
             {
-                Type = view.ViewModelType,
-                Identifier = string.IsNullOrEmpty(view.Identifier) ? null : view.Identifier
-            };
-            IViewModel contextViewModel = null;
-            if (LFrameworkAspect.Instance.DiContainer.HasBindingId(bindingId.Type, bindingId.Identifier))
-            {
-                contextViewModel = LFrameworkAspect.Instance.DiContainer.Resolve(bindingId) as IViewModel;
-            }
-            if (contextViewModel == null)
-            {
-                contextViewModel = CreateViewModel(view.ViewModelType, view.Identifier);
-                if (contextViewModel != null)
-                {
-                    LFrameworkAspect.Instance.DiContainer.Bind(view.ViewModelType).WithId(bindingId.Identifier)
-                        .FromInstance(contextViewModel);
-                }
+                existing.References++;
+                view.ViewModelObject = existing;
+                return;
             }
 
-            if (contextViewModel == null)
+            var vm = CreateViewModel(view.ViewModelType, view.Identifier);
+            if (vm == null)
             {
                 Log.Fatal(
                     $"Create View Model is null. ViewModelType:{view.ViewModelType} View :{view.GetType().FullName} Identifier : {view.Identifier}");
                 return;
             }
 
-            contextViewModel.References++;
-            view.ViewModelObject = contextViewModel;
+            _viewModelCache[key] = vm;
+            vm.References++;
+            view.ViewModelObject = vm;
         }
 
         private IViewModel CreateViewModel(Type type, string identifier = null)
@@ -129,7 +117,8 @@ namespace LFramework.Runtime
             {
                 return null;
             }
-            LFrameworkAspect.Instance.DiContainer.Inject(vm);
+
+            LFrameworkAspect.Instance.FrameworkInjector.Inject(vm);
             vm.Identifier = identifier;
             vm.Initialize();
             return vm;
@@ -137,7 +126,9 @@ namespace LFramework.Runtime
 
         private void ReleaseViewModel(IViewModel viewModel, IView view)
         {
-            LFrameworkAspect.Instance.DiContainer.UnbindId(view.ViewModelType, viewModel.Identifier);
+            var key = (view.ViewModelType,
+                string.IsNullOrEmpty(viewModel.Identifier) ? null : viewModel.Identifier);
+            _viewModelCache.Remove(key);
             ReferencePool.Release(viewModel);
         }
 

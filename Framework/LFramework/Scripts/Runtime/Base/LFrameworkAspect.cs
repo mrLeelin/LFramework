@@ -5,13 +5,11 @@ using GameFramework.Event;
 using UnityEngine;
 using UnityGameFramework.Runtime;
 using VContainer;
-using Zenject;
 
 namespace LFramework.Runtime
 {
     public sealed class LFrameworkAspect : Singleton<LFrameworkAspect>
     {
-        private readonly DiContainer _diContainer;
         private readonly FrameworkResolverContext _resolverContext;
         private readonly FrameworkInjector _frameworkInjector;
         private readonly HotfixScopeRegistry _hotfixScopeRegistry;
@@ -21,12 +19,7 @@ namespace LFramework.Runtime
         public LFrameworkAspect()
         {
             throw new InvalidOperationException(
-                "LFrameworkAspect must be created with a DiContainer. Use LFrameworkAspect(DiContainer) constructor.");
-        }
-
-        public LFrameworkAspect(DiContainer diContainer)
-        {
-            _diContainer = diContainer;
+                "LFrameworkAspect must be created with a FrameworkResolverContext. Use LFrameworkAspect(FrameworkResolverContext) constructor.");
         }
 
         public LFrameworkAspect(FrameworkResolverContext resolverContext)
@@ -41,13 +34,7 @@ namespace LFramework.Runtime
         {
             base.Dispose();
             _cacheEventComponent = null;
-            DiContainer?.UnbindAll();
         }
-
-        /// <summary>
-        /// DiContainer
-        /// </summary>
-        public DiContainer DiContainer => _diContainer;
 
         public FrameworkResolverContext ResolverContext => _resolverContext;
 
@@ -66,24 +53,13 @@ namespace LFramework.Runtime
         /// <returns></returns>
         public T Get<T>()
         {
-            if (RootResolver != null)
-            {
-                return RootResolver.Resolve<T>();
-            }
-
-            return DiContainer.Resolve<T>();
+            return _resolverContext.ActiveResolver.Resolve<T>();
         }
 
         public bool HasBinding<T>()
         {
-            if (RootResolver != null)
-            {
-                return RootResolver.TryResolve<T>(out _);
-            }
-
-            return DiContainer.HasBinding<T>();
+            return _resolverContext.ActiveResolver?.TryResolve<T>(out _) ?? false;
         }
-        
 
         /// <summary>
         /// 下一帧抛出事件

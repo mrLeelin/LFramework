@@ -14,7 +14,7 @@ using UnityEngine.ResourceManagement.ResourceProviders;
 #endif
 
 using UnityGameFramework.Runtime;
-using Zenject;
+using VContainer;
 
 namespace LFramework.Runtime
 {

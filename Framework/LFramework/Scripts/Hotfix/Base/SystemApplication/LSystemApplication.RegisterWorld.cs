@@ -54,13 +54,9 @@ namespace LFramework.Hotfix
                     continue;
                 }
 
-                LFrameworkAspect.Instance.DiContainer.Inject(world);
-                var interfaceType =
-                    providerType.GetDerivedInterfaces(typeof(IWorld), typeof(IReference), typeof(IDisposable));
-                if (interfaceType != null)
-                {
-                    LFrameworkAspect.Instance.DiContainer.Bind(interfaceType).FromInstance(world);
-                }
+                LFrameworkAspect.Instance.FrameworkInjector.Inject(world);
+                // World interface binding is managed by VContainer scope (registered in Procedure Scope)
+                // Scope cleanup is handled by ExitProcedureScope() in HotfixProcedureBase.OnLeave
 
                 world.Initialized();
                 _worldBase = world;
@@ -77,17 +73,7 @@ namespace LFramework.Hotfix
                 return;
             }
 
-            // 先获取类型信息并解绑 DI，再释放回对象池
-            var interfaceType = _worldBase.GetType()
-                .GetDerivedInterfaces(typeof(IWorld), typeof(IReference), typeof(IDisposable));
-            if (interfaceType != null)
-            {
-                if (!LFrameworkAspect.Instance.DiContainer.Unbind(interfaceType))
-                {
-                    Log.Fatal($"Un bind '{interfaceType}' 'World' error.");
-                }
-            }
-
+            // VContainer scope cleanup is handled by ExitProcedureScope() in HotfixProcedureBase.OnLeave
             ReferencePool.Release(_worldBase);
             _worldBase = null;
         }

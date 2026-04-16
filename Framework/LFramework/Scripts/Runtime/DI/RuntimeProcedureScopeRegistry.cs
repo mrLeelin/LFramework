@@ -16,7 +16,7 @@ namespace LFramework.Runtime
             _resolverContext = resolverContext ?? throw new ArgumentNullException(nameof(resolverContext));
         }
 
-        public IObjectResolver EnterProcedureScope(object owner)
+        public IObjectResolver EnterProcedureScope(object owner, Action<IContainerBuilder> installation = null)
         {
             ExitProcedureScope();
 
@@ -26,7 +26,7 @@ namespace LFramework.Runtime
                 throw new InvalidOperationException("Cannot enter a procedure scope without a root or hotfix resolver.");
             }
 
-            _currentProcedureScope = parentResolver.CreateScope(_ => { });
+            _currentProcedureScope = parentResolver.CreateScope(installation ?? (_ => { }));
             _resolverContext.SetProcedure(_currentProcedureScope);
             return _currentProcedureScope;
         }

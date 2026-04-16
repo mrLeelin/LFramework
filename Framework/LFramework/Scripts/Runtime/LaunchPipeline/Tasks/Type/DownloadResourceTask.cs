@@ -11,7 +11,7 @@ using UnityEngine.AddressableAssets;
 #endif
 
 using UnityGameFramework.Runtime;
-using Zenject;
+using VContainer;
 
 namespace LFramework.Runtime.LaunchPipeline
 {
@@ -27,7 +27,7 @@ namespace LFramework.Runtime.LaunchPipeline
     public class DownloadResourceTask : RetryableLaunchTaskBase
     {
         /// <summary>
-        /// 资源下载组件，通过 Zenject 依赖注入获取
+        /// 资源下载组件，通过 VContainer 依赖注入获取
         /// </summary>
         [Inject] private ResourceDownloadComponent _resourceDownloadComponent;
 

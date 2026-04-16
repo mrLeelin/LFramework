@@ -3,7 +3,6 @@ using GameFramework.UI;
 using LFramework.Runtime;
 using NUnit.Framework;
 using UnityEngine;
-using Zenject;
 
 namespace LFramework.Editor.Tests.UI
 {
@@ -15,7 +14,7 @@ namespace LFramework.Editor.Tests.UI
         [SetUp]
         public void SetUp()
         {
-            _aspect = new LFrameworkAspect(new DiContainer());
+            _aspect = new LFrameworkAspect(new FrameworkResolverContext());
             _aspect.Register();
         }
 

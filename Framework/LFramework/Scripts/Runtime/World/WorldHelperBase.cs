@@ -6,7 +6,6 @@ using UnityGameFramework.Runtime;
 
 namespace LFramework.Runtime
 {
-    [PreLoadZenject]
     public abstract class WorldHelperBase : IWorldHelper
     {
         private WorldBase _worldBase;

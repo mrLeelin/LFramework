@@ -38,7 +38,7 @@ namespace LFramework.Runtime
             
             if (isNewInstance)
             {
-                LFrameworkAspect.Instance.DiContainer.InjectGameObjectNotCheck(gameObject);
+                FrameworkGameObjectInjector.InjectGameObjectValidated(LFrameworkAspect.Instance.FrameworkInjector, gameObject);
             }
             
             return gameObject.GetOrAddComponent<UIForm>();

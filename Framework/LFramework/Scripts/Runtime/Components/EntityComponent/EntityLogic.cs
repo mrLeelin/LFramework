@@ -5,7 +5,6 @@ using UnityGameFramework.Runtime;
 
 namespace LFramework.Runtime
 {
-    [PreLoadZenject]
     public abstract partial class NoParamEntityLogic : EntityLogic
     {
         private bool? _isUseUpdate;

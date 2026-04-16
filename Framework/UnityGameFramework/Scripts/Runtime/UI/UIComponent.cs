@@ -80,8 +80,17 @@ namespace UnityGameFramework.Runtime
         [SerializeField]
         private UIGroup[] m_UIGroups = null;
 
+        [SerializeField] private string m_uiChildEntityGroup;
+        
+
         private CanvasScaler _canvasScaler;
 
+
+        /// <summary>
+        /// Ui Child 使用Entity的Group
+        /// </summary>
+        public string UiChildEntityGroup => m_uiChildEntityGroup;
+        
         /// <summary>
         /// 获取界面组数量。
         /// </summary>

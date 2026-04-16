@@ -63,12 +63,6 @@ namespace LFramework.Hotfix
                 }
 
                 RegisterCommonDataSync(systemProvider);
-                var interfaceType = providerType.GetDerivedInterfaces(typeof(ISystemProvider), typeof(IReference),
-                    typeof(IDisposable));
-                if (interfaceType != null)
-                {
-                    LFrameworkAspect.Instance.DiContainer.Bind(interfaceType).FromInstance(systemProvider);
-                }
 
                 _systemProviders.Add(providerType, systemProvider);
                 var sort = attribute.Sort;
@@ -83,7 +77,7 @@ namespace LFramework.Hotfix
 
             foreach (var provider in _tempSystemProviders)
             {
-                LFrameworkAspect.Instance.DiContainer.Inject(provider.Provider);
+                LFrameworkAspect.Instance.FrameworkInjector.Inject(provider.Provider);
             }
 
             foreach (var provider in _tempSystemProviders)
@@ -145,16 +139,7 @@ namespace LFramework.Hotfix
         {
             // 先完成所有使用，再释放回对象池
             UnRegisterCommonDataSync(v as SystemProviderBase);
-            var interfaceType =
-                t.GetDerivedInterfaces(typeof(ISystemProvider), typeof(IReference), typeof(IDisposable));
-            if (interfaceType != null)
-            {
-                if (!LFrameworkAspect.Instance.DiContainer.Unbind(interfaceType))
-                {
-                    Log.Fatal($"Un bind '{interfaceType}' 'Provider' error.");
-                }
-            }
-
+            // VContainer scope cleanup is handled by ExitProcedureScope() in HotfixProcedureBase.OnLeave
             ReferencePool.Release(v);
         }
     }

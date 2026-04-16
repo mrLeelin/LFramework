@@ -3,7 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LFramework.Runtime.LaunchPipeline.Basic;
 using UnityGameFramework.Runtime;
-using Zenject;
+using VContainer;
 
 namespace LFramework.Runtime.LaunchPipeline
 {
@@ -27,7 +27,7 @@ namespace LFramework.Runtime.LaunchPipeline
         public const int DefaultTimeoutSeconds = 30;
 
         /// <summary>
-        /// 资源组件，通过 Zenject 依赖注入获取。
+        /// 资源组件，通过 VContainer 依赖注入获取。
         /// </summary>
         [Inject]
         private ResourceComponent _resourceComponent;

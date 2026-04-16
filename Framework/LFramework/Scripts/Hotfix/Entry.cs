@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using GameFramework;
 using LFramework.Runtime;
 using UnityGameFramework.Runtime;
-using Zenject;
 
 
 namespace LFramework.Hotfix
@@ -35,7 +34,6 @@ namespace LFramework.Hotfix
 
             application.RegisterHotfixComponents(hotfixComponent);
             AddHotfixProcedure(procedureComponent, hotfixComponent);
-            RegisterPreloadInjects(hotfixComponent);
             var entranceProcedure = procedureComponent.EntranceHotfixProcedureTypeName;
             var dict =  hotfixComponent.GetHotfixAssemblyAllTypes();
             if (string.IsNullOrEmpty(entranceProcedure))
@@ -74,37 +72,6 @@ namespace LFramework.Hotfix
             return attributes.HasValue;
         }
 
-
-        /// <summary>
-        /// 打了 Preload 标签的类
-        /// 会在加载热更新的时候缓存进来
-        /// 避免之后卡顿
-        /// </summary>
-        /// <param name="hotfixComponent"></param>
-        private static void RegisterPreloadInjects(HotfixComponent hotfixComponent)
-        {
-            var preLoadAttributes = hotfixComponent.GetTypesFromAttribute<PreLoadZenjectAttribute>();
-            if (!preLoadAttributes.HasValue)
-            {
-                return;
-            }
-
-            foreach (var preloadType in preLoadAttributes)
-            {
-                if (preloadType == null)
-                {
-                    continue;
-                }
-
-                if (preloadType.IsInterface)
-                {
-                    continue;
-                }
-
-                //预加载
-                TypeAnalyzer.TryGetInfo(preloadType);
-            }
-        }
 
         /// <summary>
         /// 添加热更流程进入流程

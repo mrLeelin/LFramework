@@ -4,12 +4,12 @@
     "references": [
         "LFramework.Editor",
         "LFramework.Runtime",
+        "LFramework.Hotfix",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "UniTask",
         "UnityGameFramework.Runtime",
         "GameFramework",
-        "Zenject",
         "VContainer",
         "Luban.Runtime",
         "Luban.Editor"

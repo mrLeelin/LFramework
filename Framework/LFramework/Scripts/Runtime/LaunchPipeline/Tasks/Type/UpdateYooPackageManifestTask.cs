@@ -5,7 +5,7 @@ using GameFramework.Resource;
 using LFramework.Runtime.LaunchPipeline.Basic;
 using UnityGameFramework.Runtime;
 using YooAsset;
-using Zenject;
+using VContainer;
 
 namespace LFramework.Runtime.LaunchPipeline
 {

@@ -5,7 +5,7 @@ using GameFramework;
 using GameFramework.Resource;
 using UnityEngine;
 using UnityGameFramework.Runtime;
-using Zenject;
+using VContainer;
 
 namespace LFramework.Runtime
 {

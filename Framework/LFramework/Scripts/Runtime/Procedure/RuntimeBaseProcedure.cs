@@ -1,8 +1,6 @@
 ﻿using GameFramework.Fsm;
 using GameFramework.Procedure;
-using System;
-using System.Collections.Generic;
-using System.Reflection;
+using UnityGameFramework.Runtime;
 
 namespace LFramework.Runtime.Procedure
 {
@@ -11,14 +9,15 @@ namespace LFramework.Runtime.Procedure
         protected override void OnEnter(IFsm<IProcedureManager> procedureOwner)
         {
             base.OnEnter(procedureOwner);
-            if (LFrameworkAspect.Instance?.ProcedureScopeRegistry != null)
+
+            if (LFrameworkAspect.Instance?.ProcedureScopeRegistry == null)
             {
-                LFrameworkAspect.Instance.ProcedureScopeRegistry.EnterProcedureScope(this);
-                LFrameworkAspect.Instance.FrameworkInjector.Inject(this);
+                Log.Error("RuntimeBaseProcedure.OnEnter: ProcedureScopeRegistry is null. Cannot inject procedure '{0}'.", GetType().Name);
                 return;
             }
 
-            LFrameworkAspect.Instance.DiContainer.Inject(this);
+            LFrameworkAspect.Instance.ProcedureScopeRegistry.EnterProcedureScope(this);
+            LFrameworkAspect.Instance.FrameworkInjector.Inject(this);
         }
     }
 }

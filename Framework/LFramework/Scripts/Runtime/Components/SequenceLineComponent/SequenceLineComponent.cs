@@ -235,7 +235,7 @@ namespace LFramework.Runtime
                 return null;
             }
 
-            LFrameworkAspect.Instance.DiContainer.Inject(chunkBase);
+            LFrameworkAspect.Instance.FrameworkInjector.Inject(chunkBase);
             chunkBase.SetSetting(setting);
             return chunkBase;
         }

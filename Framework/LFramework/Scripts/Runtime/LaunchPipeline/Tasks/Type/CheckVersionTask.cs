@@ -5,7 +5,7 @@ using LFramework.Runtime;
 using LFramework.Runtime.LaunchPipeline.Basic;
 using UnityEngine;
 using UnityGameFramework.Runtime;
-using Zenject;
+using VContainer;
 
 namespace LFramework.Runtime.LaunchPipeline
 {

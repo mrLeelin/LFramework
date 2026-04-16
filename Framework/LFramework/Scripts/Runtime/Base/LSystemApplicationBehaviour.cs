@@ -7,7 +7,7 @@ using LFramework.Runtime.Settings;
 using UnityEngine;
 using UnityEngine.U2D;
 using UnityGameFramework.Runtime;
-using Zenject;
+using VContainer;
 
 namespace LFramework.Runtime
 {
@@ -30,7 +30,6 @@ namespace LFramework.Runtime
             {
                 Log.Error(e.ExceptionObject.ToString());
             };
-            DiContainer = new DiContainer();
             StartApplication();
         }
 
@@ -45,14 +44,14 @@ namespace LFramework.Runtime
                 return false;
             }
 
-            // 自动绑定所有 Setting 到 DI 容器
+            // 自动绑定所有 Setting 到 VContainer scope builder
             var allSettingsFromSelector = selector.GetAllSettings();
             foreach (var setting in allSettingsFromSelector)
             {
                 if (setting == null) continue;
 
                 var settingType = setting.GetType();
-                DiContainer.Bind(settingType).FromInstance(setting).AsSingle();
+                ScopeBuilder.RegisterInstance(setting).As(settingType);
                 Debug.Log($"[LSystemApplicationBehaviour] {settingType.Name} bound to DI: {setting.name}");
             }
 
@@ -119,12 +118,17 @@ namespace LFramework.Runtime
         protected override void ResolveApplicationDependencies()
         {
             base.ResolveApplicationDependencies();
-            DiContainer.Inject(this);
+            LFrameworkAspect.Instance.FrameworkInjector.Inject(this);
+        }
+
+        protected override void OnConfigureRootScope(IContainerBuilder builder)
+        {
+            base.OnConfigureRootScope(builder);
+            builder.RegisterInstance<ISystemApplication>(this);
         }
 
         protected override void ApplicationStarted()
         {
-            DiContainer.Bind<ISystemApplication>().FromInstance(this).AsSingle();
             AwaitableExtensions.SubscribeEvent(EventComponent);
         }
 

@@ -9,7 +9,7 @@ using UnityEngine;
 using Unity.Notifications;
 #endif
 using UnityGameFramework.Runtime;
-using Zenject;
+using VContainer;
 
 namespace LFramework.Runtime
 {

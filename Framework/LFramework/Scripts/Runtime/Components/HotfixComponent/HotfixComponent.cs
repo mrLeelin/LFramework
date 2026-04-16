@@ -15,7 +15,7 @@ using LFramework.Runtime.Method;
 using LFramework.Runtime.Settings;
 using UnityEngine;
 using UnityGameFramework.Runtime;
-using Zenject;
+using VContainer;
 
 namespace LFramework.Runtime
 {

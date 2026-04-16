@@ -6,7 +6,7 @@ using GameFramework.Localization;
 using LFramework.Runtime;
 using UnityEngine;
 using UnityGameFramework.Runtime;
-using Zenject;
+using VContainer;
 
 namespace LFramework.Runtime
 {

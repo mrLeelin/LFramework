@@ -5,7 +5,7 @@ using GameFramework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityGameFramework.Runtime;
-using Zenject;
+using VContainer;
 
 namespace LFramework.Runtime
 {
@@ -18,7 +18,18 @@ namespace LFramework.Runtime
 
 
         private readonly GameFrameworkLinkedList<GameFrameworkComponent> _gameFrameworkComponents = new();
-        public DiContainer DiContainer { get; protected set; }
+
+        /// <summary>
+        /// The root VContainer resolver, built during StartApplication.
+        /// Replaces the former Zenject DiContainer property.
+        /// </summary>
+        protected IObjectResolver RootResolver { get; private set; }
+
+        /// <summary>
+        /// Temporary builder reference available only during the scope-building phase of StartApplication.
+        /// Subclasses use this in RegisterSetting / BindComponents / OnConfigureRootScope.
+        /// </summary>
+        protected IContainerBuilder ScopeBuilder { get; private set; }
 
         /// <summary>
         /// The game framework components that are registered in the game framework.
@@ -28,13 +39,15 @@ namespace LFramework.Runtime
 
         protected virtual void StartApplication()
         {
+            FrameworkResolverContext resolverContext;
             try
             {
-                SingletonManager.AddSingleton(new LFrameworkAspect(DiContainer));
+                resolverContext = new FrameworkResolverContext();
+                ScopeBuilder = new ContainerBuilder();
             }
             catch (Exception e)
             {
-                Log.Fatal($"StartApplication failed at AddSingleton: {e}");
+                Log.Fatal($"StartApplication failed at creating resolver context: {e}");
                 return;
             }
 
@@ -42,12 +55,14 @@ namespace LFramework.Runtime
             {
                 if (!RegisterSetting())
                 {
+                    ScopeBuilder = null;
                     return;
                 }
             }
             catch (Exception e)
             {
                 Log.Fatal($"StartApplication failed at RegisterSetting: {e}");
+                ScopeBuilder = null;
                 return;
             }
 
@@ -58,6 +73,7 @@ namespace LFramework.Runtime
             catch (Exception e)
             {
                 Log.Fatal($"StartApplication failed at RegisterComponents: {e}");
+                ScopeBuilder = null;
                 return;
             }
 
@@ -68,6 +84,33 @@ namespace LFramework.Runtime
             catch (Exception e)
             {
                 Log.Fatal($"StartApplication failed at BindComponents: {e}");
+                ScopeBuilder = null;
+                return;
+            }
+
+            try
+            {
+                OnConfigureRootScope(ScopeBuilder);
+            }
+            catch (Exception e)
+            {
+                Log.Fatal($"StartApplication failed at OnConfigureRootScope: {e}");
+                ScopeBuilder = null;
+                return;
+            }
+
+            // Build the root scope and wire up the resolver context
+            try
+            {
+                RootResolver = ((ContainerBuilder)ScopeBuilder).Build();
+                ScopeBuilder = null; // builder is no longer usable after Build()
+                resolverContext.SetRoot(RootResolver);
+                SingletonManager.AddSingleton(new LFrameworkAspect(resolverContext));
+            }
+            catch (Exception e)
+            {
+                Log.Fatal($"StartApplication failed at building root scope: {e}");
+                ScopeBuilder = null;
                 return;
             }
 
@@ -186,15 +229,24 @@ namespace LFramework.Runtime
         {
             foreach (var gameFrameworkComponent in _gameFrameworkComponents)
             {
-                DiContainer.Bind(gameFrameworkComponent.GetType()).FromInstance(gameFrameworkComponent).AsSingle();
+                ScopeBuilder.RegisterInstance(gameFrameworkComponent).As(gameFrameworkComponent.GetType());
             }
+        }
+
+        /// <summary>
+        /// Override point for subclasses to add additional registrations to the root scope builder
+        /// before it is built. Called after RegisterSetting, RegisterComponents, and BindComponents.
+        /// </summary>
+        protected virtual void OnConfigureRootScope(IContainerBuilder builder)
+        {
         }
 
         protected virtual void ResolveApplicationDependencies()
         {
+            var injector = LFrameworkAspect.Instance.FrameworkInjector;
             foreach (var gameFrameworkComponent in _gameFrameworkComponents)
             {
-                DiContainer.Inject(gameFrameworkComponent);
+                injector.Inject(gameFrameworkComponent);
             }
         }
 

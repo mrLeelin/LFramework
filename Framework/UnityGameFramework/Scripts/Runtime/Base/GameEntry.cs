@@ -11,7 +11,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using Zenject;
 
 namespace UnityGameFramework.Runtime
 {

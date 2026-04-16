@@ -7,7 +7,7 @@ using GameFramework.Event;
 using GameFramework.Procedure;
 using UnityEngine;
 using UnityGameFramework.Runtime;
-using Zenject;
+using VContainer;
 
 namespace LFramework.Runtime
 {
@@ -19,7 +19,6 @@ namespace LFramework.Runtime
         private readonly Dictionary<Type, IWorldHelper> _worldHelpers = new();
         private readonly List<IWorldUpdate> _worldUpdates = new();
         private readonly List<IWorldLateUpdate> _worldLateUpdates = new();
-        private readonly List<Type> _autoRegisterWorldHelpers = new();
         private ProcedureBase _linkProcedure;
 
         public void Initialized()
@@ -49,7 +48,6 @@ namespace LFramework.Runtime
             _worldHelpers.Clear();
             _worldUpdates.Clear();
             _worldLateUpdates.Clear();
-            _autoRegisterWorldHelpers.Clear();
             OnDeInitialized();
         }
 
@@ -234,45 +232,24 @@ namespace LFramework.Runtime
 
         private void RegisterWorldHelper()
         {
-            _autoRegisterWorldHelpers.Clear();
             var worldType = this.GetType();
             var autoWorldHelper = AutoRegisterWorldHelper.GetRegisterWorldHelper(worldType);
             foreach (var worldHelper in autoWorldHelper)
             {
                 BuildWorldHelpers(worldHelper);
-                var interfaceType = worldHelper.GetType().GetDerivedInterfaces(
-                    typeof(IWorld),
-                    typeof(IWorldHelper), 
-                    typeof(IWorldUpdate),
-                    typeof(IWorldLateUpdate),
-                    typeof(IReference),
-                    typeof(IDisposable));
-                if (interfaceType == null)
-                {
-                    continue;
-                }
-
-                _autoRegisterWorldHelpers.Add(interfaceType);
-                LFrameworkAspect.Instance.DiContainer.Bind(interfaceType).FromInstance(worldHelper);
             }
 
+            var injector = LFrameworkAspect.Instance.FrameworkInjector;
             foreach (var worldHelper in _worldHelpers.Values)
             {
-                LFrameworkAspect.Instance.DiContainer.Inject(worldHelper);
+                injector.Inject(worldHelper);
             }
         }
 
         private void UnRegisterWorldHelper()
         {
-            if (_autoRegisterWorldHelpers.Count == 0)
-            {
-                return;
-            }
-
-            foreach (var @interfaceType in _autoRegisterWorldHelpers)
-            {
-                LFrameworkAspect.Instance.DiContainer.Unbind(@interfaceType);
-            }
+            // No-op: WorldHelper bindings are no longer registered in the DI container.
+            // Cleanup is handled by the Procedure Scope lifecycle.
         }
     }
 }

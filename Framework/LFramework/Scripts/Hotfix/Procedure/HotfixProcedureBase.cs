@@ -3,10 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using GameFramework.Fsm;
 using GameFramework.Procedure;
+using LFramework.Hotfix;
 using LFramework.Runtime;
 using UnityEngine;
 using UnityGameFramework.Runtime;
-using Zenject;
+using VContainer;
 
 namespace LFramework.Hotfix.Procedure
 {
@@ -25,23 +26,29 @@ namespace LFramework.Hotfix.Procedure
         protected sealed override void OnEnter(IFsm<IProcedureManager> procedureOwner)
         {
             base.OnEnter(procedureOwner);
-            var container = LFrameworkAspect.Instance.DiContainer;
-            if (container == null)
+            if (LFrameworkAspect.Instance?.ProcedureScopeRegistry == null ||
+                LFrameworkAspect.Instance.FrameworkInjector == null)
             {
-                Log.Fatal($"The  DiContainer is null in '{ProcedureState}'");
+                Log.Fatal("ProcedureScopeRegistry or FrameworkInjector is null in '{0}'", ProcedureState);
                 return;
             }
 
-            container.Resolve<ISystemProviderRegister>()
-                .TryRegisterProvider(ProcedureState);
-            var world = container.Resolve<IWorldRegister>().TryRegisterWorld(ProcedureState);
+            var resolver = LFrameworkAspect.Instance.ProcedureScopeRegistry.EnterProcedureScope(this);
+            var providerRegister = resolver.Resolve(typeof(ISystemProviderRegister));
+            providerRegister.GetType()
+                .GetMethod(nameof(ISystemProviderRegister.TryRegisterProvider))
+                ?.Invoke(providerRegister, new object[] { ProcedureState });
+            var worldRegister = resolver.Resolve(typeof(IWorldRegister));
+            var world = worldRegister.GetType()
+                .GetMethod(nameof(IWorldRegister.TryRegisterWorld))
+                ?.Invoke(worldRegister, new object[] { ProcedureState }) as IWorld;
             if (world != null)
             {
                 _linkWorld = world;
                 _linkWorld.LinkProcedure(this);
             }
 
-            container.Inject(this);
+            LFrameworkAspect.Instance.FrameworkInjector.Inject(this);
             OnEnterProcedure(procedureOwner);
         }
 
@@ -49,20 +56,24 @@ namespace LFramework.Hotfix.Procedure
         {
             OnLeaveProcedure(procedureOwner, isShutdown);
             base.OnLeave(procedureOwner, isShutdown);
-            if (LFrameworkAspect.Instance == null)
+
+            if (LFrameworkAspect.Instance?.ProcedureScopeRegistry == null ||
+                LFrameworkAspect.Instance.ResolverContext?.ProcedureResolver == null)
             {
+                _linkWorld = null;
                 return;
             }
 
-            var container = LFrameworkAspect.Instance.DiContainer;
-            if (container == null)
-            {
-                return;
-            }
-
-            container.Resolve<ISystemProviderRegister>()
-                .TryUnRegisterProvider(ProcedureState);
-            container.Resolve<IWorldRegister>().TryUnRegisterWorld();
+            var resolver = LFrameworkAspect.Instance.ResolverContext.ProcedureResolver;
+            var providerRegister = resolver.Resolve(typeof(ISystemProviderRegister));
+            providerRegister.GetType()
+                .GetMethod(nameof(ISystemProviderRegister.TryUnRegisterProvider))
+                ?.Invoke(providerRegister, new object[] { ProcedureState });
+            var worldRegister = resolver.Resolve(typeof(IWorldRegister));
+            worldRegister.GetType()
+                .GetMethod(nameof(IWorldRegister.TryUnRegisterWorld))
+                ?.Invoke(worldRegister, null);
+            LFrameworkAspect.Instance.ProcedureScopeRegistry.ExitProcedureScope();
             _linkWorld = null;
         }
 

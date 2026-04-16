@@ -2,7 +2,7 @@
 using Cysharp.Threading.Tasks;
 using LFramework.Runtime.LaunchPipeline.Basic;
 using UnityGameFramework.Runtime;
-using Zenject;
+using VContainer;
 
 namespace LFramework.Runtime.LaunchPipeline
 {

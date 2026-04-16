@@ -10,7 +10,6 @@ using GameFramework.Localization;
 using GameFramework.Resource;
 using System;
 using UnityEngine;
-using Zenject;
 
 namespace UnityGameFramework.Runtime
 {

@@ -7,7 +7,7 @@ using GameFramework;
 using LFramework.Runtime;
 using UnityEngine;
 using UnityGameFramework.Runtime;
-using Zenject;
+using VContainer;
 
 namespace LFramework.Hotfix
 {
@@ -30,9 +30,13 @@ namespace LFramework.Hotfix
 
         public LSystemApplication()
         {
-            LFrameworkAspect.Instance.DiContainer.Inject(this);
-            LFrameworkAspect.Instance.DiContainer.Bind<ISystemProviderRegister>().FromInstance(this).AsSingle();
-            LFrameworkAspect.Instance.DiContainer.Bind<IWorldRegister>().FromInstance(this).AsSingle();
+            LFrameworkAspect.Instance.HotfixScopeRegistry.EnterHotfixScope(builder =>
+            {
+                builder.RegisterInstance<ISystemProviderRegister>(this);
+                builder.RegisterInstance<IWorldRegister>(this);
+            });
+
+            LFrameworkAspect.Instance.FrameworkInjector.Inject(this);
         }
 
         public void Update(float elapseSeconds, float realElapseSeconds)
@@ -79,11 +83,7 @@ namespace LFramework.Hotfix
             }
 
             _worldBase = null;
-            if (LFrameworkAspect.Instance != null)
-            {
-                LFrameworkAspect.Instance.DiContainer.Unbind<ISystemProviderRegister>();
-                LFrameworkAspect.Instance.DiContainer.Unbind<IWorldRegister>();
-            }
+            LFrameworkAspect.Instance?.HotfixScopeRegistry?.ExitHotfixScope();
         }
 
 
@@ -104,6 +104,9 @@ namespace LFramework.Hotfix
             {
                 return;
             }
+
+            // Collect bind type → instance pairs for scope registration
+            var bindEntries = new List<(Type bindType, GameFrameworkComponent instance)>();
 
             foreach (var type in hotfixTypes)
             {
@@ -154,8 +157,7 @@ namespace LFramework.Hotfix
                     var interfaceType = type.GetDerivedInterfaces();
                     if (interfaceType != null)
                     {
-                        // instance fo Hotfix component
-                        LFrameworkAspect.Instance.DiContainer.Bind(interfaceType).FromInstance(instance);
+                        bindEntries.Add((interfaceType, instance));
                     }
                     else
                     {
@@ -164,18 +166,33 @@ namespace LFramework.Hotfix
                 }
                 else
                 {
-                    LFrameworkAspect.Instance.DiContainer.Bind(hotfixComponentAttribute.BindType)
-                        .FromInstance(instance);
+                    bindEntries.Add((hotfixComponentAttribute.BindType, instance));
                 }
 
                 _hotfixComponents.AddLast(instance);
             }
 
-            foreach (var component in _hotfixComponents)
+            // Re-enter Hotfix Scope with all registrations (base interfaces + hotfix components)
+            if (bindEntries.Count > 0)
             {
-                LFrameworkAspect.Instance.DiContainer.Inject(component);
+                LFrameworkAspect.Instance.HotfixScopeRegistry.EnterHotfixScope(builder =>
+                {
+                    builder.RegisterInstance<ISystemProviderRegister>(this);
+                    builder.RegisterInstance<IWorldRegister>(this);
+                    foreach (var (bindType, instance) in bindEntries)
+                    {
+                        builder.RegisterInstance(instance).As(bindType);
+                    }
+                });
             }
 
+            // Inject all hotfix components
+            foreach (var component in _hotfixComponents)
+            {
+                LFrameworkAspect.Instance.FrameworkInjector.Inject(component);
+            }
+
+            // Lifecycle callbacks in order
             foreach (var component in _hotfixComponents)
             {
                 component.AwakeComponent();

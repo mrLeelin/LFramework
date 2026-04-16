@@ -9,7 +9,6 @@ using GameFramework;
 using GameFramework.Config;
 using GameFramework.Resource;
 using UnityEngine;
-using Zenject;
 
 namespace UnityGameFramework.Runtime
 {

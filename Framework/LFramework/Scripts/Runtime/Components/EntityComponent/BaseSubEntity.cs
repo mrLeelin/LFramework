@@ -4,7 +4,6 @@ using UnityGameFramework.Runtime;
 
 namespace LFramework.Runtime
 {
-    [PreLoadZenject]
     public abstract partial class BaseSubEntity : UnityEngine.MonoBehaviour
     {
         [BoxGroup("Sub Entity Key")] [SerializeField]

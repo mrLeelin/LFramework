@@ -64,7 +64,7 @@ namespace LFramework.Runtime
                 return;
             }
             
-            LFrameworkAspect.Instance.DiContainer.InjectGameObjectNotCheck(go);
+            FrameworkGameObjectInjector.InjectGameObjectValidated(LFrameworkAspect.Instance.FrameworkInjector, go);
         }
 
         private void Awake()

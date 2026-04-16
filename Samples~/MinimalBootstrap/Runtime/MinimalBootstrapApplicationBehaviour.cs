@@ -1,7 +1,7 @@
 using LFramework.Runtime;
 using LFramework.Runtime.Settings;
 using UnityEngine;
-using Zenject;
+using VContainer;
 
 namespace LFramework.Samples.MinimalBootstrap
 {
@@ -27,7 +27,7 @@ namespace LFramework.Samples.MinimalBootstrap
                     continue;
                 }
 
-                DiContainer.Bind(setting.GetType()).FromInstance(setting).AsSingle();
+                ScopeBuilder.RegisterInstance(setting).As(setting.GetType());
             }
 
             if (sampleProjectSettingSelector.GetSetting<GameSetting>() == null)

@@ -5,7 +5,6 @@ using GameFramework;
 using GameFramework.Resource;
 using UnityEngine;
 using UnityGameFramework.Runtime;
-using Zenject;
 
 namespace LFramework.Runtime
 {
