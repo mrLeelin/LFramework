@@ -14,6 +14,7 @@ namespace LFramework.Runtime
         private readonly DiContainer _diContainer;
         private readonly FrameworkResolverContext _resolverContext;
         private readonly FrameworkInjector _frameworkInjector;
+        private readonly HotfixScopeRegistry _hotfixScopeRegistry;
         private readonly RuntimeProcedureScopeRegistry _procedureScopeRegistry;
         private EventComponent _cacheEventComponent;
 
@@ -32,6 +33,7 @@ namespace LFramework.Runtime
         {
             _resolverContext = resolverContext ?? throw new ArgumentNullException(nameof(resolverContext));
             _frameworkInjector = new FrameworkInjector(_resolverContext);
+            _hotfixScopeRegistry = new HotfixScopeRegistry(_resolverContext);
             _procedureScopeRegistry = new RuntimeProcedureScopeRegistry(_resolverContext);
         }
 
@@ -52,6 +54,8 @@ namespace LFramework.Runtime
         public IObjectResolver RootResolver => _resolverContext?.RootResolver;
 
         public FrameworkInjector FrameworkInjector => _frameworkInjector;
+
+        public HotfixScopeRegistry HotfixScopeRegistry => _hotfixScopeRegistry;
 
         public RuntimeProcedureScopeRegistry ProcedureScopeRegistry => _procedureScopeRegistry;
 
