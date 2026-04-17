@@ -10,7 +10,7 @@ using GameFramework.Resource;
 using System;
 using System.Collections.Generic;
 using GameFramework.DataProvider;
-using UnityEngine;
+using UnityEngine;
 using UnityEngine.Scripting;
 
 namespace GameFramework.Entity

@@ -698,18 +698,20 @@ namespace LFramework.Runtime
             }
 
             _resourceComponentSetting ??= SettingManager.GetProjectSelector()?.GetComponentSetting<ResourceComponentSetting>();
-            _packageResolver ??= new PackageResolver(_resourceComponentSetting != null
-                ? _resourceComponentSetting.YooAssetRouting
-                : new RoutingSettings());
+
             if (_resourceComponentSetting != null)
             {
+                _packageResolver ??= new PackageResolver(_resourceComponentSetting.YooAssetRouting);
                 _packageRegistry.Configure(
                     _resourceComponentSetting.GetEffectivePackageDefinitions(),
                     Application.platform,
                     _gameSetting != null ? _gameSetting.channel : string.Empty);
+                _packageRegistryConfigured = true;
             }
-
-            _packageRegistryConfigured = true;
+            else
+            {
+                Debug.LogWarning("[YooAssetResourceHelper] ResourceComponentSetting not found, package registry not configured.");
+            }
         }
 
         private string ResolveYooAssetPackageName(string packageId)

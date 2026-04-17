@@ -353,7 +353,9 @@ namespace LFramework.Editor.Tests.Settings
             var componentGo = new GameObject("ResourceComponent");
             try
             {
-                var component = componentGo.AddComponent<UnityGameFramework.Runtime.ResourceComponent>();
+                var component = (UnityGameFramework.Runtime.ResourceComponent)Activator.CreateInstance(typeof(UnityGameFramework.Runtime.ResourceComponent));
+                SetPrivateField(component, "Parent", componentGo);
+                component.AwakeComponent();
                 var manager = new TestResourceManagerProxy();
                 SetPrivateField(component, "_resourceManager", manager);
                 var assetCallbacks = new LoadAssetCallbacks(null);

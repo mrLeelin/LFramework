@@ -8,7 +8,7 @@
 using GameFramework.Resource;
 using System;
 using System.Collections.Generic;
-using UnityEngine;
+using UnityEngine;
 using UnityEngine.Scripting;
 
 namespace GameFramework.Localization
