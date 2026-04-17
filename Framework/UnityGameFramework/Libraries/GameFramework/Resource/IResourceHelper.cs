@@ -40,9 +40,19 @@ namespace GameFramework.Resource
         void LoadAsset(string assetName, Type assetType, LoadAssetCallbacks callbacks, object userData);
 
         /// <summary>
+        /// 加载资源（指定逻辑包）
+        /// </summary>
+        void LoadAsset(string assetName, Type assetType, string packageId, LoadAssetCallbacks callbacks, object userData);
+
+        /// <summary>
         /// 加载场景
         /// </summary>
         void LoadScene(string sceneAssetName, LoadSceneCallbacks callbacks, object userData);
+
+        /// <summary>
+        /// 加载场景（指定逻辑包）
+        /// </summary>
+        void LoadScene(string sceneAssetName, string packageId, LoadSceneCallbacks callbacks, object userData);
 
         /// <summary>
         /// 加载二进制/原始文件
@@ -50,8 +60,18 @@ namespace GameFramework.Resource
         void LoadBinary(string binaryAssetName, LoadBinaryCallbacks callbacks, object userData);
 
         /// <summary>
+        /// 加载二进制/原始文件（指定逻辑包）
+        /// </summary>
+        void LoadBinary(string binaryAssetName, string packageId, LoadBinaryCallbacks callbacks, object userData);
+
+        /// <summary>
         /// 实例化资源
         /// </summary>
         void InstantiateAsset(string assetName, LoadAssetCallbacks callbacks, object userData);
+
+        /// <summary>
+        /// 实例化资源（指定逻辑包）
+        /// </summary>
+        void InstantiateAsset(string assetName, string packageId, LoadAssetCallbacks callbacks, object userData);
     }
 }

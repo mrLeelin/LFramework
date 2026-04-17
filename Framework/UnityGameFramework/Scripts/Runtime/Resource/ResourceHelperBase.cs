@@ -39,9 +39,27 @@ namespace UnityGameFramework.Runtime
         public abstract void LoadAsset(string assetName, System.Type assetType, GameFramework.Resource.LoadAssetCallbacks callbacks, object userData);
 
         /// <summary>
+        /// 加载资源（指定逻辑包）
+        /// </summary>
+        public virtual void LoadAsset(string assetName, System.Type assetType, string packageId,
+            GameFramework.Resource.LoadAssetCallbacks callbacks, object userData)
+        {
+            LoadAsset(assetName, assetType, callbacks, userData);
+        }
+
+        /// <summary>
         /// 加载场景
         /// </summary>
         public abstract void LoadScene(string sceneAssetName, GameFramework.Resource.LoadSceneCallbacks callbacks, object userData);
+
+        /// <summary>
+        /// 加载场景（指定逻辑包）
+        /// </summary>
+        public virtual void LoadScene(string sceneAssetName, string packageId,
+            GameFramework.Resource.LoadSceneCallbacks callbacks, object userData)
+        {
+            LoadScene(sceneAssetName, callbacks, userData);
+        }
 
         /// <summary>
         /// 加载二进制/原始文件
@@ -49,9 +67,27 @@ namespace UnityGameFramework.Runtime
         public abstract void LoadBinary(string binaryAssetName, GameFramework.Resource.LoadBinaryCallbacks callbacks, object userData);
 
         /// <summary>
+        /// 加载二进制/原始文件（指定逻辑包）
+        /// </summary>
+        public virtual void LoadBinary(string binaryAssetName, string packageId,
+            GameFramework.Resource.LoadBinaryCallbacks callbacks, object userData)
+        {
+            LoadBinary(binaryAssetName, callbacks, userData);
+        }
+
+        /// <summary>
         /// 实例化资源
         /// </summary>
         public abstract void InstantiateAsset(string assetName, GameFramework.Resource.LoadAssetCallbacks callbacks, object userData);
+
+        /// <summary>
+        /// 实例化资源（指定逻辑包）
+        /// </summary>
+        public virtual void InstantiateAsset(string assetName, string packageId,
+            GameFramework.Resource.LoadAssetCallbacks callbacks, object userData)
+        {
+            InstantiateAsset(assetName, callbacks, userData);
+        }
 
         // ─── Handle 异步 API ───
 

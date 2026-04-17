@@ -48,12 +48,17 @@ namespace LFramework.Runtime
 
         private GameSetting _gameSetting;
         private SettingComponent _settingComponent;
+        private ResourceComponentSetting _resourceComponentSetting;
+        private readonly PackageRegistry _packageRegistry = new PackageRegistry();
+        private PackageResolver _packageResolver;
+        private bool _packageRegistryConfigured;
 
 
         private void Awake()
         {
             _gameSetting = SettingManager.GetSetting<GameSetting>();
             _settingComponent = LFrameworkAspect.Instance.Get<SettingComponent>();
+            _resourceComponentSetting = SettingManager.GetProjectSelector()?.GetComponentSetting<ResourceComponentSetting>();
         }
 
         /// <summary>
@@ -62,8 +67,10 @@ namespace LFramework.Runtime
         public override void InitializeResources(ResourceInitCallBack callback)
         {
             YooAssets.Initialize();
-            var package = YooAssets.TryGetPackage(ResourceComponent.YooAssetPackageName)
-                          ?? YooAssets.CreatePackage(ResourceComponent.YooAssetPackageName);
+            EnsurePackageRegistryConfigured();
+            string defaultPackageName = ResolveYooAssetPackageName(null);
+            var package = YooAssets.TryGetPackage(defaultPackageName)
+                          ?? YooAssets.CreatePackage(defaultPackageName);
             YooAssets.SetDefaultPackage(package);
 
             InitializePackageAsync(package, callback);
@@ -74,7 +81,7 @@ namespace LFramework.Runtime
         /// </summary>
         public override HasAssetResult HasAsset(string assetName)
         {
-            var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
+            var package = GetLoadedPackage(null);
             if (package == null) return HasAssetResult.NotReady;
             return package.CheckLocationValid(assetName)
                 ? HasAssetResult.Exist
@@ -171,7 +178,20 @@ namespace LFramework.Runtime
         public override void LoadAsset(string assetName, Type assetType,
             LoadAssetCallbacks callbacks, object userData)
         {
-            var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
+            LoadAsset(assetName, assetType, null, callbacks, userData);
+        }
+
+        public override void LoadAsset(string assetName, Type assetType, string packageId,
+            LoadAssetCallbacks callbacks, object userData)
+        {
+            var package = GetLoadedPackage(assetName, packageId);
+            if (package == null)
+            {
+                callbacks.LoadAssetFailureCallback?.Invoke(
+                    assetName, LoadResourceStatus.NotReady,
+                    $"Package '{ResolveYooAssetPackageName(assetName, packageId)}' is not initialized.", userData);
+                return;
+            }
             var handle = package.LoadAssetAsync(assetName, assetType);
             StartCoroutine(WaitForAssetLoad(handle, assetName, callbacks, userData));
         }
@@ -221,7 +241,20 @@ namespace LFramework.Runtime
         public override void LoadScene(string sceneAssetName,
             LoadSceneCallbacks callbacks, object userData)
         {
-            var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
+            LoadScene(sceneAssetName, null, callbacks, userData);
+        }
+
+        public override void LoadScene(string sceneAssetName, string packageId,
+            LoadSceneCallbacks callbacks, object userData)
+        {
+            var package = GetLoadedPackage(sceneAssetName, packageId);
+            if (package == null)
+            {
+                callbacks.LoadSceneFailureCallback?.Invoke(
+                    sceneAssetName, LoadResourceStatus.NotReady,
+                    $"Package '{ResolveYooAssetPackageName(sceneAssetName, packageId)}' is not initialized.", userData);
+                return;
+            }
             var handle = package.LoadSceneAsync(sceneAssetName,LoadSceneMode.Additive);
             StartCoroutine(WaitForSceneLoad(handle, sceneAssetName, callbacks, userData));
         }
@@ -256,7 +289,20 @@ namespace LFramework.Runtime
         public override void LoadBinary(string binaryAssetName,
             LoadBinaryCallbacks callbacks, object userData)
         {
-            var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
+            LoadBinary(binaryAssetName, null, callbacks, userData);
+        }
+
+        public override void LoadBinary(string binaryAssetName, string packageId,
+            LoadBinaryCallbacks callbacks, object userData)
+        {
+            var package = GetLoadedPackage(binaryAssetName, packageId);
+            if (package == null)
+            {
+                callbacks.LoadBinaryFailureCallback?.Invoke(
+                    binaryAssetName, LoadResourceStatus.NotReady,
+                    $"Package '{ResolveYooAssetPackageName(binaryAssetName, packageId)}' is not initialized.", userData);
+                return;
+            }
             var handle = package.LoadRawFileAsync(binaryAssetName);
 
             handle.Completed += (op) =>
@@ -283,7 +329,20 @@ namespace LFramework.Runtime
         public override async void InstantiateAsset(string assetName,
             LoadAssetCallbacks callbacks, object userData)
         {
-            var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
+            InstantiateAsset(assetName, null, callbacks, userData);
+        }
+
+        public override async void InstantiateAsset(string assetName, string packageId,
+            LoadAssetCallbacks callbacks, object userData)
+        {
+            var package = GetLoadedPackage(assetName, packageId);
+            if (package == null)
+            {
+                callbacks.LoadAssetFailureCallback?.Invoke(
+                    assetName, LoadResourceStatus.NotReady,
+                    $"Package '{ResolveYooAssetPackageName(assetName, packageId)}' is not initialized.", userData);
+                return;
+            }
             var handle = package.LoadAssetAsync<GameObject>(assetName);
             while (!handle.IsDone)
             {
@@ -610,6 +669,7 @@ namespace LFramework.Runtime
                 await initOperation.Task;
                 if (initOperation.Status == EOperationStatus.Succeed)
                 {
+                    await TryLoadBootstrapRouteIndexAsync();
                     callback?.ResourceInitSuccessCallBack?.Invoke();
                 }
                 else
@@ -628,6 +688,110 @@ namespace LFramework.Runtime
         protected virtual IRemoteServices BuildRemoteService(SettingComponent settingComponent, GameSetting gameSetting)
         {
             return new DefaultRemoteServices(settingComponent, gameSetting);
+        }
+
+        private void EnsurePackageRegistryConfigured()
+        {
+            if (_packageRegistryConfigured)
+            {
+                return;
+            }
+
+            _resourceComponentSetting ??= SettingManager.GetProjectSelector()?.GetComponentSetting<ResourceComponentSetting>();
+            _packageResolver ??= new PackageResolver(_resourceComponentSetting != null
+                ? _resourceComponentSetting.YooAssetRouting
+                : new RoutingSettings());
+            if (_resourceComponentSetting != null)
+            {
+                _packageRegistry.Configure(
+                    _resourceComponentSetting.GetEffectivePackageDefinitions(),
+                    Application.platform,
+                    _gameSetting != null ? _gameSetting.channel : string.Empty);
+            }
+
+            _packageRegistryConfigured = true;
+        }
+
+        private string ResolveYooAssetPackageName(string packageId)
+        {
+            EnsurePackageRegistryConfigured();
+
+            string logicalPackageId = ResolveLogicalPackageId(null, packageId);
+            if (!string.IsNullOrWhiteSpace(logicalPackageId))
+            {
+                PackageDefinition package = _packageRegistry.GetPackage(logicalPackageId);
+                if (package != null && !string.IsNullOrWhiteSpace(package.yooPackageName))
+                {
+                    return package.yooPackageName;
+                }
+
+                return logicalPackageId;
+            }
+
+            return ResourceComponent.YooAssetPackageName;
+        }
+
+        private string ResolveYooAssetPackageName(string address, string packageId)
+        {
+            EnsurePackageRegistryConfigured();
+
+            string logicalPackageId = ResolveLogicalPackageId(address, packageId);
+            if (!string.IsNullOrWhiteSpace(logicalPackageId))
+            {
+                PackageDefinition package = _packageRegistry.GetPackage(logicalPackageId);
+                if (package != null && !string.IsNullOrWhiteSpace(package.yooPackageName))
+                {
+                    return package.yooPackageName;
+                }
+
+                return logicalPackageId;
+            }
+
+            return ResourceComponent.YooAssetPackageName;
+        }
+
+        private string ResolveLogicalPackageId(string address, string explicitPackageId)
+        {
+            EnsurePackageRegistryConfigured();
+
+            if (_packageResolver != null && _resourceComponentSetting != null)
+            {
+                return _packageResolver.ResolvePackageId(
+                    address,
+                    explicitPackageId,
+                    _resourceComponentSetting.GetResolvedDefaultPackageId());
+            }
+
+            if (_resourceComponentSetting != null)
+            {
+                return string.IsNullOrWhiteSpace(explicitPackageId)
+                    ? _resourceComponentSetting.GetResolvedDefaultPackageId()
+                    : explicitPackageId;
+            }
+
+            return explicitPackageId;
+        }
+
+        private ResourcePackage GetLoadedPackage(string packageId)
+        {
+            string packageName = ResolveYooAssetPackageName(packageId);
+            if (string.IsNullOrWhiteSpace(packageName))
+            {
+                return null;
+            }
+
+            return YooAssets.TryGetPackage(packageName);
+        }
+
+        private ResourcePackage GetLoadedPackage(string address, string packageId)
+        {
+            string packageName = ResolveYooAssetPackageName(address, packageId);
+            if (string.IsNullOrWhiteSpace(packageName))
+            {
+                return null;
+            }
+
+            return YooAssets.TryGetPackage(packageName);
         }
 
         #region 调试工具方法
@@ -677,6 +841,52 @@ namespace LFramework.Runtime
             {
                 UnityEngine.Debug.Log($"[YooAssetResourceHelper] InstanceID: {kvp.Key}, RefCount: {kvp.Value}");
             }
+        }
+
+        private async UniTask TryLoadBootstrapRouteIndexAsync()
+        {
+            if (_resourceComponentSetting == null || _packageResolver == null)
+            {
+                return;
+            }
+
+            RoutingSettings routing = _resourceComponentSetting.YooAssetRouting;
+            if (!routing.enableRouteIndex)
+            {
+                return;
+            }
+
+            var loader = new RouteIndexBootstrapLoader(_packageRegistry, routing);
+            if (!loader.TryGetBootstrapRequest(out string packageId, out string address, out string errorMessage))
+            {
+                Debug.LogWarning($"[YooAssetResourceHelper] Skip route index bootstrap: {errorMessage}");
+                return;
+            }
+
+            ResourcePackage package = GetLoadedPackage(null, packageId);
+            if (package == null)
+            {
+                Debug.LogWarning($"[YooAssetResourceHelper] Bootstrap package '{packageId}' is not loaded.");
+                return;
+            }
+
+            AssetHandle handle = package.LoadAssetAsync<RouteIndexAsset>(address);
+            while (!handle.IsDone)
+            {
+                await UniTask.Yield();
+            }
+
+            if (handle.Status == EOperationStatus.Succeed && handle.AssetObject is RouteIndexAsset routeIndex)
+            {
+                _packageResolver.LoadRouteIndex(routeIndex);
+                Debug.Log($"[YooAssetResourceHelper] Loaded route index from '{packageId}:{address}'.");
+            }
+            else
+            {
+                Debug.LogWarning($"[YooAssetResourceHelper] Failed to load route index from '{packageId}:{address}'. Error: {handle.LastError}");
+            }
+
+            handle.Release();
         }
 
         #endregion
