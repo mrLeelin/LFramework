@@ -100,6 +100,27 @@ namespace LFramework.Editor.Tests.Settings
         }
 
         [Test]
+        public void ValidateMultiPackageConfiguration_WarnsWhenRouteIndexAssetPathIsMissing()
+        {
+            var setting = ScriptableObject.CreateInstance<ResourceComponentSetting>();
+            SetPrivateField(setting, "_yooAssetPackageName", string.Empty);
+            setting.YooAssetPackages.Add(new PackageDefinition
+            {
+                packageId = "bootstrap",
+                yooPackageName = "BootstrapPackage",
+                remoteFolderName = "bootstrap"
+            });
+            setting.YooAssetRouting.routeIndexPackageId = "bootstrap";
+            setting.YooAssetRouting.routeIndexAddress = "route-index";
+
+            bool isValid = setting.ValidateMultiPackageConfiguration(out List<string> errors, out List<string> warnings);
+
+            Assert.That(isValid, Is.True);
+            Assert.That(errors, Is.Empty);
+            Assert.That(warnings.Exists(message => Contains(message, "asset path")), Is.True);
+        }
+
+        [Test]
         public void ValidateMultiPackageConfiguration_RejectsUnknownDefaultBootstrapAndRouteIndexPackages()
         {
             var setting = ScriptableObject.CreateInstance<ResourceComponentSetting>();

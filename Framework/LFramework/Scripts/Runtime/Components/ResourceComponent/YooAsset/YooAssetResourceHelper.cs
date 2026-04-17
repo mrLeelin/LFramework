@@ -52,6 +52,8 @@ namespace LFramework.Runtime
         private readonly PackageRegistry _packageRegistry = new PackageRegistry();
         private PackageResolver _packageResolver;
         private bool _packageRegistryConfigured;
+        private readonly HashSet<string> _initializedPackageNames = new HashSet<string>(StringComparer.Ordinal);
+        private PackageInitializationCoordinator _packageInitializationCoordinator;
 
 
         private void Awake()
@@ -68,12 +70,13 @@ namespace LFramework.Runtime
         {
             YooAssets.Initialize();
             EnsurePackageRegistryConfigured();
+            EnsurePackageInitializationCoordinator();
             string defaultPackageName = ResolveYooAssetPackageName(null);
             var package = YooAssets.TryGetPackage(defaultPackageName)
                           ?? YooAssets.CreatePackage(defaultPackageName);
             YooAssets.SetDefaultPackage(package);
 
-            InitializePackageAsync(package, callback);
+            InitializePackageAsync(defaultPackageName, callback);
         }
 
         /// <summary>
@@ -184,16 +187,7 @@ namespace LFramework.Runtime
         public override void LoadAsset(string assetName, Type assetType, string packageId,
             LoadAssetCallbacks callbacks, object userData)
         {
-            var package = GetLoadedPackage(assetName, packageId);
-            if (package == null)
-            {
-                callbacks.LoadAssetFailureCallback?.Invoke(
-                    assetName, LoadResourceStatus.NotReady,
-                    $"Package '{ResolveYooAssetPackageName(assetName, packageId)}' is not initialized.", userData);
-                return;
-            }
-            var handle = package.LoadAssetAsync(assetName, assetType);
-            StartCoroutine(WaitForAssetLoad(handle, assetName, callbacks, userData));
+            LoadAssetInternalAsync(assetName, assetType, packageId, callbacks, userData).Forget();
         }
 
         private IEnumerator WaitForAssetLoad(AssetHandle handle, string assetName,
@@ -247,16 +241,7 @@ namespace LFramework.Runtime
         public override void LoadScene(string sceneAssetName, string packageId,
             LoadSceneCallbacks callbacks, object userData)
         {
-            var package = GetLoadedPackage(sceneAssetName, packageId);
-            if (package == null)
-            {
-                callbacks.LoadSceneFailureCallback?.Invoke(
-                    sceneAssetName, LoadResourceStatus.NotReady,
-                    $"Package '{ResolveYooAssetPackageName(sceneAssetName, packageId)}' is not initialized.", userData);
-                return;
-            }
-            var handle = package.LoadSceneAsync(sceneAssetName,LoadSceneMode.Additive);
-            StartCoroutine(WaitForSceneLoad(handle, sceneAssetName, callbacks, userData));
+            LoadSceneInternalAsync(sceneAssetName, packageId, callbacks, userData).Forget();
         }
 
         private IEnumerator WaitForSceneLoad(YooAsset.SceneHandle handle, string sceneAssetName,
@@ -295,32 +280,7 @@ namespace LFramework.Runtime
         public override void LoadBinary(string binaryAssetName, string packageId,
             LoadBinaryCallbacks callbacks, object userData)
         {
-            var package = GetLoadedPackage(binaryAssetName, packageId);
-            if (package == null)
-            {
-                callbacks.LoadBinaryFailureCallback?.Invoke(
-                    binaryAssetName, LoadResourceStatus.NotReady,
-                    $"Package '{ResolveYooAssetPackageName(binaryAssetName, packageId)}' is not initialized.", userData);
-                return;
-            }
-            var handle = package.LoadRawFileAsync(binaryAssetName);
-
-            handle.Completed += (op) =>
-            {
-                if (op.Status == EOperationStatus.Succeed)
-                {
-                    _rawFileHandles[binaryAssetName] = handle;
-
-                    callbacks.LoadBinarySuccessCallback?.Invoke(
-                        binaryAssetName, op.GetRawFileData(), 0f, userData);
-                }
-                else
-                {
-                    callbacks.LoadBinaryFailureCallback?.Invoke(
-                        binaryAssetName, LoadResourceStatus.NotExist,
-                        op.LastError ?? "Load binary failed.", userData);
-                }
-            };
+            LoadBinaryInternalAsync(binaryAssetName, packageId, callbacks, userData).Forget();
         }
 
         /// <summary>
@@ -335,15 +295,40 @@ namespace LFramework.Runtime
         public override async void InstantiateAsset(string assetName, string packageId,
             LoadAssetCallbacks callbacks, object userData)
         {
-            var package = GetLoadedPackage(assetName, packageId);
+            await InstantiateAssetInternalAsync(assetName, packageId, callbacks, userData);
+        }
+
+        // ─── Handle 异步 API 实现 ───
+
+        /// <summary>
+        /// 异步加载资源（返回 Handle）
+        /// </summary>
+        private async UniTask LoadAssetInternalAsync(string assetName, Type assetType, string packageId,
+            LoadAssetCallbacks callbacks, object userData)
+        {
+            PackageInitializationResult ready = await EnsurePackageReadyAsync(assetName, packageId);
+            if (!ready.Succeeded)
+            {
+                callbacks.LoadAssetFailureCallback?.Invoke(
+                    assetName,
+                    LoadResourceStatus.NotReady,
+                    ready.ErrorMessage ?? $"Package '{ResolveYooAssetPackageName(assetName, packageId)}' is not initialized.",
+                    userData);
+                return;
+            }
+
+            ResourcePackage package = YooAssets.TryGetPackage(ready.PackageName);
             if (package == null)
             {
                 callbacks.LoadAssetFailureCallback?.Invoke(
-                    assetName, LoadResourceStatus.NotReady,
-                    $"Package '{ResolveYooAssetPackageName(assetName, packageId)}' is not initialized.", userData);
+                    assetName,
+                    LoadResourceStatus.NotReady,
+                    $"Package '{ready.PackageName}' is unavailable after initialization.",
+                    userData);
                 return;
             }
-            var handle = package.LoadAssetAsync<GameObject>(assetName);
+
+            AssetHandle handle = package.LoadAssetAsync(assetName, assetType);
             while (!handle.IsDone)
             {
                 callbacks.LoadAssetUpdateCallback?.Invoke(assetName, handle.Progress, userData);
@@ -352,49 +337,212 @@ namespace LFramework.Runtime
 
             if (handle.Status == EOperationStatus.Succeed)
             {
-                var instantiateOp = handle.InstantiateAsync();
-
-                while (!instantiateOp.IsDone)
+                UnityEngine.Object asset = handle.AssetObject;
+                if (asset != null)
                 {
-                    callbacks.LoadAssetUpdateCallback?.Invoke(assetName, 0.5f + instantiateOp.Progress * 0.5f, userData);
-                    await UniTask.Yield();
-                }
-
-                if (instantiateOp.Status == EOperationStatus.Succeed &&
-                    instantiateOp.Result != null &&
-                    handle.AssetObject != null)
-                {
-                    int instanceId = instantiateOp.Result.GetInstanceID();
-                    int assetInstanceId = handle.AssetObject.GetInstanceID();
-
-                    _instanceToAssetMap[instanceId] = assetInstanceId;
-
-                    if (_assetHandles.TryGetValue(assetInstanceId, out var handles))
+                    int instanceId = asset.GetInstanceID();
+                    if (_assetHandles.TryGetValue(instanceId, out List<AssetHandle> handles))
                     {
                         handles.Add(handle);
-                        _handleRefCounts[assetInstanceId]++;
+                        _handleRefCounts[instanceId]++;
                     }
                     else
                     {
-                        _assetHandles[assetInstanceId] = new List<AssetHandle> { handle };
-                        _handleRefCounts[assetInstanceId] = 1;
+                        _assetHandles[instanceId] = new List<AssetHandle> { handle };
+                        _handleRefCounts[instanceId] = 1;
                     }
                 }
 
+                callbacks.LoadAssetSuccessCallback?.Invoke(assetName, asset, 0f, userData);
+            }
+            else
+            {
+                callbacks.LoadAssetFailureCallback?.Invoke(
+                    assetName,
+                    LoadResourceStatus.NotExist,
+                    handle.LastError ?? "Load failed.",
+                    userData);
+            }
+        }
+
+        private async UniTask LoadSceneInternalAsync(string sceneAssetName, string packageId,
+            LoadSceneCallbacks callbacks, object userData)
+        {
+            PackageInitializationResult ready = await EnsurePackageReadyAsync(sceneAssetName, packageId);
+            if (!ready.Succeeded)
+            {
+                callbacks.LoadSceneFailureCallback?.Invoke(
+                    sceneAssetName,
+                    LoadResourceStatus.NotReady,
+                    ready.ErrorMessage ?? $"Package '{ResolveYooAssetPackageName(sceneAssetName, packageId)}' is not initialized.",
+                    userData);
+                return;
+            }
+
+            ResourcePackage package = YooAssets.TryGetPackage(ready.PackageName);
+            if (package == null)
+            {
+                callbacks.LoadSceneFailureCallback?.Invoke(
+                    sceneAssetName,
+                    LoadResourceStatus.NotReady,
+                    $"Package '{ready.PackageName}' is unavailable after initialization.",
+                    userData);
+                return;
+            }
+
+            YooAsset.SceneHandle handle = package.LoadSceneAsync(sceneAssetName, LoadSceneMode.Additive);
+            while (!handle.IsDone)
+            {
+                callbacks.LoadSceneUpdateCallback?.Invoke(sceneAssetName, handle.Progress, userData);
+                await UniTask.Yield();
+            }
+
+            if (handle.Status == EOperationStatus.Succeed)
+            {
+                _sceneHandles[sceneAssetName] = handle;
+                callbacks.LoadSceneSuccessCallback?.Invoke(sceneAssetName, 0f, userData);
+            }
+            else
+            {
+                callbacks.LoadSceneFailureCallback?.Invoke(
+                    sceneAssetName,
+                    LoadResourceStatus.NotExist,
+                    handle.LastError ?? "Load scene failed.",
+                    userData);
+            }
+        }
+
+        private async UniTask LoadBinaryInternalAsync(string binaryAssetName, string packageId,
+            LoadBinaryCallbacks callbacks, object userData)
+        {
+            PackageInitializationResult ready = await EnsurePackageReadyAsync(binaryAssetName, packageId);
+            if (!ready.Succeeded)
+            {
+                callbacks.LoadBinaryFailureCallback?.Invoke(
+                    binaryAssetName,
+                    LoadResourceStatus.NotReady,
+                    ready.ErrorMessage ?? $"Package '{ResolveYooAssetPackageName(binaryAssetName, packageId)}' is not initialized.",
+                    userData);
+                return;
+            }
+
+            ResourcePackage package = YooAssets.TryGetPackage(ready.PackageName);
+            if (package == null)
+            {
+                callbacks.LoadBinaryFailureCallback?.Invoke(
+                    binaryAssetName,
+                    LoadResourceStatus.NotReady,
+                    $"Package '{ready.PackageName}' is unavailable after initialization.",
+                    userData);
+                return;
+            }
+
+            RawFileHandle handle = package.LoadRawFileAsync(binaryAssetName);
+            while (!handle.IsDone)
+            {
+                await UniTask.Yield();
+            }
+
+            if (handle.Status == EOperationStatus.Succeed)
+            {
+                _rawFileHandles[binaryAssetName] = handle;
+                callbacks.LoadBinarySuccessCallback?.Invoke(binaryAssetName, handle.GetRawFileData(), 0f, userData);
+            }
+            else
+            {
+                callbacks.LoadBinaryFailureCallback?.Invoke(
+                    binaryAssetName,
+                    LoadResourceStatus.NotExist,
+                    handle.LastError ?? "Load binary failed.",
+                    userData);
+                handle.Release();
+            }
+        }
+
+        private async UniTask InstantiateAssetInternalAsync(string assetName, string packageId,
+            LoadAssetCallbacks callbacks, object userData)
+        {
+            PackageInitializationResult ready = await EnsurePackageReadyAsync(assetName, packageId);
+            if (!ready.Succeeded)
+            {
+                callbacks.LoadAssetFailureCallback?.Invoke(
+                    assetName,
+                    LoadResourceStatus.NotReady,
+                    ready.ErrorMessage ?? $"Package '{ResolveYooAssetPackageName(assetName, packageId)}' is not initialized.",
+                    userData);
+                return;
+            }
+
+            ResourcePackage package = YooAssets.TryGetPackage(ready.PackageName);
+            if (package == null)
+            {
+                callbacks.LoadAssetFailureCallback?.Invoke(
+                    assetName,
+                    LoadResourceStatus.NotReady,
+                    $"Package '{ready.PackageName}' is unavailable after initialization.",
+                    userData);
+                return;
+            }
+
+            AssetHandle handle = package.LoadAssetAsync<GameObject>(assetName);
+            while (!handle.IsDone)
+            {
+                callbacks.LoadAssetUpdateCallback?.Invoke(assetName, handle.Progress, userData);
+                await UniTask.Yield();
+            }
+
+            if (handle.Status != EOperationStatus.Succeed)
+            {
+                callbacks.LoadAssetFailureCallback?.Invoke(
+                    assetName,
+                    LoadResourceStatus.NotExist,
+                    handle.LastError ?? "Instantiate failed.",
+                    userData);
+                return;
+            }
+
+            var instantiateOp = handle.InstantiateAsync();
+            while (!instantiateOp.IsDone)
+            {
+                callbacks.LoadAssetUpdateCallback?.Invoke(assetName, 0.5f + instantiateOp.Progress * 0.5f, userData);
+                await UniTask.Yield();
+            }
+
+            if (instantiateOp.Status == EOperationStatus.Succeed &&
+                instantiateOp.Result != null &&
+                handle.AssetObject != null)
+            {
+                int instanceId = instantiateOp.Result.GetInstanceID();
+                int assetInstanceId = handle.AssetObject.GetInstanceID();
+                _instanceToAssetMap[instanceId] = assetInstanceId;
+
+                if (_assetHandles.TryGetValue(assetInstanceId, out List<AssetHandle> handles))
+                {
+                    handles.Add(handle);
+                    _handleRefCounts[assetInstanceId]++;
+                }
+                else
+                {
+                    _assetHandles[assetInstanceId] = new List<AssetHandle> { handle };
+                    _handleRefCounts[assetInstanceId] = 1;
+                }
+            }
+
+            if (instantiateOp.Status == EOperationStatus.Succeed)
+            {
                 callbacks.LoadAssetSuccessCallback?.Invoke(assetName, instantiateOp.Result, 0f, userData);
             }
             else
             {
-                callbacks.LoadAssetFailureCallback?.Invoke(assetName, LoadResourceStatus.NotExist,
-                    handle.LastError ?? "Instantiate failed.", userData);
+                callbacks.LoadAssetFailureCallback?.Invoke(
+                    assetName,
+                    LoadResourceStatus.NotExist,
+                    "Instantiate failed.",
+                    userData);
+                handle.Release();
             }
         }
 
-        // ─── Handle 异步 API 实现 ───
-
-        /// <summary>
-        /// 异步加载资源（返回 Handle）
-        /// </summary>
         public override ResourceAssetHandle<T> LoadAssetHandle<T>(string assetName)
         {
             var resourceHandle = ReferencePool.Acquire<ResourceAssetHandle<T>>();
@@ -408,7 +556,20 @@ namespace LFramework.Runtime
         {
             try
             {
-                var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
+                PackageInitializationResult ready = await EnsurePackageReadyAsync(assetName, null);
+                if (!ready.Succeeded)
+                {
+                    handle.SetError(ready.ErrorMessage ?? $"Load asset '{assetName}' failed because its package is not ready.");
+                    return;
+                }
+
+                ResourcePackage package = YooAssets.TryGetPackage(ready.PackageName);
+                if (package == null)
+                {
+                    handle.SetError($"Package '{ready.PackageName}' is unavailable after initialization.");
+                    return;
+                }
+
                 var op = package.LoadAssetAsync(assetName,typeof(System.Object));
                 while (!op.IsDone)
                 {
@@ -456,7 +617,20 @@ namespace LFramework.Runtime
         {
             try
             {
-                var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
+                PackageInitializationResult ready = await EnsurePackageReadyAsync(assetName, null);
+                if (!ready.Succeeded)
+                {
+                    handle.SetError(ready.ErrorMessage ?? $"Instantiate asset '{assetName}' failed because its package is not ready.");
+                    return;
+                }
+
+                ResourcePackage package = YooAssets.TryGetPackage(ready.PackageName);
+                if (package == null)
+                {
+                    handle.SetError($"Package '{ready.PackageName}' is unavailable after initialization.");
+                    return;
+                }
+
                 var assetOp = package.LoadAssetAsync<GameObject>(assetName);
                 while (!assetOp.IsDone)
                 {
@@ -509,7 +683,20 @@ namespace LFramework.Runtime
         {
             try
             {
-                var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
+                PackageInitializationResult ready = await EnsurePackageReadyAsync(sceneAssetName, null);
+                if (!ready.Succeeded)
+                {
+                    handle.SetError(ready.ErrorMessage ?? $"Load scene '{sceneAssetName}' failed because its package is not ready.");
+                    return;
+                }
+
+                ResourcePackage package = YooAssets.TryGetPackage(ready.PackageName);
+                if (package == null)
+                {
+                    handle.SetError($"Package '{ready.PackageName}' is unavailable after initialization.");
+                    return;
+                }
+
                 var op = package.LoadSceneAsync(sceneAssetName,LoadSceneMode.Additive);
                 while (!op.IsDone)
                 {
@@ -544,7 +731,20 @@ namespace LFramework.Runtime
         {
             try
             {
-                var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
+                PackageInitializationResult ready = await EnsurePackageReadyAsync(binaryAssetName, null);
+                if (!ready.Succeeded)
+                {
+                    handle.SetError(ready.ErrorMessage ?? $"Load binary '{binaryAssetName}' failed because its package is not ready.");
+                    return;
+                }
+
+                ResourcePackage package = YooAssets.TryGetPackage(ready.PackageName);
+                if (package == null)
+                {
+                    handle.SetError($"Package '{ready.PackageName}' is unavailable after initialization.");
+                    return;
+                }
+
                 var op = package.LoadRawFileAsync(binaryAssetName);
                 while (!op.IsDone)
                 {
@@ -580,7 +780,20 @@ namespace LFramework.Runtime
         {
             try
             {
-                var package = YooAssets.GetPackage(ResourceComponent.YooAssetPackageName);
+                PackageInitializationResult ready = await EnsurePackageReadyAsync(null, null);
+                if (!ready.Succeeded)
+                {
+                    handle.SetError(ready.ErrorMessage ?? $"Load assets by tag '{tag}' failed because the default package is not ready.");
+                    return;
+                }
+
+                ResourcePackage package = YooAssets.TryGetPackage(ready.PackageName);
+                if (package == null)
+                {
+                    handle.SetError($"Package '{ready.PackageName}' is unavailable after initialization.");
+                    return;
+                }
+
                 var op = package.LoadAllAssetsAsync<T>(tag);
                 while (!op.IsDone)
                 {
@@ -605,15 +818,74 @@ namespace LFramework.Runtime
             catch (Exception ex) { handle.SetError(ex.Message); }
         }
 
-        protected virtual async void InitializePackageAsync(ResourcePackage package, ResourceInitCallBack callback)
+        protected virtual async void InitializePackageAsync(string packageName, ResourceInitCallBack callback)
         {
-            InitializationOperation initOperation = null;
+            EnsurePackageRegistryConfigured();
+            EnsurePackageInitializationCoordinator();
 
-            switch (ResourceComponent.YooAssetsPlayModel)
+            PackageInitializationResult result = await _packageInitializationCoordinator.EnsureInitializedAsync(packageName);
+            if (!result.Succeeded)
+            {
+                callback?.ResourceInitFailureCallBack?.Invoke(result.ErrorMessage ?? "YooAsset initialization failed.");
+                return;
+            }
+
+            await TryLoadBootstrapRouteIndexAsync();
+            await PrewarmConfiguredPackagesAsync(packageName);
+            callback?.ResourceInitSuccessCallBack?.Invoke();
+        }
+
+        private void EnsurePackageInitializationCoordinator()
+        {
+            _packageInitializationCoordinator ??= new PackageInitializationCoordinator(
+                IsPackageInitialized,
+                InitializePackageCoreAsync);
+        }
+
+        private bool IsPackageInitialized(string packageName)
+        {
+            return !string.IsNullOrWhiteSpace(packageName) &&
+                   _initializedPackageNames.Contains(packageName) &&
+                   YooAssets.TryGetPackage(packageName) != null;
+        }
+
+        private async UniTask<PackageInitializationResult> EnsurePackageReadyAsync(string address, string packageId)
+        {
+            EnsurePackageRegistryConfigured();
+            EnsurePackageInitializationCoordinator();
+
+            string packageName = ResolveYooAssetPackageName(address, packageId);
+            if (string.IsNullOrWhiteSpace(packageName))
+            {
+                return PackageInitializationResult.CreateFailure(packageName, "Resolved package name is empty.");
+            }
+
+            PackageInitializationResult result = await _packageInitializationCoordinator.EnsureInitializedAsync(packageName);
+            if (!result.Succeeded)
+            {
+                return result;
+            }
+
+            if (YooAssets.TryGetPackage(packageName) == null)
+            {
+                return PackageInitializationResult.CreateFailure(packageName,
+                    $"Package '{packageName}' is unavailable after initialization.");
+            }
+
+            return result;
+        }
+
+        private async UniTask<PackageInitializationResult> InitializePackageCoreAsync(string packageName)
+        {
+            ResourcePackage package = YooAssets.TryGetPackage(packageName) ?? YooAssets.CreatePackage(packageName);
+            InitializationOperation initOperation = null;
+            YooAssetPlayMode playMode = ResolvePlayMode(packageName);
+
+            switch (playMode)
             {
                 case YooAssetPlayMode.EditorSimulateMode:
                 {
-                    var buildResult = EditorSimulateModeHelper.SimulateBuild(ResourceComponent.YooAssetPackageName);
+                    var buildResult = EditorSimulateModeHelper.SimulateBuild(packageName);
                     var packageRoot = buildResult.PackageRootDirectory;
                     var createParameters = new EditorSimulateModeParameters
                     {
@@ -633,7 +905,7 @@ namespace LFramework.Runtime
                     break;
                 case YooAssetPlayMode.HostPlayMode:
                 {
-                    IRemoteServices remoteServices = BuildRemoteService(_settingComponent,_gameSetting);
+                    IRemoteServices remoteServices = BuildRemoteService(_settingComponent, _gameSetting);
                     var createParameters = new HostPlayModeParameters
                     {
                         BuildinFileSystemParameters = FileSystemParameters.CreateDefaultBuildinFileSystemParameters(),
@@ -664,24 +936,70 @@ namespace LFramework.Runtime
                     break;
             }
 
-            if (initOperation != null)
+            if (initOperation == null)
             {
-                await initOperation.Task;
-                if (initOperation.Status == EOperationStatus.Succeed)
+                return PackageInitializationResult.CreateFailure(
+                    packageName,
+                    $"Unknown YooAsset play mode '{playMode}', initialization failed.");
+            }
+
+            await initOperation.Task;
+            if (initOperation.Status == EOperationStatus.Succeed)
+            {
+                _initializedPackageNames.Add(packageName);
+                return PackageInitializationResult.CreateSuccess(packageName);
+            }
+
+            return PackageInitializationResult.CreateFailure(
+                packageName,
+                initOperation.Error ?? "YooAsset initialization failed.");
+        }
+
+        private YooAssetPlayMode ResolvePlayMode(string packageName)
+        {
+            PackageDefinition definition = GetPackageDefinitionByPackageName(packageName);
+            return definition != null ? definition.playModeOverride : ResourceComponent.YooAssetsPlayModel;
+        }
+
+        private PackageDefinition GetPackageDefinitionByPackageName(string packageName)
+        {
+            EnsurePackageRegistryConfigured();
+            foreach (KeyValuePair<string, PackageDefinition> pair in _packageRegistry.ActivePackages)
+            {
+                PackageDefinition definition = pair.Value;
+                if (definition == null)
                 {
-                    await TryLoadBootstrapRouteIndexAsync();
-                    callback?.ResourceInitSuccessCallBack?.Invoke();
+                    continue;
                 }
-                else
+
+                if (string.Equals(definition.yooPackageName, packageName, StringComparison.Ordinal) ||
+                    string.Equals(definition.packageId, packageName, StringComparison.Ordinal))
                 {
-                    callback?.ResourceInitFailureCallBack?.Invoke(
-                        initOperation.Error ?? "YooAsset initialization failed.");
+                    return definition;
                 }
             }
-            else
+
+            return null;
+        }
+
+        private async UniTask PrewarmConfiguredPackagesAsync(string defaultPackageName)
+        {
+            foreach (KeyValuePair<string, PackageDefinition> pair in _packageRegistry.ActivePackages)
             {
-                callback?.ResourceInitFailureCallBack?.Invoke(
-                    "Unknown YooAsset play mode, initialization failed.");
+                PackageDefinition definition = pair.Value;
+                if (definition == null ||
+                    !definition.initOnLaunch ||
+                    string.IsNullOrWhiteSpace(definition.yooPackageName) ||
+                    string.Equals(definition.yooPackageName, defaultPackageName, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                PackageInitializationResult result = await _packageInitializationCoordinator.EnsureInitializedAsync(definition.yooPackageName);
+                if (!result.Succeeded)
+                {
+                    Debug.LogWarning($"[YooAssetResourceHelper] Failed to prewarm package '{definition.packageId}': {result.ErrorMessage}");
+                }
             }
         }
 
@@ -782,7 +1100,7 @@ namespace LFramework.Runtime
                 return null;
             }
 
-            return YooAssets.TryGetPackage(packageName);
+            return IsPackageInitialized(packageName) ? YooAssets.TryGetPackage(packageName) : null;
         }
 
         private ResourcePackage GetLoadedPackage(string address, string packageId)
@@ -793,7 +1111,7 @@ namespace LFramework.Runtime
                 return null;
             }
 
-            return YooAssets.TryGetPackage(packageName);
+            return IsPackageInitialized(packageName) ? YooAssets.TryGetPackage(packageName) : null;
         }
 
         #region 调试工具方法
@@ -865,10 +1183,17 @@ namespace LFramework.Runtime
                 return;
             }
 
-            ResourcePackage package = GetLoadedPackage(null, packageId);
+            PackageInitializationResult ready = await EnsurePackageReadyAsync(null, packageId);
+            if (!ready.Succeeded)
+            {
+                Debug.LogWarning($"[YooAssetResourceHelper] Failed to initialize bootstrap package '{packageId}': {ready.ErrorMessage}");
+                return;
+            }
+
+            ResourcePackage package = YooAssets.TryGetPackage(ready.PackageName);
             if (package == null)
             {
-                Debug.LogWarning($"[YooAssetResourceHelper] Bootstrap package '{packageId}' is not loaded.");
+                Debug.LogWarning($"[YooAssetResourceHelper] Bootstrap package '{packageId}' is unavailable after initialization.");
                 return;
             }
 

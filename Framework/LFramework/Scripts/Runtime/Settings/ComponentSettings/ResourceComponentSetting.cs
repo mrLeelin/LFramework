@@ -255,6 +255,11 @@ namespace LFramework.Runtime.Settings
                     warnings.Add("Route index address is missing while route-index routing is enabled.");
                 }
 
+                if (string.IsNullOrWhiteSpace(YooAssetRouting.routeIndexAssetPath))
+                {
+                    warnings.Add("Route index asset path is missing while route-index routing is enabled.");
+                }
+
                 if (string.IsNullOrWhiteSpace(YooAssetRouting.routeIndexPackageId))
                 {
                     warnings.Add("Bootstrap route package is missing because routeIndexPackageId is empty.");
