@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using LFramework.Runtime;
 using LFramework.Runtime.Settings;
 using Sirenix.Utilities.Editor;
 using UnityEditor;
@@ -17,8 +18,6 @@ namespace LFramework.Editor.Builder.BuildingResource
     /// </summary>
     public class YooAssetDllRegistrar : IDllResourceRegistrar
     {
-        private const string DefaultPackageName = "DefaultPackage";
-
         public bool RegisterAotDlls(List<string> dllPaths, HybridCLRSetting setting)
         {
 #if YOOASSET_SUPPORT
@@ -161,10 +160,14 @@ namespace LFramework.Editor.Builder.BuildingResource
                 throw new InvalidOperationException("YooAsset AssetBundleCollectorSettingData.Setting is null.");
             }
 
-            var packageName = AssetUtilities.GetAllAssetsOfType<ResourceComponentSetting>().FirstOrDefault()?.YooAssetPackageName;
+            ResourceComponentSetting setting = AssetUtilities.GetAllAssetsOfType<ResourceComponentSetting>().FirstOrDefault();
+            string packageName = YooAssetMultiPackageUtility.ResolveDefaultPackageName(
+                setting,
+                GetPreviewRuntimePlatform(),
+                GetPreviewChannel());
             if (string.IsNullOrWhiteSpace(packageName))
             {
-                packageName = DefaultPackageName;
+                throw new InvalidOperationException("Unable to resolve the default YooAsset package name for the current multi-package configuration.");
             }
 
             var package = collectorSetting.Packages.FirstOrDefault(item =>
@@ -181,6 +184,39 @@ namespace LFramework.Editor.Builder.BuildingResource
                 : package.IgnoreRuleName;
 
             return package;
+        }
+
+        private static RuntimePlatform GetPreviewRuntimePlatform()
+        {
+            return EditorUserBuildSettings.activeBuildTarget switch
+            {
+                BuildTarget.Android => RuntimePlatform.Android,
+                BuildTarget.iOS => RuntimePlatform.IPhonePlayer,
+                BuildTarget.WebGL => RuntimePlatform.WebGLPlayer,
+                BuildTarget.StandaloneOSX => RuntimePlatform.OSXPlayer,
+                BuildTarget.StandaloneLinux64 => RuntimePlatform.LinuxPlayer,
+                BuildTarget.StandaloneWindows => RuntimePlatform.WindowsPlayer,
+                BuildTarget.StandaloneWindows64 => RuntimePlatform.WindowsPlayer,
+                _ => RuntimePlatform.WindowsEditor
+            };
+        }
+
+        private static string GetPreviewChannel()
+        {
+            try
+            {
+                GameSetting gameSetting = SettingManager.GetSetting<GameSetting>();
+                if (gameSetting != null && !string.IsNullOrWhiteSpace(gameSetting.channel))
+                {
+                    return gameSetting.channel;
+                }
+            }
+            catch
+            {
+                // Keep editor-side package resolution resilient when settings are not initialized yet.
+            }
+
+            return "Unknown";
         }
 
         private static IEnumerable<string> GetDistinctUnityFolders(IEnumerable<string> dllPaths)

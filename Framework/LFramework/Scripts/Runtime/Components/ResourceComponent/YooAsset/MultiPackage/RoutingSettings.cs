@@ -6,7 +6,7 @@ namespace LFramework.Runtime.Settings
     public class RoutingSettings
     {
         public const string DefaultRouteIndexAddress = "route-index";
-        public const string DefaultRouteIndexPackageId = "DefaultPackage";
+        public const string DefaultRouteIndexPackageId = "";
         public const string DefaultRouteIndexAssetPath = "Assets/Framework/Generated/RouteIndex.asset";
 
         public bool enableRouteIndex = true;

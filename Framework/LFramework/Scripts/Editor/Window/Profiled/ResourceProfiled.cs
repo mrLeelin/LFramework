@@ -1,4 +1,7 @@
 using GameFramework.Resource;
+using LFramework.Runtime;
+using LFramework.Runtime.Settings;
+using UnityEngine;
 using UnityGameFramework.Runtime;
 
 namespace LFramework.Editor.Window
@@ -21,13 +24,20 @@ namespace LFramework.Editor.Window
 
             if (_resourceComponent.ResourceMode == ResourceMode.YooAsset)
             {
+                ResourceComponentSetting setting = SettingManager.GetProjectSelector()?.GetComponentSetting<ResourceComponentSetting>();
+                string channel = SettingManager.GetSetting<GameSetting>()?.channel ?? string.Empty;
+                string packageName = YooAssetMultiPackageUtility.ResolveDefaultPackageName(setting, Application.platform, channel);
+                string routeIndexPackageName = YooAssetMultiPackageUtility.ResolveRouteIndexPackageName(setting, Application.platform, channel);
+                string playMode = setting?.GetPackageDefinition(setting.GetResolvedDefaultPackageId())?.playModeOverride.ToString() ?? "N/A";
+
                 DrawSection(
                     "YooAsset Runtime",
-                    "Current package and play mode used by the resource component while the YooAsset backend is active.",
+                    "Resolved default package and route-index package used by the multi-package runtime.",
                     () =>
                     {
-                        DrawKeyValueRow("Package Name", _resourceComponent.YooAssetPackageName ?? "N/A");
-                        DrawKeyValueRow("Play Mode", _resourceComponent.YooAssetsPlayModel.ToString());
+                        DrawKeyValueRow("Default Package", packageName ?? "N/A");
+                        DrawKeyValueRow("RouteIndex Package", routeIndexPackageName ?? "N/A");
+                        DrawKeyValueRow("Play Mode", playMode);
                     });
             }
         }

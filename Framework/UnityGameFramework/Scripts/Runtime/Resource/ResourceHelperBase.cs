@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 namespace UnityGameFramework.Runtime
@@ -89,8 +89,6 @@ namespace UnityGameFramework.Runtime
             InstantiateAsset(assetName, callbacks, userData);
         }
 
-        // ─── Handle 异步 API ───
-
         /// <summary>
         /// 异步加载资源（返回 Handle）
         /// </summary>
@@ -115,6 +113,14 @@ namespace UnityGameFramework.Runtime
         /// 异步批量加载资源（通过标签，返回 Handle）
         /// </summary>
         public abstract ResourceBatchHandle<T> LoadAssetsByTagHandle<T>(string tag) where T : UnityEngine.Object;
+
+        /// <summary>
+        /// 刷新当前路由索引。默认对非 YooAsset 实现无操作。
+        /// </summary>
+        public virtual UniTask RefreshRouteIndexAsync()
+        {
+            return UniTask.CompletedTask;
+        }
 
         /// <summary>
         /// 设置资源组件引用

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using GameFramework;
 using GameFramework.Resource;
 using LFramework.Runtime;
@@ -12,7 +13,7 @@ namespace LFramework.Editor.Tests.Settings
     public class ResourceComponentMultiPackageTests
     {
         [Test]
-        public void EffectivePackages_IncludeLegacyPackage_WithoutMutatingConfiguredPackages()
+        public void EffectivePackages_ReturnEmpty_WhenNoPackagesAreConfigured()
         {
             var setting = ScriptableObject.CreateInstance<ResourceComponentSetting>();
 
@@ -20,9 +21,7 @@ namespace LFramework.Editor.Tests.Settings
 
             IReadOnlyList<PackageDefinition> effectivePackages = setting.GetEffectivePackageDefinitions();
 
-            Assert.That(effectivePackages, Has.Count.EqualTo(1));
-            Assert.That(effectivePackages[0].packageId, Is.EqualTo("DefaultPackage"));
-            Assert.That(effectivePackages[0].yooPackageName, Is.EqualTo("DefaultPackage"));
+            Assert.That(effectivePackages, Is.Empty);
             Assert.That(setting.YooAssetPackages, Is.Empty);
         }
 
@@ -47,12 +46,17 @@ namespace LFramework.Editor.Tests.Settings
         }
 
         [Test]
-        public void ResolvedDefaultAndRouteIndexPackageIds_FallBackToDefaultPackage_WhenExplicitIdsAreEmpty()
+        public void ResolvedDefaultAndRouteIndexPackageIds_UseConfiguredPackages_WhenExplicitIdsAreEmpty()
         {
             var setting = ScriptableObject.CreateInstance<ResourceComponentSetting>();
+            setting.YooAssetPackages.Add(new PackageDefinition
+            {
+                packageId = "base",
+                yooPackageName = "BasePackage"
+            });
 
-            Assert.That(setting.GetResolvedDefaultPackageId(), Is.EqualTo("DefaultPackage"));
-            Assert.That(setting.GetResolvedRouteIndexPackageId(), Is.EqualTo("DefaultPackage"));
+            Assert.That(setting.GetResolvedDefaultPackageId(), Is.EqualTo("base"));
+            Assert.That(setting.GetResolvedRouteIndexPackageId(), Is.EqualTo("base"));
         }
 
         [Test]
@@ -62,17 +66,16 @@ namespace LFramework.Editor.Tests.Settings
 
             Assert.That(routing.enableRouteIndex, Is.True);
             Assert.That(routing.routeIndexAddress, Is.EqualTo("route-index"));
-            Assert.That(routing.routeIndexPackageId, Is.EqualTo("DefaultPackage"));
+            Assert.That(routing.routeIndexPackageId, Is.Empty);
             Assert.That(routing.routeIndexAssetPath, Is.EqualTo("Assets/Framework/Generated/RouteIndex.asset"));
             Assert.That(routing.allowDefaultPackageFallback, Is.True);
             Assert.That(routing.detectDuplicateAddress, Is.True);
         }
 
         [Test]
-        public void YooAssetPackageName_FallsBackToResolvedDefaultPackage_WhenLegacyFieldIsEmpty()
+        public void YooAssetPackageName_UsesResolvedDefaultPackageDefinition()
         {
             var setting = ScriptableObject.CreateInstance<ResourceComponentSetting>();
-            SetPrivateField(setting, "_yooAssetPackageName", string.Empty);
             SetPrivateField(setting, "_defaultPackageId", "ui");
             setting.YooAssetPackages.Add(new PackageDefinition
             {
@@ -88,7 +91,6 @@ namespace LFramework.Editor.Tests.Settings
         public void ValidateMultiPackageConfiguration_RejectsDuplicatePackageIds()
         {
             var setting = ScriptableObject.CreateInstance<ResourceComponentSetting>();
-            SetPrivateField(setting, "_yooAssetPackageName", string.Empty);
             setting.YooAssetPackages.Add(new PackageDefinition { packageId = "ui", yooPackageName = "UIPackage" });
             setting.YooAssetPackages.Add(new PackageDefinition { packageId = "ui", yooPackageName = "UIPackage_Override" });
 
@@ -100,23 +102,21 @@ namespace LFramework.Editor.Tests.Settings
         }
 
         [Test]
-        public void ValidateMultiPackageConfiguration_UsesRouteIndexDefaults_WhenSettingsAreUntouched()
+        public void ValidateMultiPackageConfiguration_RejectsEmptyPackageConfiguration()
         {
             var setting = ScriptableObject.CreateInstance<ResourceComponentSetting>();
 
             bool isValid = setting.ValidateMultiPackageConfiguration(out List<string> errors, out List<string> warnings);
 
-            Assert.That(isValid, Is.True);
-            Assert.That(errors, Is.Empty);
-            Assert.That(warnings.Exists(message => Contains(message, "route")), Is.False);
-            Assert.That(warnings.Exists(message => Contains(message, "bootstrap")), Is.False);
+            Assert.That(isValid, Is.False);
+            Assert.That(errors.Exists(message => Contains(message, "package")), Is.True);
+            Assert.That(warnings, Is.Not.Null);
         }
 
         [Test]
         public void ValidateMultiPackageConfiguration_WarnsWhenRouteIndexAssetPathIsMissing()
         {
             var setting = ScriptableObject.CreateInstance<ResourceComponentSetting>();
-            SetPrivateField(setting, "_yooAssetPackageName", string.Empty);
             setting.YooAssetPackages.Add(new PackageDefinition
             {
                 packageId = "bootstrap",
@@ -138,7 +138,6 @@ namespace LFramework.Editor.Tests.Settings
         public void ValidateMultiPackageConfiguration_RejectsUnknownDefaultAndRouteIndexPackages()
         {
             var setting = ScriptableObject.CreateInstance<ResourceComponentSetting>();
-            SetPrivateField(setting, "_yooAssetPackageName", string.Empty);
             SetPrivateField(setting, "_defaultPackageId", "missing-default");
             setting.YooAssetPackages.Add(new PackageDefinition { packageId = "ui", yooPackageName = "UIPackage" });
             setting.YooAssetRouting.routeIndexPackageId = "missing-route";
@@ -156,7 +155,6 @@ namespace LFramework.Editor.Tests.Settings
         public void ValidateMultiPackageConfiguration_RejectsUnknownFallbackPackageReferences()
         {
             var setting = ScriptableObject.CreateInstance<ResourceComponentSetting>();
-            SetPrivateField(setting, "_yooAssetPackageName", string.Empty);
             setting.YooAssetPackages.Add(new PackageDefinition
             {
                 packageId = "ui",
@@ -557,6 +555,16 @@ namespace LFramework.Editor.Tests.Settings
             {
                 UnityEngine.Object.DestroyImmediate(componentGo);
             }
+        }
+
+        [Test]
+        public void ResourceComponent_ExposesRouteIndexRefreshApi()
+        {
+            MethodInfo method = typeof(UnityGameFramework.Runtime.ResourceComponent).GetMethod(
+                "RefreshRouteIndexAsync",
+                BindingFlags.Instance | BindingFlags.Public);
+
+            Assert.That(method, Is.Not.Null, "Expected route-index refresh API on ResourceComponent.");
         }
 
         private static bool Contains(string message, string fragment)

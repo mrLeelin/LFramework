@@ -107,6 +107,12 @@ namespace LFramework.Runtime
             EnsurePackageRegistryConfigured();
             EnsurePackageInitializationCoordinator();
             var defaultPackageName = ResolveYooAssetPackageName(null);
+            if (string.IsNullOrWhiteSpace(defaultPackageName))
+            {
+                callback?.ResourceInitFailureCallBack?.Invoke("Resolved default YooAsset package name is empty.");
+                return;
+            }
+
             var package = YooAssets.TryGetPackage(defaultPackageName)
                           ?? YooAssets.CreatePackage(defaultPackageName);
             YooAssets.SetDefaultPackage(package);
@@ -1053,7 +1059,17 @@ namespace LFramework.Runtime
         private YooAssetPlayMode ResolvePlayMode(string packageName)
         {
             PackageDefinition definition = GetPackageDefinitionByPackageName(packageName);
-            return definition != null ? definition.playModeOverride : ResourceComponent.YooAssetsPlayModel;
+            if (definition != null)
+            {
+                return definition.playModeOverride;
+            }
+
+            string defaultPackageName = YooAssetMultiPackageUtility.ResolveDefaultPackageName(
+                _resourceComponentSetting,
+                Application.platform,
+                GetCurrentChannel());
+            PackageDefinition defaultPackage = GetPackageDefinitionByPackageName(defaultPackageName);
+            return defaultPackage != null ? defaultPackage.playModeOverride : YooAssetPlayMode.EditorSimulateMode;
         }
 
         /// <summary>
@@ -1155,7 +1171,10 @@ namespace LFramework.Runtime
                 return logicalPackageId;
             }
 
-            return ResourceComponent.YooAssetPackageName;
+            return YooAssetMultiPackageUtility.ResolveDefaultPackageName(
+                _resourceComponentSetting,
+                Application.platform,
+                GetCurrentChannel());
         }
 
         /// <summary>
@@ -1175,7 +1194,20 @@ namespace LFramework.Runtime
                 return logicalPackageId;
             }
 
-            return ResourceComponent.YooAssetPackageName;
+            return YooAssetMultiPackageUtility.ResolveDefaultPackageName(
+                _resourceComponentSetting,
+                Application.platform,
+                GetCurrentChannel());
+        }
+
+        public override UniTask RefreshRouteIndexAsync()
+        {
+            return TryLoadBootstrapRouteIndexAsync();
+        }
+
+        private string GetCurrentChannel()
+        {
+            return _gameSetting != null ? _gameSetting.channel : string.Empty;
         }
 
         /// <summary>

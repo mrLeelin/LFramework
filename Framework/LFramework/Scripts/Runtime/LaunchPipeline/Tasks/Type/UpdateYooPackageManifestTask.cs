@@ -1,8 +1,11 @@
 #if YOOASSET_SUPPORT
 using System;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using GameFramework.Resource;
 using LFramework.Runtime.LaunchPipeline.Basic;
+using LFramework.Runtime.Settings;
+using UnityEngine;
 using UnityGameFramework.Runtime;
 using YooAsset;
 using Zenject;
@@ -10,7 +13,7 @@ using Zenject;
 namespace LFramework.Runtime.LaunchPipeline
 {
     /// <summary>
-    /// YooAsset 资源包清单更新任务。
+    /// Updates YooAsset package manifests before startup continues.
     /// </summary>
     public class UpdateYooPackageManifestTask : LaunchTaskBase
     {
@@ -28,41 +31,87 @@ namespace LFramework.Runtime.LaunchPipeline
         {
             try
             {
-                var packageName = _resourceComponent.YooAssetPackageName;
-                var package = YooAssets.GetPackage(packageName);
-
-                context.ProgressReporter.ReportProgress(0f, "正在请求资源包版本...");
-                Log.Info("[UpdateYooPackageManifestTask] 请求资源包版本, 包名: {0}", packageName);
-                var versionOperation = package.RequestPackageVersionAsync();
-                await versionOperation.Task;
-
-                if (versionOperation.Status != EOperationStatus.Succeed)
+                ResourceComponentSetting setting = SettingManager.GetProjectSelector()?.GetComponentSetting<ResourceComponentSetting>();
+                if (setting == null)
                 {
-                    Log.Error("[UpdateYooPackageManifestTask] 请求版本失败: {0}", versionOperation.Error);
-                    return LaunchTaskResult.CreateFailed(TaskName, versionOperation.Error);
+                    return LaunchTaskResult.CreateFailed(TaskName, "ResourceComponentSetting is null.");
                 }
 
-                var packageVersion = versionOperation.PackageVersion;
-                Log.Info("[UpdateYooPackageManifestTask] 获取到版本: {0}", packageVersion);
-
-                context.ProgressReporter.ReportProgress(0.5f, $"正在更新资源清单 v{packageVersion}...");
-                var manifestOperation = package.UpdatePackageManifestAsync(packageVersion);
-                await manifestOperation.Task;
-
-                if (manifestOperation.Status != EOperationStatus.Succeed)
+                List<PackageDefinition> packages = YooAssetMultiPackageUtility.CollectManifestUpdatePackages(
+                    setting,
+                    Application.platform,
+                    GetCurrentChannel());
+                if (packages.Count == 0)
                 {
-                    Log.Error("[UpdateYooPackageManifestTask] 更新清单失败: {0}", manifestOperation.Error);
-                    return LaunchTaskResult.CreateFailed(TaskName, manifestOperation.Error);
+                    Log.Info("[UpdateYooPackageManifestTask] No manifest update packages were resolved.");
+                    return LaunchTaskResult.CreateSuccess(TaskName);
                 }
 
-                Log.Info("[UpdateYooPackageManifestTask] 清单更新完成, 版本: {0}", packageVersion);
+                for (int i = 0; i < packages.Count; i++)
+                {
+                    PackageDefinition packageDefinition = packages[i];
+                    context.ProgressReporter.ReportProgress(
+                        (float)i / packages.Count,
+                        $"Updating manifest for '{packageDefinition.packageId}'...");
+
+                    ResourcePackage package = YooAssets.GetPackage(packageDefinition.yooPackageName);
+                    if (package == null)
+                    {
+                        return LaunchTaskResult.CreateFailed(
+                            TaskName,
+                            $"Package '{packageDefinition.packageId}' ({packageDefinition.yooPackageName}) is not initialized.");
+                    }
+
+                    Log.Info(
+                        "[UpdateYooPackageManifestTask] Request package version. packageId: {0}, packageName: {1}",
+                        packageDefinition.packageId,
+                        packageDefinition.yooPackageName);
+                    RequestPackageVersionOperation versionOperation = package.RequestPackageVersionAsync();
+                    await versionOperation.Task;
+
+                    if (versionOperation.Status != EOperationStatus.Succeed)
+                    {
+                        Log.Error(
+                            "[UpdateYooPackageManifestTask] Request package version failed. packageId: {0}, error: {1}",
+                            packageDefinition.packageId,
+                            versionOperation.Error);
+                        return LaunchTaskResult.CreateFailed(TaskName, versionOperation.Error);
+                    }
+
+                    string packageVersion = versionOperation.PackageVersion;
+                    UpdatePackageManifestOperation manifestOperation = package.UpdatePackageManifestAsync(packageVersion);
+                    await manifestOperation.Task;
+
+                    if (manifestOperation.Status != EOperationStatus.Succeed)
+                    {
+                        Log.Error(
+                            "[UpdateYooPackageManifestTask] Update manifest failed. packageId: {0}, error: {1}",
+                            packageDefinition.packageId,
+                            manifestOperation.Error);
+                        return LaunchTaskResult.CreateFailed(TaskName, manifestOperation.Error);
+                    }
+
+                    Log.Info(
+                        "[UpdateYooPackageManifestTask] Manifest updated. packageId: {0}, version: {1}",
+                        packageDefinition.packageId,
+                        packageVersion);
+                }
+
+                context.ProgressReporter.ReportProgress(1f, "Refreshing route index...");
+                await _resourceComponent.RefreshRouteIndexAsync();
                 return LaunchTaskResult.CreateSuccess(TaskName);
             }
             catch (Exception ex)
             {
-                Log.Error("[UpdateYooPackageManifestTask] 异常: {0}", ex);
+                Log.Error("[UpdateYooPackageManifestTask] Exception: {0}", ex);
                 return LaunchTaskResult.CreateFailed(TaskName, ex.Message);
             }
+        }
+
+        private static string GetCurrentChannel()
+        {
+            GameSetting gameSetting = SettingManager.GetSetting<GameSetting>();
+            return gameSetting != null ? gameSetting.channel : string.Empty;
         }
     }
 }

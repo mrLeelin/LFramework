@@ -45,15 +45,13 @@ namespace LFramework.Editor.Tests.Settings
         }
 
         [Test]
-        public void BuildActivePackagePreview_UsesLegacyPackageFallback_WhenNoPackageDefinitionsExist()
+        public void BuildActivePackagePreview_ReturnsEmpty_WhenNoPackageDefinitionsExist()
         {
             var setting = ScriptableObject.CreateInstance<ResourceComponentSetting>();
 
             List<string> lines = InvokePreviewBuilder(setting, RuntimePlatform.WindowsEditor, "Google");
 
-            Assert.That(lines, Has.Count.EqualTo(1));
-            Assert.That(lines[0], Does.Contain("DefaultPackage"));
-            Assert.That(lines[0], Does.Contain("Legacy"));
+            Assert.That(lines, Is.Empty);
         }
 
         [Test]

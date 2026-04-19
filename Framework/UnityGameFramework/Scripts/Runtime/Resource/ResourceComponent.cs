@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using Cysharp.Threading.Tasks;
 using GameFramework;
 using GameFramework.Resource;
 using UnityEngine;
@@ -45,7 +46,6 @@ namespace UnityGameFramework.Runtime
         /// </summary>
         [SerializeField] private float _maxUnloadInterval;
 
-        
 
         // ─── 生命周期 ───
 
@@ -59,7 +59,7 @@ namespace UnityGameFramework.Runtime
         public float MinUnloadInterval => _minUnloadInterval;
 
         public float MaxUnloadInterval => _maxUnloadInterval;
-        
+
 
         /// <summary>
         /// 初始化组件
@@ -87,7 +87,6 @@ namespace UnityGameFramework.Runtime
             transform.SetParent(Instance);
             transform.localScale = Vector3.one;
             _resourceManager.SetResourceHelper(_resourceHelper);
-            
         }
 
         /// <summary>
@@ -140,6 +139,14 @@ namespace UnityGameFramework.Runtime
         public void InitResources(InitResourcesCompleteCallback callback)
         {
             _resourceManager.InitResources(callback);
+        }
+
+        /// <summary>
+        /// 刷新当前运行时加载的路由索引。
+        /// </summary>
+        public UniTask RefreshRouteIndexAsync()
+        {
+            return _resourceHelper != null ? _resourceHelper.RefreshRouteIndexAsync() : UniTask.CompletedTask;
         }
 
         /// <summary>

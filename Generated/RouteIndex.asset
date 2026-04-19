@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0899e5f5a6124af8b8fe7cf70f019951, type: 3}
+  m_Name: RouteIndex
+  m_EditorClassIdentifier: LFramework.Runtime::LFramework.Runtime.RouteIndexAsset
+  entries:
+  - address: Assets/Cube 1.prefab
+    packageId: DefaultPackage
+  - address: Assets/Cube.prefab
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Audio/music_background.wav
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Audio/sound_explosion_asteroid.wav
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Audio/sound_explosion_enemy.wav
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Audio/sound_explosion_player.wav
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Audio/sound_weapon_enemy.wav
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Audio/sound_weapon_player.wav
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Effect/engines_enemy.prefab
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Effect/engines_player.prefab
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Effect/explosion_asteroid.prefab
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Effect/explosion_enemy.prefab
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Effect/explosion_player.prefab
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Entity/asteroid01.prefab
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Entity/asteroid02.prefab
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Entity/asteroid03.prefab
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Entity/enemy_bullet.prefab
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Entity/enemy_ship.prefab
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Entity/player_bullet.prefab
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Entity/player_ship.prefab
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Scene/scene_battle.unity
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Scene/scene_home.unity
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/UIPanel/UIBattle.prefab
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/UIPanel/UIHome.prefab
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/UIPanel/UILoading.prefab
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/UISpriteAtlas/atlas_frame.spriteatlas
+    packageId: DefaultPackage
+  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/UISpriteAtlas/atlas_icon.spriteatlas
+    packageId: DefaultPackage

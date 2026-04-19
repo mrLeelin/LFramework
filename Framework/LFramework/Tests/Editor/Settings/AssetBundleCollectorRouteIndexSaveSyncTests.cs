@@ -40,6 +40,19 @@ namespace LFramework.Editor.Tests.Settings
             Assert.That(result, Is.False);
         }
 
+        [Test]
+        public void CollectorImportSync_ExposesPostprocessHook()
+        {
+            Type syncType = typeof(RouteIndexGenerator).Assembly.GetType("LFramework.Editor.AssetBundleCollectorRouteIndexImportSync");
+            Assert.That(syncType, Is.Not.Null, "Expected collector import sync type.");
+
+            MethodInfo method = syncType.GetMethod(
+                "OnPostprocessAllAssets",
+                BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+
+            Assert.That(method, Is.Not.Null, "Expected import-time postprocess hook for collector route-index sync.");
+        }
+
         private static bool InvokeShouldQueueRouteIndexGeneration(
             string[] paths,
             string collectorSettingPath,

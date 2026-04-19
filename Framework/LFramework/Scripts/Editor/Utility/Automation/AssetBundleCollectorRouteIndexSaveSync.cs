@@ -19,6 +19,7 @@ namespace LFramework.Editor
         private static bool s_IsProcessing;
         private static bool s_SuppressEnqueue;
         private static bool s_PendingSync;
+        private static int s_SuppressImportSyncCount;
 
         /// <summary>
         /// Executes a collector save without re-queuing route-index synchronization.
@@ -32,6 +33,7 @@ namespace LFramework.Editor
 
             bool previousSuppressState = s_SuppressEnqueue;
             s_SuppressEnqueue = true;
+            s_SuppressImportSyncCount++;
             try
             {
                 action();
@@ -47,10 +49,17 @@ namespace LFramework.Editor
         /// </summary>
         public static string[] OnWillSaveAssets(string[] paths)
         {
+            QueueRouteIndexGeneration(paths);
+
+            return paths;
+        }
+
+        internal static void QueueRouteIndexGeneration(string[] paths)
+        {
             string collectorSettingPath = GetCollectorSettingPath();
             if (!ShouldQueueRouteIndexGeneration(paths, collectorSettingPath, s_SuppressEnqueue))
             {
-                return paths;
+                return;
             }
 
             s_PendingSync = true;
@@ -59,8 +68,23 @@ namespace LFramework.Editor
                 s_IsScheduled = true;
                 EditorApplication.delayCall += ProcessPending;
             }
+        }
 
-            return paths;
+        internal static void QueueRouteIndexGenerationFromImport(string[] paths)
+        {
+            string collectorSettingPath = GetCollectorSettingPath();
+            if (!ShouldQueueRouteIndexGeneration(paths, collectorSettingPath, s_SuppressEnqueue))
+            {
+                return;
+            }
+
+            if (s_SuppressImportSyncCount > 0)
+            {
+                s_SuppressImportSyncCount--;
+                return;
+            }
+
+            QueueRouteIndexGeneration(paths);
         }
 
         private static void ProcessPending()
@@ -178,6 +202,22 @@ namespace LFramework.Editor
             return string.IsNullOrWhiteSpace(path)
                 ? string.Empty
                 : path.Replace('\\', '/');
+        }
+    }
+
+    /// <summary>
+    /// Adds an import-time fallback so collector saves that bypass OnWillSaveAssets still regenerate RouteIndex.
+    /// </summary>
+    public class AssetBundleCollectorRouteIndexImportSync : AssetPostprocessor
+    {
+        public static void OnPostprocessAllAssets(
+            string[] importedAssets,
+            string[] deletedAssets,
+            string[] movedAssets,
+            string[] movedFromAssetPaths)
+        {
+            AssetBundleCollectorRouteIndexSaveSync.QueueRouteIndexGenerationFromImport(importedAssets);
+            AssetBundleCollectorRouteIndexSaveSync.QueueRouteIndexGenerationFromImport(movedAssets);
         }
     }
 }

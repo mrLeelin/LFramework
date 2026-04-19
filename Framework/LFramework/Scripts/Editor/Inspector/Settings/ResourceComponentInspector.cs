@@ -303,7 +303,9 @@ namespace LFramework.Editor.Inspector
                 GUILayout.FlexibleSpace();
                 if (GUILayout.Button("Ping RouteIndex", GUILayout.Width(140f), GUILayout.Height(24f)))
                 {
+                    serializedObject.ApplyModifiedProperties();
                     PingRouteIndexAsset(setting);
+                    serializedObject.Update();
                 }
             }
         }
@@ -317,7 +319,9 @@ namespace LFramework.Editor.Inspector
 
             if (GUILayout.Button("Generate Route Index", GUILayout.Height(28f)))
             {
+                serializedObject.ApplyModifiedProperties();
                 ExecuteRouteIndexGeneration(setting);
+                serializedObject.Update();
             }
         }
 
@@ -490,12 +494,6 @@ namespace LFramework.Editor.Inspector
             }
 
             IReadOnlyList<PackageDefinition> effectivePackages = setting.GetEffectivePackageDefinitions();
-            if (setting.YooAssetPackages.Count == 0 && effectivePackages.Count == 1)
-            {
-                lines.Add($"Legacy -> {effectivePackages[0].yooPackageName}");
-                return lines;
-            }
-
             var registry = new PackageRegistry();
             registry.Configure(effectivePackages, platform, channel);
 

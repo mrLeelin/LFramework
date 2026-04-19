@@ -66,8 +66,7 @@ namespace LFramework.Runtime.Settings
         public ResourceMode ResourceMode => _resourceMode;
 
         /// <summary>
-        /// Legacy single-package compatibility entry.
-        /// Maps to the resolved default physical package when multi-package config is present.
+        /// Gets the physical YooAsset package name resolved from the current default logical package.
         /// </summary>
         public string YooAssetPackageName
         {
@@ -78,7 +77,7 @@ namespace LFramework.Runtime.Settings
                 {
                     return defaultPackage.yooPackageName;
                 }
-                Log.Fatal("The get YooAssetPackageName is null .");
+
                 return null;
             }
         }
@@ -138,7 +137,6 @@ namespace LFramework.Runtime.Settings
                 return packages[0].packageId;
             }
 
-            Log.Fatal("The none resolve default package count is zero. please check and add [PackageDefinition]");
             return null;
         }
 
@@ -187,6 +185,11 @@ namespace LFramework.Runtime.Settings
             }
 
             IReadOnlyList<PackageDefinition> effectivePackages = GetEffectivePackageDefinitions();
+            if (effectivePackages.Count == 0)
+            {
+                errors.Add("At least one package definition is required for YooAsset multi-package mode.");
+                return false;
+            }
 
             var seenPackageIds = new HashSet<string>();
             for (int i = 0; i < effectivePackages.Count; i++)
