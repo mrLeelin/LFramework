@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using LFramework.Editor;
 using LFramework.Editor.Settings;
 using LFramework.Runtime.Settings;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 
 namespace LFramework.Editor.Tests.Settings
@@ -14,7 +16,6 @@ namespace LFramework.Editor.Tests.Settings
         public void BuildActivePackagePreview_ReturnsFilteredPackagesForPlatformAndChannel()
         {
             var setting = ScriptableObject.CreateInstance<ResourceComponentSetting>();
-            SetPrivateField(setting, "_yooAssetPackageName", string.Empty);
             setting.YooAssetPackages.Add(new PackageDefinition
             {
                 packageId = "ui",
@@ -55,6 +56,81 @@ namespace LFramework.Editor.Tests.Settings
             Assert.That(lines[0], Does.Contain("Legacy"));
         }
 
+        [Test]
+        public void Inspector_ExposesRouteIndexGenerationAction()
+        {
+            Type inspectorType = typeof(SettingProjectPaths).Assembly.GetType("LFramework.Editor.Inspector.ResourceComponentInspector");
+            Assert.That(inspectorType, Is.Not.Null, "Expected ResourceComponentInspector type.");
+
+            MethodInfo method = inspectorType.GetMethod(
+                "ExecuteRouteIndexGeneration",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Assert.That(method, Is.Not.Null, "Expected route index generation action on ResourceComponentInspector.");
+        }
+
+        [Test]
+        public void RouteIndexGenerator_DoesNotExposeLegacyMenuEntry()
+        {
+            MethodInfo method = typeof(RouteIndexGenerator).GetMethod(
+                "GenerateFromMenu",
+                BindingFlags.Static | BindingFlags.Public);
+
+            Assert.That(method, Is.Null, "Expected route index generation to be launched from ResourceComponentInspector instead of a menu item.");
+        }
+
+        [Test]
+        public void Inspector_DoesNotExposeRouteIndexBuildSettingFactory()
+        {
+            Type inspectorType = typeof(SettingProjectPaths).Assembly.GetType("LFramework.Editor.Inspector.ResourceComponentInspector");
+            Assert.That(inspectorType, Is.Not.Null, "Expected ResourceComponentInspector type.");
+
+            MethodInfo method = inspectorType.GetMethod(
+                "CreateRouteIndexBuildSetting",
+                BindingFlags.Static | BindingFlags.NonPublic);
+
+            Assert.That(method, Is.Null, "Expected route index action to stay generation-only in the inspector.");
+        }
+
+        [Test]
+        public void RouteIndexGenerator_UsesHybridClrInitLabel_ForCollectorTags()
+        {
+            var hybridClrSetting = ScriptableObject.CreateInstance<HybridCLRSetting>();
+            hybridClrSetting.defaultInitLabel = "init_assets_custom";
+
+            string result = InvokeRouteIndexCollectorTagResolver(hybridClrSetting);
+
+            Assert.That(result, Is.EqualTo("init_assets_custom"));
+        }
+
+        [Test]
+        public void ResolveRouteIndexAssetPath_UsesRoutingConfiguration()
+        {
+            var setting = ScriptableObject.CreateInstance<ResourceComponentSetting>();
+            setting.YooAssetRouting.routeIndexAssetPath = "Assets/Custom/RouteIndex.asset";
+
+            string result = InvokeRouteIndexAssetPathResolver(setting);
+
+            Assert.That(result, Is.EqualTo("Assets/Custom/RouteIndex.asset"));
+        }
+
+        [Test]
+        public void CollectRouteIndexPackageIds_ReturnsDistinctConfiguredPackageIds()
+        {
+            var setting = ScriptableObject.CreateInstance<ResourceComponentSetting>();
+            setting.YooAssetPackages.Add(new PackageDefinition { packageId = "ui" });
+            setting.YooAssetPackages.Add(new PackageDefinition { packageId = string.Empty });
+            setting.YooAssetPackages.Add(new PackageDefinition { packageId = "scene" });
+            setting.YooAssetPackages.Add(new PackageDefinition { packageId = "ui" });
+
+            var serializedObject = new SerializedObject(setting);
+            SerializedProperty packagesProperty = serializedObject.FindProperty("_yooAssetPackages");
+
+            List<string> result = InvokeRouteIndexPackageIdCollector(packagesProperty);
+
+            Assert.That(result, Is.EqualTo(new[] { "ui", "scene" }));
+        }
+
         private static List<string> InvokePreviewBuilder(ResourceComponentSetting setting, RuntimePlatform platform, string channel)
         {
             Type inspectorType = typeof(SettingProjectPaths).Assembly.GetType("LFramework.Editor.Inspector.ResourceComponentInspector");
@@ -70,11 +146,48 @@ namespace LFramework.Editor.Tests.Settings
             return (List<string>)result;
         }
 
-        private static void SetPrivateField(object instance, string name, object value)
+        private static string InvokeRouteIndexCollectorTagResolver(HybridCLRSetting hybridClrSetting)
         {
-            FieldInfo field = instance.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic);
-            Assert.That(field, Is.Not.Null, $"Expected private field {name}.");
-            field.SetValue(instance, value);
+            MethodInfo method = typeof(RouteIndexGenerator).GetMethod(
+                "ResolveRouteIndexAssetTags",
+                BindingFlags.Static | BindingFlags.NonPublic);
+
+            Assert.That(method, Is.Not.Null, "Expected route index collector tag resolver on RouteIndexGenerator.");
+
+            object result = method.Invoke(null, new object[] { hybridClrSetting });
+            Assert.That(result, Is.AssignableTo<string>());
+            return (string)result;
         }
+
+        private static string InvokeRouteIndexAssetPathResolver(ResourceComponentSetting setting)
+        {
+            Type inspectorType = typeof(SettingProjectPaths).Assembly.GetType("LFramework.Editor.Inspector.ResourceComponentInspector");
+            Assert.That(inspectorType, Is.Not.Null, "Expected ResourceComponentInspector type.");
+            MethodInfo method = inspectorType.GetMethod(
+                "ResolveRouteIndexAssetPath",
+                BindingFlags.Static | BindingFlags.NonPublic);
+
+            Assert.That(method, Is.Not.Null, "Expected route index asset path resolver on ResourceComponentInspector.");
+
+            object result = method.Invoke(null, new object[] { setting });
+            Assert.That(result, Is.AssignableTo<string>());
+            return (string)result;
+        }
+
+        private static List<string> InvokeRouteIndexPackageIdCollector(SerializedProperty packagesProperty)
+        {
+            Type inspectorType = typeof(SettingProjectPaths).Assembly.GetType("LFramework.Editor.Inspector.ResourceComponentInspector");
+            Assert.That(inspectorType, Is.Not.Null, "Expected ResourceComponentInspector type.");
+            MethodInfo method = inspectorType.GetMethod(
+                "CollectRouteIndexPackageIds",
+                BindingFlags.Static | BindingFlags.NonPublic);
+
+            Assert.That(method, Is.Not.Null, "Expected route index package collector on ResourceComponentInspector.");
+
+            object result = method.Invoke(null, new object[] { packagesProperty });
+            Assert.That(result, Is.AssignableTo<List<string>>());
+            return (List<string>)result;
+        }
+
     }
 }

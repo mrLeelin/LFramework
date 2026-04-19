@@ -2,9 +2,10 @@
 using System;
 using System.IO;
 using System.Linq;
+using GameFramework.Resource;
+using LFramework.Editor;
 using LFramework.Runtime;
 using LFramework.Runtime.Settings;
-using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEngine;
@@ -27,13 +28,14 @@ namespace LFramework.Editor.Builder.BuildingResource
         public void Build(BuildSetting buildResourcesData)
         {
             Debug.Log("[YooAssets] Start building resources...");
-            var resourceComponentSetting =
-                AssetUtilities.GetAllAssetsOfType<ResourceComponentSetting>().FirstOrDefault();
+            ResourceComponentSetting resourceComponentSetting = LoadResourceComponentSetting();
             if (resourceComponentSetting == null)
             {
                 Debug.LogError("ResourceComponent is null in Build.");
                 return;
             }
+
+            GenerateRouteIndexIfEnabled(resourceComponentSetting);
 
             if (buildResourcesData.isResourcesBuildIn)
             {
@@ -212,6 +214,41 @@ namespace LFramework.Editor.Builder.BuildingResource
         private IManifestRestoreServices BuildManifestRestoreServices()
         {
             return new ManifestRestoreNone();
+        }
+
+        private static ResourceComponentSetting LoadResourceComponentSetting()
+        {
+            string[] guids = AssetDatabase.FindAssets($"t:{nameof(ResourceComponentSetting)}");
+            if (guids == null || guids.Length == 0)
+            {
+                return null;
+            }
+
+            return guids
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Select(path => AssetDatabase.LoadAssetAtPath<ResourceComponentSetting>(path))
+                .FirstOrDefault(asset => asset != null);
+        }
+
+        /// <summary>
+        /// Generates the route index before the build so the latest collector and init tag are always included.
+        /// </summary>
+        /// <param name="resourceComponentSetting">Resource component configuration.</param>
+        private static void GenerateRouteIndexIfEnabled(ResourceComponentSetting resourceComponentSetting)
+        {
+            if (resourceComponentSetting == null || !resourceComponentSetting.YooAssetRouting.enableRouteIndex)
+            {
+                return;
+            }
+
+            RouteIndexGenerationResult result = RouteIndexGenerator.Generate(resourceComponentSetting);
+            if (!result.Succeeded)
+            {
+                throw new InvalidOperationException(
+                    $"[YooAssets] Route index generation failed before build: {result.ErrorMessage}");
+            }
+
+            Debug.Log($"[YooAssets] Route index ready: {result.AssetPath} ({result.EntryCount} entries)");
         }
 
         /// <summary>

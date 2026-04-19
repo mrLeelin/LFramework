@@ -47,12 +47,25 @@ namespace LFramework.Editor.Tests.Settings
         }
 
         [Test]
-        public void ResolvedDefaultAndBootstrapPackageIds_FallBackToLegacyPackage_WhenExplicitIdsAreEmpty()
+        public void ResolvedDefaultAndRouteIndexPackageIds_FallBackToDefaultPackage_WhenExplicitIdsAreEmpty()
         {
             var setting = ScriptableObject.CreateInstance<ResourceComponentSetting>();
 
             Assert.That(setting.GetResolvedDefaultPackageId(), Is.EqualTo("DefaultPackage"));
-            Assert.That(setting.GetResolvedBootstrapPackageId(), Is.EqualTo("DefaultPackage"));
+            Assert.That(setting.GetResolvedRouteIndexPackageId(), Is.EqualTo("DefaultPackage"));
+        }
+
+        [Test]
+        public void RoutingSettings_ProvideExpectedDefaults()
+        {
+            var routing = new RoutingSettings();
+
+            Assert.That(routing.enableRouteIndex, Is.True);
+            Assert.That(routing.routeIndexAddress, Is.EqualTo("route-index"));
+            Assert.That(routing.routeIndexPackageId, Is.EqualTo("DefaultPackage"));
+            Assert.That(routing.routeIndexAssetPath, Is.EqualTo("Assets/Framework/Generated/RouteIndex.asset"));
+            Assert.That(routing.allowDefaultPackageFallback, Is.True);
+            Assert.That(routing.detectDuplicateAddress, Is.True);
         }
 
         [Test]
@@ -87,7 +100,7 @@ namespace LFramework.Editor.Tests.Settings
         }
 
         [Test]
-        public void ValidateMultiPackageConfiguration_WarnsWhenRouteIndexBootstrapFieldsAreMissing()
+        public void ValidateMultiPackageConfiguration_UsesRouteIndexDefaults_WhenSettingsAreUntouched()
         {
             var setting = ScriptableObject.CreateInstance<ResourceComponentSetting>();
 
@@ -95,8 +108,8 @@ namespace LFramework.Editor.Tests.Settings
 
             Assert.That(isValid, Is.True);
             Assert.That(errors, Is.Empty);
-            Assert.That(warnings.Exists(message => Contains(message, "route")), Is.True);
-            Assert.That(warnings.Exists(message => Contains(message, "bootstrap")), Is.True);
+            Assert.That(warnings.Exists(message => Contains(message, "route")), Is.False);
+            Assert.That(warnings.Exists(message => Contains(message, "bootstrap")), Is.False);
         }
 
         [Test]
@@ -112,6 +125,7 @@ namespace LFramework.Editor.Tests.Settings
             });
             setting.YooAssetRouting.routeIndexPackageId = "bootstrap";
             setting.YooAssetRouting.routeIndexAddress = "route-index";
+            setting.YooAssetRouting.routeIndexAssetPath = string.Empty;
 
             bool isValid = setting.ValidateMultiPackageConfiguration(out List<string> errors, out List<string> warnings);
 
@@ -121,12 +135,11 @@ namespace LFramework.Editor.Tests.Settings
         }
 
         [Test]
-        public void ValidateMultiPackageConfiguration_RejectsUnknownDefaultBootstrapAndRouteIndexPackages()
+        public void ValidateMultiPackageConfiguration_RejectsUnknownDefaultAndRouteIndexPackages()
         {
             var setting = ScriptableObject.CreateInstance<ResourceComponentSetting>();
             SetPrivateField(setting, "_yooAssetPackageName", string.Empty);
             SetPrivateField(setting, "_defaultPackageId", "missing-default");
-            SetPrivateField(setting, "_bootstrapPackageId", "missing-bootstrap");
             setting.YooAssetPackages.Add(new PackageDefinition { packageId = "ui", yooPackageName = "UIPackage" });
             setting.YooAssetRouting.routeIndexPackageId = "missing-route";
             setting.YooAssetRouting.routeIndexAddress = "route-index";
@@ -135,7 +148,6 @@ namespace LFramework.Editor.Tests.Settings
 
             Assert.That(isValid, Is.False);
             Assert.That(errors.Exists(message => Contains(message, "default")), Is.True);
-            Assert.That(errors.Exists(message => Contains(message, "bootstrap")), Is.True);
             Assert.That(errors.Exists(message => Contains(message, "route index")), Is.True);
             Assert.That(warnings, Is.Not.Null);
         }
@@ -227,6 +239,126 @@ namespace LFramework.Editor.Tests.Settings
         }
 
         [Test]
+        public void PackageResolver_UsesFallbackPackageChain_WhenRouteIndexTargetsInactivePackage()
+        {
+            var registry = new PackageRegistry();
+            registry.Configure(
+                new[]
+                {
+                    new PackageDefinition
+                    {
+                        packageId = "premium-ui",
+                        yooPackageName = "PremiumUIPackage",
+                        fallbackPackageId = "shared-ui",
+                        platformFilter = new List<string> { RuntimePlatform.Android.ToString() }
+                    },
+                    new PackageDefinition
+                    {
+                        packageId = "shared-ui",
+                        yooPackageName = "SharedUIPackage"
+                    },
+                    new PackageDefinition
+                    {
+                        packageId = "default-ui",
+                        yooPackageName = "DefaultUIPackage"
+                    }
+                },
+                RuntimePlatform.WindowsEditor,
+                "Google");
+
+            var routeIndex = ScriptableObject.CreateInstance<RouteIndexAsset>();
+            routeIndex.entries.Add(new RouteIndexEntry { address = "ui/home", packageId = "premium-ui" });
+
+            var resolver = new PackageResolver(new RoutingSettings { allowDefaultPackageFallback = true }, registry);
+            resolver.LoadRouteIndex(routeIndex);
+
+            Assert.That(resolver.ResolvePackageId("ui/home", null, "default-ui"), Is.EqualTo("shared-ui"));
+        }
+
+        [Test]
+        public void PackageResolver_UsesLastResolvableFallback_WhenFallbackChainContainsMultipleInactivePackages()
+        {
+            var registry = new PackageRegistry();
+            registry.Configure(
+                new[]
+                {
+                    new PackageDefinition
+                    {
+                        packageId = "premium-ui",
+                        yooPackageName = "PremiumUIPackage",
+                        fallbackPackageId = "regional-ui",
+                        platformFilter = new List<string> { RuntimePlatform.Android.ToString() }
+                    },
+                    new PackageDefinition
+                    {
+                        packageId = "regional-ui",
+                        yooPackageName = "RegionalUIPackage",
+                        fallbackPackageId = "shared-ui",
+                        platformFilter = new List<string> { RuntimePlatform.Android.ToString() }
+                    },
+                    new PackageDefinition
+                    {
+                        packageId = "shared-ui",
+                        yooPackageName = "SharedUIPackage"
+                    },
+                    new PackageDefinition
+                    {
+                        packageId = "default-ui",
+                        yooPackageName = "DefaultUIPackage"
+                    }
+                },
+                RuntimePlatform.WindowsEditor,
+                "Google");
+
+            var routeIndex = ScriptableObject.CreateInstance<RouteIndexAsset>();
+            routeIndex.entries.Add(new RouteIndexEntry { address = "ui/home", packageId = "premium-ui" });
+
+            var resolver = new PackageResolver(new RoutingSettings { allowDefaultPackageFallback = true }, registry);
+            resolver.LoadRouteIndex(routeIndex);
+
+            Assert.That(resolver.ResolvePackageId("ui/home", null, "default-ui"), Is.EqualTo("shared-ui"));
+        }
+
+        [Test]
+        public void PackageResolver_FallsBackToDefaultPackage_WhenFallbackChainCyclesWithoutResolvablePackage()
+        {
+            var registry = new PackageRegistry();
+            registry.Configure(
+                new[]
+                {
+                    new PackageDefinition
+                    {
+                        packageId = "premium-ui",
+                        yooPackageName = "PremiumUIPackage",
+                        fallbackPackageId = "regional-ui",
+                        platformFilter = new List<string> { RuntimePlatform.Android.ToString() }
+                    },
+                    new PackageDefinition
+                    {
+                        packageId = "regional-ui",
+                        yooPackageName = "RegionalUIPackage",
+                        fallbackPackageId = "premium-ui",
+                        platformFilter = new List<string> { RuntimePlatform.Android.ToString() }
+                    },
+                    new PackageDefinition
+                    {
+                        packageId = "default-ui",
+                        yooPackageName = "DefaultUIPackage"
+                    }
+                },
+                RuntimePlatform.WindowsEditor,
+                "Google");
+
+            var routeIndex = ScriptableObject.CreateInstance<RouteIndexAsset>();
+            routeIndex.entries.Add(new RouteIndexEntry { address = "ui/home", packageId = "premium-ui" });
+
+            var resolver = new PackageResolver(new RoutingSettings { allowDefaultPackageFallback = true }, registry);
+            resolver.LoadRouteIndex(routeIndex);
+
+            Assert.That(resolver.ResolvePackageId("ui/home", null, "default-ui"), Is.EqualTo("default-ui"));
+        }
+
+        [Test]
         public void RouteIndexBootstrapLoader_LoadsRouteIndexDirectlyFromBootstrapPackage()
         {
             var registry = new PackageRegistry();
@@ -243,7 +375,7 @@ namespace LFramework.Editor.Tests.Settings
                 routeIndexPackageId = "bootstrap",
                 routeIndexAddress = "route-index"
             };
-            var loader = new RouteIndexBootstrapLoader(registry, routing);
+            var loader = new RouteIndexBootstrapLoader(registry, routing, "default");
             var expectedAsset = ScriptableObject.CreateInstance<RouteIndexAsset>();
             expectedAsset.entries.Add(new RouteIndexEntry { address = "ui/home", packageId = "ui" });
 
@@ -267,6 +399,32 @@ namespace LFramework.Editor.Tests.Settings
         }
 
         [Test]
+        public void RouteIndexBootstrapLoader_FallsBackToDefaultPackage_WhenRouteIndexPackageIdIsEmpty()
+        {
+            var registry = new PackageRegistry();
+            registry.Configure(
+                new[]
+                {
+                    new PackageDefinition { packageId = "default", yooPackageName = "DefaultPackage", remoteFolderName = "default" }
+                },
+                RuntimePlatform.WindowsEditor,
+                "Google");
+
+            var loader = new RouteIndexBootstrapLoader(registry, new RoutingSettings
+            {
+                routeIndexPackageId = string.Empty,
+                routeIndexAddress = "route-index"
+            }, "default");
+
+            bool ok = loader.TryGetBootstrapRequest(out string packageId, out string address, out string errorMessage);
+
+            Assert.That(ok, Is.True);
+            Assert.That(packageId, Is.EqualTo("default"));
+            Assert.That(address, Is.EqualTo("route-index"));
+            Assert.That(errorMessage, Is.Null.Or.Empty);
+        }
+
+        [Test]
         public void RouteIndexBootstrapLoader_ExposesBootstrapRequest_ForRuntimeAsyncLoading()
         {
             var registry = new PackageRegistry();
@@ -282,7 +440,7 @@ namespace LFramework.Editor.Tests.Settings
             {
                 routeIndexPackageId = "bootstrap",
                 routeIndexAddress = "route-index"
-            });
+            }, "default");
 
             bool ok = loader.TryGetBootstrapRequest(out string packageId, out string address, out string errorMessage);
 
@@ -308,7 +466,7 @@ namespace LFramework.Editor.Tests.Settings
             {
                 routeIndexPackageId = "bootstrap",
                 routeIndexAddress = "route-index"
-            });
+            }, "default");
 
             bool loaded = loader.TryLoad(
                 (_, __) => throw new InvalidOperationException("boom"),

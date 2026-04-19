@@ -45,17 +45,7 @@ namespace UnityGameFramework.Runtime
         /// </summary>
         [SerializeField] private float _maxUnloadInterval;
 
-
-        /// <summary>
-        /// YooAsset 包名称
-        /// </summary>
-        [SerializeField] private string _yooAssetPackageName;
-
-        /// <summary>
-        /// YooAsset 运行模式
-        /// </summary>
-        [SerializeField] private YooAssetPlayMode _yooAssetPlayMode;
-
+        
 
         // ─── 生命周期 ───
 
@@ -69,10 +59,7 @@ namespace UnityGameFramework.Runtime
         public float MinUnloadInterval => _minUnloadInterval;
 
         public float MaxUnloadInterval => _maxUnloadInterval;
-
-        public string YooAssetPackageName => _yooAssetPackageName;
-
-        public YooAssetPlayMode YooAssetsPlayModel => _yooAssetPlayMode;
+        
 
         /// <summary>
         /// 初始化组件

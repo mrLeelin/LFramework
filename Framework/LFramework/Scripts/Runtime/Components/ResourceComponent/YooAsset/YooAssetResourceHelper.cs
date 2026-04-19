@@ -14,7 +14,8 @@ using YooAsset;
 namespace LFramework.Runtime
 {
     /// <summary>
-    /// YooAsset 资源辅助器（平台初始化 + 查询）
+    /// YooAsset 资源辅助器。
+    /// 负责 YooAsset 包初始化、资源加载、资源实例化、句柄跟踪以及多包路由解析。
     /// </summary>
     public class YooAssetResourceHelper : ResourceHelperBase
     {
@@ -46,16 +47,50 @@ namespace LFramework.Runtime
         /// </summary>
         private readonly Dictionary<string, RawFileHandle> _rawFileHandles = new Dictionary<string, RawFileHandle>();
 
+        /// <summary>
+        /// 游戏全局配置，用于获取渠道等运行时信息。
+        /// </summary>
         private GameSetting _gameSetting;
+
+        /// <summary>
+        /// 设置组件，用于构造远端资源服务。
+        /// </summary>
         private SettingComponent _settingComponent;
+
+        /// <summary>
+        /// 资源组件配置，包含包定义、默认包和路由规则。
+        /// </summary>
         private ResourceComponentSetting _resourceComponentSetting;
+
+        /// <summary>
+        /// 当前生效的资源包注册表。
+        /// </summary>
         private readonly PackageRegistry _packageRegistry = new PackageRegistry();
+
+        /// <summary>
+        /// 资源地址到逻辑包 ID 的解析器。
+        /// </summary>
         private PackageResolver _packageResolver;
+
+        /// <summary>
+        /// 标记包注册表是否已经完成配置，避免重复初始化。
+        /// </summary>
         private bool _packageRegistryConfigured;
+
+        /// <summary>
+        /// 已完成初始化的 YooAsset 包名称集合。
+        /// </summary>
         private readonly HashSet<string> _initializedPackageNames = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// 包初始化协调器，用于合并并发初始化请求。
+        /// </summary>
         private PackageInitializationCoordinator _packageInitializationCoordinator;
 
 
+        /// <summary>
+        /// 缓存运行时依赖的配置对象。
+        /// </summary>
         private void Awake()
         {
             _gameSetting = SettingManager.GetSetting<GameSetting>();
@@ -71,11 +106,10 @@ namespace LFramework.Runtime
             YooAssets.Initialize();
             EnsurePackageRegistryConfigured();
             EnsurePackageInitializationCoordinator();
-            string defaultPackageName = ResolveYooAssetPackageName(null);
+            var defaultPackageName = ResolveYooAssetPackageName(null);
             var package = YooAssets.TryGetPackage(defaultPackageName)
                           ?? YooAssets.CreatePackage(defaultPackageName);
             YooAssets.SetDefaultPackage(package);
-
             InitializePackageAsync(defaultPackageName, callback);
         }
 
@@ -184,12 +218,18 @@ namespace LFramework.Runtime
             LoadAsset(assetName, assetType, null, callbacks, userData);
         }
 
+        /// <summary>
+        /// 按指定资源包加载资源。
+        /// </summary>
         public override void LoadAsset(string assetName, Type assetType, string packageId,
             LoadAssetCallbacks callbacks, object userData)
         {
             LoadAssetInternalAsync(assetName, assetType, packageId, callbacks, userData).Forget();
         }
 
+        /// <summary>
+        /// 轮询资源加载句柄并分发进度、成功和失败回调。
+        /// </summary>
         private IEnumerator WaitForAssetLoad(AssetHandle handle, string assetName,
             LoadAssetCallbacks callbacks, object userData)
         {
@@ -238,12 +278,18 @@ namespace LFramework.Runtime
             LoadScene(sceneAssetName, null, callbacks, userData);
         }
 
+        /// <summary>
+        /// 按指定资源包加载场景。
+        /// </summary>
         public override void LoadScene(string sceneAssetName, string packageId,
             LoadSceneCallbacks callbacks, object userData)
         {
             LoadSceneInternalAsync(sceneAssetName, packageId, callbacks, userData).Forget();
         }
 
+        /// <summary>
+        /// 轮询场景加载句柄并分发进度、成功和失败回调。
+        /// </summary>
         private IEnumerator WaitForSceneLoad(YooAsset.SceneHandle handle, string sceneAssetName,
             LoadSceneCallbacks callbacks, object userData)
         {
@@ -277,6 +323,9 @@ namespace LFramework.Runtime
             LoadBinary(binaryAssetName, null, callbacks, userData);
         }
 
+        /// <summary>
+        /// 按指定资源包加载原始二进制文件。
+        /// </summary>
         public override void LoadBinary(string binaryAssetName, string packageId,
             LoadBinaryCallbacks callbacks, object userData)
         {
@@ -292,6 +341,9 @@ namespace LFramework.Runtime
             InstantiateAsset(assetName, null, callbacks, userData);
         }
 
+        /// <summary>
+        /// 按指定资源包加载并实例化资源。
+        /// </summary>
         public override async void InstantiateAsset(string assetName, string packageId,
             LoadAssetCallbacks callbacks, object userData)
         {
@@ -341,6 +393,8 @@ namespace LFramework.Runtime
                 if (asset != null)
                 {
                     int instanceId = asset.GetInstanceID();
+
+                    // 记录资源句柄和引用计数，供 Release 时统一回收。
                     if (_assetHandles.TryGetValue(instanceId, out List<AssetHandle> handles))
                     {
                         handles.Add(handle);
@@ -365,6 +419,9 @@ namespace LFramework.Runtime
             }
         }
 
+        /// <summary>
+        /// 异步加载场景并通过回调返回结果。
+        /// </summary>
         private async UniTask LoadSceneInternalAsync(string sceneAssetName, string packageId,
             LoadSceneCallbacks callbacks, object userData)
         {
@@ -412,6 +469,9 @@ namespace LFramework.Runtime
             }
         }
 
+        /// <summary>
+        /// 异步加载二进制资源并缓存 RawFileHandle。
+        /// </summary>
         private async UniTask LoadBinaryInternalAsync(string binaryAssetName, string packageId,
             LoadBinaryCallbacks callbacks, object userData)
         {
@@ -459,6 +519,9 @@ namespace LFramework.Runtime
             }
         }
 
+        /// <summary>
+        /// 异步加载资源并实例化对象，同时维护实例对象到原始资源的映射关系。
+        /// </summary>
         private async UniTask InstantiateAssetInternalAsync(string assetName, string packageId,
             LoadAssetCallbacks callbacks, object userData)
         {
@@ -512,6 +575,7 @@ namespace LFramework.Runtime
                 instantiateOp.Result != null &&
                 handle.AssetObject != null)
             {
+                // 记录实例对象与源资源的关联，确保释放实例时可以正确减少源资源引用计数。
                 int instanceId = instantiateOp.Result.GetInstanceID();
                 int assetInstanceId = handle.AssetObject.GetInstanceID();
                 _instanceToAssetMap[instanceId] = assetInstanceId;
@@ -543,6 +607,9 @@ namespace LFramework.Runtime
             }
         }
 
+        /// <summary>
+        /// 创建通用资源句柄，并在异步完成后返回指定类型的资源对象。
+        /// </summary>
         public override ResourceAssetHandle<T> LoadAssetHandle<T>(string assetName)
         {
             var resourceHandle = ReferencePool.Acquire<ResourceAssetHandle<T>>();
@@ -551,6 +618,9 @@ namespace LFramework.Runtime
             return resourceHandle;
         }
 
+        /// <summary>
+        /// 执行基于 ResourceAssetHandle 的资源加载流程。
+        /// </summary>
         private async void LoadAssetHandleAsync<T>(ResourceAssetHandle<T> handle, string assetName)
             where T : UnityEngine.Object
         {
@@ -613,6 +683,9 @@ namespace LFramework.Runtime
             return resourceHandle;
         }
 
+        /// <summary>
+        /// 执行基于 ResourceAssetHandle 的实例化流程。
+        /// </summary>
         private async void InstantiateAssetHandleAsync(ResourceAssetHandle<GameObject> handle, string assetName)
         {
             try
@@ -679,6 +752,9 @@ namespace LFramework.Runtime
             return resourceHandle;
         }
 
+        /// <summary>
+        /// 执行基于 ResourceSceneHandle 的场景加载流程。
+        /// </summary>
         private async void LoadSceneHandleAsync(ResourceSceneHandle handle, string sceneAssetName)
         {
             try
@@ -727,6 +803,9 @@ namespace LFramework.Runtime
             return resourceHandle;
         }
 
+        /// <summary>
+        /// 执行基于 ResourceRawFileHandle 的原始文件加载流程。
+        /// </summary>
         private async void LoadRawFileHandleAsync(ResourceRawFileHandle handle, string binaryAssetName)
         {
             try
@@ -775,6 +854,9 @@ namespace LFramework.Runtime
             return resourceHandle;
         }
 
+        /// <summary>
+        /// 执行按标签批量加载资源的流程，并将结果转换为指定泛型集合。
+        /// </summary>
         private async void LoadAssetsByTagHandleAsync<T>(ResourceBatchHandle<T> handle, string tag)
             where T : UnityEngine.Object
         {
@@ -818,11 +900,11 @@ namespace LFramework.Runtime
             catch (Exception ex) { handle.SetError(ex.Message); }
         }
 
+        /// <summary>
+        /// 初始化指定资源包，并在完成后加载路由索引和预热包。
+        /// </summary>
         protected virtual async void InitializePackageAsync(string packageName, ResourceInitCallBack callback)
         {
-            EnsurePackageRegistryConfigured();
-            EnsurePackageInitializationCoordinator();
-
             PackageInitializationResult result = await _packageInitializationCoordinator.EnsureInitializedAsync(packageName);
             if (!result.Succeeded)
             {
@@ -835,6 +917,9 @@ namespace LFramework.Runtime
             callback?.ResourceInitSuccessCallBack?.Invoke();
         }
 
+        /// <summary>
+        /// 确保包初始化协调器已创建。
+        /// </summary>
         private void EnsurePackageInitializationCoordinator()
         {
             _packageInitializationCoordinator ??= new PackageInitializationCoordinator(
@@ -842,6 +927,9 @@ namespace LFramework.Runtime
                 InitializePackageCoreAsync);
         }
 
+        /// <summary>
+        /// 判断指定包是否已经初始化完成且可用。
+        /// </summary>
         private bool IsPackageInitialized(string packageName)
         {
             return !string.IsNullOrWhiteSpace(packageName) &&
@@ -849,11 +937,11 @@ namespace LFramework.Runtime
                    YooAssets.TryGetPackage(packageName) != null;
         }
 
+        /// <summary>
+        /// 确保资源地址对应的包已经初始化完成。
+        /// </summary>
         private async UniTask<PackageInitializationResult> EnsurePackageReadyAsync(string address, string packageId)
         {
-            EnsurePackageRegistryConfigured();
-            EnsurePackageInitializationCoordinator();
-
             string packageName = ResolveYooAssetPackageName(address, packageId);
             if (string.IsNullOrWhiteSpace(packageName))
             {
@@ -875,12 +963,16 @@ namespace LFramework.Runtime
             return result;
         }
 
+        /// <summary>
+        /// 按运行模式创建并初始化 YooAsset 资源包。
+        /// </summary>
         private async UniTask<PackageInitializationResult> InitializePackageCoreAsync(string packageName)
         {
             ResourcePackage package = YooAssets.TryGetPackage(packageName) ?? YooAssets.CreatePackage(packageName);
             InitializationOperation initOperation = null;
             YooAssetPlayMode playMode = ResolvePlayMode(packageName);
 
+            // 根据当前包的运行模式组装不同的文件系统参数。
             switch (playMode)
             {
                 case YooAssetPlayMode.EditorSimulateMode:
@@ -955,15 +1047,20 @@ namespace LFramework.Runtime
                 initOperation.Error ?? "YooAsset initialization failed.");
         }
 
+        /// <summary>
+        /// 解析指定包应使用的 YooAsset 运行模式。
+        /// </summary>
         private YooAssetPlayMode ResolvePlayMode(string packageName)
         {
             PackageDefinition definition = GetPackageDefinitionByPackageName(packageName);
             return definition != null ? definition.playModeOverride : ResourceComponent.YooAssetsPlayModel;
         }
 
+        /// <summary>
+        /// 通过包名或逻辑包 ID 查找包定义配置。
+        /// </summary>
         private PackageDefinition GetPackageDefinitionByPackageName(string packageName)
         {
-            EnsurePackageRegistryConfigured();
             foreach (KeyValuePair<string, PackageDefinition> pair in _packageRegistry.ActivePackages)
             {
                 PackageDefinition definition = pair.Value;
@@ -982,6 +1079,9 @@ namespace LFramework.Runtime
             return null;
         }
 
+        /// <summary>
+        /// 预热配置为启动时初始化的附加资源包。
+        /// </summary>
         private async UniTask PrewarmConfiguredPackagesAsync(string defaultPackageName)
         {
             foreach (KeyValuePair<string, PackageDefinition> pair in _packageRegistry.ActivePackages)
@@ -1003,11 +1103,17 @@ namespace LFramework.Runtime
             }
         }
 
+        /// <summary>
+        /// 构造远端资源服务，子类可覆盖以替换下载地址策略。
+        /// </summary>
         protected virtual IRemoteServices BuildRemoteService(SettingComponent settingComponent, GameSetting gameSetting)
         {
             return new DefaultRemoteServices(settingComponent, gameSetting);
         }
 
+        /// <summary>
+        /// 根据资源配置初始化包注册表和路由解析器。
+        /// </summary>
         private void EnsurePackageRegistryConfigured()
         {
             if (_packageRegistryConfigured)
@@ -1019,7 +1125,7 @@ namespace LFramework.Runtime
 
             if (_resourceComponentSetting != null)
             {
-                _packageResolver ??= new PackageResolver(_resourceComponentSetting.YooAssetRouting);
+                _packageResolver ??= new PackageResolver(_resourceComponentSetting.YooAssetRouting, _packageRegistry);
                 _packageRegistry.Configure(
                     _resourceComponentSetting.GetEffectivePackageDefinitions(),
                     Application.platform,
@@ -1028,14 +1134,15 @@ namespace LFramework.Runtime
             }
             else
             {
-                Debug.LogWarning("[YooAssetResourceHelper] ResourceComponentSetting not found, package registry not configured.");
+                Debug.LogError("[YooAssetResourceHelper] ResourceComponentSetting not found, package registry not configured.");
             }
         }
 
+        /// <summary>
+        /// 根据逻辑包 ID 解析实际的 YooAsset 包名称。
+        /// </summary>
         private string ResolveYooAssetPackageName(string packageId)
         {
-            EnsurePackageRegistryConfigured();
-
             string logicalPackageId = ResolveLogicalPackageId(null, packageId);
             if (!string.IsNullOrWhiteSpace(logicalPackageId))
             {
@@ -1051,10 +1158,11 @@ namespace LFramework.Runtime
             return ResourceComponent.YooAssetPackageName;
         }
 
+        /// <summary>
+        /// 根据资源地址和逻辑包 ID 解析实际的 YooAsset 包名称。
+        /// </summary>
         private string ResolveYooAssetPackageName(string address, string packageId)
         {
-            EnsurePackageRegistryConfigured();
-
             string logicalPackageId = ResolveLogicalPackageId(address, packageId);
             if (!string.IsNullOrWhiteSpace(logicalPackageId))
             {
@@ -1070,10 +1178,11 @@ namespace LFramework.Runtime
             return ResourceComponent.YooAssetPackageName;
         }
 
+        /// <summary>
+        /// 解析逻辑包 ID，优先使用显式包 ID，其次使用路由规则和默认包配置。
+        /// </summary>
         private string ResolveLogicalPackageId(string address, string explicitPackageId)
         {
-            EnsurePackageRegistryConfigured();
-
             if (_packageResolver != null && _resourceComponentSetting != null)
             {
                 return _packageResolver.ResolvePackageId(
@@ -1092,6 +1201,9 @@ namespace LFramework.Runtime
             return explicitPackageId;
         }
 
+        /// <summary>
+        /// 获取已加载的资源包，不会触发初始化流程。
+        /// </summary>
         private ResourcePackage GetLoadedPackage(string packageId)
         {
             string packageName = ResolveYooAssetPackageName(packageId);
@@ -1103,6 +1215,9 @@ namespace LFramework.Runtime
             return IsPackageInitialized(packageName) ? YooAssets.TryGetPackage(packageName) : null;
         }
 
+        /// <summary>
+        /// 根据资源地址和逻辑包 ID 获取已加载的资源包，不会触发初始化流程。
+        /// </summary>
         private ResourcePackage GetLoadedPackage(string address, string packageId)
         {
             string packageName = ResolveYooAssetPackageName(address, packageId);
@@ -1163,6 +1278,9 @@ namespace LFramework.Runtime
             }
         }
 
+        /// <summary>
+        /// 启动时尝试加载路由索引资源，为地址到包的动态路由提供初始数据。
+        /// </summary>
         private async UniTask TryLoadBootstrapRouteIndexAsync()
         {
             if (_resourceComponentSetting == null || _packageResolver == null)
@@ -1176,7 +1294,7 @@ namespace LFramework.Runtime
                 return;
             }
 
-            var loader = new RouteIndexBootstrapLoader(_packageRegistry, routing);
+            var loader = new RouteIndexBootstrapLoader(_packageRegistry, routing, _resourceComponentSetting.GetResolvedDefaultPackageId());
             if (!loader.TryGetBootstrapRequest(out string packageId, out string address, out string errorMessage))
             {
                 Debug.LogWarning($"[YooAssetResourceHelper] Skip route index bootstrap: {errorMessage}");

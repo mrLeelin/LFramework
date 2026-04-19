@@ -8,11 +8,13 @@ namespace LFramework.Runtime
     {
         private readonly PackageRegistry _registry;
         private readonly RoutingSettings _routingSettings;
+        private readonly string _defaultPackageId;
 
-        public RouteIndexBootstrapLoader(PackageRegistry registry, RoutingSettings routingSettings)
+        public RouteIndexBootstrapLoader(PackageRegistry registry, RoutingSettings routingSettings, string defaultPackageId)
         {
             _registry = registry ?? throw new ArgumentNullException(nameof(registry));
             _routingSettings = routingSettings ?? throw new ArgumentNullException(nameof(routingSettings));
+            _defaultPackageId = defaultPackageId;
         }
 
         public bool TryGetBootstrapRequest(out string packageId, out string address, out string errorMessage)
@@ -21,7 +23,8 @@ namespace LFramework.Runtime
             address = null;
             errorMessage = null;
 
-            if (string.IsNullOrWhiteSpace(_routingSettings.routeIndexPackageId))
+            string resolvedPackageId = ResolveBootstrapPackageId();
+            if (string.IsNullOrWhiteSpace(resolvedPackageId))
             {
                 errorMessage = "Route index bootstrap package id is empty.";
                 return false;
@@ -33,15 +36,22 @@ namespace LFramework.Runtime
                 return false;
             }
 
-            if (_registry.GetPackage(_routingSettings.routeIndexPackageId) == null)
+            if (_registry.GetPackage(resolvedPackageId) == null)
             {
-                errorMessage = $"Bootstrap package '{_routingSettings.routeIndexPackageId}' is not configured.";
+                errorMessage = $"Bootstrap package '{resolvedPackageId}' is not configured.";
                 return false;
             }
 
-            packageId = _routingSettings.routeIndexPackageId;
+            packageId = resolvedPackageId;
             address = _routingSettings.routeIndexAddress;
             return true;
+        }
+
+        private string ResolveBootstrapPackageId()
+        {
+            return !string.IsNullOrWhiteSpace(_routingSettings.routeIndexPackageId)
+                ? _routingSettings.routeIndexPackageId
+                : _defaultPackageId;
         }
 
         public bool TryLoad(Func<string, string, ScriptableObject> loadRouteIndex, out RouteIndexAsset routeIndex,

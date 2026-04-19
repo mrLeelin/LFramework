@@ -36,30 +36,12 @@ namespace LFramework.Runtime.Settings
         [LabelText("Max Unload Interval Seconds")]
         [SerializeField]
         private float _maxUnloadInterval = 300f;
-
-        [BoxGroup("YooAsset")]
-        [LabelText("Legacy Package Name")]
-        [ShowIf("_resourceMode", ResourceMode.YooAsset)]
-        [SerializeField]
-        private string _yooAssetPackageName = "DefaultPackage";
-
-        [BoxGroup("YooAsset")]
-        [LabelText("Play Mode")]
-        [ShowIf("_resourceMode", ResourceMode.YooAsset)]
-        [SerializeField]
-        private YooAssetPlayMode _yooAssetPlayMode = YooAssetPlayMode.EditorSimulateMode;
-
+        
         [BoxGroup("YooAsset")]
         [LabelText("Default Package Id")]
         [ShowIf("_resourceMode", ResourceMode.YooAsset)]
         [SerializeField]
         private string _defaultPackageId;
-
-        [BoxGroup("YooAsset")]
-        [LabelText("Bootstrap Package Id")]
-        [ShowIf("_resourceMode", ResourceMode.YooAsset)]
-        [SerializeField]
-        private string _bootstrapPackageId;
 
         [BoxGroup("YooAsset")]
         [LabelText("Packages")]
@@ -96,8 +78,8 @@ namespace LFramework.Runtime.Settings
                 {
                     return defaultPackage.yooPackageName;
                 }
-
-                return _yooAssetPackageName;
+                Log.Fatal("The get YooAssetPackageName is null .");
+                return null;
             }
         }
 
@@ -117,8 +99,6 @@ namespace LFramework.Runtime.Settings
 
         public string DefaultPackageId => GetResolvedDefaultPackageId();
 
-        public string BootstrapPackageId => GetResolvedBootstrapPackageId();
-
         public IReadOnlyList<PackageDefinition> GetEffectivePackageDefinitions()
         {
             var result = new List<PackageDefinition>();
@@ -136,12 +116,7 @@ namespace LFramework.Runtime.Settings
 
                 result.Add(package.Clone());
             }
-
-            if (result.Count == 0 && !string.IsNullOrWhiteSpace(_yooAssetPackageName))
-            {
-                result.Add(CreateLegacyPackageDefinition());
-            }
-
+            
             return result;
         }
 
@@ -163,19 +138,20 @@ namespace LFramework.Runtime.Settings
                 return packages[0].packageId;
             }
 
-            return _yooAssetPackageName;
+            Log.Fatal("The none resolve default package count is zero. please check and add [PackageDefinition]");
+            return null;
         }
 
-        public string GetResolvedBootstrapPackageId()
+        public string GetResolvedRouteIndexPackageId()
         {
             if (_resourceMode != ResourceMode.YooAsset)
             {
                 return null;
             }
 
-            if (!string.IsNullOrWhiteSpace(_bootstrapPackageId))
+            if (!string.IsNullOrWhiteSpace(YooAssetRouting.routeIndexPackageId))
             {
-                return _bootstrapPackageId;
+                return YooAssetRouting.routeIndexPackageId;
             }
 
             return GetResolvedDefaultPackageId();
@@ -246,8 +222,6 @@ namespace LFramework.Runtime.Settings
             }
 
             ValidatePackageReference(GetResolvedDefaultPackageId(), "default", effectivePackages, errors);
-            ValidatePackageReference(GetResolvedBootstrapPackageId(), "bootstrap", effectivePackages, errors);
-
             if (YooAssetRouting.enableRouteIndex)
             {
                 if (string.IsNullOrWhiteSpace(YooAssetRouting.routeIndexAddress))
@@ -260,30 +234,12 @@ namespace LFramework.Runtime.Settings
                     warnings.Add("Route index asset path is missing while route-index routing is enabled.");
                 }
 
-                if (string.IsNullOrWhiteSpace(YooAssetRouting.routeIndexPackageId))
-                {
-                    warnings.Add("Bootstrap route package is missing because routeIndexPackageId is empty.");
-                }
-                else
-                {
-                    ValidatePackageReference(YooAssetRouting.routeIndexPackageId, "route index", effectivePackages, errors);
-                }
+                ValidatePackageReference(GetResolvedRouteIndexPackageId(), "route index", effectivePackages, errors);
             }
 
             return errors.Count == 0;
         }
-
-        private PackageDefinition CreateLegacyPackageDefinition()
-        {
-            string packageId = _yooAssetPackageName.Trim();
-            return new PackageDefinition
-            {
-                packageId = packageId,
-                yooPackageName = _yooAssetPackageName,
-                playModeOverride = _yooAssetPlayMode,
-                remoteFolderName = packageId
-            };
-        }
+        
 
         private static bool HasPackageDefinition(IReadOnlyList<PackageDefinition> packages, string packageId)
         {

@@ -17,10 +17,7 @@ namespace LFramework.Editor.Inspector
         private SerializedProperty m_ResourceMode = null;
         private SerializedProperty m_MinUnloadInterval = null;
         private SerializedProperty m_MaxUnloadInterval = null;
-        private SerializedProperty m_YooAssetPackageName = null;
-        private SerializedProperty m_YooAssetPlayMode = null;
         private SerializedProperty m_YooAssetDefaultPackageId = null;
-        private SerializedProperty m_YooAssetBootstrapPackageId = null;
         private SerializedProperty m_YooAssetPackages = null;
         private SerializedProperty m_YooAssetRouting = null;
         private SerializedProperty m_AddressableHotfixProfileName;
@@ -61,10 +58,7 @@ namespace LFramework.Editor.Inspector
             m_ResourceMode = serializedObject.FindProperty("_resourceMode");
             m_MinUnloadInterval = serializedObject.FindProperty("_minUnloadInterval");
             m_MaxUnloadInterval = serializedObject.FindProperty("_maxUnloadInterval");
-            m_YooAssetPackageName = serializedObject.FindProperty("_yooAssetPackageName");
-            m_YooAssetPlayMode = serializedObject.FindProperty("_yooAssetPlayMode");
             m_YooAssetDefaultPackageId = serializedObject.FindProperty("_defaultPackageId");
-            m_YooAssetBootstrapPackageId = serializedObject.FindProperty("_bootstrapPackageId");
             m_YooAssetPackages = serializedObject.FindProperty("_yooAssetPackages");
             m_YooAssetRouting = serializedObject.FindProperty("_routing");
             m_AddressableHotfixProfileName = serializedObject.FindProperty("_hotfixProfileName");
@@ -140,7 +134,7 @@ namespace LFramework.Editor.Inspector
         {
             string modeName = m_ResourceMode.enumDisplayNames[m_ResourceMode.enumValueIndex];
             string message = m_ResourceMode.enumValueIndex == (int)ResourceMode.YooAsset
-                ? "YooAsset is active. Configure logical packages, bootstrap routing, and package preview below."
+                ? "YooAsset is active. Configure logical packages, route-index routing, and package preview below."
                 : "Addressables is active. Hotfix profile configuration and migration actions are shown below.";
 
             EditorGUILayout.HelpBox($"Active Mode: {modeName}\n{message}", MessageType.Info);
@@ -201,23 +195,208 @@ namespace LFramework.Editor.Inspector
 
         private void DrawYooAssetSection()
         {
-            BeginSection("YooAsset Settings", "Configure compatibility fields, logical packages, bootstrap routing, and active package preview.");
+            BeginSection("YooAsset Settings", "Configure logical packages, route-index routing, and active package preview.");
 
-            EditorGUILayout.PropertyField(m_YooAssetPackageName);
-            EditorGUILayout.PropertyField(m_YooAssetPlayMode);
-            EditorGUILayout.Space(4f);
             EditorGUILayout.PropertyField(m_YooAssetDefaultPackageId);
-            EditorGUILayout.PropertyField(m_YooAssetBootstrapPackageId);
             EditorGUILayout.Space(4f);
             EditorGUILayout.PropertyField(m_YooAssetPackages, true);
             EditorGUILayout.Space(4f);
-            EditorGUILayout.PropertyField(m_YooAssetRouting, true);
+            DrawRoutingSettings();
+            DrawRoutingQuickActions((ResourceComponentSetting)target);
+            EditorGUILayout.Space(6f);
+            DrawRouteIndexGenerationControls((ResourceComponentSetting)target);
             EditorGUILayout.Space(6f);
 
             DrawValidationMessages((ResourceComponentSetting)target);
             DrawActivePackagePreview((ResourceComponentSetting)target);
 
             EndSection();
+        }
+
+        private void DrawRoutingSettings()
+        {
+            if (m_YooAssetRouting == null)
+            {
+                return;
+            }
+
+            EditorGUILayout.PropertyField(m_YooAssetRouting, false);
+            if (!m_YooAssetRouting.isExpanded)
+            {
+                return;
+            }
+
+            SerializedProperty enableRouteIndex = m_YooAssetRouting.FindPropertyRelative("enableRouteIndex");
+            SerializedProperty routeIndexAddress = m_YooAssetRouting.FindPropertyRelative("routeIndexAddress");
+            SerializedProperty routeIndexPackageId = m_YooAssetRouting.FindPropertyRelative("routeIndexPackageId");
+            SerializedProperty routeIndexAssetPath = m_YooAssetRouting.FindPropertyRelative("routeIndexAssetPath");
+            SerializedProperty allowDefaultPackageFallback = m_YooAssetRouting.FindPropertyRelative("allowDefaultPackageFallback");
+            SerializedProperty detectDuplicateAddress = m_YooAssetRouting.FindPropertyRelative("detectDuplicateAddress");
+
+            EditorGUI.indentLevel++;
+            EditorGUILayout.PropertyField(enableRouteIndex);
+            EditorGUILayout.PropertyField(routeIndexAddress);
+            DrawRouteIndexPackageIdSelector(routeIndexPackageId);
+            EditorGUILayout.PropertyField(routeIndexAssetPath);
+            EditorGUILayout.PropertyField(allowDefaultPackageFallback);
+            EditorGUILayout.PropertyField(detectDuplicateAddress);
+            EditorGUI.indentLevel--;
+        }
+
+        private void DrawRouteIndexPackageIdSelector(SerializedProperty routeIndexPackageId)
+        {
+            if (routeIndexPackageId == null)
+            {
+                return;
+            }
+
+            List<string> packageIds = CollectRouteIndexPackageIds(m_YooAssetPackages);
+            string currentValue = routeIndexPackageId.stringValue;
+            var optionValues = new List<string> { string.Empty };
+            var optionLabels = new List<string> { "Use Default Package" };
+
+            for (int i = 0; i < packageIds.Count; i++)
+            {
+                optionValues.Add(packageIds[i]);
+                optionLabels.Add(packageIds[i]);
+            }
+
+            if (!string.IsNullOrWhiteSpace(currentValue) && !optionValues.Contains(currentValue))
+            {
+                optionValues.Add(currentValue);
+                optionLabels.Add($"{currentValue} (Missing)");
+            }
+
+            int selectedIndex = optionValues.IndexOf(currentValue);
+            if (selectedIndex < 0)
+            {
+                selectedIndex = 0;
+            }
+
+            using (new EditorGUI.DisabledScope(optionValues.Count == 1 && string.IsNullOrWhiteSpace(currentValue)))
+            {
+                int nextIndex = EditorGUILayout.Popup(routeIndexPackageId.displayName, selectedIndex, optionLabels.ToArray());
+                if (nextIndex >= 0 && nextIndex < optionValues.Count)
+                {
+                    routeIndexPackageId.stringValue = optionValues[nextIndex];
+                }
+            }
+
+            if (packageIds.Count == 0)
+            {
+                EditorGUILayout.HelpBox(
+                    "No package ids are available yet. Add entries in YooAssetPackages above before selecting a Route Index package.",
+                    MessageType.Warning);
+            }
+            else if (!string.IsNullOrWhiteSpace(currentValue) && !packageIds.Contains(currentValue))
+            {
+                EditorGUILayout.HelpBox(
+                    $"The current Route Index package '{currentValue}' is not present in YooAssetPackages. Please reselect a valid package.",
+                    MessageType.Warning);
+            }
+        }
+
+        private void DrawRoutingQuickActions(ResourceComponentSetting setting)
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                GUILayout.FlexibleSpace();
+                if (GUILayout.Button("Ping RouteIndex", GUILayout.Width(140f), GUILayout.Height(24f)))
+                {
+                    PingRouteIndexAsset(setting);
+                }
+            }
+        }
+
+        private void DrawRouteIndexGenerationControls(ResourceComponentSetting setting)
+        {
+            EditorGUILayout.LabelField("Route Index", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox(
+                "Generate the route index asset and refresh the generated collector so the build pipeline can pick it up automatically.",
+                MessageType.Info);
+
+            if (GUILayout.Button("Generate Route Index", GUILayout.Height(28f)))
+            {
+                ExecuteRouteIndexGeneration(setting);
+            }
+        }
+
+        private void ExecuteRouteIndexGeneration(ResourceComponentSetting setting)
+        {
+            RouteIndexGenerationResult result = RouteIndexGenerator.Generate(setting);
+            if (result.Succeeded)
+            {
+                EditorUtility.DisplayDialog(
+                    "Route Index Generated",
+                    $"Asset: {result.AssetPath}\nEntries: {result.EntryCount}",
+                    "OK");
+            }
+            else
+            {
+                EditorUtility.DisplayDialog(
+                    "Route Index Generation Failed",
+                    result.ErrorMessage ?? "Unknown error.",
+                    "OK");
+            }
+        }
+
+        private static void PingRouteIndexAsset(ResourceComponentSetting setting)
+        {
+            string assetPath = ResolveRouteIndexAssetPath(setting);
+            if (string.IsNullOrWhiteSpace(assetPath))
+            {
+                EditorUtility.DisplayDialog(
+                    "Route Index Not Configured",
+                    "Routing.routeIndexAssetPath is empty.",
+                    "OK");
+                return;
+            }
+
+            UnityEngine.Object routeIndexAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(assetPath);
+            if (routeIndexAsset == null)
+            {
+                EditorUtility.DisplayDialog(
+                    "Route Index Not Found",
+                    $"No asset exists at:\n{assetPath}",
+                    "OK");
+                return;
+            }
+
+            Selection.activeObject = routeIndexAsset;
+            EditorGUIUtility.PingObject(routeIndexAsset);
+        }
+
+        private static string ResolveRouteIndexAssetPath(ResourceComponentSetting setting)
+        {
+            return setting?.YooAssetRouting?.routeIndexAssetPath ?? string.Empty;
+        }
+
+        private static List<string> CollectRouteIndexPackageIds(SerializedProperty yooAssetPackagesProperty)
+        {
+            var packageIds = new List<string>();
+            if (yooAssetPackagesProperty == null || !yooAssetPackagesProperty.isArray)
+            {
+                return packageIds;
+            }
+
+            var seenPackageIds = new HashSet<string>(StringComparer.Ordinal);
+            for (int i = 0; i < yooAssetPackagesProperty.arraySize; i++)
+            {
+                SerializedProperty packageProperty = yooAssetPackagesProperty.GetArrayElementAtIndex(i);
+                SerializedProperty packageIdProperty = packageProperty?.FindPropertyRelative("packageId");
+                string packageId = packageIdProperty?.stringValue;
+                if (string.IsNullOrWhiteSpace(packageId))
+                {
+                    continue;
+                }
+
+                if (seenPackageIds.Add(packageId))
+                {
+                    packageIds.Add(packageId);
+                }
+            }
+
+            return packageIds;
         }
 
         private void DrawValidationMessages(ResourceComponentSetting setting)

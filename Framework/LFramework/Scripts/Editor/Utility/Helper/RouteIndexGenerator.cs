@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using LFramework.Runtime;
 using LFramework.Runtime.Settings;
-using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEngine;
 using YooAsset.Editor;
@@ -70,31 +69,6 @@ namespace LFramework.Editor
         private const string GeneratedGroupName = "__GeneratedRouteIndex";
 
         /// <summary>
-        /// Generates the route index using the active resource component setting.
-        /// </summary>
-        [MenuItem("Tools/LFramework/YooAsset/Generate Route Index")]
-        public static void GenerateFromMenu()
-        {
-            ResourceComponentSetting setting = Selection.activeObject as ResourceComponentSetting
-                                               ?? AssetUtilities.GetAllAssetsOfType<ResourceComponentSetting>().FirstOrDefault();
-            RouteIndexGenerationResult result = Generate(setting);
-            if (result.Succeeded)
-            {
-                EditorUtility.DisplayDialog(
-                    "Route Index Generated",
-                    $"Asset: {result.AssetPath}\nEntries: {result.EntryCount}",
-                    "OK");
-            }
-            else
-            {
-                EditorUtility.DisplayDialog(
-                    "Route Index Generation Failed",
-                    result.ErrorMessage ?? "Unknown error.",
-                    "OK");
-            }
-        }
-
-        /// <summary>
         /// Generates the route index asset and ensures the bootstrap package collects it.
         /// </summary>
         public static RouteIndexGenerationResult Generate(ResourceComponentSetting setting)
@@ -109,6 +83,8 @@ namespace LFramework.Editor
             {
                 return RouteIndexGenerationResult.CreateFailure(string.Join(Environment.NewLine, errors));
             }
+            HybridCLRSetting hybridClrSetting = SettingManager.GetSetting<HybridCLRSetting>();
+            string assetTags = ResolveRouteIndexAssetTags(hybridClrSetting);
 
             if (string.IsNullOrWhiteSpace(routing.routeIndexAssetPath))
             {
@@ -128,7 +104,7 @@ namespace LFramework.Editor
             EditorUtility.SetDirty(routeIndexAsset);
             AssetDatabase.SaveAssets();
 
-            if (!EnsureBootstrapCollector(registry, routing))
+            if (!EnsureBootstrapCollector(registry, routing, setting.GetResolvedRouteIndexPackageId(), assetTags))
             {
                 return RouteIndexGenerationResult.CreateFailure("Failed to configure bootstrap collector for the route index asset.");
             }
@@ -196,9 +172,9 @@ namespace LFramework.Editor
             return routeIndexAsset;
         }
 
-        private static bool EnsureBootstrapCollector(PackageRegistry registry, RoutingSettings routing)
+        private static bool EnsureBootstrapCollector(PackageRegistry registry, RoutingSettings routing, string routeIndexPackageId, string assetTags)
         {
-            string bootstrapPackageId = routing.routeIndexPackageId;
+            string bootstrapPackageId = routeIndexPackageId;
             if (string.IsNullOrWhiteSpace(bootstrapPackageId))
             {
                 return false;
@@ -240,14 +216,24 @@ namespace LFramework.Editor
                 AddressRuleName = nameof(AddressByExactAddressUserData),
                 PackRuleName = nameof(PackSeparately),
                 FilterRuleName = nameof(CollectAll),
-                AssetTags = string.Empty,
+                AssetTags = assetTags,
                 UserData = ExactAddressUserDataUtility.Serialize(routing.routeIndexAddress)
             });
 
             AssetBundleCollectorSettingData.ModifyGroup(package, group);
             AssetBundleCollectorSettingData.ModifyPackage(package);
-            AssetBundleCollectorSettingData.SaveFile();
+            AssetBundleCollectorRouteIndexSaveSync.RunWithoutQueue(AssetBundleCollectorSettingData.SaveFile);
             return true;
+        }
+
+        private static string ResolveRouteIndexAssetTags(HybridCLRSetting hybridClrSetting)
+        {
+            if (hybridClrSetting != null && !string.IsNullOrWhiteSpace(hybridClrSetting.defaultInitLabel))
+            {
+                return hybridClrSetting.defaultInitLabel;
+            }
+
+            return "init_assets";
         }
 
         private static void EnsureAssetFolder(string folderPath)
