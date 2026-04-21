@@ -806,6 +806,23 @@ namespace LFramework.Editor.Tests.Settings
             }
         }
 
+        [Test]
+        public void YooAssetResourceHelper_DefersRouteIndexBootstrap_UntilManifestIsReady()
+        {
+            var helperGo = new GameObject("RouteIndexBootstrapHelper");
+            try
+            {
+                var helper = helperGo.AddComponent<TestableYooAssetResourceHelper>();
+
+                Assert.That(helper.ShouldDeferBootstrapRouteIndexLoad(packageValid: false), Is.True);
+                Assert.That(helper.ShouldDeferBootstrapRouteIndexLoad(packageValid: true), Is.False);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(helperGo);
+            }
+        }
+
         private static bool Contains(string message, string fragment)
         {
             return message != null &&
@@ -1126,6 +1143,11 @@ namespace LFramework.Editor.Tests.Settings
             public bool TryGetRuntimeState(string packageName, out PackageRuntimeState state)
             {
                 return TryGetPackageRuntimeState(packageName, out state);
+            }
+
+            public bool ShouldDeferBootstrapRouteIndexLoad(bool packageValid)
+            {
+                return ShouldDeferRouteIndexLoadUntilManifestReady(packageValid);
             }
         }
     }

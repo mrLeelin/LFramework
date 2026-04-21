@@ -955,7 +955,7 @@ namespace LFramework.Runtime
         }
 
         /// <summary>
-        /// 初始化指定资源包，并在完成后加载路由索引和预热包。
+        /// 初始化指定资源包，并在完成后预热配置的附加包。
         /// </summary>
         protected virtual async void InitializePackageAsync(string packageName, ResourceInitCallBack callback)
         {
@@ -968,7 +968,6 @@ namespace LFramework.Runtime
                 return;
             }
 
-            await TryLoadBootstrapRouteIndexAsync();
             await PrewarmConfiguredPackagesAsync(packageName);
             callback?.ResourceInitSuccessCallBack?.Invoke();
         }
@@ -1267,6 +1266,14 @@ namespace LFramework.Runtime
         public override UniTask RefreshRouteIndexAsync()
         {
             return TryLoadBootstrapRouteIndexAsync();
+        }
+
+        /// <summary>
+        /// 判断是否需要等待 manifest 就绪后再加载路由索引。
+        /// </summary>
+        protected virtual bool ShouldDeferRouteIndexLoadUntilManifestReady(bool packageValid)
+        {
+            return !packageValid;
         }
 
         private string GetCurrentChannel()
@@ -1597,6 +1604,18 @@ namespace LFramework.Runtime
             if (package == null)
             {
                 Debug.LogWarning($"[YooAssetResourceHelper] Bootstrap package '{packageId}' is unavailable after initialization.");
+                return;
+            }
+
+            if (ShouldDeferRouteIndexLoadUntilManifestReady(package.PackageValid))
+            {
+                Debug.Log($"[YooAssetResourceHelper] Defer route index load for '{packageId}:{address}' until manifest update completes.");
+                return;
+            }
+
+            if (!package.PackageValid)
+            {
+                Debug.LogWarning($"[YooAssetResourceHelper] Skip route index load for '{packageId}:{address}' because the package manifest is not ready.");
                 return;
             }
 

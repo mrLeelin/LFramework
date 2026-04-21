@@ -15,7 +15,6 @@ namespace LFramework.Runtime.Settings
         public bool initOnLaunch = true;
         public bool updateManifestOnLaunch = true;
         public bool downloadOnLaunch = true;
-        public bool isBuiltinCandidate = true;
         public string fallbackPackageId;
         public List<string> platformFilter = new List<string>();
         public List<string> channelFilter = new List<string>();
@@ -30,7 +29,6 @@ namespace LFramework.Runtime.Settings
                 initOnLaunch = initOnLaunch,
                 updateManifestOnLaunch = updateManifestOnLaunch,
                 downloadOnLaunch = downloadOnLaunch,
-                isBuiltinCandidate = isBuiltinCandidate,
                 fallbackPackageId = fallbackPackageId,
                 platformFilter = new List<string>(platformFilter ?? new List<string>()),
                 channelFilter = new List<string>(channelFilter ?? new List<string>()),
