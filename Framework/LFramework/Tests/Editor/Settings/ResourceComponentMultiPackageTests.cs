@@ -7,6 +7,7 @@ using LFramework.Runtime;
 using LFramework.Runtime.Settings;
 using NUnit.Framework;
 using UnityEngine;
+using YooAsset;
 
 namespace LFramework.Editor.Tests.Settings
 {
@@ -228,6 +229,22 @@ namespace LFramework.Editor.Tests.Settings
         }
 
         [Test]
+        public void PackageResolver_Diagnostics_ReportExplicitOverrideSelection()
+        {
+            var routing = new RoutingSettings { allowDefaultPackageFallback = true };
+            var resolver = new PackageResolver(routing);
+
+            PackageRouteResolutionResult result = resolver.ResolveWithDiagnostics("ui/home", "scene", "base");
+
+            Assert.That(result.RequestedAddress, Is.EqualTo("ui/home"));
+            Assert.That(result.ExplicitPackageId, Is.EqualTo("scene"));
+            Assert.That(result.FinalPackageId, Is.EqualTo("scene"));
+            Assert.That(result.UsedExplicitPackageId, Is.True);
+            Assert.That(result.UsedRouteIndex, Is.False);
+            Assert.That(result.UsedFallback, Is.False);
+        }
+
+        [Test]
         public void PackageResolver_FallsBackToDefaultPackage_WhenRouteIndexMisses()
         {
             var routing = new RoutingSettings { allowDefaultPackageFallback = true };
@@ -271,6 +288,49 @@ namespace LFramework.Editor.Tests.Settings
             resolver.LoadRouteIndex(routeIndex);
 
             Assert.That(resolver.ResolvePackageId("ui/home", null, "default-ui"), Is.EqualTo("shared-ui"));
+        }
+
+        [Test]
+        public void PackageResolver_Diagnostics_ReportRouteIndexAndFallbackChain()
+        {
+            var registry = new PackageRegistry();
+            registry.Configure(
+                new[]
+                {
+                    new PackageDefinition
+                    {
+                        packageId = "premium-ui",
+                        yooPackageName = "PremiumUIPackage",
+                        fallbackPackageId = "shared-ui",
+                        platformFilter = new List<string> { RuntimePlatform.Android.ToString() }
+                    },
+                    new PackageDefinition
+                    {
+                        packageId = "shared-ui",
+                        yooPackageName = "SharedUIPackage"
+                    },
+                    new PackageDefinition
+                    {
+                        packageId = "default-ui",
+                        yooPackageName = "DefaultUIPackage"
+                    }
+                },
+                RuntimePlatform.WindowsEditor,
+                "Google");
+
+            var routeIndex = ScriptableObject.CreateInstance<RouteIndexAsset>();
+            routeIndex.entries.Add(new RouteIndexEntry { address = "ui/home", packageId = "premium-ui" });
+
+            var resolver = new PackageResolver(new RoutingSettings { allowDefaultPackageFallback = true }, registry);
+            resolver.LoadRouteIndex(routeIndex);
+
+            PackageRouteResolutionResult result = resolver.ResolveWithDiagnostics("ui/home", null, "default-ui");
+
+            Assert.That(result.RouteIndexPackageId, Is.EqualTo("premium-ui"));
+            Assert.That(result.FinalPackageId, Is.EqualTo("shared-ui"));
+            Assert.That(result.UsedRouteIndex, Is.True);
+            Assert.That(result.UsedFallback, Is.True);
+            Assert.That(result.FallbackChain, Is.EqualTo(new[] { "premium-ui", "shared-ui" }));
         }
 
         [Test]
@@ -354,6 +414,52 @@ namespace LFramework.Editor.Tests.Settings
             resolver.LoadRouteIndex(routeIndex);
 
             Assert.That(resolver.ResolvePackageId("ui/home", null, "default-ui"), Is.EqualTo("default-ui"));
+        }
+
+        [Test]
+        public void PackageResolver_Diagnostics_ReportDefaultFallbackAfterFallbackCycle()
+        {
+            var registry = new PackageRegistry();
+            registry.Configure(
+                new[]
+                {
+                    new PackageDefinition
+                    {
+                        packageId = "premium-ui",
+                        yooPackageName = "PremiumUIPackage",
+                        fallbackPackageId = "regional-ui",
+                        platformFilter = new List<string> { RuntimePlatform.Android.ToString() }
+                    },
+                    new PackageDefinition
+                    {
+                        packageId = "regional-ui",
+                        yooPackageName = "RegionalUIPackage",
+                        fallbackPackageId = "premium-ui",
+                        platformFilter = new List<string> { RuntimePlatform.Android.ToString() }
+                    },
+                    new PackageDefinition
+                    {
+                        packageId = "default-ui",
+                        yooPackageName = "DefaultUIPackage"
+                    }
+                },
+                RuntimePlatform.WindowsEditor,
+                "Google");
+
+            var routeIndex = ScriptableObject.CreateInstance<RouteIndexAsset>();
+            routeIndex.entries.Add(new RouteIndexEntry { address = "ui/home", packageId = "premium-ui" });
+
+            var resolver = new PackageResolver(new RoutingSettings { allowDefaultPackageFallback = true }, registry);
+            resolver.LoadRouteIndex(routeIndex);
+
+            PackageRouteResolutionResult result = resolver.ResolveWithDiagnostics("ui/home", null, "default-ui");
+
+            Assert.That(result.RouteIndexPackageId, Is.EqualTo("premium-ui"));
+            Assert.That(result.FinalPackageId, Is.EqualTo("default-ui"));
+            Assert.That(result.UsedRouteIndex, Is.True);
+            Assert.That(result.UsedFallback, Is.True);
+            Assert.That(result.UsedDefaultPackage, Is.True);
+            Assert.That(result.FallbackChain, Is.EqualTo(new[] { "premium-ui", "regional-ui" }));
         }
 
         [Test]
@@ -567,6 +673,144 @@ namespace LFramework.Editor.Tests.Settings
             Assert.That(method, Is.Not.Null, "Expected route-index refresh API on ResourceComponent.");
         }
 
+        [Test]
+        public void YooAssetResourceHelper_HasAsset_UsesAddressAwarePackageLookup()
+        {
+            var helperGo = new GameObject("TestYooAssetResourceHelper");
+            try
+            {
+                var helper = helperGo.AddComponent<TestableYooAssetResourceHelper>();
+
+                HasAssetResult result = helper.HasAsset("ui/home");
+
+                Assert.That(result, Is.EqualTo(HasAssetResult.NotReady));
+                Assert.That(helper.LastLoadedPackageAddress, Is.EqualTo("ui/home"));
+                Assert.That(helper.LastLoadedPackageId, Is.Null);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(helperGo);
+            }
+        }
+
+        [Test]
+        public void YooAssetResourceHelper_PackageScopedCacheKeys_DifferAcrossPackages()
+        {
+            var helperGo = new GameObject("ScopedKeyHelper");
+            try
+            {
+                var helper = helperGo.AddComponent<TestableYooAssetResourceHelper>();
+
+                string uiKey = helper.ExposePackageScopedCacheKey("ui", "shared/address");
+                string sceneKey = helper.ExposePackageScopedCacheKey("scene", "shared/address");
+
+                Assert.That(uiKey, Is.Not.EqualTo(sceneKey));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(helperGo);
+            }
+        }
+
+        [Test]
+        public void ResourceHelperBase_HandleAwareOverloads_FallbackToLegacyImplementations()
+        {
+            var helperGo = new GameObject("HandleAwareTestResourceHelper");
+            try
+            {
+                var helper = helperGo.AddComponent<TestResourceHelper>();
+
+                helper.LoadAssetHandle<TextAsset>("ui/home", "ui");
+                helper.InstantiateAssetHandle("ui/prefab", "ui");
+                helper.LoadSceneHandle("scene/home", "scene");
+                helper.LoadRawFileHandle("config.bytes", "config");
+
+                Assert.That(helper.LastHandleAssetName, Is.EqualTo("ui/home"));
+                Assert.That(helper.LastHandleInstantiateName, Is.EqualTo("ui/prefab"));
+                Assert.That(helper.LastHandleSceneName, Is.EqualTo("scene/home"));
+                Assert.That(helper.LastHandleBinaryName, Is.EqualTo("config.bytes"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(helperGo);
+            }
+        }
+
+        [Test]
+        public void ResourceComponent_HandleAwareOverloads_ForwardPackageIdToHelper()
+        {
+            var componentGo = new GameObject("ResourceComponent");
+            var helperGo = new GameObject("HandleAwareProxy");
+            try
+            {
+                var component = (UnityGameFramework.Runtime.ResourceComponent)Activator.CreateInstance(typeof(UnityGameFramework.Runtime.ResourceComponent));
+                SetPrivateField(component, "Parent", componentGo);
+                component.AwakeComponent();
+
+                var helper = helperGo.AddComponent<TestHandleAwareResourceHelper>();
+                helper.SetResourceComponent(component);
+                SetPrivateField(component, "_resourceHelper", helper);
+
+                component.LoadAssetHandle<TextAsset>("ui/home", "ui");
+                component.InstantiateAssetHandle("ui/prefab", "ui");
+                component.LoadSceneHandle("scene/home", "scene");
+                component.LoadRawFileHandle("config.bytes", "config");
+
+                Assert.That(helper.LastHandleAssetPackageId, Is.EqualTo("ui"));
+                Assert.That(helper.LastHandleInstantiatePackageId, Is.EqualTo("ui"));
+                Assert.That(helper.LastHandleScenePackageId, Is.EqualTo("scene"));
+                Assert.That(helper.LastHandleBinaryPackageId, Is.EqualTo("config"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(helperGo);
+                UnityEngine.Object.DestroyImmediate(componentGo);
+            }
+        }
+
+        [Test]
+        public void YooAssetResourceHelper_PackageRuntimeState_TracksInitializationOutcome_AndRouteRefresh()
+        {
+            var helperGo = new GameObject("RuntimeStateHelper");
+            try
+            {
+                var helper = helperGo.AddComponent<TestableYooAssetResourceHelper>();
+
+                helper.RecordInitializationStarted("UIPackage", "ui");
+                bool hasStateAfterStart = helper.TryGetRuntimeState("UIPackage", out PackageRuntimeState startedState);
+
+                Assert.That(hasStateAfterStart, Is.True);
+                Assert.That(startedState.PackageName, Is.EqualTo("UIPackage"));
+                Assert.That(startedState.LogicalPackageId, Is.EqualTo("ui"));
+                Assert.That(startedState.IsInitializing, Is.True);
+                Assert.That(startedState.IsInitialized, Is.False);
+
+                helper.RecordInitializationResult("UIPackage", "ui", PackageInitializationResult.CreateFailure("UIPackage", "boom"));
+                bool hasStateAfterFailure = helper.TryGetRuntimeState("UIPackage", out PackageRuntimeState failedState);
+
+                Assert.That(hasStateAfterFailure, Is.True);
+                Assert.That(failedState.IsInitializing, Is.False);
+                Assert.That(failedState.IsInitialized, Is.False);
+                Assert.That(failedState.LastError, Is.EqualTo("boom"));
+
+                helper.RecordInitializationStarted("UIPackage", "ui");
+                helper.RecordInitializationResult("UIPackage", "ui", PackageInitializationResult.CreateSuccess("UIPackage"));
+                helper.RecordRouteIndexRefreshed("UIPackage");
+
+                bool hasStateAfterSuccess = helper.TryGetRuntimeState("UIPackage", out PackageRuntimeState successState);
+
+                Assert.That(hasStateAfterSuccess, Is.True);
+                Assert.That(successState.IsInitializing, Is.False);
+                Assert.That(successState.IsInitialized, Is.True);
+                Assert.That(successState.LastError, Is.Null.Or.Empty);
+                Assert.That(successState.LastRouteIndexRefreshUtc, Is.Not.EqualTo(default(DateTime)));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(helperGo);
+            }
+        }
+
         private static bool Contains(string message, string fragment)
         {
             return message != null &&
@@ -596,6 +840,10 @@ namespace LFramework.Editor.Tests.Settings
             public string LastSceneName { get; private set; }
             public string LastBinaryName { get; private set; }
             public string LastInstantiateName { get; private set; }
+            public string LastHandleAssetName { get; private set; }
+            public string LastHandleSceneName { get; private set; }
+            public string LastHandleBinaryName { get; private set; }
+            public string LastHandleInstantiateName { get; private set; }
 
             public override void InitializeResources(ResourceInitCallBack callback)
             {
@@ -636,6 +884,82 @@ namespace LFramework.Editor.Tests.Settings
 
             public override UnityGameFramework.Runtime.ResourceAssetHandle<T> LoadAssetHandle<T>(string assetName)
             {
+                LastHandleAssetName = assetName;
+                return null;
+            }
+
+            public override UnityGameFramework.Runtime.ResourceAssetHandle<GameObject> InstantiateAssetHandle(string assetName)
+            {
+                LastHandleInstantiateName = assetName;
+                return null;
+            }
+
+            public override UnityGameFramework.Runtime.ResourceSceneHandle LoadSceneHandle(string sceneAssetName)
+            {
+                LastHandleSceneName = sceneAssetName;
+                return null;
+            }
+
+            public override UnityGameFramework.Runtime.ResourceRawFileHandle LoadRawFileHandle(string binaryAssetName)
+            {
+                LastHandleBinaryName = binaryAssetName;
+                return null;
+            }
+
+            public override UnityGameFramework.Runtime.ResourceBatchHandle<T> LoadAssetsByTagHandle<T>(string tag)
+            {
+                return null;
+            }
+        }
+
+        private sealed class TestHandleAwareResourceHelper : UnityGameFramework.Runtime.ResourceHelperBase
+        {
+            public string LastHandleAssetPackageId { get; private set; }
+            public string LastHandleScenePackageId { get; private set; }
+            public string LastHandleBinaryPackageId { get; private set; }
+            public string LastHandleInstantiatePackageId { get; private set; }
+
+            public override void InitializeResources(ResourceInitCallBack callback)
+            {
+            }
+
+            public override HasAssetResult HasAsset(string assetName)
+            {
+                return HasAssetResult.Exist;
+            }
+
+            public override void Release(object asset)
+            {
+            }
+
+            public override void UnloadScene(string sceneAssetName, UnloadSceneCallbacks callbacks, object userData)
+            {
+            }
+
+            public override void LoadAsset(string assetName, Type assetType, LoadAssetCallbacks callbacks, object userData)
+            {
+            }
+
+            public override void LoadScene(string sceneAssetName, LoadSceneCallbacks callbacks, object userData)
+            {
+            }
+
+            public override void LoadBinary(string binaryAssetName, LoadBinaryCallbacks callbacks, object userData)
+            {
+            }
+
+            public override void InstantiateAsset(string assetName, LoadAssetCallbacks callbacks, object userData)
+            {
+            }
+
+            public override UnityGameFramework.Runtime.ResourceAssetHandle<T> LoadAssetHandle<T>(string assetName)
+            {
+                return null;
+            }
+
+            public override UnityGameFramework.Runtime.ResourceAssetHandle<T> LoadAssetHandle<T>(string assetName, string packageId)
+            {
+                LastHandleAssetPackageId = packageId;
                 return null;
             }
 
@@ -644,13 +968,31 @@ namespace LFramework.Editor.Tests.Settings
                 return null;
             }
 
+            public override UnityGameFramework.Runtime.ResourceAssetHandle<GameObject> InstantiateAssetHandle(string assetName, string packageId)
+            {
+                LastHandleInstantiatePackageId = packageId;
+                return null;
+            }
+
             public override UnityGameFramework.Runtime.ResourceSceneHandle LoadSceneHandle(string sceneAssetName)
             {
                 return null;
             }
 
+            public override UnityGameFramework.Runtime.ResourceSceneHandle LoadSceneHandle(string sceneAssetName, string packageId)
+            {
+                LastHandleScenePackageId = packageId;
+                return null;
+            }
+
             public override UnityGameFramework.Runtime.ResourceRawFileHandle LoadRawFileHandle(string binaryAssetName)
             {
+                return null;
+            }
+
+            public override UnityGameFramework.Runtime.ResourceRawFileHandle LoadRawFileHandle(string binaryAssetName, string packageId)
+            {
+                LastHandleBinaryPackageId = packageId;
                 return null;
             }
 
@@ -752,6 +1094,44 @@ namespace LFramework.Editor.Tests.Settings
             public void LoadBinary(string binaryAssetName, string packageId, LoadBinaryCallbacks callbacks, object userData) => LastBinaryPackageId = packageId;
             public void InstantiateAsset(string assetName, LoadAssetCallbacks callbacks, object userData) => LastInstantiatePackageId = null;
             public void InstantiateAsset(string assetName, string packageId, LoadAssetCallbacks callbacks, object userData) => LastInstantiatePackageId = packageId;
+        }
+
+        private sealed class TestableYooAssetResourceHelper : YooAssetResourceHelper
+        {
+            public string LastLoadedPackageAddress { get; private set; }
+            public string LastLoadedPackageId { get; private set; }
+
+            public string ExposePackageScopedCacheKey(string packageName, string address)
+            {
+                return ComposePackageScopedCacheKey(packageName, address);
+            }
+
+            protected override ResourcePackage GetLoadedPackage(string address, string packageId)
+            {
+                LastLoadedPackageAddress = address;
+                LastLoadedPackageId = packageId;
+                return null;
+            }
+
+            public void RecordInitializationStarted(string packageName, string logicalPackageId)
+            {
+                MarkPackageInitializationStarted(packageName, logicalPackageId);
+            }
+
+            public void RecordInitializationResult(string packageName, string logicalPackageId, PackageInitializationResult result)
+            {
+                ApplyPackageInitializationResult(packageName, logicalPackageId, result);
+            }
+
+            public void RecordRouteIndexRefreshed(string packageName)
+            {
+                MarkPackageRouteIndexRefreshed(packageName);
+            }
+
+            public bool TryGetRuntimeState(string packageName, out PackageRuntimeState state)
+            {
+                return TryGetPackageRuntimeState(packageName, out state);
+            }
         }
     }
 }

@@ -256,12 +256,22 @@ namespace UnityGameFramework.Runtime
             return _resourceHelper.LoadAssetHandle<T>(assetName);
         }
 
+        public ResourceAssetHandle<T> LoadAssetHandle<T>(string assetName, string packageId) where T : UnityEngine.Object
+        {
+            return _resourceHelper.LoadAssetHandle<T>(assetName, packageId);
+        }
+
         /// <summary>
         /// 异步实例化资源（返回 Handle，可直接 await）
         /// </summary>
         public ResourceAssetHandle<UnityEngine.GameObject> InstantiateAssetHandle(string assetName)
         {
             return _resourceHelper.InstantiateAssetHandle(assetName);
+        }
+
+        public ResourceAssetHandle<UnityEngine.GameObject> InstantiateAssetHandle(string assetName, string packageId)
+        {
+            return _resourceHelper.InstantiateAssetHandle(assetName, packageId);
         }
 
         /// <summary>
@@ -272,12 +282,22 @@ namespace UnityGameFramework.Runtime
             return _resourceHelper.LoadSceneHandle(sceneAssetName);
         }
 
+        public ResourceSceneHandle LoadSceneHandle(string sceneAssetName, string packageId)
+        {
+            return _resourceHelper.LoadSceneHandle(sceneAssetName, packageId);
+        }
+
         /// <summary>
         /// 异步加载二进制/原始文件（返回 Handle，可直接 await）
         /// </summary>
         public ResourceRawFileHandle LoadRawFileHandle(string binaryAssetName)
         {
             return _resourceHelper.LoadRawFileHandle(binaryAssetName);
+        }
+
+        public ResourceRawFileHandle LoadRawFileHandle(string binaryAssetName, string packageId)
+        {
+            return _resourceHelper.LoadRawFileHandle(binaryAssetName, packageId);
         }
 
         /// <summary>

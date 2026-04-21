@@ -13,57 +13,69 @@ MonoBehaviour:
   m_Name: RouteIndex
   m_EditorClassIdentifier: LFramework.Runtime::LFramework.Runtime.RouteIndexAsset
   entries:
-  - address: Assets/Cube 1.prefab
+  - address: Cube
     packageId: DefaultPackage
-  - address: Assets/Cube.prefab
+  - address: GameFramework.dll
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Audio/music_background.wav
+  - address: LFramework.Hotfix.dll
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Audio/sound_explosion_asteroid.wav
+  - address: LFramework.Runtime.dll
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Audio/sound_explosion_enemy.wav
+  - address: System.dll
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Audio/sound_explosion_player.wav
+  - address: UIBattle
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Audio/sound_weapon_enemy.wav
+  - address: UIHome
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Audio/sound_weapon_player.wav
+  - address: UILoading
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Effect/engines_enemy.prefab
+  - address: UnityGameFramework.Runtime.dll
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Effect/engines_player.prefab
+  - address: Zenject.dll
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Effect/explosion_asteroid.prefab
+  - address: asteroid01
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Effect/explosion_enemy.prefab
+  - address: asteroid02
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Effect/explosion_player.prefab
+  - address: asteroid03
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Entity/asteroid01.prefab
+  - address: atlas_frame
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Entity/asteroid02.prefab
+  - address: atlas_icon
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Entity/asteroid03.prefab
+  - address: enemy_bullet
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Entity/enemy_bullet.prefab
+  - address: enemy_ship
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Entity/enemy_ship.prefab
+  - address: engines_enemy
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Entity/player_bullet.prefab
+  - address: engines_player
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Entity/player_ship.prefab
+  - address: explosion_asteroid
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Scene/scene_battle.unity
+  - address: explosion_enemy
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/Scene/scene_home.unity
+  - address: explosion_player
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/UIPanel/UIBattle.prefab
+  - address: mscorlib.dll
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/UIPanel/UIHome.prefab
+  - address: music_background
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/UIPanel/UILoading.prefab
+  - address: player_bullet
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/UISpriteAtlas/atlas_frame.spriteatlas
+  - address: player_ship
     packageId: DefaultPackage
-  - address: Assets/Samples/YooAsset/2.3.18/Space Shooter/GameRes/UISpriteAtlas/atlas_icon.spriteatlas
+  - address: scene_battle
+    packageId: DefaultPackage
+  - address: scene_home
+    packageId: DefaultPackage
+  - address: sound_explosion_asteroid
+    packageId: DefaultPackage
+  - address: sound_explosion_enemy
+    packageId: DefaultPackage
+  - address: sound_explosion_player
+    packageId: DefaultPackage
+  - address: sound_weapon_enemy
+    packageId: DefaultPackage
+  - address: sound_weapon_player
     packageId: DefaultPackage

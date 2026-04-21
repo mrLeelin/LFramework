@@ -86,6 +86,8 @@ namespace LFramework.Runtime
         /// 包初始化协调器，用于合并并发初始化请求。
         /// </summary>
         private PackageInitializationCoordinator _packageInitializationCoordinator;
+        private readonly Dictionary<string, PackageRuntimeState> _packageRuntimeStates =
+            new Dictionary<string, PackageRuntimeState>(StringComparer.Ordinal);
 
 
         /// <summary>
@@ -124,7 +126,7 @@ namespace LFramework.Runtime
         /// </summary>
         public override HasAssetResult HasAsset(string assetName)
         {
-            var package = GetLoadedPackage(null);
+            var package = GetLoadedPackage(assetName, null);
             if (package == null) return HasAssetResult.NotReady;
             return package.CheckLocationValid(assetName)
                 ? HasAssetResult.Exist
@@ -183,10 +185,11 @@ namespace LFramework.Runtime
         {
             if (string.IsNullOrEmpty(binaryAssetName)) return;
 
-            if (_rawFileHandles.TryGetValue(binaryAssetName, out RawFileHandle handle))
+            foreach (string cacheKey in CollectMatchingScopedCacheKeys(_rawFileHandles, binaryAssetName))
             {
+                RawFileHandle handle = _rawFileHandles[cacheKey];
                 handle.Release();
-                _rawFileHandles.Remove(binaryAssetName);
+                _rawFileHandles.Remove(cacheKey);
             }
         }
 
@@ -205,10 +208,11 @@ namespace LFramework.Runtime
 
             op.completed += (_) =>
             {
-                if (_sceneHandles.TryGetValue(sceneAssetName, out YooAsset.SceneHandle handle))
+                foreach (string cacheKey in CollectMatchingScopedCacheKeys(_sceneHandles, sceneAssetName))
                 {
+                    YooAsset.SceneHandle handle = _sceneHandles[cacheKey];
                     handle.UnloadAsync();
-                    _sceneHandles.Remove(sceneAssetName);
+                    _sceneHandles.Remove(cacheKey);
                 }
 
                 callbacks.UnloadSceneSuccessCallback?.Invoke(sceneAssetName, userData);
@@ -370,7 +374,8 @@ namespace LFramework.Runtime
                 callbacks.LoadAssetFailureCallback?.Invoke(
                     assetName,
                     LoadResourceStatus.NotReady,
-                    ready.ErrorMessage ?? $"Package '{ResolveYooAssetPackageName(assetName, packageId)}' is not initialized.",
+                    ready.ErrorMessage ?? BuildPackageFailureMessage(assetName, packageId,
+                        $"Package '{ResolveYooAssetPackageName(assetName, packageId)}' is not initialized."),
                     userData);
                 return;
             }
@@ -381,7 +386,8 @@ namespace LFramework.Runtime
                 callbacks.LoadAssetFailureCallback?.Invoke(
                     assetName,
                     LoadResourceStatus.NotReady,
-                    $"Package '{ready.PackageName}' is unavailable after initialization.",
+                    BuildPackageFailureMessage(assetName, packageId,
+                        $"Package '{ready.PackageName}' is unavailable after initialization."),
                     userData);
                 return;
             }
@@ -437,7 +443,8 @@ namespace LFramework.Runtime
                 callbacks.LoadSceneFailureCallback?.Invoke(
                     sceneAssetName,
                     LoadResourceStatus.NotReady,
-                    ready.ErrorMessage ?? $"Package '{ResolveYooAssetPackageName(sceneAssetName, packageId)}' is not initialized.",
+                    ready.ErrorMessage ?? BuildPackageFailureMessage(sceneAssetName, packageId,
+                        $"Package '{ResolveYooAssetPackageName(sceneAssetName, packageId)}' is not initialized."),
                     userData);
                 return;
             }
@@ -448,7 +455,8 @@ namespace LFramework.Runtime
                 callbacks.LoadSceneFailureCallback?.Invoke(
                     sceneAssetName,
                     LoadResourceStatus.NotReady,
-                    $"Package '{ready.PackageName}' is unavailable after initialization.",
+                    BuildPackageFailureMessage(sceneAssetName, packageId,
+                        $"Package '{ready.PackageName}' is unavailable after initialization."),
                     userData);
                 return;
             }
@@ -462,7 +470,7 @@ namespace LFramework.Runtime
 
             if (handle.Status == EOperationStatus.Succeed)
             {
-                _sceneHandles[sceneAssetName] = handle;
+                _sceneHandles[ComposePackageScopedCacheKey(ready.PackageName, sceneAssetName)] = handle;
                 callbacks.LoadSceneSuccessCallback?.Invoke(sceneAssetName, 0f, userData);
             }
             else
@@ -487,7 +495,8 @@ namespace LFramework.Runtime
                 callbacks.LoadBinaryFailureCallback?.Invoke(
                     binaryAssetName,
                     LoadResourceStatus.NotReady,
-                    ready.ErrorMessage ?? $"Package '{ResolveYooAssetPackageName(binaryAssetName, packageId)}' is not initialized.",
+                    ready.ErrorMessage ?? BuildPackageFailureMessage(binaryAssetName, packageId,
+                        $"Package '{ResolveYooAssetPackageName(binaryAssetName, packageId)}' is not initialized."),
                     userData);
                 return;
             }
@@ -498,7 +507,8 @@ namespace LFramework.Runtime
                 callbacks.LoadBinaryFailureCallback?.Invoke(
                     binaryAssetName,
                     LoadResourceStatus.NotReady,
-                    $"Package '{ready.PackageName}' is unavailable after initialization.",
+                    BuildPackageFailureMessage(binaryAssetName, packageId,
+                        $"Package '{ready.PackageName}' is unavailable after initialization."),
                     userData);
                 return;
             }
@@ -511,7 +521,7 @@ namespace LFramework.Runtime
 
             if (handle.Status == EOperationStatus.Succeed)
             {
-                _rawFileHandles[binaryAssetName] = handle;
+                _rawFileHandles[ComposePackageScopedCacheKey(ready.PackageName, binaryAssetName)] = handle;
                 callbacks.LoadBinarySuccessCallback?.Invoke(binaryAssetName, handle.GetRawFileData(), 0f, userData);
             }
             else
@@ -537,7 +547,8 @@ namespace LFramework.Runtime
                 callbacks.LoadAssetFailureCallback?.Invoke(
                     assetName,
                     LoadResourceStatus.NotReady,
-                    ready.ErrorMessage ?? $"Package '{ResolveYooAssetPackageName(assetName, packageId)}' is not initialized.",
+                    ready.ErrorMessage ?? BuildPackageFailureMessage(assetName, packageId,
+                        $"Package '{ResolveYooAssetPackageName(assetName, packageId)}' is not initialized."),
                     userData);
                 return;
             }
@@ -548,7 +559,8 @@ namespace LFramework.Runtime
                 callbacks.LoadAssetFailureCallback?.Invoke(
                     assetName,
                     LoadResourceStatus.NotReady,
-                    $"Package '{ready.PackageName}' is unavailable after initialization.",
+                    BuildPackageFailureMessage(assetName, packageId,
+                        $"Package '{ready.PackageName}' is unavailable after initialization."),
                     userData);
                 return;
             }
@@ -618,31 +630,40 @@ namespace LFramework.Runtime
         /// </summary>
         public override ResourceAssetHandle<T> LoadAssetHandle<T>(string assetName)
         {
+            return LoadAssetHandle<T>(assetName, null);
+        }
+
+        public override ResourceAssetHandle<T> LoadAssetHandle<T>(string assetName, string packageId)
+        {
             var resourceHandle = ReferencePool.Acquire<ResourceAssetHandle<T>>();
             resourceHandle.MarkFromPool();
-            LoadAssetHandleAsync(resourceHandle, assetName);
+            LoadAssetHandleAsync(resourceHandle, assetName, packageId);
             return resourceHandle;
         }
 
         /// <summary>
         /// 执行基于 ResourceAssetHandle 的资源加载流程。
         /// </summary>
-        private async void LoadAssetHandleAsync<T>(ResourceAssetHandle<T> handle, string assetName)
+        private async void LoadAssetHandleAsync<T>(ResourceAssetHandle<T> handle, string assetName, string packageId)
             where T : UnityEngine.Object
         {
             try
             {
-                PackageInitializationResult ready = await EnsurePackageReadyAsync(assetName, null);
+                PackageInitializationResult ready = await EnsurePackageReadyAsync(assetName, packageId);
                 if (!ready.Succeeded)
                 {
-                    handle.SetError(ready.ErrorMessage ?? $"Load asset '{assetName}' failed because its package is not ready.");
+                    handle.SetError(string.IsNullOrWhiteSpace(ready.ErrorMessage)
+                        ? BuildPackageFailureMessage(assetName, packageId,
+                            $"Load asset '{assetName}' failed because its package is not ready.")
+                        : ready.ErrorMessage);
                     return;
                 }
 
                 ResourcePackage package = YooAssets.TryGetPackage(ready.PackageName);
                 if (package == null)
                 {
-                    handle.SetError($"Package '{ready.PackageName}' is unavailable after initialization.");
+                    handle.SetError(BuildPackageFailureMessage(assetName, packageId,
+                        $"Package '{ready.PackageName}' is unavailable after initialization."));
                     return;
                 }
 
@@ -683,30 +704,39 @@ namespace LFramework.Runtime
         /// </summary>
         public override ResourceAssetHandle<GameObject> InstantiateAssetHandle(string assetName)
         {
+            return InstantiateAssetHandle(assetName, null);
+        }
+
+        public override ResourceAssetHandle<GameObject> InstantiateAssetHandle(string assetName, string packageId)
+        {
             var resourceHandle = ReferencePool.Acquire<ResourceAssetHandle<GameObject>>();
             resourceHandle.MarkFromPool();
-            InstantiateAssetHandleAsync(resourceHandle, assetName);
+            InstantiateAssetHandleAsync(resourceHandle, assetName, packageId);
             return resourceHandle;
         }
 
         /// <summary>
         /// 执行基于 ResourceAssetHandle 的实例化流程。
         /// </summary>
-        private async void InstantiateAssetHandleAsync(ResourceAssetHandle<GameObject> handle, string assetName)
+        private async void InstantiateAssetHandleAsync(ResourceAssetHandle<GameObject> handle, string assetName, string packageId)
         {
             try
             {
-                PackageInitializationResult ready = await EnsurePackageReadyAsync(assetName, null);
+                PackageInitializationResult ready = await EnsurePackageReadyAsync(assetName, packageId);
                 if (!ready.Succeeded)
                 {
-                    handle.SetError(ready.ErrorMessage ?? $"Instantiate asset '{assetName}' failed because its package is not ready.");
+                    handle.SetError(string.IsNullOrWhiteSpace(ready.ErrorMessage)
+                        ? BuildPackageFailureMessage(assetName, packageId,
+                            $"Instantiate asset '{assetName}' failed because its package is not ready.")
+                        : ready.ErrorMessage);
                     return;
                 }
 
                 ResourcePackage package = YooAssets.TryGetPackage(ready.PackageName);
                 if (package == null)
                 {
-                    handle.SetError($"Package '{ready.PackageName}' is unavailable after initialization.");
+                    handle.SetError(BuildPackageFailureMessage(assetName, packageId,
+                        $"Package '{ready.PackageName}' is unavailable after initialization."));
                     return;
                 }
 
@@ -751,31 +781,40 @@ namespace LFramework.Runtime
         /// </summary>
         public override ResourceSceneHandle LoadSceneHandle(string sceneAssetName)
         {
+            return LoadSceneHandle(sceneAssetName, null);
+        }
+
+        public override ResourceSceneHandle LoadSceneHandle(string sceneAssetName, string packageId)
+        {
             var resourceHandle = ReferencePool.Acquire<ResourceSceneHandle>();
             resourceHandle.MarkFromPool();
             resourceHandle.SetSceneName(sceneAssetName);
-            LoadSceneHandleAsync(resourceHandle, sceneAssetName);
+            LoadSceneHandleAsync(resourceHandle, sceneAssetName, packageId);
             return resourceHandle;
         }
 
         /// <summary>
         /// 执行基于 ResourceSceneHandle 的场景加载流程。
         /// </summary>
-        private async void LoadSceneHandleAsync(ResourceSceneHandle handle, string sceneAssetName)
+        private async void LoadSceneHandleAsync(ResourceSceneHandle handle, string sceneAssetName, string packageId)
         {
             try
             {
-                PackageInitializationResult ready = await EnsurePackageReadyAsync(sceneAssetName, null);
+                PackageInitializationResult ready = await EnsurePackageReadyAsync(sceneAssetName, packageId);
                 if (!ready.Succeeded)
                 {
-                    handle.SetError(ready.ErrorMessage ?? $"Load scene '{sceneAssetName}' failed because its package is not ready.");
+                    handle.SetError(string.IsNullOrWhiteSpace(ready.ErrorMessage)
+                        ? BuildPackageFailureMessage(sceneAssetName, packageId,
+                            $"Load scene '{sceneAssetName}' failed because its package is not ready.")
+                        : ready.ErrorMessage);
                     return;
                 }
 
                 ResourcePackage package = YooAssets.TryGetPackage(ready.PackageName);
                 if (package == null)
                 {
-                    handle.SetError($"Package '{ready.PackageName}' is unavailable after initialization.");
+                    handle.SetError(BuildPackageFailureMessage(sceneAssetName, packageId,
+                        $"Package '{ready.PackageName}' is unavailable after initialization."));
                     return;
                 }
 
@@ -803,30 +842,39 @@ namespace LFramework.Runtime
         /// </summary>
         public override ResourceRawFileHandle LoadRawFileHandle(string binaryAssetName)
         {
+            return LoadRawFileHandle(binaryAssetName, null);
+        }
+
+        public override ResourceRawFileHandle LoadRawFileHandle(string binaryAssetName, string packageId)
+        {
             var resourceHandle = ReferencePool.Acquire<ResourceRawFileHandle>();
             resourceHandle.MarkFromPool();
-            LoadRawFileHandleAsync(resourceHandle, binaryAssetName);
+            LoadRawFileHandleAsync(resourceHandle, binaryAssetName, packageId);
             return resourceHandle;
         }
 
         /// <summary>
         /// 执行基于 ResourceRawFileHandle 的原始文件加载流程。
         /// </summary>
-        private async void LoadRawFileHandleAsync(ResourceRawFileHandle handle, string binaryAssetName)
+        private async void LoadRawFileHandleAsync(ResourceRawFileHandle handle, string binaryAssetName, string packageId)
         {
             try
             {
-                PackageInitializationResult ready = await EnsurePackageReadyAsync(binaryAssetName, null);
+                PackageInitializationResult ready = await EnsurePackageReadyAsync(binaryAssetName, packageId);
                 if (!ready.Succeeded)
                 {
-                    handle.SetError(ready.ErrorMessage ?? $"Load binary '{binaryAssetName}' failed because its package is not ready.");
+                    handle.SetError(string.IsNullOrWhiteSpace(ready.ErrorMessage)
+                        ? BuildPackageFailureMessage(binaryAssetName, packageId,
+                            $"Load binary '{binaryAssetName}' failed because its package is not ready.")
+                        : ready.ErrorMessage);
                     return;
                 }
 
                 ResourcePackage package = YooAssets.TryGetPackage(ready.PackageName);
                 if (package == null)
                 {
-                    handle.SetError($"Package '{ready.PackageName}' is unavailable after initialization.");
+                    handle.SetError(BuildPackageFailureMessage(binaryAssetName, packageId,
+                        $"Package '{ready.PackageName}' is unavailable after initialization."));
                     return;
                 }
 
@@ -911,7 +959,9 @@ namespace LFramework.Runtime
         /// </summary>
         protected virtual async void InitializePackageAsync(string packageName, ResourceInitCallBack callback)
         {
+            MarkPackageInitializationStarted(packageName, null);
             PackageInitializationResult result = await _packageInitializationCoordinator.EnsureInitializedAsync(packageName);
+            ApplyPackageInitializationResult(packageName, null, result);
             if (!result.Succeeded)
             {
                 callback?.ResourceInitFailureCallBack?.Invoke(result.ErrorMessage ?? "YooAsset initialization failed.");
@@ -948,13 +998,23 @@ namespace LFramework.Runtime
         /// </summary>
         private async UniTask<PackageInitializationResult> EnsurePackageReadyAsync(string address, string packageId)
         {
+            string logicalPackageId = ResolveLogicalPackageId(address, packageId);
             string packageName = ResolveYooAssetPackageName(address, packageId);
             if (string.IsNullOrWhiteSpace(packageName))
             {
                 return PackageInitializationResult.CreateFailure(packageName, "Resolved package name is empty.");
             }
 
+            if (IsPackageInitialized(packageName))
+            {
+                PackageInitializationResult success = PackageInitializationResult.CreateSuccess(packageName);
+                ApplyPackageInitializationResult(packageName, logicalPackageId, success);
+                return success;
+            }
+
+            MarkPackageInitializationStarted(packageName, logicalPackageId);
             PackageInitializationResult result = await _packageInitializationCoordinator.EnsureInitializedAsync(packageName);
+            ApplyPackageInitializationResult(packageName, logicalPackageId, result);
             if (!result.Succeeded)
             {
                 return result;
@@ -962,8 +1022,10 @@ namespace LFramework.Runtime
 
             if (YooAssets.TryGetPackage(packageName) == null)
             {
-                return PackageInitializationResult.CreateFailure(packageName,
+                PackageInitializationResult failure = PackageInitializationResult.CreateFailure(packageName,
                     $"Package '{packageName}' is unavailable after initialization.");
+                ApplyPackageInitializationResult(packageName, logicalPackageId, failure);
+                return failure;
             }
 
             return result;
@@ -1111,7 +1173,9 @@ namespace LFramework.Runtime
                     continue;
                 }
 
+                MarkPackageInitializationStarted(definition.yooPackageName, definition.packageId);
                 PackageInitializationResult result = await _packageInitializationCoordinator.EnsureInitializedAsync(definition.yooPackageName);
+                ApplyPackageInitializationResult(definition.yooPackageName, definition.packageId, result);
                 if (!result.Succeeded)
                 {
                     Debug.LogWarning($"[YooAssetResourceHelper] Failed to prewarm package '{definition.packageId}': {result.ErrorMessage}");
@@ -1210,6 +1274,77 @@ namespace LFramework.Runtime
             return _gameSetting != null ? _gameSetting.channel : string.Empty;
         }
 
+        protected virtual PackageRouteResolutionResult ResolvePackageRouteDiagnostics(string address, string explicitPackageId)
+        {
+            if (_packageResolver != null && _resourceComponentSetting != null)
+            {
+                return _packageResolver.ResolveWithDiagnostics(
+                    address,
+                    explicitPackageId,
+                    _resourceComponentSetting.GetResolvedDefaultPackageId());
+            }
+
+            return new PackageRouteResolutionResult
+            {
+                RequestedAddress = address,
+                ExplicitPackageId = explicitPackageId,
+                DefaultPackageId = _resourceComponentSetting != null ? _resourceComponentSetting.GetResolvedDefaultPackageId() : null,
+                FinalPackageId = _resourceComponentSetting != null && string.IsNullOrWhiteSpace(explicitPackageId)
+                    ? _resourceComponentSetting.GetResolvedDefaultPackageId()
+                    : explicitPackageId,
+                UsedExplicitPackageId = !string.IsNullOrWhiteSpace(explicitPackageId),
+                UsedDefaultPackage = string.IsNullOrWhiteSpace(explicitPackageId)
+            };
+        }
+
+        private string BuildPackageFailureMessage(string address, string explicitPackageId, string baseMessage)
+        {
+            PackageRouteResolutionResult diagnostics = ResolvePackageRouteDiagnostics(address, explicitPackageId);
+            string routeSummary = FormatPackageRouteSummary(diagnostics);
+            return string.IsNullOrWhiteSpace(routeSummary) ? baseMessage : $"{baseMessage} Route: {routeSummary}";
+        }
+
+        private static string FormatPackageRouteSummary(PackageRouteResolutionResult diagnostics)
+        {
+            if (diagnostics == null)
+            {
+                return null;
+            }
+
+            var parts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(diagnostics.RequestedAddress))
+            {
+                parts.Add($"address={diagnostics.RequestedAddress}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(diagnostics.ExplicitPackageId))
+            {
+                parts.Add($"explicit={diagnostics.ExplicitPackageId}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(diagnostics.RouteIndexPackageId))
+            {
+                parts.Add($"routeIndex={diagnostics.RouteIndexPackageId}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(diagnostics.DefaultPackageId))
+            {
+                parts.Add($"default={diagnostics.DefaultPackageId}");
+            }
+
+            if (diagnostics.FallbackChain.Count > 0)
+            {
+                parts.Add($"fallback={string.Join("->", diagnostics.FallbackChain)}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(diagnostics.FinalPackageId))
+            {
+                parts.Add($"final={diagnostics.FinalPackageId}");
+            }
+
+            return parts.Count == 0 ? null : string.Join(", ", parts);
+        }
+
         /// <summary>
         /// 解析逻辑包 ID，优先使用显式包 ID，其次使用路由规则和默认包配置。
         /// </summary>
@@ -1217,10 +1352,7 @@ namespace LFramework.Runtime
         {
             if (_packageResolver != null && _resourceComponentSetting != null)
             {
-                return _packageResolver.ResolvePackageId(
-                    address,
-                    explicitPackageId,
-                    _resourceComponentSetting.GetResolvedDefaultPackageId());
+                return ResolvePackageRouteDiagnostics(address, explicitPackageId).FinalPackageId;
             }
 
             if (_resourceComponentSetting != null)
@@ -1250,7 +1382,7 @@ namespace LFramework.Runtime
         /// <summary>
         /// 根据资源地址和逻辑包 ID 获取已加载的资源包，不会触发初始化流程。
         /// </summary>
-        private ResourcePackage GetLoadedPackage(string address, string packageId)
+        protected virtual ResourcePackage GetLoadedPackage(string address, string packageId)
         {
             string packageName = ResolveYooAssetPackageName(address, packageId);
             if (string.IsNullOrWhiteSpace(packageName))
@@ -1259,6 +1391,127 @@ namespace LFramework.Runtime
             }
 
             return IsPackageInitialized(packageName) ? YooAssets.TryGetPackage(packageName) : null;
+        }
+
+        protected virtual string ComposePackageScopedCacheKey(string packageName, string address)
+        {
+            if (string.IsNullOrWhiteSpace(packageName))
+            {
+                return address ?? string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(address))
+            {
+                return packageName;
+            }
+
+            return $"{packageName}::{address}";
+        }
+
+        private static List<string> CollectMatchingScopedCacheKeys<THandle>(Dictionary<string, THandle> cache, string address)
+        {
+            var matchingKeys = new List<string>();
+            if (cache == null || string.IsNullOrWhiteSpace(address))
+            {
+                return matchingKeys;
+            }
+
+            foreach (string key in cache.Keys)
+            {
+                if (IsMatchingScopedCacheKey(key, address))
+                {
+                    matchingKeys.Add(key);
+                }
+            }
+
+            return matchingKeys;
+        }
+
+        private static bool IsMatchingScopedCacheKey(string scopedKey, string address)
+        {
+            if (string.IsNullOrWhiteSpace(scopedKey) || string.IsNullOrWhiteSpace(address))
+            {
+                return false;
+            }
+
+            return string.Equals(scopedKey, address, StringComparison.Ordinal) ||
+                   scopedKey.EndsWith($"::{address}", StringComparison.Ordinal);
+        }
+
+        public bool TryGetPackageRuntimeState(string packageName, out PackageRuntimeState state)
+        {
+            if (_packageRuntimeStates.TryGetValue(packageName, out PackageRuntimeState existingState))
+            {
+                state = existingState.Clone();
+                return true;
+            }
+
+            state = null;
+            return false;
+        }
+
+        protected void MarkPackageInitializationStarted(string packageName, string logicalPackageId)
+        {
+            if (string.IsNullOrWhiteSpace(packageName))
+            {
+                return;
+            }
+
+            PackageRuntimeState state = GetOrCreatePackageRuntimeState(packageName);
+            state.PackageName = packageName;
+            if (!string.IsNullOrWhiteSpace(logicalPackageId))
+            {
+                state.LogicalPackageId = logicalPackageId;
+            }
+
+            state.IsInitializing = true;
+            state.LastError = null;
+        }
+
+        protected void ApplyPackageInitializationResult(string packageName, string logicalPackageId, PackageInitializationResult result)
+        {
+            string resolvedPackageName = !string.IsNullOrWhiteSpace(packageName) ? packageName : result.PackageName;
+            if (string.IsNullOrWhiteSpace(resolvedPackageName))
+            {
+                return;
+            }
+
+            PackageRuntimeState state = GetOrCreatePackageRuntimeState(resolvedPackageName);
+            state.PackageName = resolvedPackageName;
+            if (!string.IsNullOrWhiteSpace(logicalPackageId))
+            {
+                state.LogicalPackageId = logicalPackageId;
+            }
+
+            state.IsInitializing = false;
+            state.IsInitialized = result.Succeeded;
+            state.LastError = result.Succeeded ? null : result.ErrorMessage;
+        }
+
+        protected void MarkPackageRouteIndexRefreshed(string packageName)
+        {
+            if (string.IsNullOrWhiteSpace(packageName))
+            {
+                return;
+            }
+
+            PackageRuntimeState state = GetOrCreatePackageRuntimeState(packageName);
+            state.PackageName = packageName;
+            state.LastRouteIndexRefreshUtc = DateTime.UtcNow;
+        }
+
+        private PackageRuntimeState GetOrCreatePackageRuntimeState(string packageName)
+        {
+            if (!_packageRuntimeStates.TryGetValue(packageName, out PackageRuntimeState state))
+            {
+                state = new PackageRuntimeState
+                {
+                    PackageName = packageName
+                };
+                _packageRuntimeStates.Add(packageName, state);
+            }
+
+            return state;
         }
 
         #region 调试工具方法
@@ -1356,6 +1609,7 @@ namespace LFramework.Runtime
             if (handle.Status == EOperationStatus.Succeed && handle.AssetObject is RouteIndexAsset routeIndex)
             {
                 _packageResolver.LoadRouteIndex(routeIndex);
+                MarkPackageRouteIndexRefreshed(ready.PackageName);
                 Debug.Log($"[YooAssetResourceHelper] Loaded route index from '{packageId}:{address}'.");
             }
             else

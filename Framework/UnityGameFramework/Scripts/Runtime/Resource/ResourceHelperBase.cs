@@ -94,20 +94,40 @@ namespace UnityGameFramework.Runtime
         /// </summary>
         public abstract ResourceAssetHandle<T> LoadAssetHandle<T>(string assetName) where T : UnityEngine.Object;
 
+        public virtual ResourceAssetHandle<T> LoadAssetHandle<T>(string assetName, string packageId) where T : UnityEngine.Object
+        {
+            return LoadAssetHandle<T>(assetName);
+        }
+
         /// <summary>
         /// 异步实例化资源（返回 Handle）
         /// </summary>
         public abstract ResourceAssetHandle<GameObject> InstantiateAssetHandle(string assetName);
+
+        public virtual ResourceAssetHandle<GameObject> InstantiateAssetHandle(string assetName, string packageId)
+        {
+            return InstantiateAssetHandle(assetName);
+        }
 
         /// <summary>
         /// 异步加载场景（返回 Handle）
         /// </summary>
         public abstract ResourceSceneHandle LoadSceneHandle(string sceneAssetName);
 
+        public virtual ResourceSceneHandle LoadSceneHandle(string sceneAssetName, string packageId)
+        {
+            return LoadSceneHandle(sceneAssetName);
+        }
+
         /// <summary>
         /// 异步加载二进制/原始文件（返回 Handle）
         /// </summary>
         public abstract ResourceRawFileHandle LoadRawFileHandle(string binaryAssetName);
+
+        public virtual ResourceRawFileHandle LoadRawFileHandle(string binaryAssetName, string packageId)
+        {
+            return LoadRawFileHandle(binaryAssetName);
+        }
 
         /// <summary>
         /// 异步批量加载资源（通过标签，返回 Handle）

@@ -43,32 +43,60 @@ namespace LFramework.Runtime
 
         public string ResolvePackageId(string address, string explicitPackageId, string defaultPackageId)
         {
+            return ResolveWithDiagnostics(address, explicitPackageId, defaultPackageId).FinalPackageId;
+        }
+
+        public PackageRouteResolutionResult ResolveWithDiagnostics(string address, string explicitPackageId, string defaultPackageId)
+        {
+            var result = new PackageRouteResolutionResult
+            {
+                RequestedAddress = address,
+                ExplicitPackageId = explicitPackageId,
+                DefaultPackageId = defaultPackageId
+            };
+
             if (!string.IsNullOrWhiteSpace(explicitPackageId))
             {
-                return ResolvePackageIdWithFallback(explicitPackageId) ?? ResolveDefaultPackageId(defaultPackageId);
+                result.UsedExplicitPackageId = true;
+                result.FinalPackageId = ResolvePackageIdWithFallback(explicitPackageId, result.MutableFallbackChain)
+                                        ?? ResolveDefaultPackageId(defaultPackageId, result);
+                result.UsedFallback = DidUseFallback(result);
+                return result;
             }
 
             if (_routingSettings.enableRouteIndex &&
                 !string.IsNullOrWhiteSpace(address) &&
                 _addressToPackageId.TryGetValue(address, out string packageId))
             {
-                return ResolvePackageIdWithFallback(packageId) ?? ResolveDefaultPackageId(defaultPackageId);
+                result.UsedRouteIndex = true;
+                result.RouteIndexPackageId = packageId;
+                result.FinalPackageId = ResolvePackageIdWithFallback(packageId, result.MutableFallbackChain)
+                                        ?? ResolveDefaultPackageId(defaultPackageId, result);
+                result.UsedFallback = DidUseFallback(result);
+                return result;
             }
 
-            return ResolveDefaultPackageId(defaultPackageId);
+            result.FinalPackageId = ResolveDefaultPackageId(defaultPackageId, result);
+            result.UsedFallback = DidUseFallback(result);
+            return result;
         }
 
-        private string ResolveDefaultPackageId(string defaultPackageId)
+        private string ResolveDefaultPackageId(string defaultPackageId, PackageRouteResolutionResult result)
         {
             if (!_routingSettings.allowDefaultPackageFallback)
             {
                 return null;
             }
 
-            return ResolvePackageIdWithFallback(defaultPackageId) ?? defaultPackageId;
+            if (result != null)
+            {
+                result.UsedDefaultPackage = true;
+            }
+
+            return ResolvePackageIdWithFallback(defaultPackageId, result?.MutableFallbackChain) ?? defaultPackageId;
         }
 
-        private string ResolvePackageIdWithFallback(string packageId)
+        private string ResolvePackageIdWithFallback(string packageId, List<string> fallbackChain)
         {
             if (string.IsNullOrWhiteSpace(packageId))
             {
@@ -85,6 +113,8 @@ namespace LFramework.Runtime
 
             while (!string.IsNullOrWhiteSpace(currentPackageId) && visitedPackageIds.Add(currentPackageId))
             {
+                fallbackChain?.Add(currentPackageId);
+
                 if (_packageRegistry.GetPackage(currentPackageId) != null)
                 {
                     return currentPackageId;
@@ -100,6 +130,16 @@ namespace LFramework.Runtime
             }
 
             return null;
+        }
+
+        private static bool DidUseFallback(PackageRouteResolutionResult result)
+        {
+            if (result == null || result.FallbackChain.Count == 0 || string.IsNullOrWhiteSpace(result.FinalPackageId))
+            {
+                return false;
+            }
+
+            return !string.Equals(result.FallbackChain[0], result.FinalPackageId);
         }
     }
 }
