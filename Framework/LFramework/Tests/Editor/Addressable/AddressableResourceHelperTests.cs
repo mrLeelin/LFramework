@@ -50,6 +50,36 @@ namespace LFramework.Editor.Tests.ResourceComponent
                 "Load asset 'Assets/Test.asset' returned type 'LFramework.Editor.Tests.ResourceComponent.ResourceAssetTypeUtilityTests+AnotherScriptableObject', which cannot be assigned to 'LFramework.Editor.Tests.ResourceComponent.ResourceAssetTypeUtilityTests+TestScriptableObject'."));
         }
 
+        [Test]
+        public void GetLoadTypeFallbackChain_ReturnsRequestedTypeThenObject_WhenSpecificTypeRequested()
+        {
+            object[] arguments = { typeof(TestScriptableObject) };
+
+            var result = (Type[])GetHelperMethod("GetLoadTypeFallbackChain").Invoke(null, arguments);
+
+            Assert.That(result, Is.EqualTo(new[] { typeof(TestScriptableObject), typeof(object) }));
+        }
+
+        [Test]
+        public void GetLoadTypeFallbackChain_ReturnsOnlyObject_WhenRequestedTypeIsNull()
+        {
+            object[] arguments = { null };
+
+            var result = (Type[])GetHelperMethod("GetLoadTypeFallbackChain").Invoke(null, arguments);
+
+            Assert.That(result, Is.EqualTo(new[] { typeof(object) }));
+        }
+
+        [Test]
+        public void GetLoadTypeFallbackChain_ReturnsOnlyObject_WhenRequestedTypeIsObject()
+        {
+            object[] arguments = { typeof(object) };
+
+            var result = (Type[])GetHelperMethod("GetLoadTypeFallbackChain").Invoke(null, arguments);
+
+            Assert.That(result, Is.EqualTo(new[] { typeof(object) }));
+        }
+
         private static MethodInfo GetHelperMethod(string methodName)
         {
             Type helperType = Type.GetType(

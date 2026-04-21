@@ -103,21 +103,13 @@ namespace LFramework.Runtime
         public override void LoadAsset(string assetName, System.Type assetType,
             LoadAssetCallbacks callbacks, object userData)
         {
-            var handle = Addressables.LoadAssetAsync<object>(assetName);
-            handle.Completed += (op) =>
-            {
-                if (op.Status == AsyncOperationStatus.Succeeded)
-                {
-                    callbacks.LoadAssetSuccessCallback?.Invoke(
-                        assetName, op.Result, 0f, userData);
-                }
-                else
-                {
-                    callbacks.LoadAssetFailureCallback?.Invoke(
-                        assetName, LoadResourceStatus.NotExist,
-                        op.OperationException?.Message ?? "Load failed.", userData);
-                }
-            };
+            LoadAssetInternal(
+                assetName,
+                ResourceAssetTypeUtility.GetLoadTypeFallbackChain(assetType),
+                callbacks,
+                userData,
+                0,
+                null);
         }
 
         /// <summary>
@@ -211,35 +203,62 @@ namespace LFramework.Runtime
         {
             try
             {
-                var op = Addressables.LoadAssetAsync<object>(assetName);
-                while (!op.IsDone)
+                var typedOp = Addressables.LoadAssetAsync<T>(assetName);
+                while (!typedOp.IsDone)
                 {
-                    handle.SetProgress(op.PercentComplete);
+                    handle.SetProgress(typedOp.PercentComplete);
                     await UniTask.Yield();
                 }
-                if (op.Status == AsyncOperationStatus.Succeeded)
+
+                if (typedOp.Status == AsyncOperationStatus.Succeeded)
+                {
+                    handle.RegisterReleaseAction(() => Addressables.Release(typedOp));
+                    handle.SetProgress(1f);
+                    handle.SetResult(typedOp.Result);
+                    return;
+                }
+
+                string accumulatedError = AppendLoadError(
+                    null,
+                    typeof(T),
+                    typedOp.OperationException?.Message ?? $"Load asset '{assetName}' failed.");
+                Addressables.Release(typedOp);
+
+                var fallbackOp = Addressables.LoadAssetAsync<object>(assetName);
+                while (!fallbackOp.IsDone)
+                {
+                    handle.SetProgress(fallbackOp.PercentComplete);
+                    await UniTask.Yield();
+                }
+
+                if (fallbackOp.Status == AsyncOperationStatus.Succeeded)
                 {
                     if (ResourceAssetTypeUtility.TryConvertLoadedObject(
-                            op.Result,
+                            fallbackOp.Result,
                             typeof(T),
                             assetName,
                             out var typedAsset,
                             out var errorMessage))
                     {
-                        handle.RegisterReleaseAction(() => Addressables.Release(op));
+                        handle.RegisterReleaseAction(() => Addressables.Release(fallbackOp));
+                        handle.SetProgress(1f);
                         handle.SetResult((T)typedAsset);
                     }
                     else
                     {
                         handle.SetError(errorMessage);
-                        Addressables.Release(op);
+                        Addressables.Release(fallbackOp);
                     }
+
+                    return;
                 }
-                else
-                {
-                    handle.SetError(op.OperationException?.Message ?? $"Load asset '{assetName}' failed.");
-                    Addressables.Release(op);
-                }
+
+                accumulatedError = AppendLoadError(
+                    accumulatedError,
+                    typeof(object),
+                    fallbackOp.OperationException?.Message ?? $"Load asset '{assetName}' failed.");
+                Addressables.Release(fallbackOp);
+                handle.SetError(accumulatedError);
             }
             catch (Exception ex) { handle.SetError(ex.Message); }
         }
@@ -415,6 +434,136 @@ namespace LFramework.Runtime
             var addressKey =
  internalId.Replace(ReplaceRemote, newUrl).Replace(ReplaceVersion, setting.GetResourceVersion(_settingComponent));
             return addressKey;
+        }
+
+        private void LoadAssetInternal(
+            string assetName,
+            Type[] loadTypes,
+            LoadAssetCallbacks callbacks,
+            object userData,
+            int index,
+            string accumulatedError)
+        {
+            Type loadType = loadTypes[index];
+            if (loadType == null || loadType == typeof(object))
+            {
+                LoadAssetAsObject(assetName, loadTypes, callbacks, userData, index, accumulatedError);
+                return;
+            }
+
+            var locationHandle = Addressables.LoadResourceLocationsAsync(assetName, loadType);
+            locationHandle.Completed += locationsOp =>
+            {
+                if (locationsOp.Status == AsyncOperationStatus.Succeeded &&
+                    locationsOp.Result != null &&
+                    locationsOp.Result.Count > 0)
+                {
+                    LoadAssetFromLocation(
+                        assetName,
+                        locationsOp.Result[0],
+                        loadTypes,
+                        callbacks,
+                        userData,
+                        index,
+                        accumulatedError,
+                        locationsOp);
+                    return;
+                }
+
+                string nextError = AppendLoadError(
+                    accumulatedError,
+                    loadType,
+                    locationsOp.OperationException?.Message ?? $"No resource location found for '{assetName}'.");
+                Addressables.Release(locationsOp);
+                ContinueLoadAssetFallback(assetName, loadTypes, callbacks, userData, index, nextError);
+            };
+        }
+
+        private void LoadAssetFromLocation(
+            string assetName,
+            IResourceLocation location,
+            Type[] loadTypes,
+            LoadAssetCallbacks callbacks,
+            object userData,
+            int index,
+            string accumulatedError,
+            AsyncOperationHandle<IList<IResourceLocation>> locationHandle)
+        {
+            var assetHandle = Addressables.LoadAssetAsync<object>(location);
+            assetHandle.Completed += op =>
+            {
+                Addressables.Release(locationHandle);
+
+                if (op.Status == AsyncOperationStatus.Succeeded)
+                {
+                    callbacks.LoadAssetSuccessCallback?.Invoke(
+                        assetName, op.Result, 0f, userData);
+                    return;
+                }
+
+                string nextError = AppendLoadError(
+                    accumulatedError,
+                    loadTypes[index],
+                    op.OperationException?.Message ?? "Load failed.");
+                Addressables.Release(op);
+                ContinueLoadAssetFallback(assetName, loadTypes, callbacks, userData, index, nextError);
+            };
+        }
+
+        private void LoadAssetAsObject(
+            string assetName,
+            Type[] loadTypes,
+            LoadAssetCallbacks callbacks,
+            object userData,
+            int index,
+            string accumulatedError)
+        {
+            var assetHandle = Addressables.LoadAssetAsync<object>(assetName);
+            assetHandle.Completed += op =>
+            {
+                if (op.Status == AsyncOperationStatus.Succeeded)
+                {
+                    callbacks.LoadAssetSuccessCallback?.Invoke(
+                        assetName, op.Result, 0f, userData);
+                    return;
+                }
+
+                string nextError = AppendLoadError(
+                    accumulatedError,
+                    loadTypes[index],
+                    op.OperationException?.Message ?? "Load failed.");
+                Addressables.Release(op);
+                ContinueLoadAssetFallback(assetName, loadTypes, callbacks, userData, index, nextError);
+            };
+        }
+
+        private void ContinueLoadAssetFallback(
+            string assetName,
+            Type[] loadTypes,
+            LoadAssetCallbacks callbacks,
+            object userData,
+            int index,
+            string nextError)
+        {
+            if (index + 1 < loadTypes.Length)
+            {
+                LoadAssetInternal(assetName, loadTypes, callbacks, userData, index + 1, nextError);
+                return;
+            }
+
+            callbacks.LoadAssetFailureCallback?.Invoke(
+                assetName, LoadResourceStatus.NotExist, nextError, userData);
+        }
+
+        private static string AppendLoadError(string accumulatedError, Type loadType, string currentError)
+        {
+            string scopedError = $"[{loadType?.FullName ?? "object"}] {currentError}";
+            if (string.IsNullOrEmpty(accumulatedError))
+            {
+                return scopedError;
+            }
+
+            return $"{accumulatedError}\n{scopedError}";
         }
     }
 }

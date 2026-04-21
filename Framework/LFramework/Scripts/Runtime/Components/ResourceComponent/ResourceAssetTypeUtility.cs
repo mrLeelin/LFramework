@@ -4,6 +4,16 @@ namespace LFramework.Runtime
 {
     internal static class ResourceAssetTypeUtility
     {
+        public static Type[] GetLoadTypeFallbackChain(Type requestedType)
+        {
+            if (requestedType == null || requestedType == typeof(object))
+            {
+                return new[] { typeof(object) };
+            }
+
+            return new[] { requestedType, typeof(object) };
+        }
+
         public static bool TryConvertLoadedObject(
             object loadedAsset,
             Type requestedType,
