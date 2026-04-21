@@ -33,8 +33,7 @@ namespace LFramework.Editor.Tests.Settings
             setting.YooAssetPackages.Add(new PackageDefinition
             {
                 packageId = "ui",
-                yooPackageName = "UIPackage",
-                remoteFolderName = "ui"
+                yooPackageName = "UIPackage"
             });
 
             IReadOnlyList<PackageDefinition> firstSnapshot = setting.GetEffectivePackageDefinitions();
@@ -81,8 +80,7 @@ namespace LFramework.Editor.Tests.Settings
             setting.YooAssetPackages.Add(new PackageDefinition
             {
                 packageId = "ui",
-                yooPackageName = "UIPackage",
-                remoteFolderName = "ui"
+                yooPackageName = "UIPackage"
             });
 
             Assert.That(setting.YooAssetPackageName, Is.EqualTo("UIPackage"));
@@ -121,8 +119,7 @@ namespace LFramework.Editor.Tests.Settings
             setting.YooAssetPackages.Add(new PackageDefinition
             {
                 packageId = "bootstrap",
-                yooPackageName = "BootstrapPackage",
-                remoteFolderName = "bootstrap"
+                yooPackageName = "BootstrapPackage"
             });
             setting.YooAssetRouting.routeIndexPackageId = "bootstrap";
             setting.YooAssetRouting.routeIndexAddress = "route-index";
@@ -190,7 +187,6 @@ namespace LFramework.Editor.Tests.Settings
                 packageId = "ui",
                 yooPackageName = "UIPackage_Windows",
                 routePriority = 10,
-                remoteFolderName = "ui",
                 platformFilter = new List<string> { RuntimePlatform.WindowsEditor.ToString() },
                 channelFilter = new List<string> { "Google" }
             };
@@ -199,7 +195,6 @@ namespace LFramework.Editor.Tests.Settings
                 packageId = "ui",
                 yooPackageName = "UIPackage_Android",
                 routePriority = 1,
-                remoteFolderName = "ui",
                 platformFilter = new List<string> { RuntimePlatform.Android.ToString() },
                 channelFilter = new List<string> { "Google" }
             };
@@ -469,7 +464,7 @@ namespace LFramework.Editor.Tests.Settings
             registry.Configure(
                 new[]
                 {
-                    new PackageDefinition { packageId = "bootstrap", yooPackageName = "BootstrapPackage", remoteFolderName = "bootstrap" }
+                    new PackageDefinition { packageId = "bootstrap", yooPackageName = "BootstrapPackage" }
                 },
                 RuntimePlatform.WindowsEditor,
                 "Google");
@@ -509,7 +504,7 @@ namespace LFramework.Editor.Tests.Settings
             registry.Configure(
                 new[]
                 {
-                    new PackageDefinition { packageId = "default", yooPackageName = "DefaultPackage", remoteFolderName = "default" }
+                    new PackageDefinition { packageId = "default", yooPackageName = "DefaultPackage" }
                 },
                 RuntimePlatform.WindowsEditor,
                 "Google");
@@ -535,7 +530,7 @@ namespace LFramework.Editor.Tests.Settings
             registry.Configure(
                 new[]
                 {
-                    new PackageDefinition { packageId = "bootstrap", yooPackageName = "BootstrapPackage", remoteFolderName = "bootstrap" }
+                    new PackageDefinition { packageId = "bootstrap", yooPackageName = "BootstrapPackage" }
                 },
                 RuntimePlatform.WindowsEditor,
                 "Google");
@@ -561,7 +556,7 @@ namespace LFramework.Editor.Tests.Settings
             registry.Configure(
                 new[]
                 {
-                    new PackageDefinition { packageId = "bootstrap", yooPackageName = "BootstrapPackage", remoteFolderName = "bootstrap" }
+                    new PackageDefinition { packageId = "bootstrap", yooPackageName = "BootstrapPackage" }
                 },
                 RuntimePlatform.WindowsEditor,
                 "Google");

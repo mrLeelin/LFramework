@@ -95,8 +95,7 @@ namespace LFramework.Runtime
             ResourceComponentSetting setting,
             RuntimePlatform platform,
             string channel,
-            IEnumerable<string> globalLabels,
-            string initLabel)
+            IEnumerable<string> globalLabels)
         {
             PackageRegistry registry = CreateRegistry(setting, platform, channel);
             string defaultPackageId = ResolvePackageId(setting, registry, null);
@@ -118,13 +117,7 @@ namespace LFramework.Runtime
                 }
 
                 var labels = new HashSet<string>(StringComparer.Ordinal);
-                AddLabels(labels, package.downloadLabels);
                 AddLabels(labels, globalLabels);
-                if (!string.IsNullOrWhiteSpace(initLabel))
-                {
-                    labels.Add(initLabel);
-                }
-
                 if (labels.Count == 0)
                 {
                     continue;

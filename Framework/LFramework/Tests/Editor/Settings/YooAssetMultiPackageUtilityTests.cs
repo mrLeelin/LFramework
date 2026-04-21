@@ -91,8 +91,7 @@ namespace LFramework.Editor.Tests.Settings
             {
                 packageId = "ui",
                 yooPackageName = "UIPackage",
-                downloadOnLaunch = true,
-                downloadLabels = new List<string> { "ui_group" }
+                downloadOnLaunch = true
             });
             setting.YooAssetRouting.routeIndexPackageId = "routes";
 
@@ -100,8 +99,7 @@ namespace LFramework.Editor.Tests.Settings
                 setting,
                 RuntimePlatform.WindowsEditor,
                 "Google",
-                new[] { "hotfix" },
-                "init_assets");
+                new[] { "hotfix" });
 
             Assert.That(plans.Select(item => item.PackageId).ToArray(), Is.EqualTo(new[] { "routes", "ui" }));
             Assert.That(plans[0].PackageName, Is.EqualTo("RoutePackage"));

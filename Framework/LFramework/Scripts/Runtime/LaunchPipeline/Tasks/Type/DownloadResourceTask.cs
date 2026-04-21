@@ -95,16 +95,14 @@ namespace LFramework.Runtime.LaunchPipeline
             {
                 return LaunchTaskResult.CreateFailed(TaskName, "ResourceComponentSetting is null.");
             }
-
-            string initLabel = SettingManager.GetSetting<HybridCLRSetting>()?.defaultInitLabel;
+            
             string handlerName = GetDownloadHandlerName(context);
             bool checkDownloadedTags = GetCheckDownloadedTags(context);
             List<YooAssetPackageDownloadPlan> plans = YooAssetMultiPackageUtility.CollectDownloadPlans(
                 setting,
                 Application.platform,
                 GetCurrentChannel(),
-                GetGlobalDownloadLabels(context),
-                initLabel);
+                GetGlobalDownloadLabels(context));
 
             if (plans.Count == 0)
             {

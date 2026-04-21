@@ -17,12 +17,8 @@ namespace LFramework.Runtime.Settings
         public bool downloadOnLaunch = true;
         public bool isBuiltinCandidate = true;
         public string fallbackPackageId;
-        public string cdnRootOverride;
-        public string remoteFolderName;
         public List<string> platformFilter = new List<string>();
         public List<string> channelFilter = new List<string>();
-        public List<string> downloadLabels = new List<string>();
-
         public PackageDefinition Clone()
         {
             return new PackageDefinition
@@ -36,11 +32,8 @@ namespace LFramework.Runtime.Settings
                 downloadOnLaunch = downloadOnLaunch,
                 isBuiltinCandidate = isBuiltinCandidate,
                 fallbackPackageId = fallbackPackageId,
-                cdnRootOverride = cdnRootOverride,
-                remoteFolderName = remoteFolderName,
                 platformFilter = new List<string>(platformFilter ?? new List<string>()),
                 channelFilter = new List<string>(channelFilter ?? new List<string>()),
-                downloadLabels = new List<string>(downloadLabels ?? new List<string>())
             };
         }
     }
