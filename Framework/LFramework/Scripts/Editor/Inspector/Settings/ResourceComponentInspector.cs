@@ -74,6 +74,7 @@ namespace LFramework.Editor.Inspector
             serializedObject.ApplyModifiedProperties();
         }
 
+#if YOOASSET_SUPPORT && ADDRESSABLE_SUPPORT
         private void DrawMigrationButtons()
         {
             bool useVerticalButtons = EditorGUIUtility.currentViewWidth < 650f;
@@ -129,6 +130,7 @@ namespace LFramework.Editor.Inspector
             var dialogBody = $"{result.Summary}\nReport: {result.ReportPath}";
             EditorUtility.DisplayDialog(dialogTitle, dialogBody, "OK");
         }
+#endif
 
         private void DrawOverviewBanner()
         {
@@ -174,10 +176,24 @@ namespace LFramework.Editor.Inspector
         {
             if (m_ResourceMode.enumValueIndex == (int)ResourceMode.YooAsset)
             {
+#if YOOASSET_SUPPORT
                 DrawYooAssetSection();
+#else
+                BeginSection("YooAsset Settings", "YooAsset support is disabled for the current compilation.");
+                EditorGUILayout.HelpBox(
+                    "YOOASSET_SUPPORT is not defined. Enable YooAssets support before editing YooAsset package and route-index settings.",
+                    MessageType.Warning);
+                EndSection();
+#endif
                 return;
             }
 
+            DrawAddressableSection();
+        }
+
+        private void DrawAddressableSection()
+        {
+#if ADDRESSABLE_SUPPORT
             BeginSection("Addressables Settings", "Configure the hotfix profile used by the Addressables pipeline.");
             EditorGUILayout.PropertyField(m_AddressableHotfixProfileName);
 
@@ -191,6 +207,13 @@ namespace LFramework.Editor.Inspector
             }
 
             EndSection();
+#else
+            BeginSection("Addressables Settings", "Addressables support is disabled for the current compilation.");
+            EditorGUILayout.HelpBox(
+                "ADDRESSABLE_SUPPORT is not defined. Enable Addressables support before editing Addressables hotfix settings.",
+                MessageType.Warning);
+            EndSection();
+#endif
         }
 
         private void DrawYooAssetSection()
@@ -203,8 +226,10 @@ namespace LFramework.Editor.Inspector
             EditorGUILayout.Space(4f);
             DrawRoutingSettings();
             DrawRoutingQuickActions((ResourceComponentSetting)target);
+#if YOOASSET_SUPPORT
             EditorGUILayout.Space(6f);
             DrawRouteIndexGenerationControls((ResourceComponentSetting)target);
+#endif
             EditorGUILayout.Space(6f);
 
             DrawValidationMessages((ResourceComponentSetting)target);
@@ -312,6 +337,7 @@ namespace LFramework.Editor.Inspector
 
         private void DrawRouteIndexGenerationControls(ResourceComponentSetting setting)
         {
+#if YOOASSET_SUPPORT
             EditorGUILayout.LabelField("Route Index", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
                 "Generate the route index asset and refresh the generated collector so the build pipeline can pick it up automatically.",
@@ -323,8 +349,10 @@ namespace LFramework.Editor.Inspector
                 ExecuteRouteIndexGeneration(setting);
                 serializedObject.Update();
             }
+#endif
         }
 
+#if YOOASSET_SUPPORT
         private void ExecuteRouteIndexGeneration(ResourceComponentSetting setting)
         {
             RouteIndexGenerationResult result = RouteIndexGenerator.Generate(setting);
@@ -343,6 +371,7 @@ namespace LFramework.Editor.Inspector
                     "OK");
             }
         }
+#endif
 
         private static void PingRouteIndexAsset(ResourceComponentSetting setting)
         {
@@ -511,11 +540,29 @@ namespace LFramework.Editor.Inspector
         private void DrawMigrationSection()
         {
             BeginSection("Migration Tools", "Rebuild generated configuration when switching between YooAsset and Addressables.");
+#if YOOASSET_SUPPORT && ADDRESSABLE_SUPPORT
             EditorGUILayout.HelpBox(
                 "Both migration actions keep Unity-side APIs on the main thread and generate a report path after completion.",
                 MessageType.Info);
             DrawMigrationButtons();
+#else
+            EditorGUILayout.HelpBox(GetMigrationDisabledMessage(), MessageType.Warning);
+#endif
             EndSection();
+        }
+
+        private static string GetMigrationDisabledMessage()
+        {
+            string yooAssetState = "disabled";
+            string addressableState = "disabled";
+#if YOOASSET_SUPPORT
+            yooAssetState = "enabled";
+#endif
+#if ADDRESSABLE_SUPPORT
+            addressableState = "enabled";
+#endif
+            return "Migration tools require both YOOASSET_SUPPORT and ADDRESSABLE_SUPPORT. " +
+                   $"Current state: YOOASSET_SUPPORT is {yooAssetState}, ADDRESSABLE_SUPPORT is {addressableState}.";
         }
 
         private static void BeginSection(string title, string subtitle)
