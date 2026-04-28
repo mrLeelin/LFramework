@@ -35,6 +35,47 @@ namespace LFramework.Editor.Builder.BuildingResource
                 BuildResourcePathHelper.GetBackupDiffBuildPath(buildSetting));
         }
 
+        public static void ReplaceVersionedBuildPackage(BuildSetting buildSetting, string currentBuildPath)
+        {
+            if (buildSetting == null)
+            {
+                throw new ArgumentNullException(nameof(buildSetting));
+            }
+
+            ReplaceVersionedBuildPackage(
+                currentBuildPath,
+                BuildResourcePathHelper.GetBackupPath(buildSetting),
+                BuildResourcePathHelper.GetBackupSeverDataBuildPath(buildSetting));
+        }
+
+        public static void ReplaceVersionedBuildPackage(
+            string currentBuildPath,
+            string backupRootPath,
+            string versionedPackagePath)
+        {
+            ValidateCurrentBuildPath(currentBuildPath);
+
+            if (string.IsNullOrWhiteSpace(backupRootPath))
+            {
+                throw new ArgumentException("Backup root path is invalid.", nameof(backupRootPath));
+            }
+
+            if (string.IsNullOrWhiteSpace(versionedPackagePath))
+            {
+                throw new ArgumentException("Versioned package path is invalid.", nameof(versionedPackagePath));
+            }
+
+            string backupRootFullPath = NormalizeDirectoryPath(backupRootPath);
+            string packageFullPath = NormalizeDirectoryPath(versionedPackagePath);
+            if (!IsChildPathOf(packageFullPath, backupRootFullPath))
+            {
+                throw new InvalidOperationException(
+                    $"Versioned build package must be under backup root. Root: {backupRootPath}, Package: {versionedPackagePath}");
+            }
+
+            ReplaceBuildSnapshot(currentBuildPath, versionedPackagePath);
+        }
+
         /// <summary>
         /// 对当前导出目录执行统一后处理。
         /// </summary>
@@ -94,6 +135,12 @@ namespace LFramework.Editor.Builder.BuildingResource
         {
             return Path.GetFullPath(path)
                 .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+
+        private static bool IsChildPathOf(string childPath, string parentPath)
+        {
+            string parentWithSeparator = parentPath + Path.DirectorySeparatorChar;
+            return childPath.StartsWith(parentWithSeparator, StringComparison.OrdinalIgnoreCase);
         }
 
         private static void WriteDeletedFilesManifest(

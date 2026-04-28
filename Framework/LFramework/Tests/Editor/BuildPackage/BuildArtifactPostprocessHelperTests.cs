@@ -71,6 +71,42 @@ namespace LFramework.Editor.Tests.BuildPackage
             Assert.That(File.Exists(Path.Combine(diffBuildPath, "stale.txt")), Is.False);
         }
 
+        [Test]
+        public void ReplaceBuildSnapshot_ReplacesAppSnapshotWithoutTouchingLastBuild()
+        {
+            string currentBuildPath = CreateDirectory("Current");
+            string lastBuildPath = CreateDirectory("LastBuild");
+            string lastAppBuildPath = CreateDirectory("LastAppBuild");
+
+            WriteFile(currentBuildPath, "content/file.txt", "app-current");
+            WriteFile(lastBuildPath, "content/file.txt", "hotfix-current");
+            WriteFile(lastAppBuildPath, "content/file.txt", "app-old");
+
+            InvokeReplaceBuildSnapshot(currentBuildPath, lastAppBuildPath);
+
+            Assert.That(File.ReadAllText(Path.Combine(lastAppBuildPath, "content", "file.txt")), Is.EqualTo("app-current"));
+            Assert.That(File.ReadAllText(Path.Combine(lastBuildPath, "content", "file.txt")), Is.EqualTo("hotfix-current"));
+        }
+
+        [Test]
+        public void ReplaceVersionedBuildPackage_ReplacesCurrentVersionAndPreservesSiblingVersions()
+        {
+            string currentBuildPath = CreateDirectory("Current");
+            string backupRootPath = CreateDirectory("BackUp_BuildResource/AppVersion");
+            string previousVersionPath = CreateDirectory("BackUp_BuildResource/AppVersion/Channel_1.0.0.157_Debug");
+            string currentVersionPath = CreateDirectory("BackUp_BuildResource/AppVersion/Channel_1.0.0.158_Debug");
+
+            WriteFile(currentBuildPath, "hotfix/new.bundle", "new-hotfix");
+            WriteFile(previousVersionPath, "hotfix/old.bundle", "previous-hotfix");
+            WriteFile(currentVersionPath, "stale.bundle", "stale");
+
+            InvokeReplaceVersionedBuildPackage(currentBuildPath, backupRootPath, currentVersionPath);
+
+            Assert.That(File.ReadAllText(Path.Combine(previousVersionPath, "hotfix", "old.bundle")), Is.EqualTo("previous-hotfix"));
+            Assert.That(File.ReadAllText(Path.Combine(currentVersionPath, "hotfix", "new.bundle")), Is.EqualTo("new-hotfix"));
+            Assert.That(File.Exists(Path.Combine(currentVersionPath, "stale.bundle")), Is.False);
+        }
+
         private void InvokeProcessBuildArtifacts(string currentBuildPath, string lastBuildPath, string diffBuildPath)
         {
             var helperType = Type.GetType(
@@ -86,6 +122,43 @@ namespace LFramework.Editor.Tests.BuildPackage
 
             Assert.That(method, Is.Not.Null, "ProcessBuildArtifacts method is missing.");
             method.Invoke(null, new object[] { currentBuildPath, lastBuildPath, diffBuildPath });
+        }
+
+        private void InvokeReplaceBuildSnapshot(string currentBuildPath, string snapshotPath)
+        {
+            var helperType = Type.GetType(
+                "LFramework.Editor.Builder.BuildingResource.BuildArtifactPostprocessHelper, LFramework.Editor");
+            Assert.That(helperType, Is.Not.Null, "BuildArtifactPostprocessHelper type is missing.");
+
+            var method = helperType.GetMethod(
+                "ReplaceBuildSnapshot",
+                BindingFlags.Static | BindingFlags.Public,
+                null,
+                new[] { typeof(string), typeof(string) },
+                null);
+
+            Assert.That(method, Is.Not.Null, "ReplaceBuildSnapshot method is missing.");
+            method.Invoke(null, new object[] { currentBuildPath, snapshotPath });
+        }
+
+        private void InvokeReplaceVersionedBuildPackage(
+            string currentBuildPath,
+            string backupRootPath,
+            string versionedPackagePath)
+        {
+            var helperType = Type.GetType(
+                "LFramework.Editor.Builder.BuildingResource.BuildArtifactPostprocessHelper, LFramework.Editor");
+            Assert.That(helperType, Is.Not.Null, "BuildArtifactPostprocessHelper type is missing.");
+
+            var method = helperType.GetMethod(
+                "ReplaceVersionedBuildPackage",
+                BindingFlags.Static | BindingFlags.Public,
+                null,
+                new[] { typeof(string), typeof(string), typeof(string) },
+                null);
+
+            Assert.That(method, Is.Not.Null, "ReplaceVersionedBuildPackage method is missing.");
+            method.Invoke(null, new object[] { currentBuildPath, backupRootPath, versionedPackagePath });
         }
 
         private string CreateDirectory(string relativePath)

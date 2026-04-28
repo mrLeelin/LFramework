@@ -94,8 +94,7 @@ namespace LFramework.Editor.Builder.BuildingResource
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            DeleteDirectory(backupSeverDataPath);
-            CopyDirectory(exportBuildPath, backupSeverDataPath);
+            BuildArtifactPostprocessHelper.ReplaceVersionedBuildPackage(buildResourcesData, exportBuildPath);
             BuildArtifactPostprocessHelper.ProcessBuildArtifacts(buildResourcesData, exportBuildPath);
             if (buildResourcesData.buildType == BuildType.App)
             {

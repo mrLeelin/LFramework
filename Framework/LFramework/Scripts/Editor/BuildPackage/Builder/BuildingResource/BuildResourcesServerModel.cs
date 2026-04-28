@@ -3,10 +3,6 @@
     public enum BuildResourcesServerModel
     {
         LocalHost,
-        /// <summary>
-        /// 完整资源包
-        /// </summary>
-        FullPackage,
         Debug,
         Release,
     }
