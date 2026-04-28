@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine.Scripting;
 
 namespace GameFramework.Resource
@@ -117,6 +117,15 @@ namespace GameFramework.Resource
         public void LoadAsset(string assetName, Type assetType, int priority,
                               LoadAssetCallbacks callbacks, object userData)
         {
+            LoadAsset(assetName, assetType, null, priority, callbacks, userData);
+        }
+
+        /// <summary>
+        /// 加载资源（指定逻辑包）
+        /// </summary>
+        public void LoadAsset(string assetName, Type assetType, string packageId, int priority,
+                              LoadAssetCallbacks callbacks, object userData)
+        {
             if (string.IsNullOrEmpty(assetName))
                 throw new GameFrameworkException("Asset name is invalid.");
             if (callbacks == null)
@@ -124,7 +133,7 @@ namespace GameFramework.Resource
             if (_resourceHelper == null)
                 throw new GameFrameworkException("Resource helper is not set.");
 
-            _resourceHelper.LoadAsset(assetName, assetType, callbacks, userData);
+            _resourceHelper.LoadAsset(assetName, assetType, packageId, callbacks, userData);
         }
 
         /// <summary>
@@ -148,6 +157,15 @@ namespace GameFramework.Resource
         public void LoadScene(string sceneAssetName, int priority,
                               LoadSceneCallbacks callbacks, object userData)
         {
+            LoadScene(sceneAssetName, null, priority, callbacks, userData);
+        }
+
+        /// <summary>
+        /// 加载场景（指定逻辑包）
+        /// </summary>
+        public void LoadScene(string sceneAssetName, string packageId, int priority,
+                              LoadSceneCallbacks callbacks, object userData)
+        {
             if (string.IsNullOrEmpty(sceneAssetName))
                 throw new GameFrameworkException("Scene asset name is invalid.");
             if (callbacks == null)
@@ -155,7 +173,7 @@ namespace GameFramework.Resource
             if (_resourceHelper == null)
                 throw new GameFrameworkException("Resource helper is not set.");
 
-            _resourceHelper.LoadScene(sceneAssetName, callbacks, userData);
+            _resourceHelper.LoadScene(sceneAssetName, packageId, callbacks, userData);
         }
 
         /// <summary>
@@ -177,6 +195,15 @@ namespace GameFramework.Resource
         public void LoadBinary(string binaryAssetName,
                                LoadBinaryCallbacks callbacks, object userData)
         {
+            LoadBinary(binaryAssetName, null, callbacks, userData);
+        }
+
+        /// <summary>
+        /// 加载二进制/原始文件（指定逻辑包）
+        /// </summary>
+        public void LoadBinary(string binaryAssetName, string packageId,
+                               LoadBinaryCallbacks callbacks, object userData)
+        {
             if (string.IsNullOrEmpty(binaryAssetName))
                 throw new GameFrameworkException("Binary asset name is invalid.");
             if (callbacks == null)
@@ -184,13 +211,21 @@ namespace GameFramework.Resource
             if (_resourceHelper == null)
                 throw new GameFrameworkException("Resource helper is not set.");
 
-            _resourceHelper.LoadBinary(binaryAssetName, callbacks, userData);
+            _resourceHelper.LoadBinary(binaryAssetName, packageId, callbacks, userData);
         }
 
         /// <summary>
         /// 瀹炰緥鍖栬祫婧?
         /// </summary>
         public void InstantiateAsset(string assetName, LoadAssetCallbacks callbacks, object userData)
+        {
+            InstantiateAsset(assetName, null, callbacks, userData);
+        }
+
+        /// <summary>
+        /// 实例化资源（指定逻辑包）
+        /// </summary>
+        public void InstantiateAsset(string assetName, string packageId, LoadAssetCallbacks callbacks, object userData)
         {
             if (string.IsNullOrEmpty(assetName))
                 throw new GameFrameworkException("Asset name is invalid.");
@@ -199,7 +234,7 @@ namespace GameFramework.Resource
             if (_resourceHelper == null)
                 throw new GameFrameworkException("Resource helper is not set.");
 
-            _resourceHelper.InstantiateAsset(assetName, callbacks, userData);
+            _resourceHelper.InstantiateAsset(assetName, packageId, callbacks, userData);
         }
 
         /// <summary>

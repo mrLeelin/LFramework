@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using Cysharp.Threading.Tasks;
 using GameFramework;
 using GameFramework.Resource;
 using UnityEngine;
@@ -46,17 +47,6 @@ namespace UnityGameFramework.Runtime
         [SerializeField] private float _maxUnloadInterval;
 
 
-        /// <summary>
-        /// YooAsset 包名称
-        /// </summary>
-        [SerializeField] private string _yooAssetPackageName;
-
-        /// <summary>
-        /// YooAsset 运行模式
-        /// </summary>
-        [SerializeField] private YooAssetPlayMode _yooAssetPlayMode;
-
-
         // ─── 生命周期 ───
 
         /// <summary>
@@ -70,9 +60,6 @@ namespace UnityGameFramework.Runtime
 
         public float MaxUnloadInterval => _maxUnloadInterval;
 
-        public string YooAssetPackageName => _yooAssetPackageName;
-
-        public YooAssetPlayMode YooAssetsPlayModel => _yooAssetPlayMode;
 
         /// <summary>
         /// 初始化组件
@@ -100,7 +87,6 @@ namespace UnityGameFramework.Runtime
             transform.SetParent(Instance);
             transform.localScale = Vector3.one;
             _resourceManager.SetResourceHelper(_resourceHelper);
-            
         }
 
         /// <summary>
@@ -156,6 +142,14 @@ namespace UnityGameFramework.Runtime
         }
 
         /// <summary>
+        /// 刷新当前运行时加载的路由索引。
+        /// </summary>
+        public UniTask RefreshRouteIndexAsync()
+        {
+            return _resourceHelper != null ? _resourceHelper.RefreshRouteIndexAsync() : UniTask.CompletedTask;
+        }
+
+        /// <summary>
         /// 查询资源是否存在
         /// </summary>
         public HasAssetResult HasAsset(string assetName)
@@ -168,7 +162,7 @@ namespace UnityGameFramework.Runtime
         /// </summary>
         public void LoadAsset(string assetName, LoadAssetCallbacks callbacks)
         {
-            _resourceManager.LoadAsset(assetName, null, DefaultPriority, callbacks, null);
+            _resourceManager.LoadAsset(assetName, null, null, DefaultPriority, callbacks, null);
         }
 
         /// <summary>
@@ -176,7 +170,31 @@ namespace UnityGameFramework.Runtime
         /// </summary>
         public void LoadAsset(string assetName, Type assetType, LoadAssetCallbacks callbacks)
         {
-            _resourceManager.LoadAsset(assetName, assetType, DefaultPriority, callbacks, null);
+            _resourceManager.LoadAsset(assetName, assetType, null, DefaultPriority, callbacks, null);
+        }
+
+        /// <summary>
+        /// 加载资源（指定逻辑包）
+        /// </summary>
+        public void LoadAsset(string assetName, string packageId, LoadAssetCallbacks callbacks)
+        {
+            _resourceManager.LoadAsset(assetName, null, packageId, DefaultPriority, callbacks, null);
+        }
+
+        /// <summary>
+        /// 加载资源（指定逻辑包）
+        /// </summary>
+        public void LoadAsset(string assetName, Type assetType, string packageId, LoadAssetCallbacks callbacks, object userData)
+        {
+            _resourceManager.LoadAsset(assetName, assetType, packageId, DefaultPriority, callbacks, userData);
+        }
+
+        /// <summary>
+        /// 加载资源（指定逻辑包和类型）
+        /// </summary>
+        public void LoadAsset(string assetName, Type assetType, string packageId, LoadAssetCallbacks callbacks)
+        {
+            _resourceManager.LoadAsset(assetName, assetType, packageId, DefaultPriority, callbacks, null);
         }
 
         /// <summary>
@@ -185,7 +203,7 @@ namespace UnityGameFramework.Runtime
         /// <param name="assetName"></param>
         /// <param name="callbacks"></param>
         public void InstantiateAsset(string assetName, LoadAssetCallbacks callbacks) =>
-            _resourceManager.InstantiateAsset(assetName, callbacks, null);
+            _resourceManager.InstantiateAsset(assetName, null, callbacks, null);
 
         /// <summary>
         /// 实例化资源
@@ -194,14 +212,20 @@ namespace UnityGameFramework.Runtime
         /// <param name="callbacks"></param>
         /// <param name="userData"></param>
         public void InstantiateAsset(string assetName, LoadAssetCallbacks callbacks, object userData) =>
-            _resourceManager.InstantiateAsset(assetName, callbacks, userData);
+            _resourceManager.InstantiateAsset(assetName, null, callbacks, userData);
+
+        /// <summary>
+        /// 实例化资源（指定逻辑包）
+        /// </summary>
+        public void InstantiateAsset(string assetName, string packageId, LoadAssetCallbacks callbacks, object userData) =>
+            _resourceManager.InstantiateAsset(assetName, packageId, callbacks, userData);
 
         /// <summary>
         /// 加载资源（指定优先级）
         /// </summary>
         public void LoadAsset(string assetName, int priority, LoadAssetCallbacks callbacks)
         {
-            _resourceManager.LoadAsset(assetName, null, priority, callbacks, null);
+            _resourceManager.LoadAsset(assetName, null, null, priority, callbacks, null);
         }
 
         /// <summary>
@@ -210,7 +234,7 @@ namespace UnityGameFramework.Runtime
         public void LoadAsset(string assetName, Type assetType, int priority,
             LoadAssetCallbacks callbacks, object userData)
         {
-            _resourceManager.LoadAsset(assetName, assetType, priority, callbacks, userData);
+            _resourceManager.LoadAsset(assetName, assetType, null, priority, callbacks, userData);
         }
 
         /// <summary>
@@ -219,7 +243,7 @@ namespace UnityGameFramework.Runtime
         public void LoadAsset(string assetName, Type assetType,
             LoadAssetCallbacks callbacks, object userData)
         {
-            _resourceManager.LoadAsset(assetName, assetType, 0, callbacks, userData);
+            _resourceManager.LoadAsset(assetName, assetType, null, 0, callbacks, userData);
         }
 
         // ─── Handle 异步 API ───
@@ -232,12 +256,22 @@ namespace UnityGameFramework.Runtime
             return _resourceHelper.LoadAssetHandle<T>(assetName);
         }
 
+        public ResourceAssetHandle<T> LoadAssetHandle<T>(string assetName, string packageId) where T : UnityEngine.Object
+        {
+            return _resourceHelper.LoadAssetHandle<T>(assetName, packageId);
+        }
+
         /// <summary>
         /// 异步实例化资源（返回 Handle，可直接 await）
         /// </summary>
         public ResourceAssetHandle<UnityEngine.GameObject> InstantiateAssetHandle(string assetName)
         {
             return _resourceHelper.InstantiateAssetHandle(assetName);
+        }
+
+        public ResourceAssetHandle<UnityEngine.GameObject> InstantiateAssetHandle(string assetName, string packageId)
+        {
+            return _resourceHelper.InstantiateAssetHandle(assetName, packageId);
         }
 
         /// <summary>
@@ -248,12 +282,22 @@ namespace UnityGameFramework.Runtime
             return _resourceHelper.LoadSceneHandle(sceneAssetName);
         }
 
+        public ResourceSceneHandle LoadSceneHandle(string sceneAssetName, string packageId)
+        {
+            return _resourceHelper.LoadSceneHandle(sceneAssetName, packageId);
+        }
+
         /// <summary>
         /// 异步加载二进制/原始文件（返回 Handle，可直接 await）
         /// </summary>
         public ResourceRawFileHandle LoadRawFileHandle(string binaryAssetName)
         {
             return _resourceHelper.LoadRawFileHandle(binaryAssetName);
+        }
+
+        public ResourceRawFileHandle LoadRawFileHandle(string binaryAssetName, string packageId)
+        {
+            return _resourceHelper.LoadRawFileHandle(binaryAssetName, packageId);
         }
 
         /// <summary>
@@ -304,7 +348,24 @@ namespace UnityGameFramework.Runtime
         /// </summary>
         public void LoadScene(string sceneAssetName, LoadSceneCallbacks callbacks)
         {
-            _resourceManager.LoadScene(sceneAssetName, DefaultPriority, callbacks, null);
+            _resourceManager.LoadScene(sceneAssetName, null, DefaultPriority, callbacks, null);
+        }
+
+        /// <summary>
+        /// 加载场景（指定逻辑包）
+        /// </summary>
+        public void LoadScene(string sceneAssetName, string packageId, LoadSceneCallbacks callbacks)
+        {
+            _resourceManager.LoadScene(sceneAssetName, packageId, DefaultPriority, callbacks, null);
+        }
+
+        /// <summary>
+        /// 加载场景（指定逻辑包）
+        /// </summary>
+        public void LoadScene(string sceneAssetName, string packageId, int priority,
+            LoadSceneCallbacks callbacks, object userData)
+        {
+            _resourceManager.LoadScene(sceneAssetName, packageId, priority, callbacks, userData);
         }
 
         /// <summary>
@@ -313,7 +374,7 @@ namespace UnityGameFramework.Runtime
         public void LoadScene(string sceneAssetName, int priority,
             LoadSceneCallbacks callbacks, object userData)
         {
-            _resourceManager.LoadScene(sceneAssetName, priority, callbacks, userData);
+            _resourceManager.LoadScene(sceneAssetName, null, priority, callbacks, userData);
         }
 
         /// <summary>
@@ -330,7 +391,16 @@ namespace UnityGameFramework.Runtime
         public void LoadBinary(string binaryAssetName,
             LoadBinaryCallbacks callbacks, object userData)
         {
-            _resourceManager.LoadBinary(binaryAssetName, callbacks, userData);
+            _resourceManager.LoadBinary(binaryAssetName, null, callbacks, userData);
+        }
+
+        /// <summary>
+        /// 加载二进制/原始文件（指定逻辑包）
+        /// </summary>
+        public void LoadBinary(string binaryAssetName, string packageId,
+            LoadBinaryCallbacks callbacks, object userData)
+        {
+            _resourceManager.LoadBinary(binaryAssetName, packageId, callbacks, userData);
         }
 
 

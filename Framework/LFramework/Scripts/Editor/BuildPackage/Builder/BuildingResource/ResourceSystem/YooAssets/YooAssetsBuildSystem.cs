@@ -1,10 +1,12 @@
 #if YOOASSET_SUPPORT
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using GameFramework.Resource;
+using LFramework.Editor;
 using LFramework.Runtime;
 using LFramework.Runtime.Settings;
-using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEngine;
@@ -27,17 +29,23 @@ namespace LFramework.Editor.Builder.BuildingResource
         public void Build(BuildSetting buildResourcesData)
         {
             Debug.Log("[YooAssets] Start building resources...");
-            var resourceComponentSetting =
-                AssetUtilities.GetAllAssetsOfType<ResourceComponentSetting>().FirstOrDefault();
+            ResourceComponentSetting resourceComponentSetting = LoadResourceComponentSetting();
             if (resourceComponentSetting == null)
             {
                 Debug.LogError("ResourceComponent is null in Build.");
                 return;
             }
 
+            GenerateRouteIndexIfEnabled(resourceComponentSetting);
+            List<PackageDefinition> buildPackages = ResolveBuildPackages(resourceComponentSetting);
+            if (buildPackages.Count == 0)
+            {
+                throw new InvalidOperationException("[YooAssets] No active package definitions were resolved for the current build target.");
+            }
+
             if (buildResourcesData.isResourcesBuildIn)
             {
-                BuildInPackage(resourceComponentSetting);
+                BuildInPackage(resourceComponentSetting, buildPackages);
                 return;
             }
 
@@ -55,49 +63,36 @@ namespace LFramework.Editor.Builder.BuildingResource
 
             string outputRoot = GetYooAssetOutputRoot();
             string buildinFileRoot = AssetBundleBuilderHelper.GetStreamingAssetsRoot();
-            var buildParameters = BuildScriptableBuildParameters(
-                resourceComponentSetting,
+            DeleteDirectory(exportBuildPath);
+            CreateDirectory(exportBuildPath);
+
+            bool buildAllResources = buildResourcesData.buildType != BuildType.ResourcesUpdate;
+            bool clearBuildCacheFiles = buildAllResources;
+            string buildinCopyTag = buildAllResources
+                ? SettingManager.GetSetting<HybridCLRSetting>().defaultInitLabel
+                : string.Empty;
+            EBuildinFileCopyOption buildinCopyOption = buildAllResources
+                ? (string.IsNullOrEmpty(buildinCopyTag)
+                    ? EBuildinFileCopyOption.ClearAndCopyAll
+                    : EBuildinFileCopyOption.ClearAndCopyByTags)
+                : EBuildinFileCopyOption.None;
+
+            Debug.Log(buildAllResources
+                ? "[YooAssets] Build all resources for active multi-package definitions."
+                : "[YooAssets] Start incremental resource build for active multi-package definitions.");
+
+            ExecuteBuildForPackages(
+                buildPackages,
                 outputRoot,
                 buildinFileRoot,
-                buildResourcesData.resourcesVersion);
-
-            string yooAssetOutputDir;
-            if (buildResourcesData.buildType == BuildType.ResourcesUpdate)
-            {
-                Debug.Log("[YooAssets] Start incremental resource build.");
-                buildParameters.ClearBuildCacheFiles = false;
-                buildParameters.BuildinFileCopyOption = EBuildinFileCopyOption.None;
-                yooAssetOutputDir = ExecuteYooAssetBuild(resourceComponentSetting, buildParameters);
-            }
-            else
-            {
-                Debug.Log("[YooAssets] Build all resources.");
-                buildParameters.ClearBuildCacheFiles = true;
-
-                buildParameters.BuildinFileCopyParams =
-                    SettingManager.GetSetting<HybridCLRSetting>().defaultInitLabel;
-                buildParameters.BuildinFileCopyOption =
-                    string.IsNullOrEmpty(buildParameters.BuildinFileCopyParams)
-                        ? EBuildinFileCopyOption.ClearAndCopyAll
-                        : EBuildinFileCopyOption.ClearAndCopyByTags;
-
-                yooAssetOutputDir = ExecuteYooAssetBuild(resourceComponentSetting, buildParameters);
-            }
+                buildResourcesData.resourcesVersion,
+                exportBuildPath,
+                clearBuildCacheFiles,
+                buildinCopyOption,
+                buildinCopyTag);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-
-            if (Directory.Exists(yooAssetOutputDir))
-            {
-                DeleteDirectory(exportBuildPath);
-                CreateDirectory(exportBuildPath);
-                CopyDirectory(yooAssetOutputDir, exportBuildPath);
-                Debug.Log($"[YooAssets] Copied build output: {yooAssetOutputDir} -> {exportBuildPath}");
-            }
-            else
-            {
-                Debug.LogWarning($"[YooAssets] Build output directory does not exist: {yooAssetOutputDir}");
-            }
 
             DeleteDirectory(backupSeverDataPath);
             CopyDirectory(exportBuildPath, backupSeverDataPath);
@@ -123,21 +118,21 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// Builds the built-in resource package into StreamingAssets.
         /// </summary>
         /// <param name="resourceComponentSetting">Resource component configuration.</param>
-        private void BuildInPackage(ResourceComponentSetting resourceComponentSetting)
+        private void BuildInPackage(ResourceComponentSetting resourceComponentSetting, List<PackageDefinition> buildPackages)
         {
             Debug.Log("[YooAssets] Start building built-in resource package...");
 
             string outputRoot = GetYooAssetOutputRoot();
             string buildinFileRoot = AssetBundleBuilderHelper.GetStreamingAssetsRoot();
-
-            var buildParameters = BuildScriptableBuildParameters(
-                resourceComponentSetting,
+            ExecuteBuildForPackages(
+                buildPackages,
                 outputRoot,
                 buildinFileRoot,
-                "buildin");
-            buildParameters.ClearBuildCacheFiles = true;
-            buildParameters.BuildinFileCopyOption = EBuildinFileCopyOption.ClearAndCopyAll;
-            ExecuteYooAssetBuild(resourceComponentSetting, buildParameters);
+                "buildin",
+                exportBuildPath: null,
+                clearBuildCacheFiles: true,
+                buildinFileCopyOption: EBuildinFileCopyOption.ClearAndCopyAll,
+                buildinFileCopyParams: string.Empty);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -175,7 +170,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         #region YooAsset Build Core
 
         private ScriptableBuildParameters BuildScriptableBuildParameters(
-            ResourceComponentSetting resourceComponentSetting,
+            string packageName,
             string outputRoot,
             string buildinFileRoot,
             string packageVersion)
@@ -187,7 +182,7 @@ namespace LFramework.Editor.Builder.BuildingResource
                 BuildPipeline = nameof(EBuildPipeline.ScriptableBuildPipeline),
                 BuildBundleType = (int)EBuildBundleType.AssetBundle,
                 BuildTarget = EditorUserBuildSettings.activeBuildTarget,
-                PackageName = resourceComponentSetting.YooAssetPackageName,
+                PackageName = packageName,
                 PackageVersion = packageVersion,
                 PackageNote = null,
                 ClearBuildCacheFiles = true,
@@ -220,20 +215,53 @@ namespace LFramework.Editor.Builder.BuildingResource
             return new ManifestRestoreNone();
         }
 
+        private static ResourceComponentSetting LoadResourceComponentSetting()
+        {
+            string[] guids = AssetDatabase.FindAssets($"t:{nameof(ResourceComponentSetting)}");
+            if (guids == null || guids.Length == 0)
+            {
+                return null;
+            }
+
+            return guids
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Select(path => AssetDatabase.LoadAssetAtPath<ResourceComponentSetting>(path))
+                .FirstOrDefault(asset => asset != null);
+        }
+
+        /// <summary>
+        /// Generates the route index before the build so the latest collector and init tag are always included.
+        /// </summary>
+        /// <param name="resourceComponentSetting">Resource component configuration.</param>
+        private static void GenerateRouteIndexIfEnabled(ResourceComponentSetting resourceComponentSetting)
+        {
+            if (resourceComponentSetting == null || !resourceComponentSetting.YooAssetRouting.enableRouteIndex)
+            {
+                return;
+            }
+
+            RouteIndexGenerationResult result = RouteIndexGenerator.Generate(resourceComponentSetting);
+            if (!result.Succeeded)
+            {
+                throw new InvalidOperationException(
+                    $"[YooAssets] Route index generation failed before build: {result.ErrorMessage}");
+            }
+
+            Debug.Log($"[YooAssets] Route index ready: {result.AssetPath} ({result.EntryCount} entries)");
+        }
+
         /// <summary>
         /// Executes the YooAssets build and returns the actual output package directory.
         /// </summary>
-        /// <param name="resourceComponentSetting">Resource component configuration.</param>
         /// <param name="buildParameters">Build parameters.</param>
+        /// <param name="packageName">Current build package name.</param>
         /// <returns>Resolved output package directory.</returns>
-        private string ExecuteYooAssetBuild(
-            ResourceComponentSetting resourceComponentSetting,
-            ScriptableBuildParameters buildParameters)
+        private string ExecuteYooAssetBuild(ScriptableBuildParameters buildParameters, string packageName)
         {
             bool uniqueBundleName = AssetBundleCollectorSettingData.Setting.UniqueBundleName;
             var packRuleResult = DefaultPackRule.CreateShadersPackRuleResult();
             buildParameters.BuiltinShadersBundleName =
-                packRuleResult.GetBundleName(resourceComponentSetting.YooAssetPackageName, uniqueBundleName);
+                packRuleResult.GetBundleName(packageName, uniqueBundleName);
 
             var pipeline = new ScriptableBuildPipeline();
             BuildResult buildResult = pipeline.Run(buildParameters, true);
@@ -246,6 +274,106 @@ namespace LFramework.Editor.Builder.BuildingResource
 
             Debug.Log($"[YooAssets] Build succeeded, output directory: {buildResult.OutputPackageDirectory}");
             return buildResult.OutputPackageDirectory;
+        }
+
+        private void ExecuteBuildForPackages(
+            List<PackageDefinition> buildPackages,
+            string outputRoot,
+            string buildinFileRoot,
+            string packageVersion,
+            string exportBuildPath,
+            bool clearBuildCacheFiles,
+            EBuildinFileCopyOption buildinFileCopyOption,
+            string buildinFileCopyParams)
+        {
+            for (int i = 0; i < buildPackages.Count; i++)
+            {
+                PackageDefinition packageDefinition = buildPackages[i];
+                var buildParameters = BuildScriptableBuildParameters(
+                    packageDefinition.yooPackageName,
+                    outputRoot,
+                    buildinFileRoot,
+                    packageVersion);
+                buildParameters.ClearBuildCacheFiles = clearBuildCacheFiles && i == 0;
+                buildParameters.BuildinFileCopyOption = ResolvePackageBuildinCopyOption(buildinFileCopyOption, i);
+                buildParameters.BuildinFileCopyParams = buildinFileCopyParams ?? string.Empty;
+
+                Debug.Log(
+                    $"[YooAssets] Building package '{packageDefinition.packageId}' ({packageDefinition.yooPackageName}), clearCache={buildParameters.ClearBuildCacheFiles}, copyOption={buildParameters.BuildinFileCopyOption}.");
+                string outputDirectory = ExecuteYooAssetBuild(buildParameters, packageDefinition.yooPackageName);
+                if (string.IsNullOrWhiteSpace(exportBuildPath))
+                {
+                    continue;
+                }
+
+                if (Directory.Exists(outputDirectory))
+                {
+                    CopyDirectory(outputDirectory, exportBuildPath);
+                    Debug.Log($"[YooAssets] Copied build output: {outputDirectory} -> {exportBuildPath}");
+                }
+                else
+                {
+                    Debug.LogWarning($"[YooAssets] Build output directory does not exist: {outputDirectory}");
+                }
+            }
+        }
+
+        private static EBuildinFileCopyOption ResolvePackageBuildinCopyOption(
+            EBuildinFileCopyOption sourceOption,
+            int packageIndex)
+        {
+            if (packageIndex <= 0)
+            {
+                return sourceOption;
+            }
+
+            return sourceOption switch
+            {
+                EBuildinFileCopyOption.ClearAndCopyAll => EBuildinFileCopyOption.OnlyCopyAll,
+                EBuildinFileCopyOption.ClearAndCopyByTags => EBuildinFileCopyOption.OnlyCopyByTags,
+                _ => sourceOption
+            };
+        }
+
+        private static List<PackageDefinition> ResolveBuildPackages(ResourceComponentSetting resourceComponentSetting)
+        {
+            return YooAssetMultiPackageUtility.CollectBuildPackages(
+                resourceComponentSetting,
+                GetPreviewRuntimePlatform(),
+                GetPreviewChannel());
+        }
+
+        private static RuntimePlatform GetPreviewRuntimePlatform()
+        {
+            return EditorUserBuildSettings.activeBuildTarget switch
+            {
+                BuildTarget.Android => RuntimePlatform.Android,
+                BuildTarget.iOS => RuntimePlatform.IPhonePlayer,
+                BuildTarget.WebGL => RuntimePlatform.WebGLPlayer,
+                BuildTarget.StandaloneOSX => RuntimePlatform.OSXPlayer,
+                BuildTarget.StandaloneLinux64 => RuntimePlatform.LinuxPlayer,
+                BuildTarget.StandaloneWindows => RuntimePlatform.WindowsPlayer,
+                BuildTarget.StandaloneWindows64 => RuntimePlatform.WindowsPlayer,
+                _ => RuntimePlatform.WindowsEditor
+            };
+        }
+
+        private static string GetPreviewChannel()
+        {
+            try
+            {
+                GameSetting gameSetting = SettingManager.GetSetting<GameSetting>();
+                if (gameSetting != null && !string.IsNullOrWhiteSpace(gameSetting.channel))
+                {
+                    return gameSetting.channel;
+                }
+            }
+            catch
+            {
+                // Keep build-time package resolution resilient when settings are not initialized yet.
+            }
+
+            return "Unknown";
         }
 
         /// <summary>

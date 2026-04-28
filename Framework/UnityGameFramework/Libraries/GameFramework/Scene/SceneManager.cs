@@ -8,7 +8,7 @@
 using GameFramework.Resource;
 using System;
 using System.Collections.Generic;
-using GameFramework.DataProvider;
+using GameFramework.DataProvider;
 using UnityEngine.Scripting;
 
 namespace GameFramework.Scene

@@ -13,6 +13,9 @@ namespace LFramework.Runtime.LaunchPipeline
             {
                 new CheckVersionTask(),
                 new InitResourceTask(),
+#if YOOASSET_SUPPORT
+                new UpdateYooPackageManifestTask(),
+#endif
                 new DownloadResourceTask(),
                 new LoadAssemblyTask(),
                 new HotfixEntryTask()

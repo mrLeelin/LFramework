@@ -2,76 +2,36 @@ using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using GameFramework.Resource;
-using LFramework.Runtime;
 using LFramework.Runtime.LaunchPipeline.Basic;
 using LFramework.Runtime.Settings;
-
 #if ADDRESSABLE_SUPPORT
 using UnityEngine.AddressableAssets;
 #endif
-
+using UnityEngine;
 using UnityGameFramework.Runtime;
 using Zenject;
 
 namespace LFramework.Runtime.LaunchPipeline
 {
     /// <summary>
-    /// 资源下载启动任务。
-    /// 通过 <see cref="ResourceDownloadComponent"/> 创建并执行资源下载处理器，
-    /// 支持 Addressable 和 YooAsset 两种下载模式，使用事件回调转换为 UniTask 异步等待。
-    /// <para>
-    /// 该任务为框架级实现，提供基础的下载基础设施。具体的下载标签、包名等配置
-    /// 通过 <see cref="LaunchContext.CustomData"/> 传递，子项目可通过重写虚方法自定义下载行为。
-    /// </para>
+    /// Downloads hot-update resources during launch.
     /// </summary>
     public class DownloadResourceTask : RetryableLaunchTaskBase
     {
-        /// <summary>
-        /// 资源下载组件，通过 Zenject 依赖注入获取
-        /// </summary>
         [Inject] private ResourceDownloadComponent _resourceDownloadComponent;
-
-        /// <summary>
-        /// 资源组件
-        /// </summary>
         [Inject] private ResourceComponent _resourceComponent;
 
-        /// <summary>
-        /// 当前下载处理器的序列 ID，用于清理
-        /// </summary>
         private int _handlerSerialId;
-
-        /// <summary>
-        /// 异步等待源，桥接事件回调与 async/await
-        /// </summary>
         private UniTaskCompletionSource<bool> _tcs;
-
-        /// <summary>
-        /// 下载失败时的错误信息
-        /// </summary>
         private string _errorMessage;
-
-        /// <summary>
-        /// 当前执行的启动上下文引用，用于在事件回调中汇报进度
-        /// </summary>
         private LaunchContext _context;
+        private int _currentPlanIndex;
+        private int _currentPlanCount = 1;
+        private string _currentPlanName;
 
-        /// <summary>
-        /// 任务名称
-        /// </summary>
         public override string TaskName => "DownloadResource";
-
-        /// <summary>
-        /// 任务描述
-        /// </summary>
         public override string Description => "下载热更资源";
 
-        /// <summary>
-        /// 判断任务是否可以执行。
-        /// 当版本检查结果为 <see cref="VersionCheckResultType.NoUpdate"/> 时跳过下载。
-        /// </summary>
-        /// <param name="context">启动管线上下文。</param>
-        /// <returns>当不需要更新时返回 <c>false</c>，否则返回 <c>true</c>。</returns>
         public override bool CanExecute(LaunchContext context)
         {
             if (context.VersionCheckResult == null)
@@ -83,86 +43,180 @@ namespace LFramework.Runtime.LaunchPipeline
             return context.VersionCheckResult.ResultType != VersionCheckResultType.ForceUpdate;
         }
 
-        /// <summary>
-        /// 异步执行资源下载任务。
-        /// 根据下载模式创建对应的下载处理器，订阅成功/失败事件，
-        /// 启动下载并异步等待完成，最后清理处理器。
-        /// </summary>
-        /// <param name="context">启动管线上下文，可通过 CustomData 传递下载配置。</param>
-        /// <returns>任务执行结果。</returns>
         protected override async UniTask<LaunchTaskResult> ExecuteOnceAsync(LaunchContext context)
         {
-            IResourceDownloadHandler handler = null;
             try
             {
                 _context = context;
-                Log.Info("[DownloadResourceTask] 开始下载热更资源");
-                context.ProgressReporter.ReportProgress(0f, "正在准备下载...");
+                _currentPlanIndex = 0;
+                _currentPlanCount = 1;
+                _currentPlanName = null;
 
-                // 1. 从上下文获取下载配置
-                var labels = context.GetDownloadLabels();
-                //默认加上init标签
-                labels.Add(SettingManager.GetSetting<HybridCLRSetting>().defaultInitLabel);
-                var handlerName = GetDownloadHandlerName(context);
-
-                if (labels.Count == 0)
-                {
-                    Log.Info("[DownloadResourceTask] 没有指定下载标签，跳过下载");
-                    return LaunchTaskResult.CreateSuccess(TaskName);
-                }
+                Log.Info("[DownloadResourceTask] Start downloading resources.");
+                context.ProgressReporter.ReportProgress(0f, "Preparing resource download...");
 
                 if (_resourceDownloadComponent == null || _resourceComponent == null)
                 {
                     return LaunchTaskResult.CreateFailed(TaskName, "Resource components are not ready.");
                 }
 
-                Log.Info("[DownloadResourceTask] 下载模式: {0}, 处理器名称: {1}, 标签数量: {2}",
-                    _resourceComponent.ResourceMode, handlerName, labels.Count);
-
-                // 2. 根据模式创建下载处理器（不自动运行）
-                _handlerSerialId = CreateHandler(context, _resourceComponent.ResourceMode, handlerName, labels);
-                handler = _resourceDownloadComponent.GetHandler(_handlerSerialId);
-
-                if (handler == null)
+                switch (_resourceComponent.ResourceMode)
                 {
-                    Log.Error("[DownloadResourceTask] 创建下载处理器失败");
-                    return LaunchTaskResult.CreateFailed(TaskName, "创建下载处理器失败");
-                }
+#if YOOASSET_SUPPORT
+                    case ResourceMode.YooAsset:
+                        return await ExecuteYooAssetAsync(context);
+#endif
 
-                // 3. 订阅事件
-                _tcs = new UniTaskCompletionSource<bool>();
-                _errorMessage = null;
-                handler.DownloadSuccessfulEventHandler += OnDownloadSuccessful;
-                handler.DownloadFailureEventHandler += OnDownloadFailure;
-                handler.DownloadUpdateEventHandler += OnDownloadUpdate;
-                handler.DownloadStepEventHandler += OnDownloadStep;
-                // 4. 启动下载
-                handler.CheckAndLoadAsync();
-                Log.Info("[DownloadResourceTask] 下载处理器已启动，等待下载完成");
+#if ADDRESSABLE_SUPPORT
+                    case ResourceMode.Addressable:
+                        return await ExecuteAddressableAsync(context);
+#endif
 
-                // 5. 等待下载完成
-                var success = await _tcs.Task;
-
-                if (success)
-                {
-                    Log.Info("[DownloadResourceTask] 资源下载完成");
-                    return LaunchTaskResult.CreateSuccess(TaskName);
-                }
-                else
-                {
-                    Log.Error("[DownloadResourceTask] 资源下载失败: {0}", _errorMessage);
-                    return LaunchTaskResult.CreateFailed(TaskName, _errorMessage ?? "资源下载失败");
+                    default:
+                        return LaunchTaskResult.CreateFailed(TaskName, $"Unsupported resource mode '{_resourceComponent.ResourceMode}'.");
                 }
             }
             catch (Exception ex)
             {
-                Log.Error("[DownloadResourceTask] 资源下载异常: {0}", ex);
+                Log.Error("[DownloadResourceTask] Resource download exception: {0}", ex);
                 return LaunchTaskResult.CreateFailed(TaskName, ex.Message);
             }
             finally
             {
-                CleanupHandler(handler);
+                CleanupHandler();
             }
+        }
+
+#if YOOASSET_SUPPORT
+        private async UniTask<LaunchTaskResult> ExecuteYooAssetAsync(LaunchContext context)
+        {
+            ResourceComponentSetting setting = LoadResourceComponentSetting();
+            if (setting == null)
+            {
+                return LaunchTaskResult.CreateFailed(TaskName, "ResourceComponentSetting is null.");
+            }
+            
+            string handlerName = GetDownloadHandlerName(context);
+            bool checkDownloadedTags = GetCheckDownloadedTags(context);
+            List<YooAssetPackageDownloadPlan> plans = YooAssetMultiPackageUtility.CollectDownloadPlans(
+                setting,
+                Application.platform,
+                GetCurrentChannel(),
+                GetGlobalDownloadLabels(context));
+
+            if (plans.Count == 0)
+            {
+                Log.Info("[DownloadResourceTask] No YooAsset package download plans were generated.");
+                return LaunchTaskResult.CreateSuccess(TaskName);
+            }
+
+            _currentPlanCount = plans.Count;
+            for (int i = 0; i < plans.Count; i++)
+            {
+                YooAssetPackageDownloadPlan plan = plans[i];
+                _currentPlanIndex = i;
+                _currentPlanName = plan.PackageId;
+                context.ProgressReporter.ReportProgress((float)i / plans.Count, $"Preparing package '{plan.PackageId}'...");
+
+                Log.Info(
+                    "[DownloadResourceTask] Create YooAsset download handler. packageId: {0}, packageName: {1}, labels: {2}, checkDownloadedTags: {3}",
+                    plan.PackageId,
+                    plan.PackageName,
+                    string.Join(",", plan.Labels),
+                    checkDownloadedTags);
+
+                _handlerSerialId = _resourceDownloadComponent.AddYooAssetHandlerNotRun(
+                    $"{handlerName}:{plan.PackageId}",
+                    new List<string>(plan.Labels),
+                    plan.PackageName,
+                    true,
+                    checkDownloadedTags);
+
+                IResourceDownloadHandler handler = _resourceDownloadComponent.GetHandler(_handlerSerialId);
+                if (handler == null)
+                {
+                    return LaunchTaskResult.CreateFailed(TaskName, $"Failed to create download handler for package '{plan.PackageId}'.");
+                }
+
+                bool succeeded = await RunHandlerAsync(handler);
+                CleanupHandler(handler);
+                if (!succeeded)
+                {
+                    string errorMessage = string.IsNullOrWhiteSpace(_errorMessage)
+                        ? $"Resource download failed for package '{plan.PackageId}'."
+                        : _errorMessage;
+                    return LaunchTaskResult.CreateFailed(TaskName, errorMessage);
+                }
+            }
+
+            context.ProgressReporter.ReportProgress(1f, "Refreshing route index...");
+            await _resourceComponent.RefreshRouteIndexAsync();
+            Log.Info("[DownloadResourceTask] All YooAsset package downloads completed.");
+            return LaunchTaskResult.CreateSuccess(TaskName);
+        }
+#endif
+
+#if ADDRESSABLE_SUPPORT
+        private async UniTask<LaunchTaskResult> ExecuteAddressableAsync(LaunchContext context)
+        {
+            List<string> labels = GetGlobalDownloadLabels(context);
+            if (labels.Count == 0)
+            {
+                Log.Info("[DownloadResourceTask] No Addressables labels configured, skip download.");
+                return LaunchTaskResult.CreateSuccess(TaskName);
+            }
+
+            string handlerName = GetDownloadHandlerName(context);
+            Addressables.MergeMode mergeMode = GetMergeMode(context);
+
+            Log.Info("[DownloadResourceTask] Create Addressables download handler. mergeMode: {0}, labels: {1}",
+                mergeMode,
+                string.Join(",", labels));
+
+            _handlerSerialId = _resourceDownloadComponent.AddUpdateHandlerNotRun(
+                handlerName,
+                labels,
+                mergeMode,
+                true);
+
+            IResourceDownloadHandler handler = _resourceDownloadComponent.GetHandler(_handlerSerialId);
+            if (handler == null)
+            {
+                return LaunchTaskResult.CreateFailed(TaskName, "Failed to create Addressables download handler.");
+            }
+
+            bool succeeded = await RunHandlerAsync(handler);
+            CleanupHandler(handler);
+            return succeeded
+                ? LaunchTaskResult.CreateSuccess(TaskName)
+                : LaunchTaskResult.CreateFailed(TaskName, _errorMessage ?? "Resource download failed.");
+        }
+#endif
+
+        private List<string> GetGlobalDownloadLabels(LaunchContext context)
+        {
+            var labels = new List<string>(context.GetDownloadLabels() ?? new List<string>());
+            string initLabel = SettingManager.GetSetting<HybridCLRSetting>()?.defaultInitLabel;
+            if (!string.IsNullOrWhiteSpace(initLabel) && !labels.Contains(initLabel))
+            {
+                labels.Add(initLabel);
+            }
+
+            return labels;
+        }
+
+        private async UniTask<bool> RunHandlerAsync(IResourceDownloadHandler handler)
+        {
+            _tcs = new UniTaskCompletionSource<bool>();
+            _errorMessage = null;
+            handler.DownloadSuccessfulEventHandler += OnDownloadSuccessful;
+            handler.DownloadFailureEventHandler += OnDownloadFailure;
+            handler.DownloadUpdateEventHandler += OnDownloadUpdate;
+            handler.DownloadStepEventHandler += OnDownloadStep;
+            handler.CheckAndLoadAsync();
+
+            Log.Info("[DownloadResourceTask] Download handler started: {0}", handler.Name);
+            return await _tcs.Task;
         }
 
         protected override bool ShouldRetry(LaunchTaskResult result, Exception exception, LaunchErrorCategory errorCategory,
@@ -186,17 +240,17 @@ namespace LFramework.Runtime.LaunchPipeline
                 return LaunchErrorCategory.Timeout;
             }
 
-            if (ContainsAny(errorMessage, "label", "handler", "创建下载处理器失败", "not ready"))
+            if (ContainsAny(errorMessage, "label", "handler", "not ready", "setting"))
             {
                 return LaunchErrorCategory.Config;
             }
 
-            if (ContainsAny(errorMessage, "catalog", "manifest", "package"))
+            if (ContainsAny(errorMessage, "catalog", "manifest", "package", "server"))
             {
                 return LaunchErrorCategory.Server;
             }
 
-            if (ContainsAny(errorMessage, "network", "downloadfailure", "notreachable", "连接", "reachable"))
+            if (ContainsAny(errorMessage, "network", "downloadfailure", "notreachable", "reachable", "连接"))
             {
                 return LaunchErrorCategory.Network;
             }
@@ -207,7 +261,7 @@ namespace LFramework.Runtime.LaunchPipeline
         protected override UniTask BeforeRetryAsync(int attempt, LaunchContext context, LaunchTaskResult result, Exception exception)
         {
             CleanupHandler();
-            string message = $"资源下载失败，正在重试 ({attempt}/{GetMaxRetryCount(context)})...";
+            string message = $"Resource download failed, retrying ({attempt}/{GetMaxRetryCount(context)})...";
             Log.Warning("[DownloadResourceTask] {0} Error: {1}", message, result?.ErrorMessage ?? exception?.Message);
             context.ProgressReporter.ReportProgress(0f, message);
             return UniTask.CompletedTask;
@@ -224,119 +278,49 @@ namespace LFramework.Runtime.LaunchPipeline
             return context.GetCustomData("DownloadRetryCount", context.DefaultRetryCount);
         }
 
-        /// <summary>
-        /// 步骤改变
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
         protected virtual void OnDownloadStep(object sender, ResourceDownloadStepEvent e)
         {
         }
 
-        /// <summary>
-        /// 下载成功回调
-        /// </summary>
         protected virtual void OnDownloadSuccessful(object sender, ResourcesDownloadSuccessfulEvent e)
         {
             _tcs?.TrySetResult(true);
         }
 
-        /// <summary>
-        /// 下载失败回调
-        /// </summary>
         protected virtual void OnDownloadFailure(object sender, ResourcesDownloadFailureEvent e)
         {
-            _errorMessage = $"资源下载失败，错误类型: {e.UpdateResultType}";
+            _errorMessage = $"Resource download failed, result type: {e.UpdateResultType}";
             _tcs?.TrySetResult(false);
         }
 
-        /// <summary>
-        /// 下载进度更新回调
-        /// </summary>
         protected virtual void OnDownloadUpdate(object sender, ResourcesDownloadUpdateEvent e)
         {
-            var message = string.IsNullOrEmpty(e.TotalDownloadSize)
-                ? $"正在下载资源 {e.Progress:P0}"
-                : $"正在下载资源 {e.DownloadSize}/{e.TotalDownloadSize}";
-            _context?.ProgressReporter.ReportProgress(e.Progress, message);
+            float progress = _currentPlanCount <= 1
+                ? e.Progress
+                : (_currentPlanIndex + e.Progress) / _currentPlanCount;
+            string packagePrefix = string.IsNullOrWhiteSpace(_currentPlanName) ? string.Empty : $"[{_currentPlanName}] ";
+            string message = string.IsNullOrEmpty(e.TotalDownloadSize)
+                ? $"{packagePrefix}Downloading resources {e.Progress:P0}"
+                : $"{packagePrefix}Downloading resources {e.DownloadSize}/{e.TotalDownloadSize}";
+            _context?.ProgressReporter.ReportProgress(progress, message);
         }
 
-        /// <summary>
-        /// 根据下载模式创建对应的下载处理器
-        /// </summary>
-        /// <param name="context">启动上下文</param>
-        /// <param name="mode">下载模式</param>
-        /// <param name="handlerName">处理器名称</param>
-        /// <param name="labels">下载标签列表</param>
-        /// <returns>处理器序列 ID</returns>
-        private int CreateHandler(LaunchContext context, ResourceMode mode, string handlerName, List<string> labels)
-        {
-            switch (mode)
-            {
-#if YOOASSET_SUPPORT
-                case ResourceMode.YooAsset:
-                    var packageName = _resourceComponent.YooAssetPackageName;
-                    var checkDownloadedTags = GetCheckDownloadedTags(context);
-                    Log.Info("[DownloadResourceTask] 创建 YooAsset 处理器，包名: {0}, 检查已下载标签: {1}",
-                        packageName, checkDownloadedTags);
-                    return _resourceDownloadComponent.AddYooAssetHandlerNotRun(
-                        handlerName, labels, packageName, true, checkDownloadedTags);
-#endif
-
-#if ADDRESSABLE_SUPPORT
-                case ResourceMode.Addressable:
-                    var mergeMode = GetMergeMode(context);
-                    Log.Info("[DownloadResourceTask] 创建 Addressable 处理器，合并模式: {0}", mergeMode);
-                    return _resourceDownloadComponent.AddUpdateHandlerNotRun(
-                        handlerName, labels, mergeMode, true);
-#endif
-                default:
-                    return 0;
-            }
-        }
-
-        #region 虚方法 - 子项目可重写
-
-       
-
-        /// <summary>
-        /// 获取下载处理器名称。
-        /// 默认从 CustomData 的 "DownloadHandlerName" 获取，未设置则使用 "LaunchDownload"。
-        /// </summary>
-        /// <param name="context">启动管线上下文。</param>
-        /// <returns>下载处理器名称。</returns>
         protected virtual string GetDownloadHandlerName(LaunchContext context)
         {
             return context.GetCustomData("DownloadHandlerName", "LaunchDownload");
         }
 
-
 #if ADDRESSABLE_SUPPORT
-        /// <summary>
-        /// 获取 Addressable 合并模式。
-        /// 默认从 CustomData 的 "MergeMode" 获取，未设置则使用 Union。
-        /// </summary>
-        /// <param name="context">启动管线上下文。</param>
-        /// <returns>合并模式。</returns>
         protected virtual Addressables.MergeMode GetMergeMode(LaunchContext context)
         {
             return context.GetCustomData("MergeMode", Addressables.MergeMode.Union);
         }
 #endif
 
-
-        /// <summary>
-        /// 获取是否检查已下载标签（仅 YooAsset 模式）。
-        /// 默认从 CustomData 的 "CheckDownloadedTags" 获取，未设置则为 false。
-        /// </summary>
-        /// <param name="context">启动管线上下文。</param>
-        /// <returns>是否检查已下载标签。</returns>
         protected virtual bool GetCheckDownloadedTags(LaunchContext context)
         {
             return context.GetCustomData("CheckDownloadedTags", false);
         }
-
-        #endregion
 
         private void CleanupHandler(IResourceDownloadHandler handler = null)
         {
@@ -352,18 +336,28 @@ namespace LFramework.Runtime.LaunchPipeline
             if (_handlerSerialId > 0)
             {
                 _resourceDownloadComponent?.RemoveHandler(_handlerSerialId);
-                Log.Info("[DownloadResourceTask] 下载处理器已清理，SerialID: {0}", _handlerSerialId);
+                Log.Info("[DownloadResourceTask] Download handler cleaned up. SerialID: {0}", _handlerSerialId);
             }
 
             _handlerSerialId = 0;
             _tcs = null;
             _errorMessage = null;
-            _context = null;
+        }
+
+        private static ResourceComponentSetting LoadResourceComponentSetting()
+        {
+            return SettingManager.GetProjectSelector()?.GetComponentSetting<ResourceComponentSetting>();
+        }
+
+        private static string GetCurrentChannel()
+        {
+            GameSetting gameSetting = SettingManager.GetSetting<GameSetting>();
+            return gameSetting != null ? gameSetting.channel : string.Empty;
         }
 
         private static bool ContainsAny(string source, params string[] values)
         {
-            foreach (var value in values)
+            foreach (string value in values)
             {
                 if (source.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0)
                 {
