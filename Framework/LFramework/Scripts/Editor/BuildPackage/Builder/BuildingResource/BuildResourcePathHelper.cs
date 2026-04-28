@@ -12,6 +12,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         public const string ServerDataFolderName = "ServerData";
         public const string BackupFolderName = "BackUp_BuildResource";
         public const string BackupLastName = "LastBuild";
+        public const string BackupLastAppBuildName = "LastAppBuild";
         public const string BackupDiffFolderName = "Diff";
         public const string ReplaceRemote = "remote_";
         public const string ReplaceVersion = "_resource_version_";
@@ -94,6 +95,11 @@ namespace LFramework.Editor.Builder.BuildingResource
         public static string GetBackupLastBuildPath(BuildSetting data)
         {
             return $"{GetBackupPath(data)}/{GetChannelName(data)}_{BackupLastName}_{data.cdnType}";
+        }
+
+        public static string GetBackupLastAppBuildPath(BuildSetting data)
+        {
+            return $"{GetBackupPath(data)}/{GetChannelName(data)}_{BackupLastAppBuildName}_{data.cdnType}";
         }
 
         public static string GetBackupDiffPath(BuildSetting data)

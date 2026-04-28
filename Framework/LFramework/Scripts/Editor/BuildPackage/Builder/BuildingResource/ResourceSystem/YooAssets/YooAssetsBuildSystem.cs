@@ -102,6 +102,12 @@ namespace LFramework.Editor.Builder.BuildingResource
             DeleteDirectory(backupSeverDataPath);
             CopyDirectory(exportBuildPath, backupSeverDataPath);
             BuildArtifactPostprocessHelper.ProcessBuildArtifacts(buildResourcesData, exportBuildPath);
+            if (buildResourcesData.buildType == BuildType.App)
+            {
+                BuildArtifactPostprocessHelper.ReplaceBuildSnapshot(
+                    exportBuildPath,
+                    BuildResourcePathHelper.GetBackupLastAppBuildPath(buildResourcesData));
+            }
 
             Debug.Log($"[YooAssets] Build Over, Please upload = {backupSeverDataPath}, upload url = {loadPath}");
         }

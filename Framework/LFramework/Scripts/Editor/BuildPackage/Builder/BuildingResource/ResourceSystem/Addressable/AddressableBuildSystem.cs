@@ -144,6 +144,11 @@ namespace LFramework.Editor.Builder.BuildingResource
                 }
 
                 AddressableBuildHelper.CopyReportToBackUp(buildResourcesData);
+                if (buildResourcesData.buildType == BuildType.App)
+                {
+                    AddressableBuildHelper.CopyReportToAppBackUp(buildResourcesData);
+                }
+
                 AddressableBuildHelper.CopyDirectory(exportAdsBinPath, backupAdsBinPath);
                 AddressableBuildHelper.CheckForRemoteResource(settings);
             }
@@ -154,6 +159,12 @@ namespace LFramework.Editor.Builder.BuildingResource
             AddressableBuildHelper.DeleteDirectory(backupSeverDataPath);
             AddressableBuildHelper.CopyDirectory(exportBuildPath, backupSeverDataPath);
             BuildArtifactPostprocessHelper.ProcessBuildArtifacts(buildResourcesData, exportBuildPath);
+            if (buildResourcesData.buildType == BuildType.App)
+            {
+                BuildArtifactPostprocessHelper.ReplaceBuildSnapshot(
+                    exportBuildPath,
+                    BuildResourcePathHelper.GetBackupLastAppBuildPath(buildResourcesData));
+            }
 
             Debug.Log($"Build Over ,Please upLoad = {backupSeverDataPath}, upload url = {loadPath}");
         }

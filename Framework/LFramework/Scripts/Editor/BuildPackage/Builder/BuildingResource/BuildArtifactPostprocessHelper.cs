@@ -53,7 +53,27 @@ namespace LFramework.Editor.Builder.BuildingResource
                 WriteDeletedFilesManifest(lastBuildPath, currentBuildPath, diffBuildPath);
             }
 
-            ReplaceDirectory(currentBuildPath, lastBuildPath);
+            ReplaceBuildSnapshot(currentBuildPath, lastBuildPath);
+        }
+
+        public static void ReplaceBuildSnapshot(string currentBuildPath, string snapshotPath)
+        {
+            ValidateCurrentBuildPath(currentBuildPath);
+
+            if (string.IsNullOrWhiteSpace(snapshotPath))
+            {
+                throw new ArgumentException("Snapshot path is invalid.", nameof(snapshotPath));
+            }
+
+            string sourceFullPath = NormalizeDirectoryPath(currentBuildPath);
+            string targetFullPath = NormalizeDirectoryPath(snapshotPath);
+            if (string.Equals(sourceFullPath, targetFullPath, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"Build snapshot source and target must be different: {currentBuildPath}");
+            }
+
+            ReplaceDirectory(currentBuildPath, snapshotPath);
         }
 
         private static void ValidateCurrentBuildPath(string currentBuildPath)
@@ -68,6 +88,12 @@ namespace LFramework.Editor.Builder.BuildingResource
                 throw new DirectoryNotFoundException(
                     $"Current build path does not exist: {currentBuildPath}");
             }
+        }
+
+        private static string NormalizeDirectoryPath(string path)
+        {
+            return Path.GetFullPath(path)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         }
 
         private static void WriteDeletedFilesManifest(

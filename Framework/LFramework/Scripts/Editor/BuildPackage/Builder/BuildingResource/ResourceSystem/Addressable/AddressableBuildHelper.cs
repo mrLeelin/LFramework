@@ -28,6 +28,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         #region Constants
 
         public const string Last_Report_File_Name = "LastBuildReport.json";
+        public const string Last_App_Report_File_Name = "LastAppBuildReport.json";
         private const string DefaultPlayerBuildScriptAssetPath =
             "Assets/AddressableAssetsData/DataBuilders/BuildScriptPackedMode.asset";
         private const string RecoveryPlayerBuildScriptAssetPath =
@@ -664,8 +665,18 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// </summary>
         public static void CopyReportToBackUp(BuildSetting buildResourcesData)
         {
+            CopyReportToBackUp(buildResourcesData, Last_Report_File_Name);
+        }
+
+        public static void CopyReportToAppBackUp(BuildSetting buildResourcesData)
+        {
+            CopyReportToBackUp(buildResourcesData, Last_App_Report_File_Name);
+        }
+
+        private static void CopyReportToBackUp(BuildSetting buildResourcesData, string reportFileName)
+        {
             var originFilePath = GetBuildReportFilePath();
-            var newFilePath = BuildResourcePathHelper.GetBackupPath(buildResourcesData) + "/" + Last_Report_File_Name;
+            var newFilePath = BuildResourcePathHelper.GetBackupPath(buildResourcesData) + "/" + reportFileName;
             CopyFile(originFilePath, newFilePath);
         }
 
