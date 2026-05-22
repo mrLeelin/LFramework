@@ -6,206 +6,195 @@ using UnityEngine;
 namespace LFramework.Editor.Builder.iOS
 {
     /// <summary>
-    /// iOS 构建配置
-    /// 封装所有可配置项，避免硬编码，提高代码灵活性和可维护性
+    /// iOS build configuration resolved from BuildSetting and iOSSetting.
     /// </summary>
     public class iOSBuildConfig
     {
-        // ==================== 路径配置 ====================
-
-        /// <summary>
-        /// 构建输出路径
-        /// Xcode 项目的根目录
-        /// </summary>
         public string OutputPath { get; set; }
-
-        /// <summary>
-        /// 本地化文件夹路径
-        /// 存放 *.lproj 本地化资源的目录
-        /// </summary>
+        public string BuildRootPath { get; set; }
         public string LocalizationFolderPath { get; set; }
-
-        // ==================== URL Scheme 配置 ====================
-
-        /// <summary>
-        /// 应用的 URL Scheme
-        /// 用于 Deep Link 和第三方应用跳转
-        /// </summary>
         public string URLScheme { get; set; }
-
-        /// <summary>
-        /// Bundle URL 名称
-        /// CFBundleURLName 的值，通常是应用的域名
-        /// </summary>
         public string BundleURLName { get; set; }
-
-        // ==================== 自定义配置 ====================
-
-        /// <summary>
-        /// 自定义 AppController 类名
-        /// 用于替换默认的 UnityAppController
-        /// </summary>
         public string CustomAppControllerName { get; set; }
-        
-
-        // ==================== CocoaPods 配置 ====================
-
-        /// <summary>
-        /// CocoaPods 命令路径
-        /// 自动检测或手动指定 pod 命令的完整路径
-        /// </summary>
         public string PodCommandPath { get; set; }
-
-        // ==================== 构建模式 ====================
-
-        /// <summary>
-        /// 是否为开发构建
-        /// true = Development, false = Release
-        /// </summary>
         public bool IsDevelopment { get; set; }
-        
-        /// <summary>
-        /// Apple 开发者 Team id
-        /// </summary>
+        public bool AutoExportIpa { get; set; }
+        public string IOSChannel { get; set; }
+        public string BundleIdentifier { get; set; }
         public string AppleDevelopTeamId { get; set; }
-        
-        /// <summary>
-        /// sign identity
-        /// </summary>
         public string CodeSignIdentity { get; set; }
-        
         public string MobileProvisionUuid { get; set; }
+        public string MobileProvisionProfileName { get; set; }
+        public string CameraUsageDescription { get; set; }
+        public string LocationUsageDescription { get; set; }
+        public string ExportMethod { get; set; }
+        public string ExportOptionsPath { get; set; }
+        public string ArchivePath { get; set; }
+        public string IpaExportPath { get; set; }
+        public string IpaName { get; set; }
+        public bool EnableKeychainSharing { get; set; }
+        public bool EnablePushNotifications { get; set; }
+        public bool EnableGameCenter { get; set; }
+        public bool EnableInAppPurchase { get; set; }
+        public bool EnableSignInWithApple { get; set; }
+        public string XcodeConfiguration => IsDevelopment ? "Debug" : "Release";
 
-        // ==================== 工厂方法 ====================
+        public string XcodeWorkspacePath => Path.Combine(OutputPath, "Unity-iPhone.xcworkspace");
+        public string XcodeProjectPath => Path.Combine(OutputPath, "Unity-iPhone.xcodeproj");
 
-        /// <summary>
-        /// 从 BuildSetting 创建配置
-        /// 自动填充默认值并检测系统环境
-        /// </summary>
-        /// <param name="buildSetting">构建设置</param>
-        /// <param name="iOSSetting"></param>
-        /// <param name="outputPath">构建输出路径</param>
-        /// <returns>iOS 构建配置实例</returns>
-        public static iOSBuildConfig CreateFromBuildSetting(BuildSetting buildSetting, iOSSetting iOSSetting,string outputPath)
+        public static iOSBuildConfig CreateFromBuildSetting(BuildSetting buildSetting, iOSSetting iOSSetting, string outputPath)
         {
+            if (buildSetting == null)
+            {
+                throw new ArgumentNullException(nameof(buildSetting));
+            }
+
             if (iOSSetting == null)
             {
                 throw new ArgumentNullException(nameof(iOSSetting));
             }
 
-            var config = new iOSBuildConfig
+            string normalizedOutputPath = Path.GetFullPath(outputPath);
+            string buildRootPath = Path.GetFullPath(Path.Combine(normalizedOutputPath, ".."));
+            bool isDevelopment = !buildSetting.isRelease;
+            string releaseName = isDevelopment ? "Debug" : "Release";
+            string channelName = string.IsNullOrWhiteSpace(buildSetting.iosChannel)
+                ? "AppStore"
+                : SanitizePathPart(buildSetting.iosChannel);
+            string exportOptionsFileName = isDevelopment
+                ? iOSSetting.DevelopmentExportOptionsFileName
+                : iOSSetting.ExportOptionsFileName;
+
+            return new iOSBuildConfig
             {
-                // 使用传入的输出路径
-                OutputPath = outputPath,
-
-                // 本地化文件路径（可以从 BuildSetting 扩展读取）
-                LocalizationFolderPath = Path.Combine(Application.dataPath, "../ExportData/IOS/InfoPlist"),
-
-                // URL Scheme 配置（TODO: 应该从 BuildSetting 或配置文件读取）
+                OutputPath = normalizedOutputPath,
+                BuildRootPath = buildRootPath,
+                LocalizationFolderPath = Path.GetFullPath(Path.Combine(Application.dataPath, "../ExportData/IOS/InfoPlist")),
                 URLScheme = iOSSetting.URLScheme,
                 BundleURLName = iOSSetting.BundleURLName,
-
-                // 自定义 AppController 名称
                 CustomAppControllerName = iOSSetting.AppControllerName,
-                
                 AppleDevelopTeamId = iOSSetting.AppleDevelopTeamId,
-                CodeSignIdentity = iOSSetting.CodeSignIdentity,
-                MobileProvisionUuid = iOSSetting.MobileProvisionUUid,
-                // 构建模式
-                IsDevelopment = !buildSetting.isRelease,
-                // 动态检测 pod 命令路径
+                CodeSignIdentity = isDevelopment
+                    ? iOSSetting.DevelopmentCodeSignIdentity
+                    : iOSSetting.DistributionCodeSignIdentity,
+                MobileProvisionUuid = isDevelopment
+                    ? iOSSetting.DevelopmentMobileProvisionUUid
+                    : iOSSetting.DistributionMobileProvisionUUid,
+                MobileProvisionProfileName = isDevelopment
+                    ? iOSSetting.DevelopmentMobileProvisionProfileName
+                    : iOSSetting.DistributionMobileProvisionProfileName,
+                BundleIdentifier = iOSSetting.BundleIdentifier,
+                IOSChannel = string.IsNullOrWhiteSpace(buildSetting.iosChannel)
+                    ? "AppStore"
+                    : buildSetting.iosChannel,
+                CameraUsageDescription = iOSSetting.CameraUsageDescription,
+                LocationUsageDescription = iOSSetting.LocationUsageDescription,
+                IsDevelopment = isDevelopment,
+                AutoExportIpa = iOSSetting.AutoExportIpa,
+                ExportMethod = isDevelopment ? "development" : "app-store-connect",
+                ExportOptionsPath = Path.Combine(buildRootPath, exportOptionsFileName),
+                ArchivePath = Path.Combine(buildRootPath, "Archive", $"{channelName}_{releaseName}_{buildSetting.GetAppVersion()}", "Build.xcarchive"),
+                IpaExportPath = Path.Combine(buildRootPath, "IPA", $"{channelName}_{releaseName}_{buildSetting.GetAppVersion()}"),
+                IpaName = $"Build_{channelName}_{releaseName}_{buildSetting.GetAppVersion()}.ipa",
+                EnableKeychainSharing = iOSSetting.EnableKeychainSharing,
+                EnablePushNotifications = iOSSetting.EnablePushNotifications,
+                EnableGameCenter = iOSSetting.EnableGameCenter,
+                EnableInAppPurchase = iOSSetting.EnableInAppPurchase,
+                EnableSignInWithApple = iOSSetting.EnableSignInWithApple,
                 PodCommandPath = DetectPodCommandPath()
             };
-
-            return config;
         }
 
-        // ==================== 验证方法 ====================
-
-        /// <summary>
-        /// 验证配置有效性
-        /// 在构建前检查所有必需的配置项
-        /// </summary>
-        /// <exception cref="InvalidOperationException">配置无效时抛出异常</exception>
         public void Validate()
         {
-            // 验证输出路径
-            if (string.IsNullOrEmpty(OutputPath))
+            if (string.IsNullOrWhiteSpace(OutputPath))
             {
-                throw new InvalidOperationException("Output path is not configured");
+                throw new InvalidOperationException("Output path is not configured.");
             }
-            
 
-            // 验证 Apple Team ID
+            if (IsUnset(BundleIdentifier))
+            {
+                throw new InvalidOperationException("Bundle identifier is not configured in iOSSetting.");
+            }
+
             if (IsUnset(AppleDevelopTeamId))
             {
-                throw new InvalidOperationException(
-                    "Apple Team ID is not configured in iOSBuildData. " +
-                    "Please set AppleDevelopTeamId.");
+                throw new InvalidOperationException("Apple Team ID is not configured in iOSSetting.");
             }
 
-            // 验证代码签名身份
             if (IsUnset(CodeSignIdentity))
             {
-                throw new InvalidOperationException(
-                    "Code sign identity is not configured in iOSBuildData. " +
-                    "Please set CodeSignIdentity.");
+                throw new InvalidOperationException("Code sign identity is not configured in iOSSetting.");
             }
 
-            // 验证 CocoaPods 命令
             if (IsUnset(MobileProvisionUuid))
             {
-                throw new InvalidOperationException(
-                    "Mobile provisioning profile UUID is not configured in iOSSetting. " +
-                    "Please set MobileProvisionUUid.");
+                throw new InvalidOperationException("Mobile provisioning profile UUID is not configured in iOSSetting.");
+            }
+
+            if (IsUnset(MobileProvisionProfileName))
+            {
+                throw new InvalidOperationException("Mobile provisioning profile name is not configured in iOSSetting.");
+            }
+
+            if (IsUnset(ExportMethod))
+            {
+                throw new InvalidOperationException("iOS export method is not configured.");
             }
 
             string podfilePath = Path.Combine(OutputPath, iOSBuildConstants.PODFILE_PATH);
-            if (File.Exists(podfilePath) && string.IsNullOrEmpty(PodCommandPath))
+            if (Application.platform == RuntimePlatform.OSXEditor &&
+                File.Exists(podfilePath) &&
+                string.IsNullOrEmpty(PodCommandPath))
             {
                 throw new InvalidOperationException(
-                    "CocoaPods command not found. " +
-                    "Please install CocoaPods: https://cocoapods.org/");
+                    "CocoaPods command not found. Please install CocoaPods: https://cocoapods.org/");
             }
         }
 
-        // ==================== 私有辅助方法 ====================
-
-        /// <summary>
-        /// 检测 pod 命令路径
-        /// 按优先级检查多个可能的路径
-        /// </summary>
-        /// <returns>pod 命令的完整路径，如果未找到则返回 null</returns>
         private static string DetectPodCommandPath()
         {
-            // 可能的 pod 命令路径（按优先级排序）
-            string[] possiblePaths = new[]
+            string[] fixedPaths =
             {
-                "/opt/homebrew/bin/pod",  // Apple Silicon Mac (M1/M2/M3)
-                "/usr/local/bin/pod",     // Intel Mac
-                "pod"                     // PATH 环境变量中的 pod
+                "/opt/homebrew/bin/pod",
+                "/usr/local/bin/pod"
             };
 
-            foreach (var path in possiblePaths)
+            foreach (string path in fixedPaths)
             {
-                // 如果是绝对路径，检查文件是否存在
-                if (Path.IsPathRooted(path))
+                if (File.Exists(path))
                 {
-                    if (File.Exists(path))
-                    {
-                        return path;
-                    }
-                }
-                else
-                {
-                    // 如果是相对路径（如 "pod"），假设在 PATH 中
-                    // 这里直接返回，让系统在执行时查找
                     return path;
                 }
             }
 
-            // 未找到 pod 命令
+            if (Application.platform != RuntimePlatform.OSXEditor)
+            {
+                return null;
+            }
+
+            var whichResult = iOSShellExecutor.Execute("which", "pod");
+            if (whichResult.IsSuccess)
+            {
+                string podPath = whichResult.Output.Trim();
+                if (!string.IsNullOrWhiteSpace(podPath))
+                {
+                    return podPath;
+                }
+            }
+
             return null;
+        }
+
+        private static string SanitizePathPart(string value)
+        {
+            string result = value;
+            foreach (char invalidChar in Path.GetInvalidFileNameChars())
+            {
+                result = result.Replace(invalidChar, '_');
+            }
+
+            return string.IsNullOrWhiteSpace(result) ? "AppStore" : result;
         }
 
         private static bool IsUnset(string value)

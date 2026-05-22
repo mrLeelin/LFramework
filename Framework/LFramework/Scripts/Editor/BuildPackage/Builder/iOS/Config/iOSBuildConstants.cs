@@ -76,6 +76,16 @@ namespace LFramework.Editor.Builder.iOS
             "libc++.tbd"
         };
 
+        /// <summary>
+        /// Xcode 16.4 / older iOS runtime compatibility linker flags.
+        /// </summary>
+        public static readonly string[] UNITY_FRAMEWORK_LINKER_FLAGS = new[]
+        {
+            "-Wl,-force_load,$(SDKROOT)/usr/lib/libc++abi.tbd",
+            "-Wl,-weak_library,$(SDKROOT)/usr/lib/libc++.tbd",
+            "-Wl,-weak_library,$(SDKROOT)/usr/lib/libc++.1.tbd"
+        };
+
         // ==================== Info.plist 键名常量 ====================
 
         /// <summary>
@@ -87,6 +97,16 @@ namespace LFramework.Editor.Builder.iOS
         /// ATT（App Tracking Transparency）权限说明键名
         /// </summary>
         public const string PLIST_KEY_ATT = "NSUserTrackingUsageDescription";
+
+        /// <summary>
+        /// Camera privacy usage description key.
+        /// </summary>
+        public const string PLIST_KEY_CAMERA = "NSCameraUsageDescription";
+
+        /// <summary>
+        /// Location privacy usage description key.
+        /// </summary>
+        public const string PLIST_KEY_LOCATION_WHEN_IN_USE = "NSLocationWhenInUseUsageDescription";
 
         /// <summary>
         /// URL Types 键名

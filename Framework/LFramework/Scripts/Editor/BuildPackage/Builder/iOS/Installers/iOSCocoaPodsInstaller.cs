@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text;
+using LFramework.Editor.Builder.iOS;
 using UnityEngine;
 
 namespace LFramework.Editor.Builder.iOS.Installers
@@ -83,7 +84,7 @@ namespace LFramework.Editor.Builder.iOS.Installers
             sb.AppendLine("#!/bin/sh");
             sb.AppendLine("export LANG=en_US.UTF-8");
             sb.AppendLine($"cd {iOSShellExecutor.EscapeArgument(_config.OutputPath)}");
-            sb.AppendLine($"{_config.PodCommandPath} install");
+            sb.AppendLine($"{iOSShellExecutor.EscapeArgument(_config.PodCommandPath)} install");
 
             // 写入脚本文件
             using (FileStream file = new FileStream(scriptPath, FileMode.Create))

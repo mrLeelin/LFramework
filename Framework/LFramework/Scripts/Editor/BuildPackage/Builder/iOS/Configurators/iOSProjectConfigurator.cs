@@ -67,10 +67,15 @@ namespace LFramework.Editor.Builder.iOS.Configurators
             string unityFrameworkGuid = pbxProject.GetUnityFrameworkTargetGuid();
 
             // 设置 Swift 标准库嵌入（Framework 不需要）
-            pbxProject.SetBuildProperty(unityFrameworkGuid, "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES", "YES");
+            pbxProject.SetBuildProperty(unityFrameworkGuid, "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES", "NO");
 
             // 关闭 BitCode
             pbxProject.SetBuildProperty(unityFrameworkGuid, "ENABLE_BITCODE", "NO");
+
+            foreach (var linkerFlag in iOSBuildConstants.UNITY_FRAMEWORK_LINKER_FLAGS)
+            {
+                pbxProject.AddBuildProperty(unityFrameworkGuid, "OTHER_LDFLAGS", linkerFlag);
+            }
             
             // 添加 Frameworks
             foreach (var framework in iOSBuildConstants.UNITY_FRAMEWORK_FRAMEWORKS)
@@ -91,12 +96,16 @@ namespace LFramework.Editor.Builder.iOS.Configurators
             // 设置 Entitlements 文件路径
             pbxProject.SetBuildProperty(unityMainGuid, "CODE_SIGN_ENTITLEMENTS",
                 iOSBuildConstants.ENTITLEMENTS_FILE_NAME);
+            pbxProject.SetBuildProperty(unityMainGuid, "PRODUCT_BUNDLE_IDENTIFIER",
+                _config.BundleIdentifier);
 
             // 设置 Swift 标准库嵌入（Main Target 需要）
             pbxProject.SetBuildProperty(unityMainGuid, "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES", "YES");
 
             // 设置代码签名身份
             pbxProject.SetBuildProperty(unityMainGuid, "CODE_SIGN_IDENTITY",
+                _config.CodeSignIdentity);
+            pbxProject.SetBuildProperty(unityMainGuid, "CODE_SIGN_IDENTITY[sdk=iphoneos*]",
                 _config.CodeSignIdentity);
 
             // 设置团队配置
@@ -105,6 +114,8 @@ namespace LFramework.Editor.Builder.iOS.Configurators
                 _config.AppleDevelopTeamId);
             pbxProject.SetBuildProperty(unityMainGuid, "PROVISIONING_PROFILE",
                 _config.MobileProvisionUuid);
+            pbxProject.SetBuildProperty(unityMainGuid, "PROVISIONING_PROFILE_SPECIFIER",
+                _config.MobileProvisionProfileName);
 
             // 设置架构（仅支持 arm64）
             pbxProject.SetBuildProperty(unityMainGuid, "ARCHS", "arm64");

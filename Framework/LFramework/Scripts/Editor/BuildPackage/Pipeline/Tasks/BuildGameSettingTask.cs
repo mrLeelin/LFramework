@@ -140,7 +140,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             switch (buildSetting.builderTarget)
             {
                 case BuilderTarget.iOS:
-                    ApplyiOSSettings();
+                    ApplyiOSSettings(buildSetting.isRelease);
                     break;
 
                 case BuilderTarget.Android:
@@ -161,25 +161,23 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
         /// <summary>
         /// 应用 iOS 平台配置
         /// </summary>
-        private void ApplyiOSSettings()
+        private void ApplyiOSSettings(bool isRelease)
         {
             var iosSetting = SettingManager.GetSetting<iOSSetting>();
             if (iosSetting == null)
             {
-                Debug.LogWarning(
-                    "[BuildGameSettingTask] iOSSetting not found in ProjectSettingSelector, skipping iOS platform settings.");
-                return;
+                throw new InvalidOperationException(
+                    "iOSSetting not found in ProjectSettingSelector, unable to apply iOS platform settings.");
             }
 
             // 验证配置
-            if (!iosSetting.Validate(out var errorMessage))
+            if (!iosSetting.ValidateForBuild(isRelease, out var errorMessage))
             {
-                Debug.LogError($"[BuildGameSettingTask] iOSSetting validation failed: {errorMessage}");
-                return;
+                throw new InvalidOperationException($"iOSSetting validation failed: {errorMessage}");
             }
 
             Debug.Log(
-                $"[BuildGameSettingTask] iOS settings applied successfully - Bundle ID: {iosSetting.CodeSignIdentity}");
+                $"[BuildGameSettingTask] iOS settings applied successfully - Bundle ID: {iosSetting.BundleIdentifier}");
         }
 
         /// <summary>

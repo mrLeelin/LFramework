@@ -73,7 +73,7 @@ namespace LFramework.Editor.Builder.PlatformConfig
                     "iOSSetting not found in ProjectSettingSelector, unable to configure iOS build settings.");
             }
 
-            if (!_iOSSetting.Validate(out string errorMessage))
+            if (!_iOSSetting.ValidateForBuild(buildSetting.isRelease, out string errorMessage))
             {
                 throw new InvalidOperationException(
                     $"iOSSetting validation failed, unable to configure iOS build settings. {errorMessage}");
@@ -83,6 +83,9 @@ namespace LFramework.Editor.Builder.PlatformConfig
             PlayerSettings.SetScriptingBackend(
                 NamedBuildTarget.FromBuildTargetGroup(BuildTargetGroup.iOS),
                 ScriptingImplementation.IL2CPP);
+            PlayerSettings.SetApplicationIdentifier(
+                NamedBuildTarget.FromBuildTargetGroup(BuildTargetGroup.iOS),
+                _iOSSetting.BundleIdentifier);
             
 
             // 配置 iOS 特定设置
@@ -95,7 +98,9 @@ namespace LFramework.Editor.Builder.PlatformConfig
             PlayerSettings.iOS.hideHomeButton = true;
             // 配置签名
             PlayerSettings.iOS.appleEnableAutomaticSigning = false;
-            PlayerSettings.iOS.iOSManualProvisioningProfileID = _iOSSetting.MobileProvisionUUid;
+            PlayerSettings.iOS.iOSManualProvisioningProfileID = buildSetting.isRelease
+                ? _iOSSetting.DistributionMobileProvisionUUid
+                : _iOSSetting.DevelopmentMobileProvisionUUid;
             PlayerSettings.iOS.appleDeveloperTeamID = _iOSSetting.AppleDevelopTeamId;
             PlayerSettings.iOS.iOSManualProvisioningProfileType = buildSetting.isRelease
                 ? ProvisioningProfileType.Distribution

@@ -17,12 +17,27 @@ MonoBehaviour:
   tags: []
   bundleIdentifier: com.company.game.dev
   targetOSVersion: 12.0
+  requiresFullScreen: 1
   mobileProvisionUUid: TODO_PROFILE_UUID
+  mobileProvisionProfileName: TODO_PROFILE_NAME
   appleDevelopTeamId: TODO_TEAM_ID
   codeSignIdentity: Apple Development
-  requiresFullScreen: 1
+  developmentMobileProvisionUUid:
+  developmentMobileProvisionProfileName:
+  developmentCodeSignIdentity: Apple Development
+  distributionMobileProvisionUUid:
+  distributionMobileProvisionProfileName:
+  distributionCodeSignIdentity: Apple Distribution
+  autoExportIpa: 0
+  exportOptionsFileName: AppStoreExportOptions.plist
+  developmentExportOptionsFileName: AppStoreExportOptionsDev.plist
   urlScheme: 
   bundleURLName: 
   appControllerName: 
   cameraUsageDescription: 
   locationUsageDescription: 
+  enableKeychainSharing: 1
+  enablePushNotifications: 0
+  enableGameCenter: 0
+  enableInAppPurchase: 0
+  enableSignInWithApple: 0

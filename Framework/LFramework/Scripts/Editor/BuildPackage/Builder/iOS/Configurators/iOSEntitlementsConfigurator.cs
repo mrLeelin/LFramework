@@ -49,12 +49,30 @@ namespace LFramework.Editor.Builder.iOS.Configurators
                 null,
                 pbxProject.GetUnityMainTargetGuid());
 
-            // 添加各种能力
-            AddKeychainSharing(manager);
-            AddPushNotifications(manager);
-            AddGameCenter(manager);
-            AddInAppPurchase(manager);
-            AddSignInWithApple(manager);
+            if (_config.EnableKeychainSharing)
+            {
+                AddKeychainSharing(manager);
+            }
+
+            if (_config.EnablePushNotifications)
+            {
+                AddPushNotifications(manager);
+            }
+
+            if (_config.EnableGameCenter)
+            {
+                AddGameCenter(manager);
+            }
+
+            if (_config.EnableInAppPurchase)
+            {
+                AddInAppPurchase(manager);
+            }
+
+            if (_config.EnableSignInWithApple)
+            {
+                AddSignInWithApple(manager);
+            }
 
             // 写入文件
             manager.WriteToFile();
@@ -88,7 +106,7 @@ namespace LFramework.Editor.Builder.iOS.Configurators
         {
             manager.AddKeychainSharing(new[]
             {
-                $"$(AppIdentifierPrefix){Application.identifier}"
+                $"$(AppIdentifierPrefix){_config.BundleIdentifier}"
             });
 
             iOSBuildLogger.LogInfo("Added Keychain Sharing capability");

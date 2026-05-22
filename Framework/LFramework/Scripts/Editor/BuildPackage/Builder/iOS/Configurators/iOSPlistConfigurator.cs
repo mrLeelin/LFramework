@@ -1,88 +1,53 @@
 using System;
 using System.IO;
-#if UNITY_IOS
-using UnityEditor.iOS.Xcode;
-#endif
+using System.Linq;
+using System.Text;
+using System.Xml;
+using System.Xml.Linq;
 
 namespace LFramework.Editor.Builder.iOS.Configurators
 {
     /// <summary>
-    /// iOS Info.plist 配置器
-    /// 负责配置 Info.plist 文件，包括加密合规、ATT 权限、URL Schemes、Facebook 支持等
+    /// Configures the generated iOS Info.plist.
     /// </summary>
     public class iOSPlistConfigurator
     {
         private readonly iOSBuildConfig _config;
 
-        /// <summary>
-        /// 构造函数
-        /// </summary>
-        /// <param name="config">构建配置</param>
         public iOSPlistConfigurator(iOSBuildConfig config)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
         }
 
-        /// <summary>
-        /// 执行 Info.plist 配置
-        /// </summary>
         public void Configure()
         {
-#if UNITY_IOS
             iOSBuildLogger.LogStep("Info.plist configuration");
 
             string plistPath = Path.Combine(_config.OutputPath, iOSBuildConstants.INFO_PLIST_PATH);
+            if (!File.Exists(plistPath))
+            {
+                throw new FileNotFoundException("Info.plist was not found.", plistPath);
+            }
 
-            // 读取 plist 文件
-            var plist = new PlistDocument();
-            plist.ReadFromFile(plistPath);
+            XDocument plist = XDocument.Load(plistPath, LoadOptions.PreserveWhitespace);
+            XElement rootDict = plist.Root?.Element("dict");
+            if (rootDict == null)
+            {
+                throw new InvalidOperationException($"Info.plist root dict was not found: {plistPath}");
+            }
 
-            PlistElementDict rootDict = plist.root;
-
-            // 配置各项设置
-            ConfigureEncryption(rootDict);
-            ConfigureATT(rootDict);
+            SetBoolean(rootDict, iOSBuildConstants.PLIST_KEY_ENCRYPTION, false);
+            SetString(rootDict, iOSBuildConstants.PLIST_KEY_ATT, iOSBuildConstants.ATT_USAGE_DESCRIPTION);
+            SetOptionalString(rootDict, iOSBuildConstants.PLIST_KEY_CAMERA, _config.CameraUsageDescription);
+            SetOptionalString(rootDict, iOSBuildConstants.PLIST_KEY_LOCATION_WHEN_IN_USE, _config.LocationUsageDescription);
             ConfigureURLSchemes(rootDict);
             ConfigureFacebookSupport(rootDict);
 
-            // 写回文件
-            File.WriteAllText(plistPath, plist.WriteToString());
-
+            Save(plist, plistPath);
             iOSBuildLogger.LogSuccess("Info.plist configuration");
-#else
-            iOSBuildLogger.LogWarning("Skipping Info.plist configuration (not on iOS platform)");
-#endif
         }
 
-#if UNITY_IOS
-        /// <summary>
-        /// 配置加密合规声明
-        /// 必填项：声明应用是否使用非豁免加密
-        /// </summary>
-        private void ConfigureEncryption(PlistElementDict rootDict)
-        {
-            rootDict.SetBoolean(iOSBuildConstants.PLIST_KEY_ENCRYPTION, false);
-            iOSBuildLogger.LogInfo("Configured encryption compliance declaration");
-        }
-
-        /// <summary>
-        /// 配置 ATT（App Tracking Transparency）权限说明
-        /// iOS 14+ 必填项：说明为什么需要追踪用户
-        /// </summary>
-        private void ConfigureATT(PlistElementDict rootDict)
-        {
-            rootDict.SetString(
-                iOSBuildConstants.PLIST_KEY_ATT,
-                iOSBuildConstants.ATT_USAGE_DESCRIPTION);
-
-            iOSBuildLogger.LogInfo("Configured ATT permission description");
-        }
-
-        /// <summary>
-        /// 配置 URL Schemes
-        /// 支持 Deep Link 和第三方应用跳转
-        /// </summary>
-        private void ConfigureURLSchemes(PlistElementDict rootDict)
+        private void ConfigureURLSchemes(XElement rootDict)
         {
             if (string.IsNullOrWhiteSpace(_config.URLScheme) ||
                 string.IsNullOrWhiteSpace(_config.BundleURLName))
@@ -91,39 +56,146 @@ namespace LFramework.Editor.Builder.iOS.Configurators
                 return;
             }
 
-            // 创建 CFBundleURLTypes 数组
-            PlistElementArray urlTypesArray = rootDict.CreateArray(iOSBuildConstants.PLIST_KEY_URL_TYPES);
+            XElement urlTypesArray = GetOrCreateArray(rootDict, iOSBuildConstants.PLIST_KEY_URL_TYPES);
+            RemoveUrlType(urlTypesArray, _config.BundleURLName);
 
-            // 添加 URL Type
-            PlistElementDict urlTypeDict = urlTypesArray.AddDict();
-            urlTypeDict.SetString(iOSBuildConstants.PLIST_KEY_URL_NAME, _config.BundleURLName);
-
-            // 添加 URL Schemes
-            PlistElementArray urlSchemesArray = urlTypeDict.CreateArray(iOSBuildConstants.PLIST_KEY_URL_SCHEMES);
-            urlSchemesArray.AddString("https");
-            urlSchemesArray.AddString("http");
-            urlSchemesArray.AddString(_config.URLScheme);
+            urlTypesArray.Add(
+                new XElement(
+                    "dict",
+                    new XElement("key", iOSBuildConstants.PLIST_KEY_URL_NAME),
+                    new XElement("string", _config.BundleURLName),
+                    new XElement("key", iOSBuildConstants.PLIST_KEY_URL_SCHEMES),
+                    new XElement(
+                        "array",
+                        new XElement("string", "https"),
+                        new XElement("string", "http"),
+                        new XElement("string", _config.URLScheme))));
 
             iOSBuildLogger.LogInfo($"Configured URL Schemes: https, http, {_config.URLScheme}");
         }
 
-        /// <summary>
-        /// 配置 Facebook Messenger 支持
-        /// 添加 LSApplicationQueriesSchemes 以支持 Facebook SDK
-        /// </summary>
-        private void ConfigureFacebookSupport(PlistElementDict rootDict)
+        private void ConfigureFacebookSupport(XElement rootDict)
         {
-            // 创建 LSApplicationQueriesSchemes 数组
-            var querySchemesArray = rootDict.CreateArray(iOSBuildConstants.PLIST_KEY_QUERIES_SCHEMES);
-
-            // 添加 Facebook 相关的 Query Schemes
-            foreach (var scheme in iOSBuildConstants.FACEBOOK_QUERY_SCHEMES)
+            XElement querySchemesArray = GetOrCreateArray(rootDict, iOSBuildConstants.PLIST_KEY_QUERIES_SCHEMES);
+            foreach (string scheme in iOSBuildConstants.FACEBOOK_QUERY_SCHEMES)
             {
-                querySchemesArray.AddString(scheme);
+                if (!querySchemesArray.Elements("string").Any(element => element.Value == scheme))
+                {
+                    querySchemesArray.Add(new XElement("string", scheme));
+                }
             }
 
             iOSBuildLogger.LogInfo($"Configured Facebook support with {iOSBuildConstants.FACEBOOK_QUERY_SCHEMES.Length} query schemes");
         }
-#endif
+
+        private static void SetOptionalString(XElement dict, string key, string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                RemoveKey(dict, key);
+                return;
+            }
+
+            SetString(dict, key, value);
+        }
+
+        private static void SetString(XElement dict, string key, string value)
+        {
+            SetValue(dict, key, new XElement("string", value ?? string.Empty));
+        }
+
+        private static void SetBoolean(XElement dict, string key, bool value)
+        {
+            SetValue(dict, key, new XElement(value ? "true" : "false"));
+        }
+
+        private static XElement GetOrCreateArray(XElement dict, string key)
+        {
+            XElement value = FindValue(dict, key);
+            if (value == null)
+            {
+                var array = new XElement("array");
+                dict.Add(new XElement("key", key));
+                dict.Add(array);
+                return array;
+            }
+
+            if (value.Name.LocalName != "array")
+            {
+                throw new InvalidOperationException($"Info.plist key {key} exists but is not an array.");
+            }
+
+            return value;
+        }
+
+        private static void SetValue(XElement dict, string key, XElement newValue)
+        {
+            XElement keyElement = FindKey(dict, key);
+            if (keyElement == null)
+            {
+                dict.Add(new XElement("key", key));
+                dict.Add(newValue);
+                return;
+            }
+
+            XElement oldValue = keyElement.ElementsAfterSelf().FirstOrDefault();
+            if (oldValue == null)
+            {
+                keyElement.AddAfterSelf(newValue);
+                return;
+            }
+
+            oldValue.ReplaceWith(newValue);
+        }
+
+        private static void RemoveKey(XElement dict, string key)
+        {
+            XElement keyElement = FindKey(dict, key);
+            if (keyElement == null)
+            {
+                return;
+            }
+
+            XElement valueElement = keyElement.ElementsAfterSelf().FirstOrDefault();
+            valueElement?.Remove();
+            keyElement.Remove();
+        }
+
+        private static XElement FindKey(XElement dict, string key)
+        {
+            return dict.Elements("key").FirstOrDefault(element => element.Value == key);
+        }
+
+        private static XElement FindValue(XElement dict, string key)
+        {
+            return FindKey(dict, key)?.ElementsAfterSelf().FirstOrDefault();
+        }
+
+        private static void RemoveUrlType(XElement urlTypesArray, string bundleURLName)
+        {
+            foreach (XElement dict in urlTypesArray.Elements("dict").ToList())
+            {
+                XElement nameValue = FindValue(dict, iOSBuildConstants.PLIST_KEY_URL_NAME);
+                if (nameValue != null && nameValue.Value == bundleURLName)
+                {
+                    dict.Remove();
+                }
+            }
+        }
+
+        private static void Save(XDocument plist, string path)
+        {
+            var settings = new XmlWriterSettings
+            {
+                Encoding = new UTF8Encoding(false),
+                Indent = true,
+                OmitXmlDeclaration = false
+            };
+
+            using (XmlWriter writer = XmlWriter.Create(path, settings))
+            {
+                plist.Save(writer);
+            }
+        }
     }
 }

@@ -1,6 +1,6 @@
 using System;
 using System.Diagnostics;
-using System.Text;
+using System.IO;
 
 namespace LFramework.Editor.Builder.iOS
 {
@@ -45,6 +45,10 @@ namespace LFramework.Editor.Builder.iOS
         /// <returns>执行结果</returns>
         public static ExecutionResult Execute(string command, string arguments, string workingDirectory = null)
         {
+            string resolvedWorkingDirectory = string.IsNullOrWhiteSpace(workingDirectory)
+                ? Directory.GetCurrentDirectory()
+                : workingDirectory;
+
             var process = new Process
             {
                 StartInfo = new ProcessStartInfo
@@ -55,7 +59,7 @@ namespace LFramework.Editor.Builder.iOS
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
-                    WorkingDirectory = workingDirectory ?? string.Empty
+                    WorkingDirectory = resolvedWorkingDirectory
                 }
             };
 
@@ -64,10 +68,11 @@ namespace LFramework.Editor.Builder.iOS
                 process.Start();
 
                 // 读取输出和错误流
-                string output = process.StandardOutput.ReadToEnd();
-                string error = process.StandardError.ReadToEnd();
-
+                var outputTask = process.StandardOutput.ReadToEndAsync();
+                var errorTask = process.StandardError.ReadToEndAsync();
                 process.WaitForExit();
+                string output = outputTask.GetAwaiter().GetResult();
+                string error = errorTask.GetAwaiter().GetResult();
 
                 return new ExecutionResult
                 {

@@ -87,8 +87,15 @@ namespace LFramework.Editor.Builder.iOS
                     config.Validate();
 
                     iOSBuildLogger.LogInfo($"Output path: {config.OutputPath}");
+                    iOSBuildLogger.LogInfo($"iOS channel: {config.IOSChannel}");
                     iOSBuildLogger.LogInfo($"Build mode: {(config.IsDevelopment ? "Development" : "Release")}");
                     iOSBuildLogger.LogInfo($"Pod command: {config.PodCommandPath}");
+                    if (!string.Equals(config.IOSChannel, "AppStore", StringComparison.OrdinalIgnoreCase))
+                    {
+                        iOSBuildLogger.LogWarning(
+                            "This build uses the shared iOSSetting signing configuration. " +
+                            "Create channel-specific iOSSetting assets before shipping multiple iOS channels.");
+                    }
                 });
 
                 // 2. 配置 PBXProject
@@ -124,6 +131,13 @@ namespace LFramework.Editor.Builder.iOS
                 {
                     var podsInstaller = new iOSCocoaPodsInstaller(config);
                     podsInstaller.Install();
+                });
+
+                // 7. 写入 ExportOptions.plist，并在配置允许时导出 IPA
+                ExecuteStep("ExportOptions and IPA export", () =>
+                {
+                    var ipaExporter = new iOSIpaExporter(config);
+                    ipaExporter.Export();
                 });
 
                 iOSBuildLogger.LogInfo("iOS post-build processing completed successfully!");

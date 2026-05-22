@@ -1,8 +1,13 @@
 using System;
+using System.IO;
+using System.Linq;
 using System.Reflection;
+using System.Xml.Linq;
 using LFramework.Editor;
 using LFramework.Editor.Builder;
 using LFramework.Editor.Builder.iOS;
+using LFramework.Editor.Builder.iOS.Configurators;
+using LFramework.Editor.Builder.iOS.Installers;
 using LFramework.Runtime.Settings;
 using NUnit.Framework;
 using UnityEngine;
@@ -15,6 +20,7 @@ namespace LFramework.Editor.Tests.BuildPackage.PlatformConfig
         public void Validate_ShouldFail_WhenRequiredSigningFieldsAreMissing()
         {
             var setting = ScriptableObject.CreateInstance<iOSSetting>();
+            SetPrivateField(setting, "bundleIdentifier", string.Empty);
 
             try
             {
@@ -48,11 +54,39 @@ namespace LFramework.Editor.Tests.BuildPackage.PlatformConfig
         }
 
         [Test]
+        public void ValidateForBuild_ShouldOnlyRequireCurrentBuildSigningFields()
+        {
+            var setting = CreateValidSetting();
+            SetPrivateField(setting, "mobileProvisionUUid", string.Empty);
+            SetPrivateField(setting, "mobileProvisionProfileName", string.Empty);
+            SetPrivateField(setting, "codeSignIdentity", string.Empty);
+            SetPrivateField(setting, "developmentMobileProvisionUUid", "development-profile-uuid");
+            SetPrivateField(setting, "developmentMobileProvisionProfileName", "Development Profile");
+            SetPrivateField(setting, "developmentCodeSignIdentity", "Apple Development");
+            SetPrivateField(setting, "distributionMobileProvisionUUid", "distribution-profile-uuid");
+            SetPrivateField(setting, "distributionMobileProvisionProfileName", "Distribution Profile");
+            SetPrivateField(setting, "distributionCodeSignIdentity", "Apple Distribution");
+
+            try
+            {
+                Assert.That(setting.ValidateForBuild(false, out string debugError), Is.True);
+                Assert.That(debugError, Is.Null);
+
+                Assert.That(setting.ValidateForBuild(true, out string releaseError), Is.True);
+                Assert.That(releaseError, Is.Null);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(setting);
+            }
+        }
+
+        [Test]
         public void Validate_ShouldFail_WhenSigningFieldsUseTodoPlaceholders()
         {
             var setting = CreateValidSetting();
             SetPrivateField(setting, "mobileProvisionUUid", "TODO_PROFILE_UUID");
-            SetPrivateField(setting, "appleDevelopTeamId", "TODO_TEAM_ID");
+            SetPrivateField(setting, "mobileProvisionProfileName", "TODO_PROFILE_NAME");
 
             try
             {
@@ -74,17 +108,69 @@ namespace LFramework.Editor.Tests.BuildPackage.PlatformConfig
             SetPrivateField(setting, "urlScheme", "demoapp");
             SetPrivateField(setting, "bundleURLName", "com.company.game");
             SetPrivateField(setting, "appControllerName", "CustomAppController");
+            SetPrivateField(setting, "cameraUsageDescription", "Camera access is required to scan cards.");
+            SetPrivateField(setting, "locationUsageDescription", "Location access is required for regional services.");
+            SetPrivateField(setting, "distributionMobileProvisionUUid", "distribution-profile-uuid");
+            SetPrivateField(setting, "distributionMobileProvisionProfileName", "Distribution Profile");
+            SetPrivateField(setting, "distributionCodeSignIdentity", "Apple Distribution");
+            SetPrivateField(setting, "enablePushNotifications", true);
+            SetPrivateField(setting, "enableGameCenter", true);
+            SetPrivateField(setting, "enableInAppPurchase", true);
+            SetPrivateField(setting, "enableSignInWithApple", true);
 
             try
             {
                 var config = iOSBuildConfig.CreateFromBuildSetting(CreateBuildSetting(), setting, "Builds/IOS/Project");
                 
+                Assert.That(config.BundleIdentifier, Is.EqualTo("com.company.game"));
                 Assert.That(config.AppleDevelopTeamId, Is.EqualTo("TEAM123456"));
                 Assert.That(config.CodeSignIdentity, Is.EqualTo("Apple Distribution"));
-                Assert.That(config.MobileProvisionUuid, Is.EqualTo("profile-uuid"));
+                Assert.That(config.MobileProvisionUuid, Is.EqualTo("distribution-profile-uuid"));
+                Assert.That(config.MobileProvisionProfileName, Is.EqualTo("Distribution Profile"));
                 Assert.That(config.URLScheme, Is.EqualTo("demoapp"));
                 Assert.That(config.BundleURLName, Is.EqualTo("com.company.game"));
                 Assert.That(config.CustomAppControllerName, Is.EqualTo("CustomAppController"));
+                Assert.That(config.CameraUsageDescription, Is.EqualTo("Camera access is required to scan cards."));
+                Assert.That(config.LocationUsageDescription, Is.EqualTo("Location access is required for regional services."));
+                Assert.That(config.ExportMethod, Is.EqualTo("app-store-connect"));
+                Assert.That(config.ExportOptionsPath, Does.EndWith("AppStoreExportOptions.plist"));
+                Assert.That(config.ArchivePath, Does.EndWith("Build.xcarchive"));
+                Assert.That(config.IpaExportPath, Does.EndWith(
+                    Path.Combine("IPA", "AppStore_Release_1.0.0.1")));
+                Assert.That(config.XcodeConfiguration, Is.EqualTo("Release"));
+                Assert.That(config.EnableKeychainSharing, Is.True);
+                Assert.That(config.EnablePushNotifications, Is.True);
+                Assert.That(config.EnableGameCenter, Is.True);
+                Assert.That(config.EnableInAppPurchase, Is.True);
+                Assert.That(config.EnableSignInWithApple, Is.True);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(setting);
+            }
+        }
+
+        [Test]
+        public void CreateFromBuildSetting_ShouldUseDevelopmentSigningForDebugBuilds()
+        {
+            var setting = CreateValidSetting();
+            SetPrivateField(setting, "developmentMobileProvisionUUid", "development-profile-uuid");
+            SetPrivateField(setting, "developmentMobileProvisionProfileName", "Development Profile");
+            SetPrivateField(setting, "developmentCodeSignIdentity", "Apple Development");
+            var buildSetting = CreateBuildSetting();
+            buildSetting.isRelease = false;
+
+            try
+            {
+                var config = iOSBuildConfig.CreateFromBuildSetting(buildSetting, setting, "Builds/IOS/Project");
+
+                Assert.That(config.IsDevelopment, Is.True);
+                Assert.That(config.CodeSignIdentity, Is.EqualTo("Apple Development"));
+                Assert.That(config.MobileProvisionUuid, Is.EqualTo("development-profile-uuid"));
+                Assert.That(config.MobileProvisionProfileName, Is.EqualTo("Development Profile"));
+                Assert.That(config.ExportMethod, Is.EqualTo("development"));
+                Assert.That(config.ExportOptionsPath, Does.EndWith("AppStoreExportOptionsDev.plist"));
+                Assert.That(config.XcodeConfiguration, Is.EqualTo("Debug"));
             }
             finally
             {
@@ -111,6 +197,101 @@ namespace LFramework.Editor.Tests.BuildPackage.PlatformConfig
             }
         }
 
+        [Test]
+        public void ExportOptionsWriter_ShouldGenerateReleaseExportOptions()
+        {
+            string tempRoot = CreateTempDirectory();
+            var setting = CreateValidSetting();
+            SetPrivateField(setting, "distributionMobileProvisionUUid", "distribution-profile-uuid");
+            SetPrivateField(setting, "distributionMobileProvisionProfileName", "Distribution Profile");
+            SetPrivateField(setting, "distributionCodeSignIdentity", "Apple Distribution");
+
+            try
+            {
+                var config = iOSBuildConfig.CreateFromBuildSetting(CreateBuildSetting(), setting, Path.Combine(tempRoot, "Project"));
+
+                iOSExportOptionsWriter.Write(config);
+
+                Assert.That(File.Exists(config.ExportOptionsPath), Is.True);
+                XElement root = LoadRootDict(config.ExportOptionsPath);
+                Assert.That(GetString(root, "method"), Is.EqualTo("app-store-connect"));
+                Assert.That(GetString(root, "signingStyle"), Is.EqualTo("manual"));
+                Assert.That(GetString(root, "signingCertificate"), Is.EqualTo("Apple Distribution"));
+                Assert.That(GetString(root, "teamID"), Is.EqualTo("TEAM123456"));
+                Assert.That(GetString(GetDict(root, "provisioningProfiles"), "com.company.game"), Is.EqualTo("distribution-profile-uuid"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(setting);
+                Directory.Delete(tempRoot, true);
+            }
+        }
+
+        [Test]
+        public void ArchiveExportScriptWriter_ShouldUseResolvedBuildConfigurationAndSigning()
+        {
+            string tempRoot = CreateTempDirectory();
+            var setting = CreateValidSetting();
+            SetPrivateField(setting, "developmentMobileProvisionUUid", "development-profile-uuid");
+            SetPrivateField(setting, "developmentMobileProvisionProfileName", "Development Profile");
+            SetPrivateField(setting, "developmentCodeSignIdentity", "Apple Development");
+            var buildSetting = CreateBuildSetting();
+            buildSetting.isRelease = false;
+
+            try
+            {
+                var config = iOSBuildConfig.CreateFromBuildSetting(buildSetting, setting, Path.Combine(tempRoot, "Project"));
+
+                string scriptPath = iOSArchiveExportScriptWriter.Write(config);
+
+                string script = File.ReadAllText(scriptPath);
+                Assert.That(iOSIpaExporter.ArchiveExportShellCommand, Is.EqualTo("bash"));
+                Assert.That(script, Does.Contain("project_selector=(-workspace"));
+                Assert.That(script, Does.Contain("project_selector=(-project"));
+                Assert.That(script, Does.Contain("xcodebuild archive \"${project_selector[@]}\""));
+                Assert.That(script, Does.Contain("-configuration 'Debug'"));
+                Assert.That(script, Does.Contain("DEVELOPMENT_TEAM='TEAM123456'"));
+                Assert.That(script, Does.Contain("PROVISIONING_PROFILE='development-profile-uuid'"));
+                Assert.That(script, Does.Contain("PROVISIONING_PROFILE_SPECIFIER='Development Profile'"));
+                Assert.That(script, Does.Contain("CODE_SIGN_IDENTITY='Apple Development'"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(setting);
+                Directory.Delete(tempRoot, true);
+            }
+        }
+
+        [Test]
+        public void PlistConfigurator_ShouldWriteRequiredPrivacyDescriptions()
+        {
+            string tempRoot = CreateTempDirectory();
+            var setting = CreateValidSetting();
+            SetPrivateField(setting, "cameraUsageDescription", "Camera access is required to scan cards.");
+            SetPrivateField(setting, "locationUsageDescription", "Location access is required for regional services.");
+            string outputPath = Path.Combine(tempRoot, "Project");
+            Directory.CreateDirectory(outputPath);
+            File.WriteAllText(Path.Combine(outputPath, "Info.plist"), CreateEmptyPlist());
+
+            try
+            {
+                var config = iOSBuildConfig.CreateFromBuildSetting(CreateBuildSetting(), setting, outputPath);
+
+                new iOSPlistConfigurator(config).Configure();
+
+                XElement root = LoadRootDict(Path.Combine(outputPath, "Info.plist"));
+                Assert.That(GetBoolean(root, "ITSAppUsesNonExemptEncryption"), Is.False);
+                Assert.That(GetString(root, "NSUserTrackingUsageDescription"), Is.Not.Empty);
+                Assert.That(GetString(root, "NSCameraUsageDescription"), Is.EqualTo("Camera access is required to scan cards."));
+                Assert.That(GetString(root, "NSLocationWhenInUseUsageDescription"), Is.EqualTo("Location access is required for regional services."));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(setting);
+                Directory.Delete(tempRoot, true);
+            }
+        }
+
         private static BuildSetting CreateBuildSetting()
         {
             return new BuildSetting
@@ -128,9 +309,70 @@ namespace LFramework.Editor.Tests.BuildPackage.PlatformConfig
             SetPrivateField(setting, "bundleIdentifier", "com.company.game");
             SetPrivateField(setting, "targetOSVersion", "12.0");
             SetPrivateField(setting, "mobileProvisionUUid", "profile-uuid");
+            SetPrivateField(setting, "mobileProvisionProfileName", "Base Profile");
             SetPrivateField(setting, "appleDevelopTeamId", "TEAM123456");
             SetPrivateField(setting, "codeSignIdentity", "Apple Distribution");
             return setting;
+        }
+
+        private static string CreateTempDirectory()
+        {
+            string path = Path.Combine(Path.GetTempPath(), "lframework-ios-build-tests", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(path);
+            return path;
+        }
+
+        private static string CreateEmptyPlist()
+        {
+            return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                   "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n" +
+                   "<plist version=\"1.0\">\n" +
+                   "  <dict>\n" +
+                   "  </dict>\n" +
+                   "</plist>\n";
+        }
+
+        private static XElement LoadRootDict(string path)
+        {
+            return XDocument.Load(path).Root?.Element("dict")
+                   ?? throw new InvalidOperationException($"Root dict not found in plist: {path}");
+        }
+
+        private static XElement GetDict(XElement dict, string key)
+        {
+            XElement value = FindValue(dict, key);
+            Assert.That(value.Name.LocalName, Is.EqualTo("dict"));
+            return value;
+        }
+
+        private static string GetString(XElement dict, string key)
+        {
+            XElement value = FindValue(dict, key);
+            Assert.That(value.Name.LocalName, Is.EqualTo("string"));
+            return value.Value;
+        }
+
+        private static bool GetBoolean(XElement dict, string key)
+        {
+            XElement value = FindValue(dict, key);
+            return value.Name.LocalName == "true";
+        }
+
+        private static XElement FindValue(XElement dict, string key)
+        {
+            XElement keyElement = dict.Elements("key").FirstOrDefault(element => element.Value == key);
+            if (keyElement == null)
+            {
+                throw new InvalidOperationException($"Key not found in plist dict: {key}");
+            }
+
+            XElement valueElement = keyElement.ElementsAfterSelf().FirstOrDefault();
+            if (valueElement == null)
+            {
+                throw new InvalidOperationException($"Value not found for plist key: {key}");
+            }
+
+            return valueElement;
         }
 
         private static void SetPrivateField(object target, string fieldName, object value)

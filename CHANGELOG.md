@@ -2,6 +2,19 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.2.36]
+
+### Added
+
+- Added configurable iOS signing, provisioning profile, capability, privacy, ExportOptions, and IPA export settings.
+- Added EditMode coverage for iOS signing validation, Xcode export options generation, archive script generation, and Info.plist privacy output.
+
+### Changed
+
+- Hardened iOS Xcode post-processing to apply manual signing, arm64-only builds, Swift embedding settings, bitcode disabling, and UnityFramework linker flags.
+- Made iOS build validation fail early when signing settings are missing or still use placeholder values.
+- Made CocoaPods and IPA export execution macOS-aware so Windows project generation does not try to run Xcode tooling.
+
 ## [0.2.31]
 
 ### Added
