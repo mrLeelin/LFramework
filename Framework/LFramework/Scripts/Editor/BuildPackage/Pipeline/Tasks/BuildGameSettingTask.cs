@@ -93,12 +93,6 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                 ApplyPlatformSettings(buildSetting);
                 // 标记为脏并保存
                 EditorUtility.SetDirty(setting);
-
-
-                var hybridClrSetting = SettingManager.GetSetting<HybridCLRSetting>();
-                hybridClrSetting.useHybridClR = buildSetting.isbuildDll;
-                Debug.Log($"[BuildGameSettingTask] HybridClrSetting  update Successful. '{hybridClrSetting.useHybridClR}'");
-                EditorUtility.SetDirty(hybridClrSetting);
                 
                 AssetDatabase.SaveAssets();
 

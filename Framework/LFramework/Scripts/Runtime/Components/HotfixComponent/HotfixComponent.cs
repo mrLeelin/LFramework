@@ -82,7 +82,7 @@ namespace LFramework.Runtime
 #if UNITY_EDITOR
                 result = LoadEditorHotfixAssemblies();
 #elif HybridCLR_SUPPORT
-                if (!HybridClrSetting.useHybridClR)
+                if (GameSetting.isResourcesBuildIn)
                 {
                     result = LoadEditorHotfixAssemblies();
                 }
