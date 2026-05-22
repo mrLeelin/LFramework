@@ -175,8 +175,7 @@ namespace LFramework.Runtime
                 Log.Fatal(e);
             }
         }
-
-#if UNITY_EDITOR
+        
         private HotfixCodeResult LoadEditorHotfixAssemblies()
         {
             Assembly mainLogicAssembly = null;
@@ -203,7 +202,6 @@ namespace LFramework.Runtime
                 ResultType = LoadAssemblyResultType.Successful
             };
         }
-#endif
 
 #if HybridCLR_SUPPORT
         /// <summary>
