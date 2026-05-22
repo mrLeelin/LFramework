@@ -8,6 +8,8 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
     /// </summary>
     public class PostprocessBuildTask : IBuildTask
     {
+        internal const string PlayerOutputPathKey = "BuildPlayerTask.PlayerOutputPath";
+
         /// <summary>
         /// 任务名称
         /// </summary>
@@ -51,13 +53,18 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                     return BuildTaskResult.CreateSuccess(TaskName);
                 }
 
+                string playerOutputPath = context.GetCustomData(
+                    PlayerOutputPathKey,
+                    context.PlatformConfig.GetOutputPath(context.BuildSetting));
+
                 Debug.Log($"[PostprocessBuildTask] Executing {handlers.Count} event handler(s)...");
+                Debug.Log($"[PostprocessBuildTask] Player output path: {playerOutputPath}");
 
                 IBuildEventHandler.HandleList(handlers, (handler) =>
                 {
                     Debug.Log($"[PostprocessBuildTask] Calling {handler.GetType().Name}.OnPostprocessBuildApp");
                    
-                    handler.OnPostprocessBuildApp(context.BuildSetting,context.OutputFolder);
+                    handler.OnPostprocessBuildApp(context.BuildSetting, playerOutputPath);
                 });
 
                 Debug.Log($"[PostprocessBuildTask] All event handlers executed successfully.");
