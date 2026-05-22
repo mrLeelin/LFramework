@@ -103,6 +103,8 @@ namespace LFramework.Editor.Builder.iOS.Configurators
             pbxProject.SetBuildProperty(unityMainGuid, "CODE_SIGN_STYLE", "Manual");
             pbxProject.SetBuildProperty(unityMainGuid, "DEVELOPMENT_TEAM",
                 _config.AppleDevelopTeamId);
+            pbxProject.SetBuildProperty(unityMainGuid, "PROVISIONING_PROFILE",
+                _config.MobileProvisionUuid);
 
             // 设置架构（仅支持 arm64）
             pbxProject.SetBuildProperty(unityMainGuid, "ARCHS", "arm64");

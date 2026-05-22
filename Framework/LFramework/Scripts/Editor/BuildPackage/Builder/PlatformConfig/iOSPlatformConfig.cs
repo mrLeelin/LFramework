@@ -67,23 +67,39 @@ namespace LFramework.Editor.Builder.PlatformConfig
 
         public void ConfigurePlatformSettings(BuildSetting buildSetting)
         {
+            if (_iOSSetting == null)
+            {
+                throw new InvalidOperationException(
+                    "iOSSetting not found in ProjectSettingSelector, unable to configure iOS build settings.");
+            }
+
+            if (!_iOSSetting.Validate(out string errorMessage))
+            {
+                throw new InvalidOperationException(
+                    $"iOSSetting validation failed, unable to configure iOS build settings. {errorMessage}");
+            }
+
             // 配置脚本后端
             PlayerSettings.SetScriptingBackend(
                 NamedBuildTarget.FromBuildTargetGroup(BuildTargetGroup.iOS),
                 ScriptingImplementation.IL2CPP);
+            
 
             // 配置 iOS 特定设置
             PlayerSettings.iOS.backgroundModes = iOSBackgroundMode.None;
             PlayerSettings.iOS.appInBackgroundBehavior = iOSAppInBackgroundBehavior.Custom;
             PlayerSettings.iOS.buildNumber = buildSetting.versionCode.ToString();
             PlayerSettings.iOS.targetOSVersionString = _iOSSetting.TargetOSVersion;
+            PlayerSettings.iOS.requiresFullScreen = _iOSSetting.RequiresFullScreen;
             PlayerSettings.iOS.deferSystemGesturesMode = SystemGestureDeferMode.All;
             PlayerSettings.iOS.hideHomeButton = true;
             // 配置签名
             PlayerSettings.iOS.appleEnableAutomaticSigning = false;
             PlayerSettings.iOS.iOSManualProvisioningProfileID = _iOSSetting.MobileProvisionUUid;
             PlayerSettings.iOS.appleDeveloperTeamID = _iOSSetting.AppleDevelopTeamId;
-            PlayerSettings.iOS.iOSManualProvisioningProfileType = ProvisioningProfileType.Automatic;
+            PlayerSettings.iOS.iOSManualProvisioningProfileType = buildSetting.isRelease
+                ? ProvisioningProfileType.Distribution
+                : ProvisioningProfileType.Development;
             
         }
 

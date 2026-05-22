@@ -84,6 +84,13 @@ namespace LFramework.Editor.Builder.iOS.Configurators
         /// </summary>
         private void ConfigureURLSchemes(PlistElementDict rootDict)
         {
+            if (string.IsNullOrWhiteSpace(_config.URLScheme) ||
+                string.IsNullOrWhiteSpace(_config.BundleURLName))
+            {
+                iOSBuildLogger.LogInfo("URL Scheme configuration skipped because URLScheme or BundleURLName is empty");
+                return;
+            }
+
             // 创建 CFBundleURLTypes 数组
             PlistElementArray urlTypesArray = rootDict.CreateArray(iOSBuildConstants.PLIST_KEY_URL_TYPES);
 

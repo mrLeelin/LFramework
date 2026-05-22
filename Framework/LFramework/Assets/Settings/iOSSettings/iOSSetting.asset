@@ -17,6 +17,12 @@ MonoBehaviour:
   tags: []
   bundleIdentifier: com.company.game.dev
   targetOSVersion: 12.0
+  mobileProvisionUUid: TODO_PROFILE_UUID
+  appleDevelopTeamId: TODO_TEAM_ID
+  codeSignIdentity: Apple Development
   requiresFullScreen: 1
+  urlScheme: 
+  bundleURLName: 
+  appControllerName: 
   cameraUsageDescription: 
   locationUsageDescription: 

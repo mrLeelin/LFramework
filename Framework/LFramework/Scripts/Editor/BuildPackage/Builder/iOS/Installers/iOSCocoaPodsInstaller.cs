@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text;
+using UnityEngine;
 
 namespace LFramework.Editor.Builder.iOS.Installers
 {
@@ -35,6 +36,18 @@ namespace LFramework.Editor.Builder.iOS.Installers
             if (!File.Exists(podfilePath))
             {
                 iOSBuildLogger.LogError("Podfile not found, skipping pod install");
+                return;
+            }
+
+            if (Application.platform != RuntimePlatform.OSXEditor)
+            {
+                iOSBuildLogger.LogWarning("Skipping CocoaPods installation because pod install must run on macOS.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_config.PodCommandPath))
+            {
+                iOSBuildLogger.LogWarning("Skipping CocoaPods installation because pod command was not found.");
                 return;
             }
 

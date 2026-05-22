@@ -94,6 +94,12 @@ namespace LFramework.Editor.Builder.iOS.Configurators
         /// </summary>
         private void FixDeepLinkReception()
         {
+            if (string.IsNullOrWhiteSpace(_config.CustomAppControllerName))
+            {
+                iOSBuildLogger.LogInfo("Deep Link reception fix skipped because CustomAppControllerName is empty");
+                return;
+            }
+
             iOSBuildLogger.LogInfo("Fixing Deep Link reception...");
 
             // 1. 修改 Info.plist
@@ -205,7 +211,10 @@ namespace LFramework.Editor.Builder.iOS.Configurators
                     "use_frameworks!");
 
                 // 添加 CocoaPods 警告抑制配置
-                replaced += iOSBuildConstants.COCOAPODS_WARN_SUPPRESSION;
+                if (!replaced.Contains("warn_for_unused_master_specs_repo"))
+                {
+                    replaced += iOSBuildConstants.COCOAPODS_WARN_SUPPRESSION;
+                }
 
                 File.WriteAllText(podfilePath, replaced);
 

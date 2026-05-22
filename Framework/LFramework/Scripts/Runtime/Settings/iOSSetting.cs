@@ -9,7 +9,6 @@ namespace LFramework.Runtime.Settings
     [CreateAssetMenu(fileName = "iOSSetting", menuName = "LFramework/Settings/iOSSetting")]
     public class iOSSetting : BaseSetting
     {
-   
         [FoldoutGroup("iOS 配置")]
         [SerializeField] private string targetOSVersion = "12.0";
         [FoldoutGroup("iOS 配置")]
@@ -57,8 +56,38 @@ namespace LFramework.Runtime.Settings
         
         public override bool Validate(out string errorMessage)
         {
+            if (IsUnset(targetOSVersion))
+            {
+                errorMessage = "Target OS Version is required.";
+                return false;
+            }
+
+            if (IsUnset(mobileProvisionUUid))
+            {
+                errorMessage = "Mobile Provision UUID is required.";
+                return false;
+            }
+
+            if (IsUnset(appleDevelopTeamId))
+            {
+                errorMessage = "Apple Developer Team ID is required.";
+                return false;
+            }
+
+            if (IsUnset(codeSignIdentity))
+            {
+                errorMessage = "Code Sign Identity is required.";
+                return false;
+            }
+
             errorMessage = null;
             return true;
+        }
+
+        private static bool IsUnset(string value)
+        {
+            return string.IsNullOrWhiteSpace(value) ||
+                   value.Trim().StartsWith("TODO", System.StringComparison.OrdinalIgnoreCase);
         }
     }
 }

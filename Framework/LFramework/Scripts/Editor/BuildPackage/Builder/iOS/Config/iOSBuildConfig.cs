@@ -46,6 +46,7 @@ namespace LFramework.Editor.Builder.iOS
         /// 用于替换默认的 UnityAppController
         /// </summary>
         public string CustomAppControllerName { get; set; }
+        
 
         // ==================== CocoaPods 配置 ====================
 
@@ -72,6 +73,8 @@ namespace LFramework.Editor.Builder.iOS
         /// sign identity
         /// </summary>
         public string CodeSignIdentity { get; set; }
+        
+        public string MobileProvisionUuid { get; set; }
 
         // ==================== 工厂方法 ====================
 
@@ -85,6 +88,11 @@ namespace LFramework.Editor.Builder.iOS
         /// <returns>iOS 构建配置实例</returns>
         public static iOSBuildConfig CreateFromBuildSetting(BuildSetting buildSetting, iOSSetting iOSSetting,string outputPath)
         {
+            if (iOSSetting == null)
+            {
+                throw new ArgumentNullException(nameof(iOSSetting));
+            }
+
             var config = new iOSBuildConfig
             {
                 // 使用传入的输出路径
@@ -99,9 +107,10 @@ namespace LFramework.Editor.Builder.iOS
 
                 // 自定义 AppController 名称
                 CustomAppControllerName = iOSSetting.AppControllerName,
-
+                
                 AppleDevelopTeamId = iOSSetting.AppleDevelopTeamId,
                 CodeSignIdentity = iOSSetting.CodeSignIdentity,
+                MobileProvisionUuid = iOSSetting.MobileProvisionUUid,
                 // 构建模式
                 IsDevelopment = !buildSetting.isRelease,
                 // 动态检测 pod 命令路径
@@ -125,9 +134,10 @@ namespace LFramework.Editor.Builder.iOS
             {
                 throw new InvalidOperationException("Output path is not configured");
             }
+            
 
             // 验证 Apple Team ID
-            if (string.IsNullOrEmpty(AppleDevelopTeamId))
+            if (IsUnset(AppleDevelopTeamId))
             {
                 throw new InvalidOperationException(
                     "Apple Team ID is not configured in iOSBuildData. " +
@@ -135,7 +145,7 @@ namespace LFramework.Editor.Builder.iOS
             }
 
             // 验证代码签名身份
-            if (string.IsNullOrEmpty(CodeSignIdentity))
+            if (IsUnset(CodeSignIdentity))
             {
                 throw new InvalidOperationException(
                     "Code sign identity is not configured in iOSBuildData. " +
@@ -143,7 +153,15 @@ namespace LFramework.Editor.Builder.iOS
             }
 
             // 验证 CocoaPods 命令
-            if (string.IsNullOrEmpty(PodCommandPath))
+            if (IsUnset(MobileProvisionUuid))
+            {
+                throw new InvalidOperationException(
+                    "Mobile provisioning profile UUID is not configured in iOSSetting. " +
+                    "Please set MobileProvisionUUid.");
+            }
+
+            string podfilePath = Path.Combine(OutputPath, iOSBuildConstants.PODFILE_PATH);
+            if (File.Exists(podfilePath) && string.IsNullOrEmpty(PodCommandPath))
             {
                 throw new InvalidOperationException(
                     "CocoaPods command not found. " +
@@ -188,6 +206,12 @@ namespace LFramework.Editor.Builder.iOS
 
             // 未找到 pod 命令
             return null;
+        }
+
+        private static bool IsUnset(string value)
+        {
+            return string.IsNullOrWhiteSpace(value) ||
+                   value.Trim().StartsWith("TODO", StringComparison.OrdinalIgnoreCase);
         }
     }
 }
