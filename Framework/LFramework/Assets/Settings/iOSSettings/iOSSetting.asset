@@ -18,19 +18,20 @@ MonoBehaviour:
   bundleIdentifier: com.company.game.dev
   targetOSVersion: 12.0
   requiresFullScreen: 1
-  mobileProvisionUUid: TODO_PROFILE_UUID
-  mobileProvisionProfileName: TODO_PROFILE_NAME
   appleDevelopTeamId: TODO_TEAM_ID
-  codeSignIdentity: Apple Development
-  developmentMobileProvisionUUid:
-  developmentMobileProvisionProfileName:
+  developmentMobileProvisionUUid: TODO_DEVELOPMENT_PROFILE_UUID
+  developmentMobileProvisionProfileName: TODO_DEVELOPMENT_PROFILE_NAME
   developmentCodeSignIdentity: Apple Development
-  distributionMobileProvisionUUid:
-  distributionMobileProvisionProfileName:
+  distributionMobileProvisionUUid: TODO_DISTRIBUTION_PROFILE_UUID
+  distributionMobileProvisionProfileName: TODO_DISTRIBUTION_PROFILE_NAME
   distributionCodeSignIdentity: Apple Distribution
   autoExportIpa: 0
   exportOptionsFileName: AppStoreExportOptions.plist
   developmentExportOptionsFileName: AppStoreExportOptionsDev.plist
+  autoUploadToAppStore: 0
+  validateAppBeforeUpload: 1
+  appStoreUserName: TODO_APP_STORE_USERNAME
+  appStorePassword: TODO_APP_STORE_APP_PASSWORD
   urlScheme: 
   bundleURLName: 
   appControllerName: 

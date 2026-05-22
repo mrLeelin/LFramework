@@ -20,7 +20,7 @@ MonoBehaviour:
   versionUrl: http://152.136.170.211/game/Version
   ip: http://172.16.0.190:8010
   webSocketIp: ws://172.16.0.190:8085/ws
-  appVersion: 1.0.0.101
+  appVersion: 1.0.0.102
   resourceVersion: 1.0.0.110
   cdnType: 2
   channel: GoogleStore

@@ -32,6 +32,10 @@ namespace LFramework.Editor.Builder.iOS
         public string ArchivePath { get; set; }
         public string IpaExportPath { get; set; }
         public string IpaName { get; set; }
+        public bool AutoUploadToAppStore { get; set; }
+        public bool ValidateAppBeforeUpload { get; set; }
+        public string AppStoreUserName { get; set; }
+        public string AppStorePassword { get; set; }
         public bool EnableKeychainSharing { get; set; }
         public bool EnablePushNotifications { get; set; }
         public bool EnableGameCenter { get; set; }
@@ -96,6 +100,10 @@ namespace LFramework.Editor.Builder.iOS
                 ArchivePath = Path.Combine(buildRootPath, "Archive", $"{channelName}_{releaseName}_{buildSetting.GetAppVersion()}", "Build.xcarchive"),
                 IpaExportPath = Path.Combine(buildRootPath, "IPA", $"{channelName}_{releaseName}_{buildSetting.GetAppVersion()}"),
                 IpaName = $"Build_{channelName}_{releaseName}_{buildSetting.GetAppVersion()}.ipa",
+                AutoUploadToAppStore = iOSSetting.AutoUploadToAppStore,
+                ValidateAppBeforeUpload = iOSSetting.ValidateAppBeforeUpload,
+                AppStoreUserName = iOSSetting.AppStoreUserName,
+                AppStorePassword = iOSSetting.AppStorePassword,
                 EnableKeychainSharing = iOSSetting.EnableKeychainSharing,
                 EnablePushNotifications = iOSSetting.EnablePushNotifications,
                 EnableGameCenter = iOSSetting.EnableGameCenter,
@@ -140,6 +148,11 @@ namespace LFramework.Editor.Builder.iOS
             if (IsUnset(ExportMethod))
             {
                 throw new InvalidOperationException("iOS export method is not configured.");
+            }
+
+            if (AutoUploadToAppStore)
+            {
+                ValidateAppStoreUploadSettings();
             }
 
             string podfilePath = Path.Combine(OutputPath, iOSBuildConstants.PODFILE_PATH);
@@ -201,6 +214,36 @@ namespace LFramework.Editor.Builder.iOS
         {
             return string.IsNullOrWhiteSpace(value) ||
                    value.Trim().StartsWith("TODO", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void ValidateAppStoreUploadSettings()
+        {
+            if (IsDevelopment)
+            {
+                throw new InvalidOperationException("AutoUploadToAppStore only supports Release builds.");
+            }
+
+            if (!AutoExportIpa)
+            {
+                throw new InvalidOperationException(
+                    "AutoUploadToAppStore requires AutoExportIpa because an IPA must exist before upload.");
+            }
+
+            if (IsUnset(AppStoreUserName))
+            {
+                throw new InvalidOperationException("App Store username is not configured in iOSSetting.");
+            }
+
+            if (IsUnset(AppStorePassword))
+            {
+                throw new InvalidOperationException("App Store app-specific password is not configured in iOSSetting.");
+            }
+
+            if (Application.platform != RuntimePlatform.OSXEditor)
+            {
+                throw new InvalidOperationException(
+                    "AutoUploadToAppStore requires macOS with Xcode command line tools installed.");
+            }
         }
     }
 }

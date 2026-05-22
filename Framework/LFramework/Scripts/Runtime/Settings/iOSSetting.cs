@@ -19,16 +19,7 @@ namespace LFramework.Runtime.Settings
         [SerializeField] private bool requiresFullScreen = true;
 
         [FoldoutGroup("Signing/Base")]
-        [SerializeField] private string mobileProvisionUUid;
-
-        [FoldoutGroup("Signing/Base")]
-        [SerializeField] private string mobileProvisionProfileName;
-
-        [FoldoutGroup("Signing/Base")]
         [SerializeField] private string appleDevelopTeamId;
-
-        [FoldoutGroup("Signing/Base")]
-        [SerializeField] private string codeSignIdentity;
 
         [FoldoutGroup("Signing/Development")]
         [SerializeField] private string developmentMobileProvisionUUid;
@@ -56,6 +47,18 @@ namespace LFramework.Runtime.Settings
 
         [FoldoutGroup("IPA Export")]
         [SerializeField] private string developmentExportOptionsFileName = "AppStoreExportOptionsDev.plist";
+
+        [FoldoutGroup("App Store Upload")]
+        [SerializeField] private bool autoUploadToAppStore;
+
+        [FoldoutGroup("App Store Upload")]
+        [SerializeField] private bool validateAppBeforeUpload = true;
+
+        [FoldoutGroup("App Store Upload")]
+        [SerializeField] private string appStoreUserName;
+
+        [FoldoutGroup("App Store Upload")]
+        [SerializeField] private string appStorePassword;
 
         [FoldoutGroup("Deep Link")]
         [SerializeField] private string urlScheme;
@@ -95,40 +98,24 @@ namespace LFramework.Runtime.Settings
         public string URLScheme => urlScheme;
         public string BundleURLName => bundleURLName;
         public string AppControllerName => appControllerName;
-        public string MobileProvisionUUid => mobileProvisionUUid;
-        public string MobileProvisionProfileName => mobileProvisionProfileName;
         public string AppleDevelopTeamId => appleDevelopTeamId;
-        public string CodeSignIdentity => codeSignIdentity;
         public bool AutoExportIpa => autoExportIpa;
+        public bool AutoUploadToAppStore => autoUploadToAppStore;
+        public bool ValidateAppBeforeUpload => validateAppBeforeUpload;
+        public string AppStoreUserName => appStoreUserName;
+        public string AppStorePassword => appStorePassword;
         public bool EnableKeychainSharing => enableKeychainSharing;
         public bool EnablePushNotifications => enablePushNotifications;
         public bool EnableGameCenter => enableGameCenter;
         public bool EnableInAppPurchase => enableInAppPurchase;
         public bool EnableSignInWithApple => enableSignInWithApple;
 
-        public string DevelopmentMobileProvisionUUid => IsUnset(developmentMobileProvisionUUid)
-            ? mobileProvisionUUid
-            : developmentMobileProvisionUUid;
-
-        public string DevelopmentMobileProvisionProfileName => IsUnset(developmentMobileProvisionProfileName)
-            ? mobileProvisionProfileName
-            : developmentMobileProvisionProfileName;
-
-        public string DistributionMobileProvisionUUid => IsUnset(distributionMobileProvisionUUid)
-            ? mobileProvisionUUid
-            : distributionMobileProvisionUUid;
-
-        public string DistributionMobileProvisionProfileName => IsUnset(distributionMobileProvisionProfileName)
-            ? mobileProvisionProfileName
-            : distributionMobileProvisionProfileName;
-
-        public string DevelopmentCodeSignIdentity => IsUnset(developmentCodeSignIdentity)
-            ? codeSignIdentity
-            : developmentCodeSignIdentity;
-
-        public string DistributionCodeSignIdentity => IsUnset(distributionCodeSignIdentity)
-            ? codeSignIdentity
-            : distributionCodeSignIdentity;
+        public string DevelopmentMobileProvisionUUid => developmentMobileProvisionUUid;
+        public string DevelopmentMobileProvisionProfileName => developmentMobileProvisionProfileName;
+        public string DevelopmentCodeSignIdentity => developmentCodeSignIdentity;
+        public string DistributionMobileProvisionUUid => distributionMobileProvisionUUid;
+        public string DistributionMobileProvisionProfileName => distributionMobileProvisionProfileName;
+        public string DistributionCodeSignIdentity => distributionCodeSignIdentity;
 
         public string ExportOptionsFileName => string.IsNullOrWhiteSpace(exportOptionsFileName)
             ? "AppStoreExportOptions.plist"
@@ -142,24 +129,6 @@ namespace LFramework.Runtime.Settings
         {
             if (!ValidateCommon(out errorMessage))
             {
-                return false;
-            }
-
-            if (IsUnset(mobileProvisionUUid))
-            {
-                errorMessage = "Mobile Provision UUID is required.";
-                return false;
-            }
-
-            if (IsUnset(mobileProvisionProfileName))
-            {
-                errorMessage = "Mobile Provision Profile Name is required.";
-                return false;
-            }
-
-            if (IsUnset(codeSignIdentity))
-            {
-                errorMessage = "Code Sign Identity is required.";
                 return false;
             }
 

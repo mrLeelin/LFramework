@@ -57,9 +57,6 @@ namespace LFramework.Editor.Tests.BuildPackage.PlatformConfig
         public void ValidateForBuild_ShouldOnlyRequireCurrentBuildSigningFields()
         {
             var setting = CreateValidSetting();
-            SetPrivateField(setting, "mobileProvisionUUid", string.Empty);
-            SetPrivateField(setting, "mobileProvisionProfileName", string.Empty);
-            SetPrivateField(setting, "codeSignIdentity", string.Empty);
             SetPrivateField(setting, "developmentMobileProvisionUUid", "development-profile-uuid");
             SetPrivateField(setting, "developmentMobileProvisionProfileName", "Development Profile");
             SetPrivateField(setting, "developmentCodeSignIdentity", "Apple Development");
@@ -85,15 +82,15 @@ namespace LFramework.Editor.Tests.BuildPackage.PlatformConfig
         public void Validate_ShouldFail_WhenSigningFieldsUseTodoPlaceholders()
         {
             var setting = CreateValidSetting();
-            SetPrivateField(setting, "mobileProvisionUUid", "TODO_PROFILE_UUID");
-            SetPrivateField(setting, "mobileProvisionProfileName", "TODO_PROFILE_NAME");
+            SetPrivateField(setting, "developmentMobileProvisionUUid", "TODO_PROFILE_UUID");
+            SetPrivateField(setting, "developmentMobileProvisionProfileName", "TODO_PROFILE_NAME");
 
             try
             {
                 bool isValid = setting.Validate(out string errorMessage);
 
                 Assert.That(isValid, Is.False);
-                Assert.That(errorMessage, Does.Contain("Mobile Provision UUID"));
+                Assert.That(errorMessage, Does.Contain("Development Mobile Provision UUID"));
             }
             finally
             {
@@ -117,6 +114,10 @@ namespace LFramework.Editor.Tests.BuildPackage.PlatformConfig
             SetPrivateField(setting, "enableGameCenter", true);
             SetPrivateField(setting, "enableInAppPurchase", true);
             SetPrivateField(setting, "enableSignInWithApple", true);
+            SetPrivateField(setting, "autoUploadToAppStore", true);
+            SetPrivateField(setting, "appStoreUserName", "ios-uploader@example.com");
+            SetPrivateField(setting, "appStorePassword", "app-specific-password");
+            SetPrivateField(setting, "validateAppBeforeUpload", true);
 
             try
             {
@@ -143,6 +144,10 @@ namespace LFramework.Editor.Tests.BuildPackage.PlatformConfig
                 Assert.That(config.EnableGameCenter, Is.True);
                 Assert.That(config.EnableInAppPurchase, Is.True);
                 Assert.That(config.EnableSignInWithApple, Is.True);
+                Assert.That(config.AutoUploadToAppStore, Is.True);
+                Assert.That(config.AppStoreUserName, Is.EqualTo("ios-uploader@example.com"));
+                Assert.That(config.AppStorePassword, Is.EqualTo("app-specific-password"));
+                Assert.That(config.ValidateAppBeforeUpload, Is.True);
             }
             finally
             {
@@ -292,6 +297,78 @@ namespace LFramework.Editor.Tests.BuildPackage.PlatformConfig
             }
         }
 
+        [Test]
+        public void AppStoreUploader_ShouldRequireReleaseAutoExportAndCredentials()
+        {
+            var setting = CreateValidSetting();
+            SetPrivateField(setting, "autoUploadToAppStore", true);
+            SetPrivateField(setting, "appStoreUserName", "ios-uploader@example.com");
+            SetPrivateField(setting, "appStorePassword", "app-specific-password");
+            var buildSetting = CreateBuildSetting();
+            buildSetting.isRelease = false;
+
+            try
+            {
+                var debugConfig = iOSBuildConfig.CreateFromBuildSetting(buildSetting, setting, "Builds/IOS/Project");
+
+                Assert.That(
+                    () => new iOSAppStoreUploader(debugConfig).ValidateForUpload(),
+                    Throws.InvalidOperationException.With.Message.Contains("Release"));
+
+                buildSetting.isRelease = true;
+                var releaseConfig = iOSBuildConfig.CreateFromBuildSetting(buildSetting, setting, "Builds/IOS/Project");
+
+                Assert.That(
+                    () => new iOSAppStoreUploader(releaseConfig).ValidateForUpload(),
+                    Throws.InvalidOperationException.With.Message.Contains("AutoExportIpa"));
+
+                SetPrivateField(setting, "autoExportIpa", true);
+                SetPrivateField(setting, "appStoreUserName", string.Empty);
+                var missingUserConfig = iOSBuildConfig.CreateFromBuildSetting(buildSetting, setting, "Builds/IOS/Project");
+
+                Assert.That(
+                    () => new iOSAppStoreUploader(missingUserConfig).ValidateForUpload(),
+                    Throws.InvalidOperationException.With.Message.Contains("username"));
+
+                SetPrivateField(setting, "appStoreUserName", "TODO_APP_STORE_USERNAME");
+                SetPrivateField(setting, "appStorePassword", "TODO_APP_STORE_APP_PASSWORD");
+                var placeholderConfig = iOSBuildConfig.CreateFromBuildSetting(buildSetting, setting, "Builds/IOS/Project");
+
+                Assert.That(
+                    () => new iOSAppStoreUploader(placeholderConfig).ValidateForUpload(),
+                    Throws.InvalidOperationException.With.Message.Contains("username"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(setting);
+            }
+        }
+
+        [Test]
+        public void AppStoreUploader_ShouldBuildAltoolValidateAndUploadCommands()
+        {
+            var config = new iOSBuildConfig
+            {
+                AutoExportIpa = true,
+                AutoUploadToAppStore = true,
+                ValidateAppBeforeUpload = true,
+                IsDevelopment = false,
+                AppStoreUserName = "ios-uploader@example.com",
+                AppStorePassword = "app-specific-password"
+            };
+
+            string ipaPath = "/tmp/build/My Game.ipa";
+
+            string validateCommand = iOSAppStoreUploader.BuildAltoolArguments(config, ipaPath, validateOnly: true);
+            string uploadCommand = iOSAppStoreUploader.BuildAltoolArguments(config, ipaPath, validateOnly: false);
+
+            Assert.That(validateCommand, Does.Contain("--validate-app"));
+            Assert.That(validateCommand, Does.Contain("-f \"/tmp/build/My Game.ipa\""));
+            Assert.That(validateCommand, Does.Contain("-u ios-uploader@example.com"));
+            Assert.That(validateCommand, Does.Contain("-p app-specific-password"));
+            Assert.That(uploadCommand, Does.Contain("--upload-app"));
+        }
+
         private static BuildSetting CreateBuildSetting()
         {
             return new BuildSetting
@@ -308,10 +385,13 @@ namespace LFramework.Editor.Tests.BuildPackage.PlatformConfig
             var setting = ScriptableObject.CreateInstance<iOSSetting>();
             SetPrivateField(setting, "bundleIdentifier", "com.company.game");
             SetPrivateField(setting, "targetOSVersion", "12.0");
-            SetPrivateField(setting, "mobileProvisionUUid", "profile-uuid");
-            SetPrivateField(setting, "mobileProvisionProfileName", "Base Profile");
             SetPrivateField(setting, "appleDevelopTeamId", "TEAM123456");
-            SetPrivateField(setting, "codeSignIdentity", "Apple Distribution");
+            SetPrivateField(setting, "developmentMobileProvisionUUid", "development-profile-uuid");
+            SetPrivateField(setting, "developmentMobileProvisionProfileName", "Development Profile");
+            SetPrivateField(setting, "developmentCodeSignIdentity", "Apple Development");
+            SetPrivateField(setting, "distributionMobileProvisionUUid", "distribution-profile-uuid");
+            SetPrivateField(setting, "distributionMobileProvisionProfileName", "Distribution Profile");
+            SetPrivateField(setting, "distributionCodeSignIdentity", "Apple Distribution");
             return setting;
         }
 

@@ -140,6 +140,12 @@ namespace LFramework.Editor.Builder.iOS
                     ipaExporter.Export();
                 });
 
+                ExecuteStep("App Store upload", () =>
+                {
+                    var appStoreUploader = new iOSAppStoreUploader(config);
+                    appStoreUploader.Upload();
+                });
+
                 iOSBuildLogger.LogInfo("iOS post-build processing completed successfully!");
             }
             catch (Exception ex)
