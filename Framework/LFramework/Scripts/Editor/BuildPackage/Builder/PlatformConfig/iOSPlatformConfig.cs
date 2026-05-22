@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LFramework.Runtime.Settings;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
@@ -14,10 +15,16 @@ namespace LFramework.Editor.Builder.PlatformConfig
     public class iOSPlatformConfig : IPlatformConfig
     {
         private readonly BuildSetting _buildSetting;
+        private readonly iOSSetting _iOSSetting;
 
         public iOSPlatformConfig(BuildSetting buildSetting)
         {
             _buildSetting = buildSetting ?? throw new ArgumentNullException(nameof(buildSetting));
+            _iOSSetting = SettingManager.GetSetting<iOSSetting>();
+            if (_iOSSetting == null)
+            {
+                Debug.LogError("[iOSPlatformConfig] iOS build settings not found]");
+            }
         }
 
         public BuildTarget GetBuildTarget()
@@ -46,8 +53,7 @@ namespace LFramework.Editor.Builder.PlatformConfig
             }
             else
             {
-                options.options = BuildOptions.AllowDebugging |
-                                  BuildOptions.Development |
+                options.options = BuildOptions.Development |
                                   BuildOptions.ConnectWithProfiler;
 
                 if (buildSetting.isDeepProfiler)
@@ -70,15 +76,15 @@ namespace LFramework.Editor.Builder.PlatformConfig
             PlayerSettings.iOS.backgroundModes = iOSBackgroundMode.None;
             PlayerSettings.iOS.appInBackgroundBehavior = iOSAppInBackgroundBehavior.Custom;
             PlayerSettings.iOS.buildNumber = buildSetting.versionCode.ToString();
-            PlayerSettings.iOS.targetOSVersionString = "12.0";
+            PlayerSettings.iOS.targetOSVersionString = _iOSSetting.TargetOSVersion;
             PlayerSettings.iOS.deferSystemGesturesMode = SystemGestureDeferMode.All;
-            PlayerSettings.iOS.hideHomeButton = false;
-
+            PlayerSettings.iOS.hideHomeButton = true;
             // 配置签名
             PlayerSettings.iOS.appleEnableAutomaticSigning = false;
-            //PlayerSettings.iOS.iOSManualProvisioningProfileID = ProjectBuilder_IOS_Data.MobileProvisionUUid;
-            //PlayerSettings.iOS.appleDeveloperTeamID = ProjectBuilder_IOS_Data.AppleDevelopTeamId;
+            PlayerSettings.iOS.iOSManualProvisioningProfileID = _iOSSetting.MobileProvisionUUid;
+            PlayerSettings.iOS.appleDeveloperTeamID = _iOSSetting.AppleDevelopTeamId;
             PlayerSettings.iOS.iOSManualProvisioningProfileType = ProvisioningProfileType.Automatic;
+            
         }
 
         public string GetOutputPath(BuildSetting buildSetting)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using LFramework.Editor.Builder.iOS.Configurators;
 using LFramework.Editor.Builder.iOS.Installers;
+using LFramework.Runtime.Settings;
 using UnityEngine;
 #if UNITY_IOS
 using UnityEditor.iOS.Xcode;
@@ -82,7 +83,7 @@ namespace LFramework.Editor.Builder.iOS
                 iOSBuildConfig config = null;
                 ExecuteStep("Configuration creation and validation", () =>
                 {
-                    config = iOSBuildConfig.CreateFromBuildSetting(mBuildData, outPutFolder);
+                    config = iOSBuildConfig.CreateFromBuildSetting(mBuildData, SettingManager.GetSetting<iOSSetting>(),outPutFolder);
                     config.Validate();
 
                     iOSBuildLogger.LogInfo($"Output path: {config.OutputPath}");

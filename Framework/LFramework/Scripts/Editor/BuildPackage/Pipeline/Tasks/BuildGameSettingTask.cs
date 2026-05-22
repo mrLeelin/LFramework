@@ -91,9 +91,15 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
 
                 // 应用平台特定的配置
                 ApplyPlatformSettings(buildSetting);
-
                 // 标记为脏并保存
                 EditorUtility.SetDirty(setting);
+
+
+                var hybridClrSetting = SettingManager.GetSetting<HybridCLRSetting>();
+                hybridClrSetting.useHybridClR = buildSetting.isbuildDll;
+                Debug.Log($"[BuildGameSettingTask] HybridClrSetting  update Successful. '{hybridClrSetting.useHybridClR}'");
+                EditorUtility.SetDirty(hybridClrSetting);
+                
                 AssetDatabase.SaveAssets();
 
                 Debug.Log($"[BuildGameSettingTask] GameSetting updated successfully.");
@@ -173,7 +179,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             }
 
             Debug.Log(
-                $"[BuildGameSettingTask] iOS settings applied successfully - Bundle ID: {iosSetting.BundleIdentifier}");
+                $"[BuildGameSettingTask] iOS settings applied successfully - Bundle ID: {iosSetting.CodeSignIdentity}");
         }
 
         /// <summary>

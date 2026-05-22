@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using LFramework.Runtime.Settings;
 using UnityEngine;
 
 namespace LFramework.Editor.Builder.iOS
@@ -61,6 +62,16 @@ namespace LFramework.Editor.Builder.iOS
         /// true = Development, false = Release
         /// </summary>
         public bool IsDevelopment { get; set; }
+        
+        /// <summary>
+        /// Apple 开发者 Team id
+        /// </summary>
+        public string AppleDevelopTeamId { get; set; }
+        
+        /// <summary>
+        /// sign identity
+        /// </summary>
+        public string CodeSignIdentity { get; set; }
 
         // ==================== 工厂方法 ====================
 
@@ -69,9 +80,10 @@ namespace LFramework.Editor.Builder.iOS
         /// 自动填充默认值并检测系统环境
         /// </summary>
         /// <param name="buildSetting">构建设置</param>
+        /// <param name="iOSSetting"></param>
         /// <param name="outputPath">构建输出路径</param>
         /// <returns>iOS 构建配置实例</returns>
-        public static iOSBuildConfig CreateFromBuildSetting(BuildSetting buildSetting, string outputPath)
+        public static iOSBuildConfig CreateFromBuildSetting(BuildSetting buildSetting, iOSSetting iOSSetting,string outputPath)
         {
             var config = new iOSBuildConfig
             {
@@ -82,18 +94,19 @@ namespace LFramework.Editor.Builder.iOS
                 LocalizationFolderPath = Path.Combine(Application.dataPath, "../ExportData/IOS/InfoPlist"),
 
                 // URL Scheme 配置（TODO: 应该从 BuildSetting 或配置文件读取）
-                URLScheme = "partygame",
-                BundleURLName = "applink.partygamesvc.com",
+                URLScheme = iOSSetting.URLScheme,
+                BundleURLName = iOSSetting.BundleURLName,
 
                 // 自定义 AppController 名称
-                CustomAppControllerName = "MyAppController",
+                CustomAppControllerName = iOSSetting.AppControllerName,
 
+                AppleDevelopTeamId = iOSSetting.AppleDevelopTeamId,
+                CodeSignIdentity = iOSSetting.CodeSignIdentity,
                 // 构建模式
-                IsDevelopment = !buildSetting.isRelease
+                IsDevelopment = !buildSetting.isRelease,
+                // 动态检测 pod 命令路径
+                PodCommandPath = DetectPodCommandPath()
             };
-
-            // 动态检测 pod 命令路径
-            config.PodCommandPath = DetectPodCommandPath();
 
             return config;
         }
@@ -114,19 +127,19 @@ namespace LFramework.Editor.Builder.iOS
             }
 
             // 验证 Apple Team ID
-            if (string.IsNullOrEmpty(iOSBuildData.AppleDevelopTeamId))
+            if (string.IsNullOrEmpty(AppleDevelopTeamId))
             {
                 throw new InvalidOperationException(
                     "Apple Team ID is not configured in iOSBuildData. " +
-                    "Please set iOSBuildData.AppleDevelopTeamId.");
+                    "Please set AppleDevelopTeamId.");
             }
 
             // 验证代码签名身份
-            if (string.IsNullOrEmpty(iOSBuildData.CODE_SIGN_IDENTITY))
+            if (string.IsNullOrEmpty(CodeSignIdentity))
             {
                 throw new InvalidOperationException(
                     "Code sign identity is not configured in iOSBuildData. " +
-                    "Please set iOSBuildData.CODE_SIGN_IDENTITY.");
+                    "Please set CodeSignIdentity.");
             }
 
             // 验证 CocoaPods 命令

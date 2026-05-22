@@ -9,35 +9,54 @@ namespace LFramework.Runtime.Settings
     [CreateAssetMenu(fileName = "iOSSetting", menuName = "LFramework/Settings/iOSSetting")]
     public class iOSSetting : BaseSetting
     {
-        [FoldoutGroup("iOS 配置")]
-        [SerializeField] private string bundleIdentifier = "com.company.game";
-
+   
         [FoldoutGroup("iOS 配置")]
         [SerializeField] private string targetOSVersion = "12.0";
+        [FoldoutGroup("iOS 配置")]
+        [SerializeField] private string mobileProvisionUUid;
 
         [FoldoutGroup("iOS 配置")]
-        [SerializeField] private bool requiresFullScreen = true;
+        [SerializeField] private string appleDevelopTeamId ;
+        [FoldoutGroup("iOS 配置")]
+        [SerializeField] private string codeSignIdentity ;
 
+        
+        [FoldoutGroup("iOS 配置")]
+        [SerializeField] private bool requiresFullScreen = true;
+        [FoldoutGroup("deep link")] [SerializeField]
+        private string urlScheme;
+        [FoldoutGroup("deep link")] [SerializeField]
+        private string bundleURLName;
+
+        [FoldoutGroup("App Controller Name")]
+        [SerializeField] private string appControllerName;
+        
+        
         [FoldoutGroup("权限描述")]
         [SerializeField, TextArea] private string cameraUsageDescription;
 
         [FoldoutGroup("权限描述")]
         [SerializeField, TextArea] private string locationUsageDescription;
-
-        public string BundleIdentifier => bundleIdentifier;
+        
         public string TargetOSVersion => targetOSVersion;
         public bool RequiresFullScreen => requiresFullScreen;
         public string CameraUsageDescription => cameraUsageDescription;
         public string LocationUsageDescription => locationUsageDescription;
+        
+        public string CodeSignIdentity => codeSignIdentity;
+        
+        public string URLScheme => urlScheme;
+        
+        public string BundleURLName => bundleURLName;
+        public string AppControllerName => appControllerName;
+        
 
+
+        public string MobileProvisionUUid => mobileProvisionUUid;
+        public string AppleDevelopTeamId => appleDevelopTeamId;
+        
         public override bool Validate(out string errorMessage)
         {
-            if (string.IsNullOrEmpty(bundleIdentifier))
-            {
-                errorMessage = "Bundle Identifier 不能为空";
-                return false;
-            }
-
             errorMessage = null;
             return true;
         }

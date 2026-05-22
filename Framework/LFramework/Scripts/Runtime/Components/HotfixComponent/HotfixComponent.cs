@@ -77,14 +77,22 @@ namespace LFramework.Runtime
         {
             try
             {
+                
                 HotfixCodeResult result = default;
 #if UNITY_EDITOR
                 result = LoadEditorHotfixAssemblies();
 #elif HybridCLR_SUPPORT
-                result = await LoadAotAssemblies();
-                if (result.ResultType == LoadAssemblyResultType.Successful)
+                if (!HybridClrSetting.useHybridClR)
                 {
-                    result = await LoadHotfixAssembliesInternal();
+                    result = LoadEditorHotfixAssemblies();
+                }
+                else
+                {
+                    result = await LoadAotAssemblies();
+                    if (result.ResultType == LoadAssemblyResultType.Successful)
+                    {
+                        result = await LoadHotfixAssembliesInternal();
+                    }
                 }
 #endif
                 if (result.ResultType != LoadAssemblyResultType.Successful)

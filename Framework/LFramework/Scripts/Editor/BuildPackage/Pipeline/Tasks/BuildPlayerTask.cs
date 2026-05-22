@@ -35,8 +35,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
 
                 // 获取构建选项
                 BuildPlayerOptions options = context.PlatformConfig.GetBuildPlayerOptions(context.BuildSetting);
-
-                
+                UnityEditor.SceneManagement.EditorSceneManager.OpenScene(options.scenes[0]);
                 // 执行构建
                 var report = BuildPipeline.BuildPlayer(options);
 

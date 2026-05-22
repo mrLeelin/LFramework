@@ -67,11 +67,11 @@ namespace LFramework.Editor.Builder.iOS.Configurators
             string unityFrameworkGuid = pbxProject.GetUnityFrameworkTargetGuid();
 
             // 设置 Swift 标准库嵌入（Framework 不需要）
-            pbxProject.SetBuildProperty(unityFrameworkGuid, "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES", "NO");
+            pbxProject.SetBuildProperty(unityFrameworkGuid, "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES", "YES");
 
             // 关闭 BitCode
             pbxProject.SetBuildProperty(unityFrameworkGuid, "ENABLE_BITCODE", "NO");
-
+            
             // 添加 Frameworks
             foreach (var framework in iOSBuildConstants.UNITY_FRAMEWORK_FRAMEWORKS)
             {
@@ -97,12 +97,12 @@ namespace LFramework.Editor.Builder.iOS.Configurators
 
             // 设置代码签名身份
             pbxProject.SetBuildProperty(unityMainGuid, "CODE_SIGN_IDENTITY",
-                iOSBuildData.CODE_SIGN_IDENTITY);
+                _config.CodeSignIdentity);
 
             // 设置团队配置
             pbxProject.SetBuildProperty(unityMainGuid, "CODE_SIGN_STYLE", "Manual");
             pbxProject.SetBuildProperty(unityMainGuid, "DEVELOPMENT_TEAM",
-                iOSBuildData.AppleDevelopTeamId);
+                _config.AppleDevelopTeamId);
 
             // 设置架构（仅支持 arm64）
             pbxProject.SetBuildProperty(unityMainGuid, "ARCHS", "arm64");

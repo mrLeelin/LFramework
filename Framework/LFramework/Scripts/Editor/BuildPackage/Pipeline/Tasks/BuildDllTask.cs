@@ -38,6 +38,11 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
 
                 var buildSetting = context.BuildSetting;
 
+                if (!buildSetting.isbuildDll)
+                {
+                    Debug.Log($"[BuildDllTask] Hot-fix DLL files successfully.");
+                    return BuildTaskResult.CreateSuccess(TaskName);
+                }
                 // 获取备份路径
                 string backupPath = GetBackupPath(buildSetting);
 

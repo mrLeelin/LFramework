@@ -52,6 +52,10 @@ namespace LFramework.Runtime.Settings
         /// </summary>
         public List<string> hotfixAssembliesSort;
 
+
+        [Tooltip("是否使用Clr热更脚本.打包的时候赋值")]
+        public bool useHybridClR = true;
+
         /// <summary>
         /// Main Hotfix assembly name
         /// </summary>
