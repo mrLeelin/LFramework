@@ -18,7 +18,7 @@ MonoBehaviour:
   bundleIdentifier: com.company.game.dev
   targetOSVersion: 12.0
   requiresFullScreen: 1
-  appleDevelopTeamId: TODO_TEAM_ID
+  appleDevelopTeamId: 8UGM8WH7U3
   developmentMobileProvisionUUid: TODO_DEVELOPMENT_PROFILE_UUID
   developmentMobileProvisionProfileName: TODO_DEVELOPMENT_PROFILE_NAME
   developmentCodeSignIdentity: Apple Development

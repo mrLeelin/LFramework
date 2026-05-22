@@ -90,40 +90,40 @@ namespace LFramework.Runtime.Settings
         [FoldoutGroup("Capabilities")]
         [SerializeField] private bool enableSignInWithApple;
 
-        public string BundleIdentifier => bundleIdentifier;
-        public string TargetOSVersion => targetOSVersion;
+        public string BundleIdentifier => TrimSettingValue(bundleIdentifier);
+        public string TargetOSVersion => TrimSettingValue(targetOSVersion);
         public bool RequiresFullScreen => requiresFullScreen;
-        public string CameraUsageDescription => cameraUsageDescription;
-        public string LocationUsageDescription => locationUsageDescription;
-        public string URLScheme => urlScheme;
-        public string BundleURLName => bundleURLName;
-        public string AppControllerName => appControllerName;
-        public string AppleDevelopTeamId => appleDevelopTeamId;
+        public string CameraUsageDescription => TrimSettingValue(cameraUsageDescription);
+        public string LocationUsageDescription => TrimSettingValue(locationUsageDescription);
+        public string URLScheme => TrimSettingValue(urlScheme);
+        public string BundleURLName => TrimSettingValue(bundleURLName);
+        public string AppControllerName => TrimSettingValue(appControllerName);
+        public string AppleDevelopTeamId => TrimSettingValue(appleDevelopTeamId);
         public bool AutoExportIpa => autoExportIpa;
         public bool AutoUploadToAppStore => autoUploadToAppStore;
         public bool ValidateAppBeforeUpload => validateAppBeforeUpload;
-        public string AppStoreUserName => appStoreUserName;
-        public string AppStorePassword => appStorePassword;
+        public string AppStoreUserName => TrimSettingValue(appStoreUserName);
+        public string AppStorePassword => TrimSettingValue(appStorePassword);
         public bool EnableKeychainSharing => enableKeychainSharing;
         public bool EnablePushNotifications => enablePushNotifications;
         public bool EnableGameCenter => enableGameCenter;
         public bool EnableInAppPurchase => enableInAppPurchase;
         public bool EnableSignInWithApple => enableSignInWithApple;
 
-        public string DevelopmentMobileProvisionUUid => developmentMobileProvisionUUid;
-        public string DevelopmentMobileProvisionProfileName => developmentMobileProvisionProfileName;
-        public string DevelopmentCodeSignIdentity => developmentCodeSignIdentity;
-        public string DistributionMobileProvisionUUid => distributionMobileProvisionUUid;
-        public string DistributionMobileProvisionProfileName => distributionMobileProvisionProfileName;
-        public string DistributionCodeSignIdentity => distributionCodeSignIdentity;
+        public string DevelopmentMobileProvisionUUid => TrimSettingValue(developmentMobileProvisionUUid);
+        public string DevelopmentMobileProvisionProfileName => TrimSettingValue(developmentMobileProvisionProfileName);
+        public string DevelopmentCodeSignIdentity => TrimSettingValue(developmentCodeSignIdentity);
+        public string DistributionMobileProvisionUUid => TrimSettingValue(distributionMobileProvisionUUid);
+        public string DistributionMobileProvisionProfileName => TrimSettingValue(distributionMobileProvisionProfileName);
+        public string DistributionCodeSignIdentity => TrimSettingValue(distributionCodeSignIdentity);
 
         public string ExportOptionsFileName => string.IsNullOrWhiteSpace(exportOptionsFileName)
             ? "AppStoreExportOptions.plist"
-            : exportOptionsFileName;
+            : TrimSettingValue(exportOptionsFileName);
 
         public string DevelopmentExportOptionsFileName => string.IsNullOrWhiteSpace(developmentExportOptionsFileName)
             ? "AppStoreExportOptionsDev.plist"
-            : developmentExportOptionsFileName;
+            : TrimSettingValue(developmentExportOptionsFileName);
 
         public override bool Validate(out string errorMessage)
         {
@@ -234,6 +234,11 @@ namespace LFramework.Runtime.Settings
         {
             return string.IsNullOrWhiteSpace(value) ||
                    value.Trim().StartsWith("TODO", System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string TrimSettingValue(string value)
+        {
+            return value?.Trim();
         }
     }
 }

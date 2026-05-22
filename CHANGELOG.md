@@ -2,6 +2,12 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.2.40]
+
+### Changed
+
+- Trim iOS string settings when read so signing, provisioning, export, and upload values ignore accidental leading or trailing whitespace.
+
 ## [0.2.36]
 
 ### Added

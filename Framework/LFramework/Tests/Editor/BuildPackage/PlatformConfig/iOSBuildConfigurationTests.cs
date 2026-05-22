@@ -156,6 +156,56 @@ namespace LFramework.Editor.Tests.BuildPackage.PlatformConfig
         }
 
         [Test]
+        public void CreateFromBuildSetting_ShouldTrimAppleDeveloperTeamId()
+        {
+            var setting = CreateValidSetting();
+            SetPrivateField(setting, "appleDevelopTeamId", "  TEAM123456  ");
+
+            try
+            {
+                var config = iOSBuildConfig.CreateFromBuildSetting(CreateBuildSetting(), setting, "Builds/IOS/Project");
+
+                Assert.That(config.AppleDevelopTeamId, Is.EqualTo("TEAM123456"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(setting);
+            }
+        }
+
+        [Test]
+        public void CreateFromBuildSetting_ShouldTrimConfiguredStringValues()
+        {
+            var setting = CreateValidSetting();
+            SetPrivateField(setting, "bundleIdentifier", "  com.company.trimmed  ");
+            SetPrivateField(setting, "developmentMobileProvisionUUid", "  development-profile-uuid  ");
+            SetPrivateField(setting, "developmentMobileProvisionProfileName", "  Development Profile  ");
+            SetPrivateField(setting, "developmentCodeSignIdentity", "  Apple Development  ");
+            SetPrivateField(setting, "developmentExportOptionsFileName", "  AppStoreExportOptionsDev.plist  ");
+            SetPrivateField(setting, "appStoreUserName", "  ios-uploader@example.com  ");
+            SetPrivateField(setting, "appStorePassword", "  app-specific-password  ");
+            var buildSetting = CreateBuildSetting();
+            buildSetting.isRelease = false;
+
+            try
+            {
+                var config = iOSBuildConfig.CreateFromBuildSetting(buildSetting, setting, "Builds/IOS/Project");
+
+                Assert.That(config.BundleIdentifier, Is.EqualTo("com.company.trimmed"));
+                Assert.That(config.CodeSignIdentity, Is.EqualTo("Apple Development"));
+                Assert.That(config.MobileProvisionUuid, Is.EqualTo("development-profile-uuid"));
+                Assert.That(config.MobileProvisionProfileName, Is.EqualTo("Development Profile"));
+                Assert.That(config.ExportOptionsPath, Does.EndWith("AppStoreExportOptionsDev.plist"));
+                Assert.That(config.AppStoreUserName, Is.EqualTo("ios-uploader@example.com"));
+                Assert.That(config.AppStorePassword, Is.EqualTo("app-specific-password"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(setting);
+            }
+        }
+
+        [Test]
         public void CreateFromBuildSetting_ShouldUseDevelopmentSigningForDebugBuilds()
         {
             var setting = CreateValidSetting();
