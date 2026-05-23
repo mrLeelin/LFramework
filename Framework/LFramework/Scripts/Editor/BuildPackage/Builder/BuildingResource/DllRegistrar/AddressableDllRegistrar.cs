@@ -92,6 +92,12 @@ namespace LFramework.Editor.Builder.BuildingResource
             AddressableHelper.GenerateDefaultGroup(groupName, _settings, null, out group,
                 out var groupSchema);
             groupSchema.BundleMode = BundledAssetGroupSchema.BundlePackingMode.PackSeparately;
+            var contentUpdateSchema = group.GetSchema<ContentUpdateGroupSchema>();
+            if (contentUpdateSchema != null)
+            {
+                contentUpdateSchema.StaticContent = true;
+            }
+
             return true;
         }
 

@@ -73,6 +73,15 @@ namespace LFramework.Editor
         [Button("上传")]
         public void UploadServer(bool isDebugServer)
         {
+            const string uploadScriptName = "upload_version_to_s3.py";
+            var uploadScriptPath = Path.Combine(Application.dataPath + "/../BuildBat/", uploadScriptName);
+            if (!File.Exists(uploadScriptPath))
+            {
+                EditorUtility.DisplayDialog("失败", $"上传脚本不存在：{uploadScriptPath}", "确定");
+                Debug.LogError($"[BuildVersionWindow] Upload script not found: {uploadScriptPath}");
+                return;
+            }
+
             var setting = BuildGameVersion();
             var originJson = JsonUtility.ToJson(setting);
             var json = originJson
@@ -82,7 +91,7 @@ namespace LFramework.Editor
             var upLoadSuccessful = false;
             if (isDebugServer)
             {
-                upLoadSuccessful = PythonRunner.RunPythonScript("upload_version_to_s3.py",
+                upLoadSuccessful = PythonRunner.RunPythonScript(uploadScriptName,
                     $"\"{json}\" {GetVersionFilePath()} test-dataupdate.partygamesvc.com");
             }
 
@@ -100,7 +109,17 @@ namespace LFramework.Editor
 
         private string GetChannelName()
         {
-            return string.Empty;
+            switch (BuilderTarget)
+            {
+                case BuilderTarget.Android:
+                    return AndroidChannel;
+                case BuilderTarget.iOS:
+                    return IOSChannel;
+                case BuilderTarget.Windows:
+                    return WindowsChannel;
+                default:
+                    throw new System.ArgumentOutOfRangeException(nameof(BuilderTarget), BuilderTarget, null);
+            }
         }
 
         private GameVersion BuildGameVersion()
