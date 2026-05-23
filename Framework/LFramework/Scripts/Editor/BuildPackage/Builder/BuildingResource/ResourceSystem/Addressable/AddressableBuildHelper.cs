@@ -371,19 +371,21 @@ namespace LFramework.Editor.Builder.BuildingResource
         {
             var reportPath = backUpPath + "/" + Last_Report_File_Name;
             Debug.Log($"reportPath:{reportPath}");
-            var buildLayout = BuildLayout.Open(reportPath, true, true);
-            var guidExplicitAssets = new SortedDictionary<string, BuildLayout.ExplicitAsset>();
-            foreach (BuildLayout.ExplicitAsset asset in BuildLayoutHelpers.EnumerateAssets(buildLayout))
-            {
-                guidExplicitAssets.Add(asset.Guid, asset);
-            }
-
             string buildPath = UnityEditor.AddressableAssets.Build.ContentUpdateScript.GetContentStateDataPath(false);
             List<UnityEditor.AddressableAssets.Settings.AddressableAssetEntry> entries =
                 UnityEditor.AddressableAssets.Build.ContentUpdateScript.GatherModifiedEntries(settings, buildPath);
             if (entries.Count == 0)
             {
                 return;
+            }
+
+            ValidateNoAotDllChangedForContentUpdate(entries.Select(entry => entry.AssetPath), gameSetting);
+
+            var buildLayout = BuildLayout.Open(reportPath, true, true);
+            var guidExplicitAssets = new SortedDictionary<string, BuildLayout.ExplicitAsset>();
+            foreach (BuildLayout.ExplicitAsset asset in BuildLayoutHelpers.EnumerateAssets(buildLayout))
+            {
+                guidExplicitAssets.Add(asset.Guid, asset);
             }
 
             var keyList = new List<string>();
@@ -503,6 +505,42 @@ namespace LFramework.Editor.Builder.BuildingResource
             var backupPath = BuildResourcePathHelper.GetBackupPath(data);
             File.WriteAllText(Path.Combine(backupPath, "hotfixGroup.log"), log);
             buildLayout.Close();
+        }
+
+        private static void ValidateNoAotDllChangedForContentUpdate(
+            IEnumerable<string> modifiedAssetPaths,
+            HybridCLRSetting gameSetting)
+        {
+            if (gameSetting == null || string.IsNullOrWhiteSpace(gameSetting.aotDllFolderPath))
+            {
+                return;
+            }
+
+            string aotAssetFolder = NormalizeUnityAssetPath("Assets/" + gameSetting.aotDllFolderPath);
+            var changedAotAssets = modifiedAssetPaths
+                .Where(path => IsUnderAssetFolder(path, aotAssetFolder))
+                .ToArray();
+
+            if (changedAotAssets.Length == 0)
+            {
+                return;
+            }
+
+            throw new InvalidOperationException(
+                "本次包含 AOT 变化，需要重新出包或恢复首包 AOT。Changed AOT assets: " +
+                string.Join(", ", changedAotAssets));
+        }
+
+        private static bool IsUnderAssetFolder(string assetPath, string folderPath)
+        {
+            string normalizedAssetPath = NormalizeUnityAssetPath(assetPath);
+            return normalizedAssetPath.Equals(folderPath, StringComparison.OrdinalIgnoreCase) ||
+                   normalizedAssetPath.StartsWith(folderPath + "/", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string NormalizeUnityAssetPath(string path)
+        {
+            return (path ?? string.Empty).Replace('\\', '/').TrimEnd('/');
         }
 
         /// <summary>

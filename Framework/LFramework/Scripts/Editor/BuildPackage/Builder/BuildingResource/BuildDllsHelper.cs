@@ -30,7 +30,7 @@ namespace LFramework.Editor
 {
     public static class BuildDllsHelper
     {
-        public static bool CopyDll(BuildSetting buildSetting, HybridCLRSetting hybridClrSetting,string backAotFolder)
+        public static bool CopyDll(BuildSetting buildSetting, HybridCLRSetting hybridClrSetting, string backAotFolder)
         {
 #if HybridCLR_SUPPORT
             var registrar = CreateRegistrar(buildSetting.ResourceSystem);
@@ -39,7 +39,8 @@ namespace LFramework.Editor
                 return false;
             }
 
-            if (!CopyAotDllToProject(registrar, hybridClrSetting, backAotFolder))
+            if (ShouldCopyAotDlls(buildSetting.buildType) &&
+                !CopyAotDllToProject(registrar, hybridClrSetting, backAotFolder))
             {
                 return false;
             }
@@ -51,6 +52,11 @@ namespace LFramework.Editor
 #endif
 
             return true;
+        }
+
+        private static bool ShouldCopyAotDlls(BuildType buildType)
+        {
+            return buildType == BuildType.App;
         }
 
         public static bool BuildDll(bool isBuildApp, string backAotFolder)
