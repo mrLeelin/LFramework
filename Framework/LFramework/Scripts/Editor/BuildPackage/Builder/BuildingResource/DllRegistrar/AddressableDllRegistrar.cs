@@ -1,6 +1,7 @@
 
 #if ADDRESSABLE_SUPPORT
 using System.Collections.Generic;
+using LFramework.Editor.Builder;
 using LFramework.Runtime.Settings;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
@@ -23,9 +24,9 @@ namespace LFramework.Editor.Builder.BuildingResource
             _settings = AddressableAssetSettingsDefaultObject.Settings;
         }
 
-        public bool RegisterAotDlls(List<string> dllPaths, HybridCLRSetting setting)
+        public bool RegisterAotDlls(List<string> dllPaths, HybridCLRSetting setting, BuildType buildType)
         {
-            if (!EnsureGroupExists(setting.aotAddressableGroupName))
+            if (!EnsureGroupExists(setting.aotAddressableGroupName, buildType))
             {
                 return false;
             }
@@ -42,8 +43,8 @@ namespace LFramework.Editor.Builder.BuildingResource
             {
                 var assetsGuid = AssetDatabase.AssetPathToGUID(FullPathToUnityPath(path));
                 var entry = _settings.CreateOrMoveEntry(assetsGuid, group);
-                entry.SetLabel(setting.defaultAotDllLabel, true);
-                entry.SetLabel(setting.defaultInitLabel, true);
+                entry.SetLabel(setting.defaultAotDllLabel, true, true);
+                entry.SetLabel(setting.defaultInitLabel, true, true);
                 _settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryMoved, entry, true);
             }
 
@@ -52,9 +53,9 @@ namespace LFramework.Editor.Builder.BuildingResource
             return true;
         }
 
-        public bool RegisterHotfixDlls(List<string> dllPaths, HybridCLRSetting setting)
+        public bool RegisterHotfixDlls(List<string> dllPaths, HybridCLRSetting setting, BuildType buildType)
         {
-            if (!EnsureGroupExists(setting.codeAddressableGroupName))
+            if (!EnsureGroupExists(setting.codeAddressableGroupName, buildType))
             {
                 return false;
             }
@@ -71,8 +72,8 @@ namespace LFramework.Editor.Builder.BuildingResource
             {
                 var assetsGuid = AssetDatabase.AssetPathToGUID(FullPathToUnityPath(path));
                 var entry = _settings.CreateOrMoveEntry(assetsGuid, group);
-                entry.SetLabel(setting.defaultInitLabel, true);
-                entry.SetLabel(setting.defaultCodeDllLabel, true);
+                entry.SetLabel(setting.defaultInitLabel, true, true);
+                entry.SetLabel(setting.defaultCodeDllLabel, true, true);
                 _settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryMoved, entry, true);
             }
 
@@ -83,6 +84,11 @@ namespace LFramework.Editor.Builder.BuildingResource
 
         public bool EnsureGroupExists(string groupName)
         {
+            return EnsureGroupExists(groupName, BuildType.App);
+        }
+
+        private bool EnsureGroupExists(string groupName, BuildType buildType)
+        {
             var group = _settings.FindGroup(groupName);
             if (group != null)
             {
@@ -91,11 +97,22 @@ namespace LFramework.Editor.Builder.BuildingResource
 
             AddressableHelper.GenerateDefaultGroup(groupName, _settings, null, out group,
                 out var groupSchema);
+            if (buildType == BuildType.ResourcesUpdate)
+            {
+                groupSchema.BuildPath.SetVariableByName(_settings, AddressableAssetSettings.kRemoteBuildPath);
+                groupSchema.LoadPath.SetVariableByName(_settings, AddressableAssetSettings.kRemoteLoadPath);
+            }
+            else
+            {
+                groupSchema.BuildPath.SetVariableByName(_settings, AddressableAssetSettings.kLocalBuildPath);
+                groupSchema.LoadPath.SetVariableByName(_settings, AddressableAssetSettings.kLocalLoadPath);
+            }
+
             groupSchema.BundleMode = BundledAssetGroupSchema.BundlePackingMode.PackSeparately;
             var contentUpdateSchema = group.GetSchema<ContentUpdateGroupSchema>();
             if (contentUpdateSchema != null)
             {
-                contentUpdateSchema.StaticContent = true;
+                contentUpdateSchema.StaticContent = false;
             }
 
             return true;

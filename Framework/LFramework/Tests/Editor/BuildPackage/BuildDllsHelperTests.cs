@@ -8,7 +8,7 @@ namespace LFramework.Editor.Tests.BuildPackage
     public class BuildDllsHelperTests
     {
         [TestCase(BuildType.App, true)]
-        [TestCase(BuildType.ResourcesUpdate, false)]
+        [TestCase(BuildType.ResourcesUpdate, true)]
         public void ShouldCopyAotDlls_MatchesBuildType(BuildType buildType, bool expected)
         {
             Type helperType = Type.GetType("LFramework.Editor.BuildDllsHelper, LFramework.Editor");

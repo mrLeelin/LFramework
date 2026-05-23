@@ -40,7 +40,7 @@ namespace LFramework.Editor
             }
 
             if (ShouldCopyAotDlls(buildSetting.buildType) &&
-                !CopyAotDllToProject(registrar, hybridClrSetting, backAotFolder))
+                !CopyAotDllToProject(buildSetting, registrar, hybridClrSetting, backAotFolder))
             {
                 return false;
             }
@@ -56,7 +56,7 @@ namespace LFramework.Editor
 
         private static bool ShouldCopyAotDlls(BuildType buildType)
         {
-            return buildType == BuildType.App;
+            return buildType == BuildType.App || buildType == BuildType.ResourcesUpdate;
         }
 
         public static bool BuildDll(bool isBuildApp, string backAotFolder)
@@ -189,8 +189,8 @@ namespace LFramework.Editor
             hybridClrInstaller.InstallDefaultHybridCLR();
         }
 
-        private static bool CopyAotDllToProject(IDllResourceRegistrar registrar, HybridCLRSetting firstHybridClrSetting,
-            string backUpFolder)
+        private static bool CopyAotDllToProject(BuildSetting buildSetting, IDllResourceRegistrar registrar,
+            HybridCLRSetting firstHybridClrSetting, string backUpFolder)
         {
             var aotInProjectFolder = GetAotPathInProject(firstHybridClrSetting);
             if (Directory.Exists(aotInProjectFolder))
@@ -249,7 +249,7 @@ namespace LFramework.Editor
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            if (!registrar.RegisterAotDlls(targetFilesPath, firstHybridClrSetting))
+            if (!registrar.RegisterAotDlls(targetFilesPath, firstHybridClrSetting, buildSetting.buildType))
             {
                 return false;
             }
@@ -300,7 +300,7 @@ namespace LFramework.Editor
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            if (!registrar.RegisterHotfixDlls(targetFilesPath, firstHybridClrSetting))
+            if (!registrar.RegisterHotfixDlls(targetFilesPath, firstHybridClrSetting, buildSetting.buildType))
             {
                 return false;
             }

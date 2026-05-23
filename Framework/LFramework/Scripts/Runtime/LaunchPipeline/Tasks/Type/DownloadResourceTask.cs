@@ -129,7 +129,7 @@ namespace LFramework.Runtime.LaunchPipeline
                     $"{handlerName}:{plan.PackageId}",
                     new List<string>(plan.Labels),
                     plan.PackageName,
-                    true,
+                    false,
                     checkDownloadedTags);
 
                 IResourceDownloadHandler handler = _resourceDownloadComponent.GetHandler(_handlerSerialId);
@@ -177,7 +177,7 @@ namespace LFramework.Runtime.LaunchPipeline
                 handlerName,
                 labels,
                 mergeMode,
-                true);
+                false);
 
             IResourceDownloadHandler handler = _resourceDownloadComponent.GetHandler(_handlerSerialId);
             if (handler == null)

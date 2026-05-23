@@ -126,7 +126,7 @@ namespace LFramework.Runtime
 
             if (_autoReleaseHandle)
             {
-                RemoveHandleAction(this);
+                RemoveHandleAction?.Invoke(this);
             }
         }
 
@@ -141,7 +141,7 @@ namespace LFramework.Runtime
 
             if (_autoReleaseHandle)
             {
-                RemoveHandleAction(this);
+                RemoveHandleAction?.Invoke(this);
             }
         }
 

@@ -18,7 +18,7 @@ namespace LFramework.Editor.Builder.BuildingResource
     /// </summary>
     public class YooAssetDllRegistrar : IDllResourceRegistrar
     {
-        public bool RegisterAotDlls(List<string> dllPaths, HybridCLRSetting setting)
+        public bool RegisterAotDlls(List<string> dllPaths, HybridCLRSetting setting, BuildType buildType)
         {
 #if YOOASSET_SUPPORT
             return RegisterDllCollectors(
@@ -33,7 +33,7 @@ namespace LFramework.Editor.Builder.BuildingResource
 #endif
         }
 
-        public bool RegisterHotfixDlls(List<string> dllPaths, HybridCLRSetting setting)
+        public bool RegisterHotfixDlls(List<string> dllPaths, HybridCLRSetting setting, BuildType buildType)
         {
 #if YOOASSET_SUPPORT
             return RegisterDllCollectors(
@@ -85,8 +85,9 @@ namespace LFramework.Editor.Builder.BuildingResource
             }
 
             group.ActiveRuleName = nameof(EnableGroup);
-            group.AssetTags = string.Join(",",
+            var assetTags = string.Join(",",
                 labels.Where(label => !string.IsNullOrWhiteSpace(label)).Distinct(StringComparer.Ordinal));
+            group.AssetTags = assetTags;
 
             if (dllPaths == null || dllPaths.Count == 0)
             {
@@ -116,7 +117,7 @@ namespace LFramework.Editor.Builder.BuildingResource
                     AddressRuleName = nameof(AddressByFileName),
                     PackRuleName = nameof(PackSeparately),
                     FilterRuleName = nameof(CollectAll),
-                    AssetTags = string.Empty,
+                    AssetTags = assetTags,
                     UserData = string.Empty
                 });
             }

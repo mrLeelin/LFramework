@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using LFramework.Editor.Builder;
 using LFramework.Runtime.Settings;
 
 namespace LFramework.Editor.Builder.BuildingResource
@@ -15,7 +16,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <param name="dllPaths">DLL 文件的完整路径列表</param>
         /// <param name="setting">HybridCLR 配置</param>
         /// <returns>注册是否成功</returns>
-        bool RegisterAotDlls(List<string> dllPaths, HybridCLRSetting setting);
+        bool RegisterAotDlls(List<string> dllPaths, HybridCLRSetting setting, BuildType buildType);
 
         /// <summary>
         /// 将 Hotfix DLL 文件注册到资源系统
@@ -23,7 +24,7 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <param name="dllPaths">DLL 文件的完整路径列表</param>
         /// <param name="setting">HybridCLR 配置</param>
         /// <returns>注册是否成功</returns>
-        bool RegisterHotfixDlls(List<string> dllPaths, HybridCLRSetting setting);
+        bool RegisterHotfixDlls(List<string> dllPaths, HybridCLRSetting setting, BuildType buildType);
 
         /// <summary>
         /// 确保资源系统中存在指定的资源分组
