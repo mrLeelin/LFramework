@@ -32,12 +32,7 @@ namespace LFramework.Editor.Builder.iOS.Configurators
                 "xcodebuild archive \"${project_selector[@]}\" \\\n" +
                 "  -scheme Unity-iPhone \\\n" +
                 $"  -configuration {ShellQuote(config.XcodeConfiguration)} \\\n" +
-                $"  -archivePath {ShellQuote(config.ArchivePath)} \\\n" +
-                "  CODE_SIGN_STYLE=Manual \\\n" +
-                $"  DEVELOPMENT_TEAM={ShellQuote(config.AppleDevelopTeamId)} \\\n" +
-                $"  PROVISIONING_PROFILE={ShellQuote(config.MobileProvisionUuid)} \\\n" +
-                $"  PROVISIONING_PROFILE_SPECIFIER={ShellQuote(config.MobileProvisionProfileName)} \\\n" +
-                $"  CODE_SIGN_IDENTITY={ShellQuote(config.CodeSignIdentity)}\n\n" +
+                $"  -archivePath {ShellQuote(config.ArchivePath)}\n\n" +
                 "xcodebuild -exportArchive \\\n" +
                 $"  -archivePath {ShellQuote(config.ArchivePath)} \\\n" +
                 $"  -exportPath {ShellQuote(config.IpaExportPath)} \\\n" +

@@ -305,10 +305,14 @@ namespace LFramework.Editor.Tests.BuildPackage.PlatformConfig
                 Assert.That(script, Does.Contain("project_selector=(-project"));
                 Assert.That(script, Does.Contain("xcodebuild archive \"${project_selector[@]}\""));
                 Assert.That(script, Does.Contain("-configuration 'Debug'"));
-                Assert.That(script, Does.Contain("DEVELOPMENT_TEAM='TEAM123456'"));
-                Assert.That(script, Does.Contain("PROVISIONING_PROFILE='development-profile-uuid'"));
-                Assert.That(script, Does.Contain("PROVISIONING_PROFILE_SPECIFIER='Development Profile'"));
-                Assert.That(script, Does.Contain("CODE_SIGN_IDENTITY='Apple Development'"));
+                Assert.That(script, Does.Contain("-archivePath"));
+                Assert.That(script, Does.Contain("xcodebuild -exportArchive"));
+                Assert.That(script, Does.Contain("-exportOptionsPlist"));
+                Assert.That(script, Does.Not.Contain("CODE_SIGN_STYLE=Manual"));
+                Assert.That(script, Does.Not.Contain("DEVELOPMENT_TEAM='TEAM123456'"));
+                Assert.That(script, Does.Not.Contain("PROVISIONING_PROFILE='development-profile-uuid'"));
+                Assert.That(script, Does.Not.Contain("PROVISIONING_PROFILE_SPECIFIER='Development Profile'"));
+                Assert.That(script, Does.Not.Contain("CODE_SIGN_IDENTITY='Apple Development'"));
             }
             finally
             {
