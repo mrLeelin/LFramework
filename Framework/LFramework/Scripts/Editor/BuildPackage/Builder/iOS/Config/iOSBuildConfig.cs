@@ -68,6 +68,9 @@ namespace LFramework.Editor.Builder.iOS
             string exportOptionsFileName = isDevelopment
                 ? iOSSetting.DevelopmentExportOptionsFileName
                 : iOSSetting.ExportOptionsFileName;
+            string exportMethod = isDevelopment
+                ? iOSSetting.DevelopmentExportMethod
+                : iOSSetting.DistributionExportMethod;
 
             return new iOSBuildConfig
             {
@@ -95,7 +98,7 @@ namespace LFramework.Editor.Builder.iOS
                 LocationUsageDescription = iOSSetting.LocationUsageDescription,
                 IsDevelopment = isDevelopment,
                 AutoExportIpa = iOSSetting.AutoExportIpa,
-                ExportMethod = isDevelopment ? "development" : "app-store-connect",
+                ExportMethod = exportMethod,
                 ExportOptionsPath = Path.Combine(buildRootPath, exportOptionsFileName),
                 ArchivePath = Path.Combine(buildRootPath, "Archive", $"{channelName}_{releaseName}_{buildSetting.GetAppVersion()}", "Build.xcarchive"),
                 IpaExportPath = Path.Combine(buildRootPath, "IPA", $"{channelName}_{releaseName}_{buildSetting.GetAppVersion()}"),

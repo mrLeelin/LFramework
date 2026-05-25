@@ -234,6 +234,32 @@ namespace LFramework.Editor.Tests.BuildPackage.PlatformConfig
         }
 
         [Test]
+        public void CreateFromBuildSetting_ShouldUseConfiguredExportMethodsForBuildMode()
+        {
+            var setting = CreateValidSetting();
+            SetPrivateField(setting, "developmentExportMethod", "  ad-hoc  ");
+            SetPrivateField(setting, "distributionExportMethod", "  app-store  ");
+            var buildSetting = CreateBuildSetting();
+
+            try
+            {
+                buildSetting.isRelease = false;
+                var debugConfig = iOSBuildConfig.CreateFromBuildSetting(buildSetting, setting, "Builds/IOS/Project");
+
+                Assert.That(debugConfig.ExportMethod, Is.EqualTo("ad-hoc"));
+
+                buildSetting.isRelease = true;
+                var releaseConfig = iOSBuildConfig.CreateFromBuildSetting(buildSetting, setting, "Builds/IOS/Project");
+
+                Assert.That(releaseConfig.ExportMethod, Is.EqualTo("app-store"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(setting);
+            }
+        }
+
+        [Test]
         public void Validate_ShouldNotRequireOptionalDeepLinkValues()
         {
             var setting = CreateValidSetting();

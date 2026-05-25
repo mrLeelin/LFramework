@@ -48,6 +48,12 @@ namespace LFramework.Runtime.Settings
         [FoldoutGroup("IPA Export")]
         [SerializeField] private string developmentExportOptionsFileName = "AppStoreExportOptionsDev.plist";
 
+        [FoldoutGroup("IPA Export/Development")]
+        [SerializeField] private string developmentExportMethod = "development";
+
+        [FoldoutGroup("IPA Export/Distribution")]
+        [SerializeField] private string distributionExportMethod = "app-store-connect";
+
         [FoldoutGroup("App Store Upload")]
         [SerializeField] private bool autoUploadToAppStore;
 
@@ -124,6 +130,14 @@ namespace LFramework.Runtime.Settings
         public string DevelopmentExportOptionsFileName => string.IsNullOrWhiteSpace(developmentExportOptionsFileName)
             ? "AppStoreExportOptionsDev.plist"
             : TrimSettingValue(developmentExportOptionsFileName);
+
+        public string DevelopmentExportMethod => string.IsNullOrWhiteSpace(developmentExportMethod)
+            ? "development"
+            : TrimSettingValue(developmentExportMethod);
+
+        public string DistributionExportMethod => string.IsNullOrWhiteSpace(distributionExportMethod)
+            ? "app-store-connect"
+            : TrimSettingValue(distributionExportMethod);
 
         public override bool Validate(out string errorMessage)
         {
