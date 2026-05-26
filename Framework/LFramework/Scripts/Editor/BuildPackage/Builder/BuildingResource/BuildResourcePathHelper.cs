@@ -113,4 +113,20 @@ namespace LFramework.Editor.Builder.BuildingResource
         }
         
     }
+
+    /// <summary>
+    /// Resolves resource build mode rules shared by all resource systems.
+    /// </summary>
+    public static class ResourceBuildModeUtility
+    {
+        /// <summary>
+        /// Returns true when the build must keep all resource-system assets local to the player.
+        /// </summary>
+        /// <param name="buildSetting">Build settings.</param>
+        public static bool IsLocalResourceBuild(BuildSetting buildSetting)
+        {
+            return buildSetting != null &&
+                   (buildSetting.isResourcesBuildIn || buildSetting.cdnType == CdnType.Local);
+        }
+    }
 }

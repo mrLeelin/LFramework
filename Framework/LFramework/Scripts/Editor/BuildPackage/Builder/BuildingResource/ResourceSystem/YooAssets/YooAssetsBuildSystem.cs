@@ -43,7 +43,7 @@ namespace LFramework.Editor.Builder.BuildingResource
                 throw new InvalidOperationException("[YooAssets] No active package definitions were resolved for the current build target.");
             }
 
-            if (buildResourcesData.isResourcesBuildIn)
+            if (ResourceBuildModeUtility.IsLocalResourceBuild(buildResourcesData))
             {
                 BuildInPackage(resourceComponentSetting, buildPackages);
                 return;

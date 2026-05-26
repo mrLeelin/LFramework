@@ -29,6 +29,8 @@ namespace LFramework.Editor.Builder.BuildingResource
 
         public const string Last_Report_File_Name = "LastBuildReport.json";
         public const string Last_App_Report_File_Name = "LastAppBuildReport.json";
+        private const string LocalRemoteBuildPath = "LocalRemote.BuildPath";
+        private const string LocalRemoteLoadPath = "LocalRemote.LoadPath";
         private const string DefaultPlayerBuildScriptAssetPath =
             "Assets/AddressableAssetsData/DataBuilders/BuildScriptPackedMode.asset";
         private const string RecoveryPlayerBuildScriptAssetPath =
@@ -226,6 +228,94 @@ namespace LFramework.Editor.Builder.BuildingResource
         {
             ProjectConfigData.GenerateBuildLayout = true;
             ProjectConfigData.BuildLayoutReportFileFormat = ProjectConfigData.ReportFileFormat.JSON;
+        }
+
+        /// <summary>
+        /// Forces remote-like profile variables to resolve to the local player path.
+        /// </summary>
+        /// <param name="settings">Addressables settings.</param>
+        public static void ForceLocalProfilePaths(AddressableAssetSettings settings)
+        {
+            if (settings == null)
+            {
+                throw new ArgumentNullException(nameof(settings));
+            }
+
+            string profileId = settings.activeProfileId;
+            if (string.IsNullOrEmpty(profileId))
+            {
+                throw new InvalidOperationException("[AddressableBuildHelper] Active Addressables profile is invalid.");
+            }
+
+            List<string> variableNames = settings.profileSettings.GetVariableNames();
+            SetProfileValueIfExists(
+                settings,
+                profileId,
+                variableNames,
+                AddressableAssetSettings.kRemoteBuildPath,
+                AddressableAssetSettings.kLocalBuildPathValue);
+            SetProfileValueIfExists(
+                settings,
+                profileId,
+                variableNames,
+                AddressableAssetSettings.kRemoteLoadPath,
+                AddressableAssetSettings.kLocalLoadPathValue);
+            SetProfileValueIfExists(
+                settings,
+                profileId,
+                variableNames,
+                LocalRemoteBuildPath,
+                AddressableAssetSettings.kLocalBuildPathValue);
+            SetProfileValueIfExists(
+                settings,
+                profileId,
+                variableNames,
+                LocalRemoteLoadPath,
+                AddressableAssetSettings.kLocalLoadPathValue);
+
+            EditorUtility.SetDirty(settings);
+        }
+
+        /// <summary>
+        /// Forces all bundled Addressables groups to build and load from the local player path.
+        /// </summary>
+        /// <param name="settings">Addressables settings.</param>
+        public static void ForceLocalGroupPaths(AddressableAssetSettings settings)
+        {
+            if (settings == null)
+            {
+                throw new ArgumentNullException(nameof(settings));
+            }
+
+            foreach (AddressableAssetGroup group in settings.groups)
+            {
+                BundledAssetGroupSchema schema = group?.GetSchema<BundledAssetGroupSchema>();
+                if (schema == null)
+                {
+                    continue;
+                }
+
+                schema.BuildPath.SetVariableByName(settings, AddressableAssetSettings.kLocalBuildPath);
+                schema.LoadPath.SetVariableByName(settings, AddressableAssetSettings.kLocalLoadPath);
+                EditorUtility.SetDirty(schema);
+            }
+
+            EditorUtility.SetDirty(settings);
+        }
+
+        private static void SetProfileValueIfExists(
+            AddressableAssetSettings settings,
+            string profileId,
+            List<string> variableNames,
+            string variableName,
+            string value)
+        {
+            if (!variableNames.Contains(variableName))
+            {
+                return;
+            }
+
+            settings.profileSettings.SetValue(profileId, variableName, value);
         }
 
         public static void AddressableRefresh()

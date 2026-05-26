@@ -57,7 +57,7 @@ namespace LFramework.Editor.Builder.BuildingResource
             HybridCLRSetting gameSetting,
             ResourceComponentSetting resourceComponentSetting)
         {
-            if (buildResourcesData.isResourcesBuildIn)
+            if (ResourceBuildModeUtility.IsLocalResourceBuild(buildResourcesData))
             {
                 BuildInPackage();
                 return;
@@ -181,8 +181,11 @@ namespace LFramework.Editor.Builder.BuildingResource
 
             AddressableBuildHelper.SetProfile(settings, "Default");
             settings.BuildRemoteCatalog = false;
+            AddressableBuildHelper.ForceLocalProfilePaths(settings);
+            AddressableBuildHelper.ForceLocalGroupPaths(settings);
             AddressableBuildHelper.EnsureBuildLayoutPreferences();
             AddressableBuildHelper.EnsurePlayerDataBuilder(settings);
+            AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             AddressableAssetSettings.BuildPlayerContent(out AddressablesPlayerBuildResult result);
             bool success = string.IsNullOrEmpty(result.Error);
