@@ -46,7 +46,7 @@ namespace LFramework.Runtime.LaunchPipeline
                 {
                     if (result.ResultType != LoadAssemblyResultType.Successful)
                     {
-                        tcs.TrySetException(new Exception("[LoadAssemblyTask] load assembly error."));
+                        tcs.TrySetException(new Exception($"[LoadAssemblyTask] load assembly error. Type '{result.ResultType}' Message '{result.Message}'"));
                     }
                     else
                     {
