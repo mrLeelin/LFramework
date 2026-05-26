@@ -1,5 +1,8 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using UnityEngine;
 
 namespace LFramework.Editor
@@ -83,9 +86,9 @@ namespace LFramework.Editor
         public string RootDirectory { get; }
 
         /// <summary>
-        /// Gets the base loopback URL for the current port.
+        /// Gets the base URL for the current port.
         /// </summary>
-        public string BaseUrl => $"http://127.0.0.1:{Port}/";
+        public string BaseUrl => $"http://{GetLocalNetworkAddress()}:{Port}/";
 
         /// <summary>
         /// Gets whether the server should be restored after an editor domain reload.
@@ -164,6 +167,40 @@ namespace LFramework.Editor
         private static string GetProjectRoot()
         {
             return Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+        }
+
+        private static string GetLocalNetworkAddress()
+        {
+            try
+            {
+                IPAddress address = Dns.GetHostEntry(Dns.GetHostName())
+                    .AddressList
+                    .FirstOrDefault(IsPrivateIPv4Address);
+
+                if (address != null)
+                {
+                    return address.ToString();
+                }
+            }
+            catch
+            {
+                // Fall back to loopback if host address discovery fails.
+            }
+
+            return IPAddress.Loopback.ToString();
+        }
+
+        private static bool IsPrivateIPv4Address(IPAddress address)
+        {
+            if (address == null || address.AddressFamily != AddressFamily.InterNetwork)
+            {
+                return false;
+            }
+
+            byte[] bytes = address.GetAddressBytes();
+            return bytes[0] == 10 ||
+                   bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31 ||
+                   bytes[0] == 192 && bytes[1] == 168;
         }
     }
 

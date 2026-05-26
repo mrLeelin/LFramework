@@ -83,7 +83,7 @@ namespace LFramework.Editor
             {
                 _rootDirectory = Path.GetFullPath(rootDirectory);
                 _listener = new HttpListener();
-                _listener.Prefixes.Add($"http://127.0.0.1:{port}/");
+                _listener.Prefixes.Add($"http://+:{port}/");
                 _listener.Start();
 
                 _cancellationTokenSource = new CancellationTokenSource();

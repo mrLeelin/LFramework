@@ -77,7 +77,8 @@ namespace LFramework.Editor.Tests.LocalResourceServer
             Assert.That(host.LastPort, Is.EqualTo(18080));
             Assert.That(host.LastRootDirectory, Is.EqualTo(controller.RootDirectory));
             Assert.That(controller.IsRunning, Is.True);
-            Assert.That(controller.BaseUrl, Is.EqualTo("http://127.0.0.1:18080/"));
+            Assert.That(controller.BaseUrl, Does.StartWith("http://"));
+            Assert.That(controller.BaseUrl, Does.EndWith(":18080/"));
         }
 
         [Test]

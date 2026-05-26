@@ -205,7 +205,7 @@ namespace LFramework.Editor
             DrawInfoCard(
                 "Endpoint",
                 _controller.BaseUrl,
-                "Loopback URL used for local package and manifest testing.",
+                "LAN URL used for local package and manifest testing.",
                 AccentColor,
                 cardWidth,
                 84f);
