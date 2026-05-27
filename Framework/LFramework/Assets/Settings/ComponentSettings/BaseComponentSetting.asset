@@ -15,6 +15,7 @@ MonoBehaviour:
   bindTypeName: UnityGameFramework.Runtime.BaseComponent
   m_EditorResourceMode: 0
   m_EditorLanguage: 8
+  m_EditorResourceHelperTypeName: GameFramework.Resource.ResourceManager
   m_TextHelperTypeName: UnityGameFramework.Runtime.DefaultTextHelper
   m_VersionHelperTypeName: LFramework.Runtime.BuildVersionHelper
   m_LogHelperTypeName: UnityGameFramework.Runtime.DefaultLogHelper

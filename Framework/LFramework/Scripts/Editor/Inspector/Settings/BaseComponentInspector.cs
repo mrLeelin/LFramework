@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using GameFramework;
+using GameFramework.Resource;
 using LFramework.Editor;
 using LFramework.Runtime;
 using LFramework.Runtime.Settings;
@@ -24,6 +25,7 @@ namespace LFramework.Editor.Inspector
 
         private SerializedProperty m_EditorResourceMode = null;
         private SerializedProperty m_EditorLanguage = null;
+        private SerializedProperty m_EditorResourceHelperTypeName = null;
         private SerializedProperty m_TextHelperTypeName = null;
         private SerializedProperty m_VersionHelperTypeName = null;
         private SerializedProperty m_LogHelperTypeName = null;
@@ -36,6 +38,8 @@ namespace LFramework.Editor.Inspector
 
         private string[] m_TextHelperTypeNames = null;
         private int m_TextHelperTypeNameIndex = 0;
+        private string[] m_EditorResourceHelperTypeNames = null;
+        private int m_EditorResourceHelperTypeNameIndex = 0;
         private string[] m_VersionHelperTypeNames = null;
         private int m_VersionHelperTypeNameIndex = 0;
         private string[] m_LogHelperTypeNames = null;
@@ -78,6 +82,7 @@ namespace LFramework.Editor.Inspector
             base.OnEnable();
             m_EditorResourceMode = serializedObject.FindProperty("m_EditorResourceMode");
             m_EditorLanguage = serializedObject.FindProperty("m_EditorLanguage");
+            m_EditorResourceHelperTypeName = serializedObject.FindProperty("m_EditorResourceHelperTypeName");
             m_TextHelperTypeName = serializedObject.FindProperty("m_TextHelperTypeName");
             m_VersionHelperTypeName = serializedObject.FindProperty("m_VersionHelperTypeName");
             m_LogHelperTypeName = serializedObject.FindProperty("m_LogHelperTypeName");
@@ -112,6 +117,11 @@ namespace LFramework.Editor.Inspector
                     "When enabled in the editor, Game Framework uses editor resource files. Validate them before runtime tests.",
                     MessageType.Warning);
                 EditorGUILayout.PropertyField(m_EditorLanguage);
+                DrawHelperPopup(
+                    "Editor Resource Helper",
+                    ref m_EditorResourceHelperTypeNameIndex,
+                    m_EditorResourceHelperTypeNames,
+                    m_EditorResourceHelperTypeName);
                 EditorGUILayout.HelpBox(
                     "Editor Language is only used for localization checks while running inside the editor.",
                     MessageType.None);
@@ -205,6 +215,20 @@ namespace LFramework.Editor.Inspector
 
         private void RefreshTypeNames()
         {
+            List<string> editorResourceHelperTypeNames = GetEditorResourceHelperTypeNames();
+            m_EditorResourceHelperTypeNames = editorResourceHelperTypeNames.ToArray();
+            m_EditorResourceHelperTypeNameIndex = 0;
+            if (!string.IsNullOrEmpty(m_EditorResourceHelperTypeName.stringValue))
+            {
+                m_EditorResourceHelperTypeNameIndex =
+                    editorResourceHelperTypeNames.IndexOf(m_EditorResourceHelperTypeName.stringValue);
+                if (m_EditorResourceHelperTypeNameIndex <= 0)
+                {
+                    m_EditorResourceHelperTypeNameIndex = 0;
+                    m_EditorResourceHelperTypeName.stringValue = null;
+                }
+            }
+
             List<string> textHelperTypeNames = new List<string>
             {
                 NoneOptionName
@@ -301,12 +325,42 @@ namespace LFramework.Editor.Inspector
             serializedObject.ApplyModifiedProperties();
         }
 
+        private static List<string> GetEditorResourceHelperTypeNames()
+        {
+            HashSet<string> typeNames = new HashSet<string>();
+            foreach (System.Type type in Utility.Assembly.GetTypes())
+            {
+                if (type.IsClass && !type.IsAbstract && typeof(IResourceManager).IsAssignableFrom(type))
+                {
+                    typeNames.Add(type.FullName);
+                }
+            }
+
+            List<string> result = new List<string>
+            {
+                NoneOptionName
+            };
+            result.AddRange(typeNames.OrderBy(typeName => typeName));
+            return result;
+        }
+
         private void DrawHelperPopup(
             string label,
             ref int selectedIndex,
             string[] options,
             SerializedProperty targetProperty)
         {
+            if (options == null || options.Length == 0)
+            {
+                options = new[] { NoneOptionName };
+                selectedIndex = 0;
+            }
+
+            if (selectedIndex < 0 || selectedIndex >= options.Length)
+            {
+                selectedIndex = 0;
+            }
+
             int nextIndex = EditorGUILayout.Popup(label, selectedIndex, options);
             if (nextIndex != selectedIndex)
             {

@@ -17,6 +17,8 @@ namespace LFramework.Runtime.Settings
 
         [SerializeField] private Language m_EditorLanguage = Language.Unspecified;
 
+        [SerializeField] private string m_EditorResourceHelperTypeName = "GameFramework.Resource.ResourceManager";
+
         [SerializeField] private string m_TextHelperTypeName = "UnityGameFramework.Runtime.DefaultTextHelper";
 
         [SerializeField] private string m_VersionHelperTypeName = "UnityGameFramework.Runtime.DefaultVersionHelper";

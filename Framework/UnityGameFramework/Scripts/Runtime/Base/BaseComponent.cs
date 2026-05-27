@@ -29,6 +29,8 @@ namespace UnityGameFramework.Runtime
 
         [SerializeField] private Language m_EditorLanguage = Language.Unspecified;
 
+        [SerializeField] private string m_EditorResourceHelperTypeName = "GameFramework.Resource.ResourceManager";
+
         [SerializeField] private string m_TextHelperTypeName = "UnityGameFramework.Runtime.DefaultTextHelper";
 
         [SerializeField] private string m_VersionHelperTypeName = "UnityGameFramework.Runtime.DefaultVersionHelper";
@@ -75,7 +77,11 @@ namespace UnityGameFramework.Runtime
         /// <summary>
         /// 获取或设置编辑器资源辅助器。
         /// </summary>
-        public IResourceManager EditorResourceHelper { get; set; }
+        public IResourceManager EditorResourceHelper
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// 获取或设置游戏帧率。
@@ -161,6 +167,7 @@ namespace UnityGameFramework.Runtime
             m_EditorResourceMode &= Application.isEditor;
             if (m_EditorResourceMode)
             {
+                InitEditorResourceHelper();
                 Log.Info(
                     "During this run, Game Framework will use editor resource files, which you should validate first.");
             }
@@ -274,6 +281,46 @@ namespace UnityGameFramework.Runtime
             }
 
             Utility.Text.SetTextHelper(textHelper);
+        }
+
+        private void InitEditorResourceHelper()
+        {
+            if (string.IsNullOrEmpty(m_EditorResourceHelperTypeName))
+            {
+                EditorResourceHelper = null;
+                return;
+            }
+
+            Type resourceHelperType = Utility.Assembly.GetType(m_EditorResourceHelperTypeName);
+            if (resourceHelperType == null)
+            {
+                Log.Error("Can not find editor resource helper type '{0}'.", m_EditorResourceHelperTypeName);
+                EditorResourceHelper = null;
+                return;
+            }
+
+            if (!typeof(IResourceManager).IsAssignableFrom(resourceHelperType))
+            {
+                Log.Error("Editor resource helper type '{0}' is not assignable to IResourceManager.", m_EditorResourceHelperTypeName);
+                EditorResourceHelper = null;
+                return;
+            }
+
+            if (resourceHelperType.FullName == "GameFramework.Resource.ResourceManager")
+            {
+                EditorResourceHelper = GameFrameworkEntry.GetModule<IResourceManager>();
+                return;
+            }
+
+            IResourceManager resourceHelper = (IResourceManager)Activator.CreateInstance(resourceHelperType, true);
+            if (resourceHelper == null)
+            {
+                Log.Error("Can not create editor resource helper instance '{0}'.", m_EditorResourceHelperTypeName);
+                EditorResourceHelper = null;
+                return;
+            }
+
+            EditorResourceHelper = resourceHelper;
         }
 
         private void InitVersionHelper()
