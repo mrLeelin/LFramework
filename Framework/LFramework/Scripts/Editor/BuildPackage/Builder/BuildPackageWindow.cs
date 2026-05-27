@@ -37,8 +37,9 @@ namespace LFramework.Editor.Builder
 
         public string AppVersion;
         public string VersionCode;
-       
 
+
+        [ShowIf("BuildType")] public BuildAndroidAppType BuildAndroidAppType;
         [ShowIf("BuildType", BuildType.App)] public bool IsBuildResources;
         [ShowIf("BuildType", BuildType.App)] public bool IsResourcesBuildIn;
 
@@ -56,6 +57,7 @@ namespace LFramework.Editor.Builder
             var setting = new BuildSetting()
             {
                 builderTarget = BuilderTarget,
+                buildAndroidAppType = BuildAndroidAppType,
                 windowsChannel = BuildWindowsChannel,
                 androidChannel = BuildAndroidChannel,
                 iosChannel = BuildIOSChannel,
