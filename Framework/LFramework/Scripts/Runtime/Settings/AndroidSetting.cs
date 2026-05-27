@@ -10,6 +10,11 @@ namespace LFramework.Runtime.Settings
     [CreateAssetMenu(fileName = "AndroidSetting", menuName = "LFramework/Settings/AndroidSetting")]
     public class AndroidSetting : BaseSetting
     {
+        
+        [Title("Android 配置")]
+        [SerializeField] private string bundleIdentifier;
+        
+        
         [Title("Android 签名配置")]
         [InfoBox("Release 构建且非导出 Android Project 时，会读取这里的签名配置。")]
         [ToggleLeft]
@@ -37,7 +42,8 @@ namespace LFramework.Runtime.Settings
         public string KeystorePass => keystorePass;
         public string KeyaliasName => keyaliasName;
         public string KeyaliasPass => keyaliasPass;
-        
+        public string BundleIdentifier => bundleIdentifier;
+
         public override bool Validate(out string errorMessage)
         {
             if (!useCustomKeystore)
@@ -67,6 +73,12 @@ namespace LFramework.Runtime.Settings
             if (string.IsNullOrWhiteSpace(keyaliasPass))
             {
                 errorMessage = "Key Alias Password 不能为空";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(bundleIdentifier))
+            {
+                errorMessage = "Bundle Identifier 不存在";
                 return false;
             }
 

@@ -15,10 +15,12 @@ namespace LFramework.Editor.Builder.PlatformConfig
     public class AndroidPlatformConfig : IPlatformConfig
     {
         private readonly BuildSetting _buildSetting;
+        private readonly AndroidSetting _androidSetting;
 
         public AndroidPlatformConfig(BuildSetting buildSetting)
         {
             _buildSetting = buildSetting ?? throw new ArgumentNullException(nameof(buildSetting));
+            _androidSetting = SettingManager.GetSetting<AndroidSetting>();
         }
 
         public BuildTarget GetBuildTarget()
@@ -68,6 +70,12 @@ namespace LFramework.Editor.Builder.PlatformConfig
         public void ConfigurePlatformSettings(BuildSetting buildSetting)
         {
             // 配置构建系统
+            
+            
+            PlayerSettings.SetApplicationIdentifier(
+                NamedBuildTarget.FromBuildTargetGroup(BuildTargetGroup.Android),
+                _androidSetting.BundleIdentifier);
+            
             EditorUserBuildSettings.androidBuildSystem = AndroidBuildSystem.Gradle;
             EditorUserBuildSettings.buildAppBundle = buildSetting.buildAndroidAppType == BuildAndroidAppType.AppBundle;
             EditorUserBuildSettings.exportAsGoogleAndroidProject =
