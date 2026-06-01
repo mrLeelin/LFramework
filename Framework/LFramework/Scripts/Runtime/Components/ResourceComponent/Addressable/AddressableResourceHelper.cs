@@ -26,6 +26,8 @@ namespace LFramework.Runtime
         private const string ReplaceRemote = "remote_";
         private const string ReplaceVersion = "_resource_version_";
         private GameSetting _gameSetting;
+        private readonly Dictionary<string, HasAssetResult> _hasAssetCache =
+            new Dictionary<string, HasAssetResult>(StringComparer.Ordinal);
 
         private void Awake()
         {
@@ -44,6 +46,7 @@ namespace LFramework.Runtime
             {
                 if (op.Status == AsyncOperationStatus.Succeeded)
                 {
+                    _hasAssetCache.Clear();
                     callback.ResourceInitSuccessCallBack?.Invoke();
                 }
                 else
@@ -59,7 +62,41 @@ namespace LFramework.Runtime
         /// </summary>
         public override HasAssetResult HasAsset(string assetName)
         {
-            return HasAssetResult.Exist;
+            if (string.IsNullOrWhiteSpace(assetName))
+            {
+                return HasAssetResult.NotExist;
+            }
+
+            if (_hasAssetCache.TryGetValue(assetName, out HasAssetResult cachedResult))
+            {
+                return cachedResult;
+            }
+
+            bool hasLocator = false;
+            foreach (IResourceLocator locator in Addressables.ResourceLocators)
+            {
+                if (locator == null)
+                {
+                    continue;
+                }
+
+                hasLocator = true;
+                if (locator.Locate(assetName, null, out IList<IResourceLocation> locations) &&
+                    locations != null &&
+                    locations.Count > 0)
+                {
+                    _hasAssetCache[assetName] = HasAssetResult.Exist;
+                    return HasAssetResult.Exist;
+                }
+            }
+
+            if (!hasLocator)
+            {
+                return HasAssetResult.NotReady;
+            }
+
+            _hasAssetCache[assetName] = HasAssetResult.NotExist;
+            return HasAssetResult.NotExist;
         }
 
         /// <summary>

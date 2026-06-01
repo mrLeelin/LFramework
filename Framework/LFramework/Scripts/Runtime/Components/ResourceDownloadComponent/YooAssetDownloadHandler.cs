@@ -16,6 +16,7 @@ namespace LFramework.Runtime
     {
         private readonly string _packageName;
         private ResourceDownloaderOperation _downloaderOperation;
+        private readonly bool _downloadByLocation;
 
         /// <summary>
         /// 是否同时检查已下载过的 Tag 的增量更新
@@ -25,11 +26,12 @@ namespace LFramework.Runtime
 
         public YooAssetDownloadHandler(string name, List<string> updateLabels,
             string packageName, int serialID, bool autoReleaseHandle,
-            bool checkDownloadedTags = false)
+            bool checkDownloadedTags = false, bool downloadByLocation = false)
             : base(name, updateLabels, serialID, autoReleaseHandle)
         {
             _packageName = packageName;
             _checkDownloadedTags = checkDownloadedTags;
+            _downloadByLocation = downloadByLocation;
         }
 
         public override void OnUpdate(float elapseSeconds, float realElapseSeconds)
@@ -100,7 +102,7 @@ namespace LFramework.Runtime
             var tagsToDownload = new List<string>(_updateLabels);
 
             // 如果开启了已下载 Tag 检查，把之前下载过的 Tag 也加进来
-            if (_checkDownloadedTags)
+            if (!_downloadByLocation && _checkDownloadedTags)
             {
                 var downloadedTags = DownloadedTagTracker.GetDownloadedTags(_packageName);
                 foreach (var tag in downloadedTags)
@@ -117,8 +119,9 @@ namespace LFramework.Runtime
             StepEvent(ResourceDownloadStep.DownloadKey, tagsToDownload);
             int downloadingMaxNum = 10;
             int failedTryAgain = 3;
-            _downloaderOperation = package.CreateResourceDownloader(
-                tagsToDownload.ToArray(), downloadingMaxNum, failedTryAgain);
+            _downloaderOperation = _downloadByLocation
+                ? package.CreateBundleDownloader(tagsToDownload.ToArray(), downloadingMaxNum, failedTryAgain)
+                : package.CreateResourceDownloader(tagsToDownload.ToArray(), downloadingMaxNum, failedTryAgain);
 
             _totalDownloadSize = _downloaderOperation.TotalDownloadBytes;
             StepEvent(ResourceDownloadStep.GetDownloadSizeSuccessful, _totalDownloadSize);
@@ -156,6 +159,11 @@ namespace LFramework.Runtime
         /// </summary>
         private void MarkTagsAsDownloaded(List<string> tags)
         {
+            if (_downloadByLocation)
+            {
+                return;
+            }
+
             foreach (var tag in tags)
             {
                 DownloadedTagTracker.MarkTagDownloaded(_packageName, tag);
