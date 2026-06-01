@@ -21,6 +21,7 @@ namespace LFramework.Editor.Inspector
         private SerializedProperty m_YooAssetPackages = null;
         private SerializedProperty m_YooAssetRouting = null;
         private SerializedProperty m_AddressableHotfixProfileName;
+        private SerializedProperty m_AddressableForceSingleSlashUrls;
 
         private HelperInfo<ResourceHelperBase> m_ResourceHelperInfo = new HelperInfo<ResourceHelperBase>("Resource");
 
@@ -62,6 +63,7 @@ namespace LFramework.Editor.Inspector
             m_YooAssetPackages = serializedObject.FindProperty("_yooAssetPackages");
             m_YooAssetRouting = serializedObject.FindProperty("_routing");
             m_AddressableHotfixProfileName = serializedObject.FindProperty("_hotfixProfileName");
+            m_AddressableForceSingleSlashUrls = serializedObject.FindProperty("_forceSingleSlashUrls");
 
             m_ResourceHelperInfo.Init(serializedObject);
 
@@ -196,6 +198,7 @@ namespace LFramework.Editor.Inspector
 #if ADDRESSABLE_SUPPORT
             BeginSection("Addressables Settings", "Configure the hotfix profile used by the Addressables pipeline.");
             EditorGUILayout.PropertyField(m_AddressableHotfixProfileName);
+            EditorGUILayout.PropertyField(m_AddressableForceSingleSlashUrls);
 
             if (string.IsNullOrWhiteSpace(m_AddressableHotfixProfileName.stringValue))
             {

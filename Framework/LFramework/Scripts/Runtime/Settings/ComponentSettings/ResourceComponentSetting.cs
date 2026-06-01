@@ -61,7 +61,15 @@ namespace LFramework.Runtime.Settings
         [SerializeField]
         private string _hotfixProfileName;
 
+        [BoxGroup("Addressable")]
+        [LabelText("Force Single Slash Urls")]
+        [ShowIf("_resourceMode", ResourceMode.Addressable)]
+        [SerializeField]
+        private bool _forceSingleSlashUrls;
+
         public string HotfixProfileName => _hotfixProfileName;
+
+        public bool ForceSingleSlashUrls => _forceSingleSlashUrls;
 
         public ResourceMode ResourceMode => _resourceMode;
 

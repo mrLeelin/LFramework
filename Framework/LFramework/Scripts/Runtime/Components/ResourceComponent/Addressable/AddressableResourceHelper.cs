@@ -26,12 +26,14 @@ namespace LFramework.Runtime
         private const string ReplaceRemote = "remote_";
         private const string ReplaceVersion = "_resource_version_";
         private GameSetting _gameSetting;
+        private ResourceComponentSetting _resourceComponentSetting;
         private readonly Dictionary<string, HasAssetResult> _hasAssetCache =
             new Dictionary<string, HasAssetResult>(StringComparer.Ordinal);
 
         private void Awake()
         {
             _gameSetting = SettingManager.GetSetting<GameSetting>();
+            _resourceComponentSetting = SettingManager.GetProjectSelector()?.GetComponentSetting<ResourceComponentSetting>();
             _settingComponent = LFrameworkAspect.Instance.Get<SettingComponent>();
             Addressables.InternalIdTransformFunc = OnInternalIdTransformFunc;
         }
@@ -469,8 +471,35 @@ namespace LFramework.Runtime
         {
             var newUrl = setting.GetCdnUrl();
             var addressKey =
- internalId.Replace(ReplaceRemote, newUrl).Replace(ReplaceVersion, setting.GetResourceVersion(_settingComponent));
+                internalId.Replace(ReplaceRemote, newUrl)
+                    .Replace(ReplaceVersion, setting.GetResourceVersion(_settingComponent));
+            if (_resourceComponentSetting != null && _resourceComponentSetting.ForceSingleSlashUrls)
+            {
+                addressKey = ForceSingleSlashUrl(addressKey);
+            }
+
             return addressKey;
+        }
+
+        private static string ForceSingleSlashUrl(string url)
+        {
+            if (string.IsNullOrEmpty(url))
+            {
+                return url;
+            }
+
+            var protocolIndex = url.IndexOf("://", StringComparison.Ordinal);
+            var startIndex = protocolIndex >= 0 ? protocolIndex + 3 : 0;
+            while (true)
+            {
+                var duplicateSlashIndex = url.IndexOf("//", startIndex, StringComparison.Ordinal);
+                if (duplicateSlashIndex < 0)
+                {
+                    return url;
+                }
+
+                url = url.Remove(duplicateSlashIndex, 1);
+            }
         }
 
         private void LoadAssetInternal(
