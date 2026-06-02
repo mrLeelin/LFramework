@@ -2,6 +2,13 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.2.50]
+
+### Added
+
+- Added a `Log Load Urls` resource setting that logs resolved remote load URLs for both Addressables and YooAsset, including dependency and package-internal URL requests.
+- Added URL log details for backend, asset identity, final URL, and compact stack traces to help locate unexpected remote resource dependencies.
+
 ## [0.2.40]
 
 ### Changed

@@ -180,6 +180,80 @@ namespace LFramework.Editor.Tests.Settings
         }
 
         [Test]
+        public void ResourceComponentSetting_DisablesLoadUrlLoggingByDefault()
+        {
+            var setting = ScriptableObject.CreateInstance<ResourceComponentSetting>();
+
+            Assert.That(setting.LogLoadUrls, Is.False);
+        }
+
+        [Test]
+        public void AddressableResourceHelper_BuildLoadUrlLogMessage_IncludesLookupFields()
+        {
+            Type helperType = Type.GetType(
+                "LFramework.Runtime.AddressableResourceHelper, LFramework.Runtime");
+            Assert.That(helperType, Is.Not.Null, "Expected AddressableResourceHelper type to exist in LFramework.Runtime.");
+
+            MethodInfo method = helperType.GetMethod(
+                "BuildLoadUrlLogMessage",
+                BindingFlags.Static | BindingFlags.NonPublic);
+
+            Assert.That(method, Is.Not.Null, "Expected Addressables URL logging message builder.");
+
+            object result = method.Invoke(
+                null,
+                new object[]
+                {
+                    "ModelHero",
+                    typeof(object),
+                    "remote_Android/model.bundle",
+                    "https://cdn.example.com/1.0.0/model.bundle",
+                    "UserScript.LoadModel"
+                });
+
+            string message = (string)result;
+            Assert.That(message, Does.Contain("[ResourceLoadUrl]"));
+            Assert.That(message, Does.Contain("Backend: Addressables"));
+            Assert.That(message, Does.Contain("PrimaryKey: ModelHero"));
+            Assert.That(message, Does.Contain("ResourceType: Object"));
+            Assert.That(message, Does.Contain("InternalId: remote_Android/model.bundle"));
+            Assert.That(message, Does.Contain("Url: https://cdn.example.com/1.0.0/model.bundle"));
+            Assert.That(message, Does.Contain("Stack: UserScript.LoadModel"));
+        }
+
+        [Test]
+        public void DefaultRemoteServices_BuildLoadUrlLogMessage_IncludesYooAssetFields()
+        {
+            Type remoteServicesType = Type.GetType(
+                "LFramework.Runtime.DefaultRemoteServices, LFramework.Runtime");
+            Assert.That(remoteServicesType, Is.Not.Null, "Expected DefaultRemoteServices type to exist in LFramework.Runtime.");
+
+            MethodInfo method = remoteServicesType.GetMethod(
+                "BuildLoadUrlLogMessage",
+                BindingFlags.Static | BindingFlags.NonPublic);
+
+            Assert.That(method, Is.Not.Null, "Expected YooAsset URL logging message builder.");
+
+            object result = method.Invoke(
+                null,
+                new object[]
+                {
+                    "Main",
+                    "model.bundle",
+                    "https://cdn.example.com/model.bundle",
+                    "YooAsset.DownloadSystem"
+                });
+
+            string message = (string)result;
+            Assert.That(message, Does.Contain("[ResourceLoadUrl]"));
+            Assert.That(message, Does.Contain("Backend: YooAsset"));
+            Assert.That(message, Does.Contain("RemoteKind: Main"));
+            Assert.That(message, Does.Contain("FileName: model.bundle"));
+            Assert.That(message, Does.Contain("Url: https://cdn.example.com/model.bundle"));
+            Assert.That(message, Does.Contain("Stack: YooAsset.DownloadSystem"));
+        }
+
+        [Test]
         public void PackageRegistry_ActivatesMatchingDefinition_AndStoresAClone()
         {
             var windowsDefinition = new PackageDefinition

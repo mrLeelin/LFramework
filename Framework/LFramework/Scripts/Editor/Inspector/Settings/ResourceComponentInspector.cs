@@ -22,6 +22,7 @@ namespace LFramework.Editor.Inspector
         private SerializedProperty m_YooAssetRouting = null;
         private SerializedProperty m_AddressableHotfixProfileName;
         private SerializedProperty m_AddressableForceSingleSlashUrls;
+        private SerializedProperty m_LogLoadUrls;
 
         private HelperInfo<ResourceHelperBase> m_ResourceHelperInfo = new HelperInfo<ResourceHelperBase>("Resource");
 
@@ -64,6 +65,7 @@ namespace LFramework.Editor.Inspector
             m_YooAssetRouting = serializedObject.FindProperty("_routing");
             m_AddressableHotfixProfileName = serializedObject.FindProperty("_hotfixProfileName");
             m_AddressableForceSingleSlashUrls = serializedObject.FindProperty("_forceSingleSlashUrls");
+            m_LogLoadUrls = serializedObject.FindProperty("_logLoadUrls");
 
             m_ResourceHelperInfo.Init(serializedObject);
 
@@ -199,6 +201,14 @@ namespace LFramework.Editor.Inspector
             BeginSection("Addressables Settings", "Configure the hotfix profile used by the Addressables pipeline.");
             EditorGUILayout.PropertyField(m_AddressableHotfixProfileName);
             EditorGUILayout.PropertyField(m_AddressableForceSingleSlashUrls);
+            EditorGUILayout.PropertyField(m_LogLoadUrls);
+
+            if (m_LogLoadUrls.boolValue)
+            {
+                EditorGUILayout.HelpBox(
+                    "Addressables will log every resolved remote load URL with primary key, resource type, internal id, final URL, and a compact stack trace.",
+                    MessageType.Info);
+            }
 
             if (string.IsNullOrWhiteSpace(m_AddressableHotfixProfileName.stringValue))
             {
@@ -222,6 +232,14 @@ namespace LFramework.Editor.Inspector
         private void DrawYooAssetSection()
         {
             BeginSection("YooAsset Settings", "Configure logical packages, route-index routing, and active package preview.");
+
+            EditorGUILayout.PropertyField(m_LogLoadUrls);
+            if (m_LogLoadUrls.boolValue)
+            {
+                EditorGUILayout.HelpBox(
+                    "YooAsset will log every remote main and fallback URL requested by the package file system, including plugin-internal dependencies.",
+                    MessageType.Info);
+            }
 
             EditorGUILayout.PropertyField(m_YooAssetDefaultPackageId);
             EditorGUILayout.Space(4f);

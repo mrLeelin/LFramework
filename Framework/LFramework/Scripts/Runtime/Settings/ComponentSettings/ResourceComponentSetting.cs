@@ -67,9 +67,16 @@ namespace LFramework.Runtime.Settings
         [SerializeField]
         private bool _forceSingleSlashUrls;
 
+        [BoxGroup("Addressable")]
+        [LabelText("Log Load Urls")]
+        [SerializeField]
+        private bool _logLoadUrls;
+
         public string HotfixProfileName => _hotfixProfileName;
 
         public bool ForceSingleSlashUrls => _forceSingleSlashUrls;
+
+        public bool LogLoadUrls => _logLoadUrls;
 
         public ResourceMode ResourceMode => _resourceMode;
 

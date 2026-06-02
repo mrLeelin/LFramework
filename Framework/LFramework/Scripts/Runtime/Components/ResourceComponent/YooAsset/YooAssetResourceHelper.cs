@@ -13,6 +13,103 @@ using YooAsset;
 
 namespace LFramework.Runtime
 {
+    public class DefaultRemoteServices : IRemoteServices
+    {
+        private readonly string _defaultHostServer;
+        private readonly ResourceComponentSetting _resourceComponentSetting;
+
+        public DefaultRemoteServices(SettingComponent settingComponent, GameSetting gameSetting)
+            : this(settingComponent, gameSetting, null)
+        {
+        }
+
+        public DefaultRemoteServices(
+            SettingComponent settingComponent,
+            GameSetting gameSetting,
+            ResourceComponentSetting resourceComponentSetting)
+        {
+            _resourceComponentSetting = resourceComponentSetting;
+            var url = gameSetting.GetCdnUrl();
+            var version = gameSetting.GetResourceVersion(settingComponent);
+            var appVersion = gameSetting.appVersion;
+            var channel = gameSetting.channel;
+            var cdnType = gameSetting.cdnType;
+            var newUrl = $"{url}{channel}_{appVersion}_{cdnType}/{channel}_{version}_{cdnType}";
+            Log.Info($"[DefaultRemoteServices] The new url is {newUrl}");
+            _defaultHostServer = newUrl;
+        }
+
+        string IRemoteServices.GetRemoteMainURL(string fileName)
+        {
+            string url = $"{_defaultHostServer}/{fileName}";
+            LogRemoteUrlIfEnabled("Main", fileName, url);
+            return url;
+        }
+
+        string IRemoteServices.GetRemoteFallbackURL(string fileName)
+        {
+            string url = $"{_defaultHostServer}/{fileName}";
+            LogRemoteUrlIfEnabled("Fallback", fileName, url);
+            return url;
+        }
+
+        private void LogRemoteUrlIfEnabled(string remoteKind, string fileName, string url)
+        {
+            if (_resourceComponentSetting == null || !_resourceComponentSetting.LogLoadUrls)
+            {
+                return;
+            }
+
+            Log.Info(BuildLoadUrlLogMessage(remoteKind, fileName, url, BuildLoadUrlStackTrace()));
+        }
+
+        private static string BuildLoadUrlLogMessage(
+            string remoteKind,
+            string fileName,
+            string url,
+            string stackTrace)
+        {
+            return "[ResourceLoadUrl] Backend: YooAsset, " +
+                   $"RemoteKind: {remoteKind ?? "<null>"}, " +
+                   $"FileName: {fileName ?? "<null>"}, " +
+                   $"Url: {url ?? "<null>"}, " +
+                   $"Stack: {stackTrace ?? "<empty>"}";
+        }
+
+        private static string BuildLoadUrlStackTrace()
+        {
+            var stackTrace = new System.Diagnostics.StackTrace(2, false);
+            System.Diagnostics.StackFrame[] frames = stackTrace.GetFrames();
+            if (frames == null || frames.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            var parts = new List<string>();
+            for (int i = 0; i < frames.Length && parts.Count < 12; i++)
+            {
+                var method = frames[i].GetMethod();
+                Type declaringType = method?.DeclaringType;
+                if (method == null || declaringType == null)
+                {
+                    continue;
+                }
+
+                string fullName = declaringType.FullName;
+                if (string.IsNullOrEmpty(fullName) ||
+                    fullName.StartsWith("YooAsset.", StringComparison.Ordinal) ||
+                    fullName.StartsWith("UnityEngine.", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                parts.Add($"{fullName}.{method.Name}");
+            }
+
+            return string.Join(" <- ", parts);
+        }
+    }
+
     /// <summary>
     /// YooAsset 资源辅助器。
     /// 负责 YooAsset 包初始化、资源加载、资源实例化、句柄跟踪以及多包路由解析。
@@ -1187,7 +1284,7 @@ namespace LFramework.Runtime
         /// </summary>
         protected virtual IRemoteServices BuildRemoteService(SettingComponent settingComponent, GameSetting gameSetting)
         {
-            return new DefaultRemoteServices(settingComponent, gameSetting);
+            return new DefaultRemoteServices(settingComponent, gameSetting, _resourceComponentSetting);
         }
 
         /// <summary>

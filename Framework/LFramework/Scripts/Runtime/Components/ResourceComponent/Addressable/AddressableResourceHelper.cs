@@ -1,6 +1,7 @@
 #if ADDRESSABLE_SUPPORT
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Cysharp.Threading.Tasks;
 using GameFramework;
 using GameFramework.Resource;
@@ -444,27 +445,42 @@ namespace LFramework.Runtime
 
         private string OnInternalIdTransformFunc(IResourceLocation location)
         {
+            if (location == null)
+            {
+                return null;
+            }
+
+            string transformedId = location.InternalId;
+            string internalId = location.InternalId ?? string.Empty;
             if (_gameSetting.cdnType == CdnType.Local)
             {
-                return location.InternalId;
+                LogLoadUrlIfEnabled(location, transformedId, false);
+                return transformedId;
             }
 
-            if (location.ResourceType == typeof(IAssetBundleResource) && location.InternalId.StartsWith(ReplaceRemote))
+            if (location.ResourceType == typeof(IAssetBundleResource) && internalId.StartsWith(ReplaceRemote))
             {
-                return ReplaceUrl(location.InternalId, _gameSetting);
+                transformedId = ReplaceUrl(internalId, _gameSetting);
+                LogLoadUrlIfEnabled(location, transformedId, true);
+                return transformedId;
             }
 
-            if (location.ResourceType == typeof(ContentCatalogData) && location.InternalId.StartsWith(ReplaceRemote))
+            if (location.ResourceType == typeof(ContentCatalogData) && internalId.StartsWith(ReplaceRemote))
             {
-                return ReplaceUrl(location.InternalId, _gameSetting);
+                transformedId = ReplaceUrl(internalId, _gameSetting);
+                LogLoadUrlIfEnabled(location, transformedId, true);
+                return transformedId;
             }
 
             if (location.PrimaryKey == "AddressablesMainContentCatalogRemoteHash")
             {
-                return ReplaceUrl(location.InternalId, _gameSetting);
+                transformedId = ReplaceUrl(internalId, _gameSetting);
+                LogLoadUrlIfEnabled(location, transformedId, true);
+                return transformedId;
             }
 
-            return location.InternalId;
+            LogLoadUrlIfEnabled(location, transformedId, false);
+            return transformedId;
         }
 
         private string ReplaceUrl(string internalId, GameSetting setting)
@@ -479,6 +495,87 @@ namespace LFramework.Runtime
             }
 
             return addressKey;
+        }
+
+        private void LogLoadUrlIfEnabled(IResourceLocation location, string transformedId, bool remoteMatch)
+        {
+            if (_resourceComponentSetting == null || !_resourceComponentSetting.LogLoadUrls)
+            {
+                return;
+            }
+
+            string url = transformedId ?? location?.InternalId;
+            if (!remoteMatch && !IsLikelyUrl(url))
+            {
+                return;
+            }
+
+            Log.Info(BuildLoadUrlLogMessage(
+                location?.PrimaryKey,
+                location?.ResourceType,
+                location?.InternalId,
+                url,
+                BuildLoadUrlStackTrace()));
+        }
+
+        private static bool IsLikelyUrl(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            return value.IndexOf("://", StringComparison.Ordinal) >= 0 ||
+                   value.StartsWith(ReplaceRemote, StringComparison.Ordinal);
+        }
+
+        private static string BuildLoadUrlLogMessage(
+            string primaryKey,
+            Type resourceType,
+            string internalId,
+            string url,
+            string stackTrace)
+        {
+            return "[ResourceLoadUrl] Backend: Addressables, " +
+                   $"PrimaryKey: {primaryKey ?? "<null>"}, " +
+                   $"ResourceType: {resourceType?.Name ?? "<null>"}, " +
+                   $"InternalId: {internalId ?? "<null>"}, " +
+                   $"Url: {url ?? "<null>"}, " +
+                   $"Stack: {stackTrace ?? "<empty>"}";
+        }
+
+        private static string BuildLoadUrlStackTrace()
+        {
+            var stackTrace = new StackTrace(2, false);
+            StackFrame[] frames = stackTrace.GetFrames();
+            if (frames == null || frames.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            var parts = new List<string>();
+            for (int i = 0; i < frames.Length && parts.Count < 12; i++)
+            {
+                var method = frames[i].GetMethod();
+                Type declaringType = method?.DeclaringType;
+                if (method == null || declaringType == null)
+                {
+                    continue;
+                }
+
+                string fullName = declaringType.FullName;
+                if (string.IsNullOrEmpty(fullName) ||
+                    fullName.StartsWith("UnityEngine.", StringComparison.Ordinal) ||
+                    fullName.StartsWith("UnityEngine.ResourceManagement.", StringComparison.Ordinal) ||
+                    fullName.StartsWith("UnityEngine.AddressableAssets.", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                parts.Add($"{fullName}.{method.Name}");
+            }
+
+            return string.Join(" <- ", parts);
         }
 
         private static string ForceSingleSlashUrl(string url)
