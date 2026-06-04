@@ -17,6 +17,10 @@ MonoBehaviour:
   description: 
   tags: []
   useCustomKeystore: 1
+  debugKeystorePath: BuildBat/keystore/partygo.keystore
+  debugKeystorePass: 123456
+  debugKeyaliasName: partygo
+  debugKeyaliasPass: 123456
   keystorePath: BuildBat/keystore/partygo.keystore
   keystorePass: 123456
   keyaliasName: partygo

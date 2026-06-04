@@ -138,7 +138,9 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                     break;
 
                 case BuilderTarget.Android:
-                    ApplyAndroidSettings();
+                    ApplyAndroidSettings(
+                        buildSetting.isRelease,
+                        buildSetting.buildAndroidAppType != BuildAndroidAppType.ExportAndroidProject);
                     break;
 
                 case BuilderTarget.Windows:
@@ -177,7 +179,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
         /// <summary>
         /// 应用 Android 平台配置
         /// </summary>
-        private void ApplyAndroidSettings()
+        private void ApplyAndroidSettings(bool isRelease, bool requireKeystore)
         {
             var androidSetting = SettingManager.GetSetting<AndroidSetting>();
             if (androidSetting == null)
@@ -187,7 +189,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
             }
 
             // 验证配置
-            if (!androidSetting.Validate(out var errorMessage))
+            if (!androidSetting.ValidateForBuild(isRelease, requireKeystore, out var errorMessage))
             {
                 Debug.LogError($"[BuildGameSettingTask] AndroidSetting validation failed: {errorMessage}");
                 return;

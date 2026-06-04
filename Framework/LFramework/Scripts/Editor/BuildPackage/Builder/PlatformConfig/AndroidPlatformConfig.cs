@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using LFramework.Runtime.Settings;
 using UnityEditor;
 using UnityEditor.Build;
@@ -91,8 +90,8 @@ namespace LFramework.Editor.Builder.PlatformConfig
             // 配置版本号
             PlayerSettings.Android.bundleVersionCode = GetVersionCode(buildSetting);
 
-            // 配置签名（仅 Release 且非导出项目时）
-            if (buildSetting.isRelease && buildSetting.buildAndroidAppType != BuildAndroidAppType.ExportAndroidProject)
+            // 配置签名（非导出项目时，按 Debug/Release 读取对应配置）
+            if (buildSetting.buildAndroidAppType != BuildAndroidAppType.ExportAndroidProject)
             {
                 var androidSetting = SettingManager.GetSetting<AndroidSetting>();
                 if (androidSetting == null)
@@ -101,13 +100,13 @@ namespace LFramework.Editor.Builder.PlatformConfig
                         "AndroidSetting not found in ProjectSettingSelector, unable to configure Android keystore.");
                 }
 
-                if (!androidSetting.Validate(out var errorMessage))
+                if (!androidSetting.ValidateForBuild(buildSetting.isRelease, out var errorMessage))
                 {
                     throw new InvalidOperationException(
                         $"AndroidSetting validation failed, unable to configure Android keystore. {errorMessage}");
                 }
 
-                ConfigureKeystore(androidSetting);
+                ConfigureKeystore(androidSetting, buildSetting.isRelease);
             }
             else
             {
@@ -165,7 +164,7 @@ namespace LFramework.Editor.Builder.PlatformConfig
             return result;
         }
 
-        private void ConfigureKeystore(AndroidSetting androidSetting)
+        private void ConfigureKeystore(AndroidSetting androidSetting, bool isRelease)
         {
             if (!androidSetting.UseCustomKeystore)
             {
@@ -174,15 +173,15 @@ namespace LFramework.Editor.Builder.PlatformConfig
                 return;
             }
 
-            string resolvedKeystorePath = Path.IsPathRooted(androidSetting.KeystorePath)
-                ? Path.GetFullPath(androidSetting.KeystorePath)
-                : Path.GetFullPath(Path.Combine(Application.dataPath, "..", androidSetting.KeystorePath));
+            AndroidKeystoreConfig keystoreConfig = androidSetting.GetKeystoreConfig(isRelease);
+            string resolvedKeystorePath = AndroidSetting.ResolveKeystorePath(keystoreConfig.KeystorePath);
 
             PlayerSettings.Android.keystoreName = resolvedKeystorePath;
-            PlayerSettings.Android.keystorePass = androidSetting.KeystorePass;
-            PlayerSettings.Android.keyaliasName = androidSetting.KeyaliasName;
-            PlayerSettings.Android.keyaliasPass = androidSetting.KeyaliasPass;
+            PlayerSettings.Android.keystorePass = keystoreConfig.KeystorePass;
+            PlayerSettings.Android.keyaliasName = keystoreConfig.KeyaliasName;
+            PlayerSettings.Android.keyaliasPass = keystoreConfig.KeyaliasPass;
             PlayerSettings.Android.useCustomKeystore = true;
+            Debug.Log($"[AndroidPlatformConfig] Using {keystoreConfig.BuildMode} Android keystore: {resolvedKeystorePath}");
         }
     }
 }

@@ -2,6 +2,17 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.2.51]
+
+### Added
+
+- Added separate Android Debug and Release keystore settings and applied the matching keystore during APK/AAB builds.
+- Added EditMode coverage for Android keystore selection and build-mode validation.
+
+### Changed
+
+- Android Project export no longer requires Unity keystore validation because signing is handled outside Unity for exported Gradle projects.
+
 ## [0.2.50]
 
 ### Added
