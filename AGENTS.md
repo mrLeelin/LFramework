@@ -2,6 +2,16 @@
 
 This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
+## Agent Operating Rules
+
+- Work autonomously on clear, low-risk local edits: inspect first, make the smallest safe change, then verify before reporting completion.
+- Preserve unrelated user changes. This checkout is a nested Unity package/submodule workspace, so stage or commit only files explicitly in scope.
+- Do not run destructive commands, clean working trees, reset branches, or push to remotes unless the user explicitly asks for that action.
+- For commits, use the Lore Commit Protocol: an intent-first subject plus useful trailers such as `Constraint:`, `Rejected:`, `Confidence:`, `Scope-risk:`, `Directive:`, `Tested:`, and `Not-tested:`.
+- Prefer CodeGraph tools for structural code questions when available; use normal file/shell inspection for literal text, generated assets, and verification evidence. Do not default to deprecated `omx explore`.
+- For Unity/C# edits, prefer targeted compile or test checks first. Do not claim Unity Test Runner coverage when tests are undiscoverable or not run.
+- If editing Chinese text/comments or other non-ASCII documentation, reopen the written file and check for mojibake, `???`, replacement characters, or escaped `\uXXXX` regressions.
+
 ## Project Overview
 
 This is **LFramework**, a Unity game framework built on top of [Game Framework](https://gameframework.cn/) (19 built-in modules), integrated with **Zenject** (DI), **UniRx** (reactive extensions), and **LuBan** (data configuration). It supports hot-fix code loading via HybridCLR.
