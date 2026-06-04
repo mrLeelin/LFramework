@@ -17,12 +17,12 @@ namespace LFramework.Runtime
        
         public int SerialId { get; private set; }
         public string UIFormAssetName { get; private set; }
-        public object Handle => gameObject;
+        public object Handle => this != null ? gameObject : null;
         public IUIGroup UIGroup { get; private set; }
         public int DepthInUIGroup { get; private set; }
         public bool PauseCoveredUIForm { get; private set; }
 
-        public GameObject HandleGo => gameObject;
+        public GameObject HandleGo => this != null ? gameObject : null;
         public IUIBehaviour UIBehaviour => (IUIBehaviour)_uiBehaviour;
 
         public void OnInit(int serialId, string uiFormAssetName, IUIGroup uiGroup, bool pauseCoveredUIForm,
@@ -62,6 +62,13 @@ namespace LFramework.Runtime
 
         public void OnRecycle()
         {
+            if (!IsUIBehaviourAlive())
+            {
+                SerialId = 0;
+                DepthInUIGroup = 0;
+                return;
+            }
+
             try
             {
                 _uiBehaviour.OnRecycle();
@@ -78,6 +85,11 @@ namespace LFramework.Runtime
 
         public void OnRelease()
         {
+            if (!IsUIBehaviourAlive())
+            {
+                return;
+            }
+
             try
             {
                 _uiBehaviour.OnRelease();
@@ -90,6 +102,10 @@ namespace LFramework.Runtime
         
         public void OnOpen(object userData)
         {
+            if (!IsUIBehaviourAlive())
+            {
+                return;
+            }
         
             try
             {
@@ -104,9 +120,17 @@ namespace LFramework.Runtime
 
         public void OnClose(bool isShutdown, object userData)
         {
+            if (!IsUIBehaviourAlive())
+            {
+                return;
+            }
+
             try
             {
-                _uiBehaviour.OnClose(isShutdown,userData);
+                if (!isShutdown)
+                {
+                    _uiBehaviour.OnClose(isShutdown,userData);
+                }
                 LFrameworkAspect.Instance.Get<ViewComponent>().ViewDestroyed(_uiBehaviour as IView);
             }
             catch (Exception e)
@@ -119,6 +143,11 @@ namespace LFramework.Runtime
 
         public void OnPause()
         {
+            if (!IsUIBehaviourAlive())
+            {
+                return;
+            }
+
             try
             {
                 _uiBehaviour.OnPause();
@@ -131,6 +160,11 @@ namespace LFramework.Runtime
 
         public void OnResume()
         {
+            if (!IsUIBehaviourAlive())
+            {
+                return;
+            }
+
             try
             {
                 _uiBehaviour.OnResume();
@@ -143,6 +177,11 @@ namespace LFramework.Runtime
 
         public void OnCover()
         {
+            if (!IsUIBehaviourAlive())
+            {
+                return;
+            }
+
             try
             {
                 _uiBehaviour.OnCover();
@@ -155,6 +194,11 @@ namespace LFramework.Runtime
 
         public void OnReveal()
         {
+            if (!IsUIBehaviourAlive())
+            {
+                return;
+            }
+
             try
             {
                 _uiBehaviour.OnReveal();
@@ -167,6 +211,11 @@ namespace LFramework.Runtime
 
         public void OnRefocus(object userData)
         {
+            if (!IsUIBehaviourAlive())
+            {
+                return;
+            }
+
             try
             {
                 _uiBehaviour.OnRefocus(userData);
@@ -179,6 +228,11 @@ namespace LFramework.Runtime
 
         public void OnUpdate(float elapseSeconds, float realElapseSeconds)
         {
+            if (!IsUIBehaviourAlive())
+            {
+                return;
+            }
+
             try
             {
                 _uiBehaviour.OnUpdate(elapseSeconds, realElapseSeconds);
@@ -192,6 +246,11 @@ namespace LFramework.Runtime
         public void OnDepthChanged(int uiGroupDepth, int depthInUIGroup)
         {
             DepthInUIGroup = depthInUIGroup;
+            if (!IsUIBehaviourAlive())
+            {
+                return;
+            }
+
             try
             {
                 _uiBehaviour.OnDepthChanged(uiGroupDepth, depthInUIGroup);
@@ -200,6 +259,16 @@ namespace LFramework.Runtime
             {
                 Log.Error($"UI form '[{SerialId}{UIFormAssetName}]' OnDepthChanged with exception '{e}'");
             }
+        }
+
+        private bool IsUIBehaviourAlive()
+        {
+            if (_uiBehaviour == null)
+            {
+                return false;
+            }
+
+            return !(_uiBehaviour is UnityEngine.Object unityObject) || unityObject != null;
         }
     }
 }

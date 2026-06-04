@@ -2,6 +2,14 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.2.52]
+
+### Fixed
+
+- Hardened Addressables asset-handle release against duplicate or invalid-handle disposal during Editor PlayMode shutdown.
+- Guarded UI and entity teardown paths against destroyed Unity objects during manual Stop PlayMode.
+- Skipped nonessential UI pause, cover, refresh, and close-complete callbacks while the UI manager is shutting down.
+
 ## [0.2.51]
 
 ### Added

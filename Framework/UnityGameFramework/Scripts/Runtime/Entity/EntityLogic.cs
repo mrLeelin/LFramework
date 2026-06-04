@@ -72,7 +72,10 @@ namespace UnityGameFramework.Runtime
             {
                 if (!m_Available)
                 {
-                    Log.Warning("Entity '{0}' is not available.", Name);
+                    if (IsUnityObjectAlive())
+                    {
+                        Log.Warning("Entity '{0}' is not available.", Name);
+                    }
                     return;
                 }
 
@@ -146,7 +149,15 @@ namespace UnityGameFramework.Runtime
         /// <param name="userData">用户自定义数据。</param>
         protected internal virtual void OnHide(bool isShutdown, object userData)
         {
-            Visible = false;
+            if (IsUnityObjectAlive())
+            {
+                Visible = false;
+            }
+            else
+            {
+                m_Visible = false;
+            }
+
             m_Available = false;
         }
 
@@ -177,6 +188,11 @@ namespace UnityGameFramework.Runtime
         /// <param name="userData">用户自定义数据。</param>
         protected internal virtual void OnAttachTo(EntityLogic parentEntity, Transform parentTransform, object userData)
         {
+            if (!IsUnityObjectAlive() || parentTransform == null)
+            {
+                return;
+            }
+
             CachedTransform.SetParent(parentTransform);
             CachedTransform.localPosition = Vector3.zero;
             //CachedTransform.localEulerAngles = Vector3.zero;
@@ -189,6 +205,11 @@ namespace UnityGameFramework.Runtime
         /// <param name="userData">用户自定义数据。</param>
         protected internal virtual void OnDetachFrom(EntityLogic parentEntity, object userData)
         {
+            if (!IsUnityObjectAlive() || m_OriginalTransform == null)
+            {
+                return;
+            }
+
             CachedTransform.SetParent(m_OriginalTransform);
         }
 
@@ -207,7 +228,17 @@ namespace UnityGameFramework.Runtime
         /// <param name="visible">实体的可见性。</param>
         protected virtual void InternalSetVisible(bool visible)
         {
+            if (!IsUnityObjectAlive())
+            {
+                return;
+            }
+
             gameObject.SetActive(visible);
+        }
+
+        private bool IsUnityObjectAlive()
+        {
+            return this != null && m_CachedTransform != null;
         }
     }
 }

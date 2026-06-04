@@ -339,19 +339,24 @@ namespace GameFramework.UI
             /// <param name="uiForm">要移除的界面。</param>
             public void RemoveUIForm(IUIForm uiForm)
             {
+                RemoveUIForm(uiForm, true);
+            }
+
+            public void RemoveUIForm(IUIForm uiForm, bool invokeLifecycle)
+            {
                 UIFormInfo uiFormInfo = GetUIFormInfo(uiForm);
                 if (uiFormInfo == null)
                 {
                     throw new GameFrameworkException(Utility.Text.Format("Can not find UI form info for serial id '{0}', UI form asset name is '{1}'.", uiForm.SerialId, uiForm.UIFormAssetName));
                 }
 
-                if (!uiFormInfo.Covered)
+                if (invokeLifecycle && !uiFormInfo.Covered)
                 {
                     uiFormInfo.Covered = true;
                     uiForm.OnCover();
                 }
 
-                if (!uiFormInfo.Paused)
+                if (invokeLifecycle && !uiFormInfo.Paused)
                 {
                     uiFormInfo.Paused = true;
                     uiForm.OnPause();

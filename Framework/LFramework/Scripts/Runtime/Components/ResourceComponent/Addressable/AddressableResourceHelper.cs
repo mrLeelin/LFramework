@@ -252,7 +252,7 @@ namespace LFramework.Runtime
 
                 if (typedOp.Status == AsyncOperationStatus.Succeeded)
                 {
-                    handle.RegisterReleaseAction(() => Addressables.Release(typedOp));
+                    handle.RegisterReleaseAction(() => SafeRelease(typedOp));
                     handle.SetProgress(1f);
                     handle.SetResult(typedOp.Result);
                     return;
@@ -262,7 +262,7 @@ namespace LFramework.Runtime
                     null,
                     typeof(T),
                     typedOp.OperationException?.Message ?? $"Load asset '{assetName}' failed.");
-                Addressables.Release(typedOp);
+                SafeRelease(typedOp);
 
                 var fallbackOp = Addressables.LoadAssetAsync<object>(assetName);
                 while (!fallbackOp.IsDone)
@@ -280,14 +280,14 @@ namespace LFramework.Runtime
                             out var typedAsset,
                             out var errorMessage))
                     {
-                        handle.RegisterReleaseAction(() => Addressables.Release(fallbackOp));
+                        handle.RegisterReleaseAction(() => SafeRelease(fallbackOp));
                         handle.SetProgress(1f);
                         handle.SetResult((T)typedAsset);
                     }
                     else
                     {
                         handle.SetError(errorMessage);
-                        Addressables.Release(fallbackOp);
+                        SafeRelease(fallbackOp);
                     }
 
                     return;
@@ -297,7 +297,7 @@ namespace LFramework.Runtime
                     accumulatedError,
                     typeof(object),
                     fallbackOp.OperationException?.Message ?? $"Load asset '{assetName}' failed.");
-                Addressables.Release(fallbackOp);
+                SafeRelease(fallbackOp);
                 handle.SetError(accumulatedError);
             }
             catch (Exception ex) { handle.SetError(ex.Message); }
@@ -335,6 +335,32 @@ namespace LFramework.Runtime
                 }
             }
             catch (Exception ex) { handle.SetError(ex.Message); }
+        }
+
+        private static void SafeRelease<T>(AsyncOperationHandle<T> handle)
+        {
+            if (!handle.IsValid())
+            {
+                return;
+            }
+
+            try
+            {
+                Addressables.Release(handle);
+            }
+            catch (InvalidOperationException ex) when (IsInvalidHandleException(ex))
+            {
+                Log.Warning("Addressables release skipped because the handle is invalid: {0}", ex.Message);
+            }
+            catch (Exception ex) when (IsInvalidHandleException(ex))
+            {
+                Log.Warning("Addressables release skipped because the handle is invalid: {0}", ex.Message);
+            }
+        }
+
+        private static bool IsInvalidHandleException(Exception ex)
+        {
+            return ex.Message != null && ex.Message.Contains("invalid operation handle");
         }
 
         /// <summary>

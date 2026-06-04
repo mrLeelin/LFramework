@@ -25,7 +25,10 @@ namespace LFramework.Runtime
             {
                 if (!Available)
                 {
-                    Log.Warning($"UI form '{UIForm.UIFormAssetName}' is not available.");
+                    if (IsUnityObjectAlive())
+                    {
+                        Log.Warning($"UI form '{UIForm.UIFormAssetName}' is not available.");
+                    }
                     return;
                 }
 
@@ -76,7 +79,15 @@ namespace LFramework.Runtime
         public virtual void OnClose(bool isShutDown, object userData)
         {
             //gameObject.SetLayer(_originalLayer, true);
-            Visible = false;
+            if (IsUnityObjectAlive())
+            {
+                Visible = false;
+            }
+            else
+            {
+                _visible = false;
+            }
+
             Available = false;
         }
 
@@ -112,7 +123,17 @@ namespace LFramework.Runtime
         
         protected virtual void InternalSetVisible(bool visible)
         {
+            if (!IsUnityObjectAlive())
+            {
+                return;
+            }
+
             gameObject.SetActive(visible);
+        }
+
+        protected bool IsUnityObjectAlive()
+        {
+            return this != null && CacheTransform != null;
         }
     }
 }

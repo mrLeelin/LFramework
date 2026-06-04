@@ -80,11 +80,18 @@ namespace UnityGameFramework.Runtime
         {
             if (_isDisposed) return;
             _isDisposed = true;
-            _onRelease?.Invoke();
+            var onRelease = _onRelease;
             _onRelease = null;
-            if (_isFromPool)
+            try
             {
-                ReferencePool.Release(this);
+                onRelease?.Invoke();
+            }
+            finally
+            {
+                if (_isFromPool)
+                {
+                    ReferencePool.Release(this);
+                }
             }
         }
 

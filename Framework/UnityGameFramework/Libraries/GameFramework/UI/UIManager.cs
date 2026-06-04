@@ -829,11 +829,14 @@ namespace GameFramework.UI
                 throw new GameFrameworkException("UI group is invalid.");
             }
 
-            uiGroup.RemoveUIForm(uiForm);
+            uiGroup.RemoveUIForm(uiForm, !m_IsShutdown);
             uiForm.OnClose(m_IsShutdown, userData);
-            uiGroup.Refresh();
+            if (!m_IsShutdown)
+            {
+                uiGroup.Refresh();
+            }
 
-            if (m_CloseUIFormCompleteEventHandler != null)
+            if (!m_IsShutdown && m_CloseUIFormCompleteEventHandler != null)
             {
                 CloseUIFormCompleteEventArgs closeUIFormCompleteEventArgs = CloseUIFormCompleteEventArgs.Create(uiForm.SerialId, uiForm.UIFormAssetName, uiGroup, userData);
                 m_CloseUIFormCompleteEventHandler(this, closeUIFormCompleteEventArgs);

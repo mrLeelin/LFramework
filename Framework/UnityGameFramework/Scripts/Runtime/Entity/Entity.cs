@@ -43,7 +43,7 @@ namespace UnityGameFramework.Runtime
         /// </summary>
         public object Handle
         {
-            get { return gameObject; }
+            get { return this != null ? gameObject : null; }
         }
 
         /// <summary>
@@ -143,10 +143,19 @@ namespace UnityGameFramework.Runtime
         /// </summary>
         public void OnRecycle()
         {
+            if (!IsLogicAlive())
+            {
+                m_Id = 0;
+                return;
+            }
+
             try
             {
                 m_EntityLogic.OnRecycle();
-                m_EntityLogic.enabled = false;
+                if (m_EntityLogic != null)
+                {
+                    m_EntityLogic.enabled = false;
+                }
             }
             catch (Exception exception)
             {
@@ -158,6 +167,11 @@ namespace UnityGameFramework.Runtime
 
         public void OnRelease()
         {
+            if (!IsLogicAlive())
+            {
+                return;
+            }
+
             try
             {
                 m_EntityLogic.OnRelease();
@@ -174,6 +188,11 @@ namespace UnityGameFramework.Runtime
         /// <param name="userData">用户自定义数据。</param>
         public void OnShow(object userData)
         {
+            if (!IsLogicAlive())
+            {
+                return;
+            }
+
             ShowEntityInfo showEntityInfo = (ShowEntityInfo)userData;
             try
             {
@@ -192,6 +211,11 @@ namespace UnityGameFramework.Runtime
         /// <param name="userData">用户自定义数据。</param>
         public void OnHide(bool isShutdown, object userData)
         {
+            if (!IsLogicAlive())
+            {
+                return;
+            }
+
             try
             {
                 m_EntityLogic.OnHide(isShutdown, userData);
@@ -209,6 +233,11 @@ namespace UnityGameFramework.Runtime
         /// <param name="userData">用户自定义数据。</param>
         public void OnAttached(IEntity childEntity, object userData)
         {
+            if (!IsLogicAlive())
+            {
+                return;
+            }
+
             AttachEntityInfo attachEntityInfo = (AttachEntityInfo)userData;
             try
             {
@@ -228,6 +257,11 @@ namespace UnityGameFramework.Runtime
         /// <param name="userData">用户自定义数据。</param>
         public void OnDetached(IEntity childEntity, object userData)
         {
+            if (!IsLogicAlive())
+            {
+                return;
+            }
+
             try
             {
                 m_EntityLogic.OnDetached(((Entity)childEntity).Logic, userData);
@@ -246,6 +280,12 @@ namespace UnityGameFramework.Runtime
         public void OnAttachTo(IEntity parentEntity, object userData)
         {
             AttachEntityInfo attachEntityInfo = (AttachEntityInfo)userData;
+            if (!IsLogicAlive())
+            {
+                ReferencePool.Release(attachEntityInfo);
+                return;
+            }
+
             try
             {
                 m_EntityLogic.OnAttachTo(((Entity)parentEntity).Logic, attachEntityInfo.ParentTransform,
@@ -266,6 +306,11 @@ namespace UnityGameFramework.Runtime
         /// <param name="userData">用户自定义数据。</param>
         public void OnDetachFrom(IEntity parentEntity, object userData)
         {
+            if (!IsLogicAlive())
+            {
+                return;
+            }
+
             try
             {
                 m_EntityLogic.OnDetachFrom(((Entity)parentEntity).Logic, userData);
@@ -283,6 +328,11 @@ namespace UnityGameFramework.Runtime
         /// <param name="realElapseSeconds">真实流逝时间，以秒为单位。</param>
         public void OnUpdate(float elapseSeconds, float realElapseSeconds)
         {
+            if (!IsLogicAlive())
+            {
+                return;
+            }
+
             try
             {
                 m_EntityLogic.OnUpdate(elapseSeconds, realElapseSeconds);
@@ -331,6 +381,11 @@ namespace UnityGameFramework.Runtime
         public bool HasLogic<T>() where T : EntityLogic
         {
             return Logic is T;
+        }
+
+        private bool IsLogicAlive()
+        {
+            return m_EntityLogic != null;
         }
     }
 }
