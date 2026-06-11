@@ -32,6 +32,8 @@ namespace LFramework.Runtime
         string GroupType { get; }
 
         void Insert(ISequenceLineChunk chunk);
+        bool CanInsert(int targetSerialID, SequenceLineInsertPosition position);
+        bool Insert(int targetSerialID, ISequenceLineChunk chunk, SequenceLineInsertPosition position);
         bool Remove(int serialID);
         void Insert(IEnumerable<ISequenceLineChunk> chunks);
 

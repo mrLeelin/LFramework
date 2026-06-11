@@ -1,4 +1,4 @@
- 
+
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -14,8 +14,8 @@ namespace LFramework.Runtime
 #if UNITY_EDITOR
         private GameObject Root { get; set; }
 #endif
-        
-     
+
+
         protected T Setting { get; private set; }
         public int SerialID { get; set; }
         public SequenceLineChunkSortInGroup Sort => Setting.Sort;
@@ -37,15 +37,17 @@ namespace LFramework.Runtime
             }
         }
 
-        public void Init(ISequenceLineChunkGroup chunkGroup)
+        public virtual void Init(ISequenceLineChunkGroup chunkGroup)
         {
             Group = chunkGroup;
         }
 
 
+
+
         public virtual void Reset()
         {
-       
+
 #if UNITY_EDITOR
             var str = Setting.Tag;
             if (string.IsNullOrEmpty(str))
@@ -62,7 +64,7 @@ namespace LFramework.Runtime
 
 
 
-        public virtual void Dispose()
+        public  void Dispose()
         {
 #if UNITY_EDITOR
             if (Root)
@@ -70,7 +72,10 @@ namespace LFramework.Runtime
                 Object.Destroy(Root);
             }
 #endif
+            OnDispose();
         }
-        
+
+        protected virtual void OnDispose(){}
+
     }
 }

@@ -30,11 +30,12 @@ namespace LFramework.Runtime
                     first.Value.Reset();
                     yield return first.Value;
                     first.Value.Dispose();
-                    if (Chunks.Count > 0)
+                    var completed = first;
+                    first = first.Next;
+                    if (completed.List != null)
                     {
-                        Chunks.RemoveFirst();
+                        Chunks.Remove(completed);
                     }
-                    first = Chunks.First;
                 } while (first != null);
             }
             // ReSharper disable once IteratorNeverReturns

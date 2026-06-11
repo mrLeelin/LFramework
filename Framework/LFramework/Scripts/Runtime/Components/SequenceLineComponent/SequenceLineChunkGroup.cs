@@ -65,6 +65,51 @@ namespace LFramework.Runtime
             _insertChunkInGroup?.Invoke(this, arg);
         }
 
+        public bool CanInsert(int targetSerialID, SequenceLineInsertPosition position)
+        {
+            if (targetSerialID <= 0)
+            {
+                return false;
+            }
+
+            var node = FindChunkNode(targetSerialID);
+            if (node == null)
+            {
+                return false;
+            }
+
+            return position != SequenceLineInsertPosition.Before || !IsRunningChunk(node.Value);
+        }
+
+        public bool Insert(int targetSerialID, ISequenceLineChunk chunk, SequenceLineInsertPosition position)
+        {
+            if (chunk == null)
+            {
+                Log.Error("you insert Chunk is none");
+                return false;
+            }
+
+            if (!CanInsert(targetSerialID, position))
+            {
+                return false;
+            }
+
+            var node = FindChunkNode(targetSerialID);
+            chunk.Init(this);
+            if (position == SequenceLineInsertPosition.Before)
+            {
+                Chunks.AddBefore(node, chunk);
+            }
+            else
+            {
+                Chunks.AddAfter(node, chunk);
+            }
+
+            var arg = new InsertChunkArgs { Setting = chunk.Current };
+            _insertChunkInGroup?.Invoke(this, arg);
+            return true;
+        }
+
         public bool Remove(int serialID)
         {
             if (serialID <= 0)
@@ -77,17 +122,17 @@ namespace LFramework.Runtime
             {
                 if (first.Value.SerialID == serialID)
                 {
-                    if (serialID == _curRunningChunk.SerialID)
+                    if (IsRunningChunk(first.Value))
                     {
                         return false;
                     }
 
-                    if (serialID < _curRunningChunk.SerialID)
+                    if (_curRunningChunk != null && serialID < _curRunningChunk.SerialID)
                     {
                         return false;
                     }
 
-                    Chunks.Remove(first.Value);
+                    Chunks.Remove(first);
                     return true;
                 }
 
@@ -142,15 +187,36 @@ namespace LFramework.Runtime
                 first.Value.Reset();
                 yield return first.Value;
                 first.Value.Dispose();
-                if (Chunks.Count > 0)
+                var completed = first;
+                first = first.Next;
+                if (completed.List != null)
                 {
-                    Chunks.RemoveFirst();
+                    Chunks.Remove(completed);
                 }
-
-                first = Chunks.First;
             } while (first != null);
 
             _isAllChunkCompleted = true;
+        }
+
+        private LinkedListNode<ISequenceLineChunk> FindChunkNode(int serialID)
+        {
+            var first = Chunks.First;
+            while (first != null)
+            {
+                if (first.Value.SerialID == serialID)
+                {
+                    return first;
+                }
+
+                first = first.Next;
+            }
+
+            return null;
+        }
+
+        private bool IsRunningChunk(ISequenceLineChunk chunk)
+        {
+            return _curRunningChunk != null && _curRunningChunk.SerialID == chunk.SerialID;
         }
 
 
@@ -180,4 +246,3 @@ namespace LFramework.Runtime
         }
     }
 }
- 

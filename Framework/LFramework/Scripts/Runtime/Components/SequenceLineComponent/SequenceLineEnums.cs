@@ -1,10 +1,13 @@
-
 namespace LFramework.Runtime
 {
     public enum SequenceLineChunkSortInGroup
     {
-        None, //排在最后
-        
-      
+        None,
+    }
+
+    public enum SequenceLineInsertPosition
+    {
+        Before,
+        After,
     }
 }

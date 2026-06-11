@@ -68,12 +68,49 @@ namespace LFramework.Runtime
             _multiGroups.Clear();
         }
 
-        public int Insert(ISequenceLineChunkSetting setting) =>
-            Insert(setting.GroupType, SettingToChunk(setting));
+        public int Insert(ISequenceLineChunkSetting setting)
+        {
+            if (setting == null)
+            {
+                Log.Error("you Setting is null");
+                return 0;
+            }
+
+            return Insert(setting.GroupType, SettingToChunk(setting));
+        }
+
+        public int Insert(ISequenceLineChunkSetting setting, int targetSerialID,
+            SequenceLineInsertPosition position = SequenceLineInsertPosition.After)
+        {
+            if (setting == null)
+            {
+                Log.Error("you Setting is null");
+                return 0;
+            }
+
+            return Insert(setting.GroupType, SettingToChunk(setting), targetSerialID, position);
+        }
 
 
-        public void Insert(ISequenceLineChunkGroup @group, ISequenceLineChunkSetting setting) =>
-            group.Insert(SettingToChunk(setting));
+        public int Insert(ISequenceLineChunkGroup @group, ISequenceLineChunkSetting setting)
+        {
+            if (@group == null)
+            {
+                Log.Error("you insert group is null.");
+                return 0;
+            }
+
+            var chunk = SettingToChunk(setting);
+            if (chunk == null)
+            {
+                Log.Error("you insert Chunk is none.");
+                return 0;
+            }
+
+            chunk.SerialID = ++_serialID;
+            group.Insert(chunk);
+            return chunk.SerialID;
+        }
 
 
         public void UseBufferWithGroupType(string groupType)
@@ -192,13 +229,53 @@ namespace LFramework.Runtime
 
 
             //Level Group Add to Buffer
-            if (!_chunksBuffer.TryGetValue(type, out var chunks))
+            AddChunkToBuffer(type, chunk);
+            return chunk.SerialID;
+        }
+
+        private int Insert(string type, ISequenceLineChunk chunk, int targetSerialID, SequenceLineInsertPosition position)
+        {
+            if (type == null)
             {
-                chunks = new List<ISequenceLineChunk>();
+                Log.Error("you insert type is UnKnow.");
+                return 0;
             }
 
-            chunks.Add(chunk);
-            _chunksBuffer[type] = chunks;
+            if (chunk == null)
+            {
+                Log.Error("you insert Chunk is none.");
+                return 0;
+            }
+
+            if (targetSerialID <= 0)
+            {
+                Log.Error("you insert target serial id is invalid.");
+                return 0;
+            }
+
+            if (chunk.CreateNewGroup)
+            {
+                Log.Error("you can not insert a new group chunk before or after another chunk.");
+                return 0;
+            }
+
+            if (!TryGetGroupByChunkSerialID(type, targetSerialID, out var group))
+            {
+                Log.Error($"you insert target serial id is not found. Type:{type} SerialID:{targetSerialID}");
+                return 0;
+            }
+
+            if (!group.CanInsert(targetSerialID, position))
+            {
+                return 0;
+            }
+
+            chunk.SerialID = ++_serialID;
+            if (!group.Insert(targetSerialID, chunk, position))
+            {
+                return 0;
+            }
+
             return chunk.SerialID;
         }
 
@@ -340,6 +417,42 @@ namespace LFramework.Runtime
             }
 
             return group != null;
+        }
+
+        private bool TryGetGroupByChunkSerialID(string type, int serialID, out ISequenceLineChunkGroup @group)
+        {
+            group = null;
+            if (!_multiGroups.TryGetValue(type, out var groups))
+            {
+                return false;
+            }
+
+            foreach (var g in groups.Foreach())
+            {
+                foreach (var chunk in g.Chunks)
+                {
+                    if (chunk.SerialID != serialID)
+                    {
+                        continue;
+                    }
+
+                    group = g;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private void AddChunkToBuffer(string type, ISequenceLineChunk chunk)
+        {
+            if (!_chunksBuffer.TryGetValue(type, out var chunks))
+            {
+                chunks = new List<ISequenceLineChunk>();
+            }
+
+            chunks.Add(chunk);
+            _chunksBuffer[type] = chunks;
         }
 
         private void OnAddNewChunkInGroup(object sender, InsertChunkArgs insertChunkArgs)

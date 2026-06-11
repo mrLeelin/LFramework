@@ -2,6 +2,19 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.2.53]
+
+### Added
+
+- Added `SequenceLineComponent` dynamic chunk insertion by target serial id, with before/after placement support.
+- Added EditMode coverage for SequenceLine relative insertion, explicit group insertion serial ids, and failed insertion id stability.
+
+### Fixed
+
+- Kept SequenceLine serial id assignment consistent across normal insertion, explicit group insertion, and relative insertion.
+- Prevented failed relative insertion from consuming a SequenceLine serial id.
+- Removed completed SequenceLine chunks by their actual linked-list node so dynamic insertion does not cause the wrong chunk to be removed.
+
 ## [0.2.52]
 
 ### Fixed
