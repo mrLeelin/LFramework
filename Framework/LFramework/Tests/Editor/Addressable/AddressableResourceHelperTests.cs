@@ -1,10 +1,58 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
 
 namespace LFramework.Editor.Tests.ResourceComponent
 {
+    public class AddressableResourceHelperTests
+    {
+        [Test]
+        public void ContainsPrimaryKeyMatch_ReturnsTrue_OnlyForExactPrimaryKey()
+        {
+            MethodInfo method = GetAddressableHelperMethod("ContainsPrimaryKeyMatch");
+            var locations = new List<object>
+            {
+                new TestResourceLocation("shared_label"),
+                new TestResourceLocation("ui/home")
+            };
+
+            bool exactMatch = (bool)method.Invoke(null, new object[] { locations, "ui/home" });
+            bool missingMatch = (bool)method.Invoke(null, new object[] { locations, "ui/missing" });
+            bool labelOnlyMatch = (bool)method.Invoke(null, new object[] { locations, "shared_label_2" });
+
+            Assert.That(exactMatch, Is.True);
+            Assert.That(missingMatch, Is.False);
+            Assert.That(labelOnlyMatch, Is.False);
+        }
+
+        private static MethodInfo GetAddressableHelperMethod(string methodName)
+        {
+            Type helperType = Type.GetType(
+                "LFramework.Runtime.AddressableResourceHelper, LFramework.Runtime");
+
+            Assert.That(helperType, Is.Not.Null, "Expected AddressableResourceHelper type to exist in LFramework.Runtime.");
+
+            MethodInfo method = helperType.GetMethod(
+                methodName,
+                BindingFlags.Static | BindingFlags.NonPublic);
+
+            Assert.That(method, Is.Not.Null, $"Expected AddressableResourceHelper.{methodName} to exist.");
+            return method;
+        }
+
+        private sealed class TestResourceLocation
+        {
+            public TestResourceLocation(string primaryKey)
+            {
+                PrimaryKey = primaryKey;
+            }
+
+            public string PrimaryKey { get; }
+        }
+    }
+
     public class ResourceAssetTypeUtilityTests
     {
         [Test]

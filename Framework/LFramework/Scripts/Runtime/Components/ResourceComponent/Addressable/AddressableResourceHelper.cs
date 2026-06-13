@@ -1,5 +1,6 @@
 #if ADDRESSABLE_SUPPORT
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Cysharp.Threading.Tasks;
@@ -28,8 +29,6 @@ namespace LFramework.Runtime
         private const string ReplaceVersion = "_resource_version_";
         private GameSetting _gameSetting;
         private ResourceComponentSetting _resourceComponentSetting;
-        private readonly Dictionary<string, HasAssetResult> _hasAssetCache =
-            new Dictionary<string, HasAssetResult>(StringComparer.Ordinal);
 
         private void Awake()
         {
@@ -49,7 +48,6 @@ namespace LFramework.Runtime
             {
                 if (op.Status == AsyncOperationStatus.Succeeded)
                 {
-                    _hasAssetCache.Clear();
                     callback.ResourceInitSuccessCallBack?.Invoke();
                 }
                 else
@@ -70,12 +68,43 @@ namespace LFramework.Runtime
                 return HasAssetResult.NotExist;
             }
 
-            if (_hasAssetCache.TryGetValue(assetName, out HasAssetResult cachedResult))
+            if (!HasCatalogLocation(assetName))
             {
-                return cachedResult;
+                return Addressables.ResourceLocators.Count > 0
+                    ? HasAssetResult.NotExist
+                    : HasAssetResult.NotReady;
             }
 
-            bool hasLocator = false;
+            AsyncOperationHandle<long> downloadSizeHandle = default;
+            try
+            {
+                downloadSizeHandle = Addressables.GetDownloadSizeAsync(assetName);
+                long downloadSize = downloadSizeHandle.WaitForCompletion();
+                if (downloadSizeHandle.Status != AsyncOperationStatus.Succeeded)
+                {
+                    return HasAssetResult.NotReady;
+                }
+
+                return downloadSize <= 0
+                    ? HasAssetResult.Exist
+                    : HasAssetResult.NotReady;
+            }
+            catch (Exception ex)
+            {
+                Log.Warning("Addressables local availability check failed for '{0}': {1}", assetName, ex.Message);
+                return HasAssetResult.NotReady;
+            }
+            finally
+            {
+                if (downloadSizeHandle.IsValid())
+                {
+                    Addressables.Release(downloadSizeHandle);
+                }
+            }
+        }
+
+        private static bool HasCatalogLocation(string assetName)
+        {
             foreach (IResourceLocator locator in Addressables.ResourceLocators)
             {
                 if (locator == null)
@@ -83,23 +112,43 @@ namespace LFramework.Runtime
                     continue;
                 }
 
-                hasLocator = true;
-                if (locator.Locate(assetName, null, out IList<IResourceLocation> locations) &&
+                if (locator.Locate(assetName, typeof(UnityEngine.Object), out IList<IResourceLocation> locations) &&
                     locations != null &&
-                    locations.Count > 0)
+                    locations.Count > 0 &&
+                    ContainsPrimaryKeyMatch(locations, assetName))
                 {
-                    _hasAssetCache[assetName] = HasAssetResult.Exist;
-                    return HasAssetResult.Exist;
+                    return true;
                 }
             }
 
-            if (!hasLocator)
+            return false;
+        }
+
+        private static bool ContainsPrimaryKeyMatch(IList locations, string assetName)
+        {
+            for (int i = 0; i < locations.Count; i++)
             {
-                return HasAssetResult.NotReady;
+                object location = locations[i];
+                if (location == null)
+                {
+                    continue;
+                }
+
+                if (location is IResourceLocation resourceLocation &&
+                    string.Equals(resourceLocation.PrimaryKey, assetName, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+
+                var primaryKeyProperty = location.GetType().GetProperty("PrimaryKey");
+                if (primaryKeyProperty?.PropertyType == typeof(string) &&
+                    string.Equals(primaryKeyProperty.GetValue(location) as string, assetName, StringComparison.Ordinal))
+                {
+                    return true;
+                }
             }
 
-            _hasAssetCache[assetName] = HasAssetResult.NotExist;
-            return HasAssetResult.NotExist;
+            return false;
         }
 
         /// <summary>
