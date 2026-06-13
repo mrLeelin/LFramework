@@ -2,6 +2,18 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.2.54]
+
+### Added
+
+- Added lightweight `DownloadAssets` handlers for Addressables and YooAsset so asset predownload no longer reuses the hot-update download pipeline.
+- Added a `DownloadAssets(keys, packageId)` overload for YooAsset multi-package resource predownload.
+
+### Fixed
+
+- Fixed Addressables resource-helper compatibility with the current `ResourceLocators` and `IResourceLocation` APIs.
+- Ensured YooAsset asset predownload initializes the target package before starting the lightweight download flow.
+
 ## [0.2.53]
 
 ### Added

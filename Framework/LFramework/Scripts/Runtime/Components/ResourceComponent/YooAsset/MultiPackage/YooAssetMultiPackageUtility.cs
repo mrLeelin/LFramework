@@ -69,6 +69,29 @@ namespace LFramework.Runtime
             return ResolvePackageName(registry, packageId);
         }
 
+        public static List<string> ResolveDownloadAssetsPackageNames(
+            ResourceComponentSetting setting,
+            RuntimePlatform platform,
+            string channel,
+            string explicitPackageId = null)
+        {
+            var packageNames = new List<string>();
+            if (setting == null)
+            {
+                return packageNames;
+            }
+
+            PackageRegistry registry = CreateRegistry(setting, platform, channel);
+            string packageId = ResolvePackageId(setting, registry, explicitPackageId);
+            string packageName = ResolvePackageName(registry, packageId);
+            if (!string.IsNullOrWhiteSpace(packageName))
+            {
+                packageNames.Add(packageName);
+            }
+
+            return packageNames;
+        }
+
         public static List<PackageDefinition> CollectBuildPackages(ResourceComponentSetting setting, RuntimePlatform platform, string channel)
         {
             PackageRegistry registry = CreateRegistry(setting, platform, channel);

@@ -1092,6 +1092,11 @@ namespace LFramework.Runtime
         /// <summary>
         /// 确保资源地址对应的包已经初始化完成。
         /// </summary>
+        public UniTask<PackageInitializationResult> EnsurePackageReadyAsync(string packageId)
+        {
+            return EnsurePackageReadyAsync(null, packageId);
+        }
+
         private async UniTask<PackageInitializationResult> EnsurePackageReadyAsync(string address, string packageId)
         {
             string logicalPackageId = ResolveLogicalPackageId(address, packageId);

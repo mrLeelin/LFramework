@@ -70,7 +70,7 @@ namespace LFramework.Runtime
 
             if (!HasCatalogLocation(assetName))
             {
-                return Addressables.ResourceLocators.Count > 0
+                return HasAnyResourceLocator()
                     ? HasAssetResult.NotExist
                     : HasAssetResult.NotReady;
             }
@@ -124,25 +124,30 @@ namespace LFramework.Runtime
             return false;
         }
 
-        private static bool ContainsPrimaryKeyMatch(IList locations, string assetName)
+        private static bool ContainsPrimaryKeyMatch(IList<IResourceLocation> locations, string assetName)
         {
             for (int i = 0; i < locations.Count; i++)
             {
-                object location = locations[i];
+                IResourceLocation location = locations[i];
                 if (location == null)
                 {
                     continue;
                 }
 
-                if (location is IResourceLocation resourceLocation &&
-                    string.Equals(resourceLocation.PrimaryKey, assetName, StringComparison.Ordinal))
+                if (string.Equals(location.PrimaryKey, assetName, StringComparison.Ordinal))
                 {
                     return true;
                 }
+            }
 
-                var primaryKeyProperty = location.GetType().GetProperty("PrimaryKey");
-                if (primaryKeyProperty?.PropertyType == typeof(string) &&
-                    string.Equals(primaryKeyProperty.GetValue(location) as string, assetName, StringComparison.Ordinal))
+            return false;
+        }
+
+        private static bool HasAnyResourceLocator()
+        {
+            foreach (IResourceLocator locator in Addressables.ResourceLocators)
+            {
+                if (locator != null)
                 {
                     return true;
                 }

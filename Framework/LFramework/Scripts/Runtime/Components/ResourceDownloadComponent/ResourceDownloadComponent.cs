@@ -62,6 +62,11 @@ namespace LFramework.Runtime
 
         public void DownloadAssets(List<string> keys)
         {
+            DownloadAssets(keys, null);
+        }
+
+        public void DownloadAssets(List<string> keys, string packageId)
+        {
             List<string> normalizedKeys = NormalizeKeys(keys);
             if (normalizedKeys.Count == 0)
             {
@@ -73,13 +78,18 @@ namespace LFramework.Runtime
             {
 #if ADDRESSABLE_SUPPORT
                 case ResourceMode.Addressable:
-                    AddUpdateHandler(BuildDownloadAssetsHandlerName("Addressable", normalizedKeys), normalizedKeys);
+                    if (!string.IsNullOrWhiteSpace(packageId))
+                    {
+                        Log.Warning("[ResourceDownloadComponent] DownloadAssets packageId '{0}' is ignored in Addressable mode.",
+                            packageId);
+                    }
+                    AddAddressableAssetHandler(BuildDownloadAssetsHandlerName("Addressable", normalizedKeys), normalizedKeys);
                     return;
 #endif
 
 #if YOOASSET_SUPPORT
                 case ResourceMode.YooAsset:
-                    DownloadYooAssets(normalizedKeys);
+                    DownloadYooAssets(normalizedKeys, packageId);
                     return;
 #endif
 
@@ -120,12 +130,49 @@ namespace LFramework.Runtime
             return handle.SerialID;
         }
 
+        public int AddAddressableAssetHandler(string name, List<string> keys,
+            Addressables.MergeMode mergeMode = Addressables.MergeMode.Union, bool autoReleaseHandle = true)
+        {
+            var h = GetHandler(name);
+            if (h != null)
+            {
+                return h.SerialID;
+            }
+
+            var handle = CreateAddressableAssetHandler(name, keys, mergeMode, autoReleaseHandle);
+            handle.CheckAndLoadAsync();
+            return handle.SerialID;
+        }
+
+        public int AddAddressableAssetHandlerNotRun(string name, List<string> keys,
+            Addressables.MergeMode mergeMode = Addressables.MergeMode.Union, bool autoReleaseHandle = true)
+        {
+            var h = GetHandler(name);
+            if (h != null)
+            {
+                return h.SerialID;
+            }
+
+            var handle = CreateAddressableAssetHandler(name, keys, mergeMode, autoReleaseHandle);
+            return handle.SerialID;
+        }
+
         private AddressableDownloadHandler CreateAddressableHandler(string name, List<string> labels,
             Addressables.MergeMode mergeMode = Addressables.MergeMode.Union,
             bool autoReleaseHandle = true)
         {
             var serialID = GetNextSerialID();
             var handler = new AddressableDownloadHandler(name, labels, mergeMode, serialID, autoReleaseHandle);
+            RegisterHandler(handler);
+            return handler;
+        }
+
+        private AddressableAssetDownloadHandler CreateAddressableAssetHandler(string name, List<string> keys,
+            Addressables.MergeMode mergeMode = Addressables.MergeMode.Union,
+            bool autoReleaseHandle = true)
+        {
+            var serialID = GetNextSerialID();
+            var handler = new AddressableAssetDownloadHandler(name, keys, mergeMode, serialID, autoReleaseHandle);
             RegisterHandler(handler);
             return handler;
         }
@@ -168,8 +215,8 @@ namespace LFramework.Runtime
                 return h.SerialID;
             }
 
-            var handle = CreateYooAssetHandler(name, assetLocations, packageName,
-                autoReleaseHandle, false, true);
+            var handle = CreateYooAssetAssetHandler(name, assetLocations, packageName,
+                autoReleaseHandle, true);
             handle.CheckAndLoadAsync();
             return handle.SerialID;
         }
@@ -184,10 +231,20 @@ namespace LFramework.Runtime
             RegisterHandler(handler);
             return handler;
         }
+
+        private YooAssetAssetDownloadHandler CreateYooAssetAssetHandler(string name, List<string> assetLocations,
+            string packageName, bool autoReleaseHandle, bool downloadByLocation)
+        {
+            var serialID = GetNextSerialID();
+            var handler = new YooAssetAssetDownloadHandler(name, assetLocations, packageName, serialID,
+                autoReleaseHandle, downloadByLocation, EnsureYooAssetPackageReadyAsync);
+            RegisterHandler(handler);
+            return handler;
+        }
 #endif
 
 #if YOOASSET_SUPPORT
-        private void DownloadYooAssets(List<string> keys)
+        private void DownloadYooAssets(List<string> keys, string packageId)
         {
             ResourceComponentSetting setting = SettingManager.GetProjectSelector()?.GetComponentSetting<ResourceComponentSetting>();
             if (setting == null)
@@ -196,39 +253,38 @@ namespace LFramework.Runtime
                 return;
             }
 
-            PackageRegistry registry = YooAssetMultiPackageUtility.CreateRegistry(
+            List<string> packageNames = YooAssetMultiPackageUtility.ResolveDownloadAssetsPackageNames(
                 setting,
                 Application.platform,
-                GetCurrentChannel());
-            if (registry.ActivePackages.Count == 0)
+                GetCurrentChannel(),
+                packageId);
+            if (packageNames.Count == 0)
             {
-                string packageName = YooAssetMultiPackageUtility.ResolveDefaultPackageName(
-                    setting,
-                    Application.platform,
-                    GetCurrentChannel());
-                if (string.IsNullOrWhiteSpace(packageName))
-                {
-                    Log.Error("[ResourceDownloadComponent] DownloadAssets failed because YooAsset package name is empty.");
-                    return;
-                }
-
-                AddYooAssetAssetHandler(BuildDownloadAssetsHandlerName("YooAsset", packageName, keys),
-                    keys,
-                    packageName);
+                Log.Error("[ResourceDownloadComponent] DownloadAssets failed because YooAsset package name is empty. packageId: {0}",
+                    packageId);
                 return;
             }
 
-            foreach (PackageDefinition package in registry.ActivePackages.Values)
+            foreach (string packageName in packageNames)
             {
-                if (package == null || string.IsNullOrWhiteSpace(package.yooPackageName))
-                {
-                    continue;
-                }
-
-                AddYooAssetAssetHandler(BuildDownloadAssetsHandlerName("YooAsset", package.yooPackageName, keys),
+                AddYooAssetAssetHandler(BuildDownloadAssetsHandlerName("YooAsset", packageName, keys),
                     keys,
-                    package.yooPackageName);
+                    packageName);
             }
+        }
+
+        private async UniTask<PackageInitializationResult> EnsureYooAssetPackageReadyAsync(string packageName)
+        {
+            var helper = ResourceComponent != null
+                ? ResourceComponent.GetComponentInChildren<YooAssetResourceHelper>(true)
+                : null;
+            if (helper == null)
+            {
+                return PackageInitializationResult.CreateFailure(packageName,
+                    "YooAssetResourceHelper is unavailable.");
+            }
+
+            return await helper.EnsurePackageReadyAsync(packageName);
         }
 #endif
 
