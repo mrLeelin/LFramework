@@ -220,8 +220,8 @@ namespace LFramework.Runtime
 
             OnVisibleBefore(entity);
             m_EntityData = entity;
-            OnShow(m_EntityData);
             base.OnShow(userData);
+            OnShow(m_EntityData);
         }
 
         protected virtual void OnVisibleBefore(T entityData)
