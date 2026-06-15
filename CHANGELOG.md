@@ -2,6 +2,12 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.2.55]
+
+### Fixed
+
+- Applied the configured app version to Android and iOS player bundle versions during package builds.
+
 ## [0.2.54]
 
 ### Added

@@ -88,6 +88,7 @@ namespace LFramework.Editor.Builder.PlatformConfig
             PlayerSettings.Android.buildApkPerCpuArchitecture = false;
 
             // 配置版本号
+            PlayerSettings.bundleVersion = buildSetting.appVersion;
             PlayerSettings.Android.bundleVersionCode = GetVersionCode(buildSetting);
 
             // 配置签名（非导出项目时，按 Debug/Release 读取对应配置）

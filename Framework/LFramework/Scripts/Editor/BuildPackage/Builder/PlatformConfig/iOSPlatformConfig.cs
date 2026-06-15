@@ -89,6 +89,7 @@ namespace LFramework.Editor.Builder.PlatformConfig
             
 
             // 配置 iOS 特定设置
+            PlayerSettings.bundleVersion = buildSetting.appVersion;
             PlayerSettings.iOS.backgroundModes = iOSBackgroundMode.None;
             PlayerSettings.iOS.appInBackgroundBehavior = iOSAppInBackgroundBehavior.Custom;
             PlayerSettings.iOS.buildNumber = buildSetting.versionCode.ToString();
