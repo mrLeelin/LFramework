@@ -275,10 +275,7 @@ namespace LFramework.Runtime
 
         private async UniTask<PackageInitializationResult> EnsureYooAssetPackageReadyAsync(string packageName)
         {
-            var helper = ResourceComponent != null
-                ? ResourceComponent.GetComponentInChildren<YooAssetResourceHelper>(true)
-                : null;
-            if (helper == null)
+            if (ResourceComponent?.ResourceHelper is not YooAssetResourceHelper helper)
             {
                 return PackageInitializationResult.CreateFailure(packageName,
                     "YooAssetResourceHelper is unavailable.");

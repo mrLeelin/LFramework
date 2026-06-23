@@ -1,3 +1,4 @@
+#if YOOASSET_SUPPORT
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -1226,3 +1227,4 @@ namespace LFramework.Editor.Tests.Settings
         }
     }
 }
+#endif

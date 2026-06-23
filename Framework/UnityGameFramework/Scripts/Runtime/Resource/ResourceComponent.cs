@@ -56,6 +56,8 @@ namespace UnityGameFramework.Runtime
 
         public string ResourceHelperTypeName => m_ResourceHelperTypeName;
 
+        public ResourceHelperBase ResourceHelper => _resourceHelper;
+
         public float MinUnloadInterval => _minUnloadInterval;
 
         public float MaxUnloadInterval => _maxUnloadInterval;

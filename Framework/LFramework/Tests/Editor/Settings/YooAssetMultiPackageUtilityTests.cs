@@ -123,6 +123,23 @@ namespace LFramework.Editor.Tests.Settings
             Assert.That(packageName, Is.EqualTo("BasePackage"));
         }
 
+        [Test]
+        public void ResolveDownloadAssetsPackageNames_UsesOnlyDefaultPackage()
+        {
+            var setting = ScriptableObject.CreateInstance<ResourceComponentSetting>();
+            SetPrivateField(setting, "_defaultPackageId", "base");
+            setting.YooAssetPackages.Add(new PackageDefinition { packageId = "base", yooPackageName = "BasePackage" });
+            setting.YooAssetPackages.Add(new PackageDefinition { packageId = "hotfix", yooPackageName = "HotfixPackage" });
+            setting.YooAssetPackages.Add(new PackageDefinition { packageId = "scene", yooPackageName = "ScenePackage" });
+
+            List<string> packageNames = YooAssetMultiPackageUtility.ResolveDownloadAssetsPackageNames(
+                setting,
+                RuntimePlatform.WindowsEditor,
+                "Google");
+
+            Assert.That(packageNames, Is.EqualTo(new[] { "BasePackage" }));
+        }
+
         private static void SetPrivateField(object instance, string name, object value)
         {
             var field = instance.GetType().GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
