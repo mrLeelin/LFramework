@@ -84,7 +84,6 @@ namespace LFramework.Editor.Builder.PlatformConfig
             PlayerSettings.SetScriptingBackend(
                 NamedBuildTarget.FromBuildTargetGroup(BuildTargetGroup.Android),
                 ScriptingImplementation.IL2CPP);
-            PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
             PlayerSettings.Android.buildApkPerCpuArchitecture = false;
 
             // 配置版本号
