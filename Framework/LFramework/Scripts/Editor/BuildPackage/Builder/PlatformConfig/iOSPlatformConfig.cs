@@ -86,10 +86,10 @@ namespace LFramework.Editor.Builder.PlatformConfig
             PlayerSettings.SetApplicationIdentifier(
                 NamedBuildTarget.FromBuildTargetGroup(BuildTargetGroup.iOS),
                 _iOSSetting.BundleIdentifier);
-            
+
 
             // 配置 iOS 特定设置
-            PlayerSettings.bundleVersion = buildSetting.appVersion;
+            PlayerSettings.bundleVersion = buildSetting.appVersion + "." + buildSetting.versionCode;
             PlayerSettings.iOS.backgroundModes = iOSBackgroundMode.None;
             PlayerSettings.iOS.appInBackgroundBehavior = iOSAppInBackgroundBehavior.Custom;
             PlayerSettings.iOS.buildNumber = buildSetting.versionCode.ToString();
@@ -106,7 +106,6 @@ namespace LFramework.Editor.Builder.PlatformConfig
             PlayerSettings.iOS.iOSManualProvisioningProfileType = buildSetting.isRelease
                 ? ProvisioningProfileType.Distribution
                 : ProvisioningProfileType.Development;
-            
         }
 
         public string GetOutputPath(BuildSetting buildSetting)
@@ -129,6 +128,7 @@ namespace LFramework.Editor.Builder.PlatformConfig
                     names.Add(e.path);
                 }
             }
+
             return names.ToArray();
         }
     }
