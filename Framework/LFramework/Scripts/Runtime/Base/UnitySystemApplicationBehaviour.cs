@@ -132,8 +132,32 @@ namespace LFramework.Runtime
             SingletonManager.LateUpdate();
         }
 
+        protected virtual void OnApplicationFocus(bool hasFocus)
+        {
+            foreach (var component in RuntimeGameFrameworkComponents)
+            {
+                component.RuntimeOnApplicationFocus(hasFocus);
+            }
+            Log.Info($"[The application OnApplicationFocus {hasFocus}]");
+        }
+
+        protected virtual void OnApplicationPause(bool pauseStatus)
+        {
+            foreach (var component in RuntimeGameFrameworkComponents)
+            {
+                component.RuntimeOnApplicationPause(pauseStatus);
+            }
+
+            Log.Info($"[The application OnApplicationPause {pauseStatus}]");
+        }
+
         protected virtual void OnApplicationQuit()
         {
+            foreach (var component in RuntimeGameFrameworkComponents)
+            {
+                component.RuntimeOnApplicationQuit();
+            }
+
             StopApplication(ShutdownType.Quit);
         }
 
