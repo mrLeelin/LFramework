@@ -145,11 +145,11 @@ namespace LFramework.Runtime
             OnApplicationFocusInternal(hasFocus);
         }
 
-        protected abstract void OnApplicationFocusInternal(bool hasFocus);
+        protected virtual void OnApplicationFocusInternal(bool hasFocus){}
 
-        protected abstract void OnApplicationPauseInternal(bool pauseStatus);
+        protected virtual void OnApplicationPauseInternal(bool pauseStatus){}
 
-        protected abstract void OnApplicationQuitInternal();
+        protected virtual void OnApplicationQuitInternal(){}
 
         private void OnApplicationPause(bool pauseStatus)
         {
