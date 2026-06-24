@@ -410,6 +410,11 @@ namespace LFramework.Runtime
                 return;
             }
 
+            if (inForeground == hasFocus)
+            {
+                return;
+            }
+
             inForeground = hasFocus;
 
             if (hasFocus)
