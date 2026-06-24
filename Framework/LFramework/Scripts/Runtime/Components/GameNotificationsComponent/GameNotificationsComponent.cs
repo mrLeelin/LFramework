@@ -464,7 +464,7 @@ namespace LFramework.Runtime
                 }
 
                 Log.Info(
-                    $"[GameNotificationsComponent] The pending notifications count '{PendingNotifications ?? PendingNotifications.Count: 0}'");
+                    $"[GameNotificationsComponent] The pending notifications count '{PendingNotifications.Count}'");
                 for (int i = PendingNotifications.Count - 1; i >= 0; i--)
                 {
                     PendingNotification pendingNotification = PendingNotifications[i];
