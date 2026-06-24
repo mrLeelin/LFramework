@@ -132,16 +132,26 @@ namespace LFramework.Runtime
             SingletonManager.LateUpdate();
         }
 
-        protected virtual void OnApplicationFocus(bool hasFocus)
+        #region Unity event functions
+
+        private void OnApplicationFocus(bool hasFocus)
         {
             foreach (var component in RuntimeGameFrameworkComponents)
             {
                 component.RuntimeOnApplicationFocus(hasFocus);
             }
+
             Log.Info($"[The application OnApplicationFocus {hasFocus}]");
+            OnApplicationFocusInternal(hasFocus);
         }
 
-        protected virtual void OnApplicationPause(bool pauseStatus)
+        protected abstract void OnApplicationFocusInternal(bool hasFocus);
+
+        protected abstract void OnApplicationPauseInternal(bool pauseStatus);
+
+        protected abstract void OnApplicationQuitInternal();
+
+        private void OnApplicationPause(bool pauseStatus)
         {
             foreach (var component in RuntimeGameFrameworkComponents)
             {
@@ -149,17 +159,21 @@ namespace LFramework.Runtime
             }
 
             Log.Info($"[The application OnApplicationPause {pauseStatus}]");
+            OnApplicationPauseInternal(pauseStatus);
         }
 
-        protected virtual void OnApplicationQuit()
+        private void OnApplicationQuit()
         {
             foreach (var component in RuntimeGameFrameworkComponents)
             {
                 component.RuntimeOnApplicationQuit();
             }
 
+            OnApplicationQuitInternal();
             StopApplication(ShutdownType.Quit);
         }
+
+        #endregion
 
         public virtual void StopApplication(ShutdownType shutdownType)
         {
