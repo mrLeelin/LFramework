@@ -70,5 +70,7 @@ namespace UnityGameFramework.Runtime
         {
             
         }
+        
+        public virtual void RuntimeOnApplicationQuit(){}
     }
 }
