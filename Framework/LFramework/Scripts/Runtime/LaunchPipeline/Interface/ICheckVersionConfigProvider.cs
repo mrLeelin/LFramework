@@ -40,16 +40,6 @@ namespace LFramework.Runtime.LaunchPipeline
         (GameVersionCompareResult result, string errorMessage) CompareGameVersion(
             IGameVersionConfig remote,
             IGameVersionConfig client);
-
-        /// <summary>
-        /// 将远端版本配置应用到本地游戏设置。
-        /// </summary>
-        /// <param name="remote">远端版本配置。</param>
-        /// <param name="gameSetting">游戏设置。</param>
-        /// <param name="settingComponent">本地设置组件。</param>
-        void ApplyRemoteGameVersion(
-            IGameVersionConfig remote,
-            GameSetting gameSetting,
-            SettingComponent settingComponent);
+        
     }
 }

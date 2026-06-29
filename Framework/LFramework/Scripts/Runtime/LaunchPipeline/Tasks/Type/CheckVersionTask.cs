@@ -40,8 +40,7 @@ namespace LFramework.Runtime.LaunchPipeline
         /// <summary>
         /// 使用默认版本检查配置策略创建任务。
         /// </summary>
-        public CheckVersionTask()
-            : this(new DefaultCheckVersionConfigProvider())
+        public CheckVersionTask() : this(new DefaultCheckVersionConfigProvider())
         {
         }
 
@@ -191,7 +190,7 @@ namespace LFramework.Runtime.LaunchPipeline
 
                     case GameVersionCompareResult.Update:
                         Log.Info("[CheckVersionTask] 需要热更新资源");
-                        _configProvider.ApplyRemoteGameVersion(remoteVersionInfo, _gameSetting, _settingComponent);
+                        ApplyRemoteGameVersion(remoteVersionInfo, _gameSetting, _settingComponent);
                         context.VersionCheckResult = new VersionCheckResult
                         {
                             ResultType = VersionCheckResultType.HotUpdate,
@@ -201,7 +200,7 @@ namespace LFramework.Runtime.LaunchPipeline
 
                     case GameVersionCompareResult.NoUpdate:
                         Log.Info("[CheckVersionTask] 无需更新");
-                        _configProvider.ApplyRemoteGameVersion(remoteVersionInfo, _gameSetting, _settingComponent);
+                        ApplyRemoteGameVersion(remoteVersionInfo, _gameSetting, _settingComponent);
                         context.VersionCheckResult = new VersionCheckResult
                         {
                             ResultType = VersionCheckResultType.NoUpdate,
@@ -226,6 +225,25 @@ namespace LFramework.Runtime.LaunchPipeline
                 SetFailedResult(context, ex.Message);
                 return LaunchTaskResult.CreateFailed(TaskName, ex.Message);
             }
+        }
+        
+        /// <summary>
+        /// 默认将资源版本、CDN 和服务器地址写回 GameSetting。
+        /// </summary>
+        protected virtual void ApplyRemoteGameVersion(
+            IGameVersionConfig remote,
+            GameSetting gameSetting,
+            SettingComponent settingComponent)
+        {
+            gameSetting.SetResourceVersion(settingComponent, remote.ResourceVersion);
+            if (remote is IGameVersionEndpointConfig endpointConfig)
+            {
+                gameSetting.ip = endpointConfig.LogicIp;
+                gameSetting.webSocketIp = endpointConfig.WebSocketIp;
+                gameSetting.cdnUrl = endpointConfig.CdnUrl;
+            }
+
+            Log.Info("[CheckVersionTask] 更新 GameSetting 完成: {0}", gameSetting);
         }
 
         protected override bool ShouldRetry(LaunchTaskResult result, Exception exception,

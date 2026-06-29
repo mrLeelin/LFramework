@@ -94,23 +94,6 @@ namespace LFramework.Runtime.LaunchPipeline
             return (GameVersionCompareResult.NoUpdate, string.Empty);
         }
 
-        /// <summary>
-        /// 默认将资源版本、CDN 和服务器地址写回 GameSetting。
-        /// </summary>
-        public void ApplyRemoteGameVersion(
-            IGameVersionConfig remote,
-            GameSetting gameSetting,
-            SettingComponent settingComponent)
-        {
-            gameSetting.SetResourceVersion(settingComponent, remote.ResourceVersion);
-            if (remote is IGameVersionEndpointConfig endpointConfig)
-            {
-                gameSetting.ip = endpointConfig.LogicIp;
-                gameSetting.webSocketIp = endpointConfig.WebSocketIp;
-                gameSetting.cdnUrl = endpointConfig.CdnUrl;
-            }
-
-            Log.Info("[CheckVersionTask] 更新 GameSetting 完成: {0}", gameSetting);
-        }
+     
     }
 }
