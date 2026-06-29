@@ -311,11 +311,12 @@ namespace LFramework.Runtime
                     handle.SetResult(typedOp.Result);
                     return;
                 }
-
+                /*
                 string accumulatedError = AppendLoadError(
                     null,
                     typeof(T),
                     typedOp.OperationException?.Message ?? $"Load asset '{assetName}' failed.");
+                    */
                 SafeRelease(typedOp);
 
                 var fallbackOp = Addressables.LoadAssetAsync<object>(assetName);
@@ -347,10 +348,11 @@ namespace LFramework.Runtime
                     return;
                 }
 
-                accumulatedError = AppendLoadError(
-                    accumulatedError,
-                    typeof(object),
+                string accumulatedError = AppendLoadError(
+                    null,
+                    typeof(T),
                     fallbackOp.OperationException?.Message ?? $"Load asset '{assetName}' failed.");
+                
                 SafeRelease(fallbackOp);
                 handle.SetError(accumulatedError);
             }
