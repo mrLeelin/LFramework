@@ -37,7 +37,7 @@ namespace LFramework.Editor.Builder.PlatformConfig
             return BuildTargetGroup.iOS;
         }
 
-        public BuildPlayerOptions GetBuildPlayerOptions(BuildSetting buildSetting)
+        public virtual BuildPlayerOptions GetBuildPlayerOptions(BuildSetting buildSetting)
         {
             var options = new BuildPlayerOptions
             {
@@ -65,7 +65,7 @@ namespace LFramework.Editor.Builder.PlatformConfig
             return options;
         }
 
-        public void ConfigurePlatformSettings(BuildSetting buildSetting)
+        public virtual void ConfigurePlatformSettings(BuildSetting buildSetting)
         {
             if (_iOSSetting == null)
             {

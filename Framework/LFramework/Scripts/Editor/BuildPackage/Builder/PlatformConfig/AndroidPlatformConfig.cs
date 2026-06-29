@@ -32,7 +32,7 @@ namespace LFramework.Editor.Builder.PlatformConfig
             return BuildTargetGroup.Android;
         }
 
-        public BuildPlayerOptions GetBuildPlayerOptions(BuildSetting buildSetting)
+        public virtual BuildPlayerOptions GetBuildPlayerOptions(BuildSetting buildSetting)
         {
             var options = new BuildPlayerOptions
             {
@@ -66,15 +66,15 @@ namespace LFramework.Editor.Builder.PlatformConfig
             return options;
         }
 
-        public void ConfigurePlatformSettings(BuildSetting buildSetting)
+        public virtual void ConfigurePlatformSettings(BuildSetting buildSetting)
         {
             // 配置构建系统
-            
-            
+
+
             PlayerSettings.SetApplicationIdentifier(
                 NamedBuildTarget.FromBuildTargetGroup(BuildTargetGroup.Android),
                 _androidSetting.BundleIdentifier);
-            
+
             EditorUserBuildSettings.androidBuildSystem = AndroidBuildSystem.Gradle;
             EditorUserBuildSettings.buildAppBundle = buildSetting.buildAndroidAppType == BuildAndroidAppType.AppBundle;
             EditorUserBuildSettings.exportAsGoogleAndroidProject =
@@ -114,7 +114,7 @@ namespace LFramework.Editor.Builder.PlatformConfig
             }
         }
 
-        public string GetOutputPath(BuildSetting buildSetting)
+        public virtual string GetOutputPath(BuildSetting buildSetting)
         {
             string releaseType = buildSetting.isRelease ? "Release" : "Debug";
             string appName = $"Build_{releaseType}_{buildSetting.GetAppVersion()}";
@@ -128,7 +128,8 @@ namespace LFramework.Editor.Builder.PlatformConfig
             if (buildSetting.buildAndroidAppType == BuildAndroidAppType.ExportAndroidProject)
             {
                 string timeInfo = DateTime.Now.ToString("yyyyMMddHHmmss");
-                return Application.dataPath + $"/../Builds/Android_{releaseType}_{buildSetting.GetAppVersion()}_{timeInfo}/{appName}";
+                return Application.dataPath +
+                       $"/../Builds/Android_{releaseType}_{buildSetting.GetAppVersion()}_{timeInfo}/{appName}";
             }
             else
             {
@@ -152,6 +153,7 @@ namespace LFramework.Editor.Builder.PlatformConfig
                     names.Add(e.path);
                 }
             }
+
             return names.ToArray();
         }
 
@@ -181,7 +183,8 @@ namespace LFramework.Editor.Builder.PlatformConfig
             PlayerSettings.Android.keyaliasName = keystoreConfig.KeyaliasName;
             PlayerSettings.Android.keyaliasPass = keystoreConfig.KeyaliasPass;
             PlayerSettings.Android.useCustomKeystore = true;
-            Debug.Log($"[AndroidPlatformConfig] Using {keystoreConfig.BuildMode} Android keystore: {resolvedKeystorePath}");
+            Debug.Log(
+                $"[AndroidPlatformConfig] Using {keystoreConfig.BuildMode} Android keystore: {resolvedKeystorePath}");
         }
     }
 }
