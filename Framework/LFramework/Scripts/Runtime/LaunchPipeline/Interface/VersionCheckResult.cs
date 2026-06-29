@@ -42,18 +42,8 @@ namespace LFramework.Runtime.LaunchPipeline
         public string ErrorMessage { get; set; }
 
         /// <summary>
-        /// 强更下载地址（仅在 ForceUpdate 时有效）
-        /// </summary>
-        public string DownloadUrl { get; set; }
-
-        /// <summary>
         /// 远程版本信息
         /// </summary>
-        public GameVersion RemoteVersion { get; set; }
-
-        /// <summary>
-        /// 匹配的远程版本配置（考虑白名单后的最终配置）
-        /// </summary>
-        public GameVersionConfig RemoteVersionConfig { get; set; }
+        public IGameVersionConfig RemoteVersion { get; set; }
     }
 }

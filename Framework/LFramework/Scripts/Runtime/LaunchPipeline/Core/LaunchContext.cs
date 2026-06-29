@@ -76,7 +76,7 @@ namespace LFramework.Runtime.LaunchPipeline
         /// 最近一次失败对应的尝试索引（从 0 开始）。
         /// </summary>
         public int LastAttemptIndex { get; set; }
-
+        
         /// <summary>
         /// 构造函数。
         /// </summary>

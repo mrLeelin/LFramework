@@ -2,6 +2,13 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.2.56]
+
+### Changed
+
+- Refactored version-check launch configuration behind `ICheckVersionConfigProvider` so framework tasks no longer hardcode whitelist, version URL, JSON parsing, comparison, or remote-setting application rules.
+- Split version data contracts into `IGameVersionConfig` and `IGameVersionEndpointConfig` so runtime endpoint fields are optional capabilities instead of required version fields.
+
 ## [0.2.55]
 
 ### Fixed

@@ -141,7 +141,6 @@ namespace LFramework.Editor.Window
             tree.Add("构建", null, EditorIcons.Airplane);
             tree.AddObjectAtPath("构建/Build Resources", new BuildResourcesData()).AddIcon(EditorIcons.SettingsCog);
             tree.AddObjectAtPath("构建/Build App", new BuildPackageWindow()).AddIcon(EditorIcons.SettingsCog);
-            tree.AddObjectAtPath("构建/Upload Version Files", new BuildVersionWindow()).AddIcon(EditorIcons.Car);
             tree.AddObjectAtPath("通用/OpenFolder", new OpenFolderInspector()).AddIcon(EditorIcons.ShoppingCart);
             AddAllExtendItems("扩展", tree);
             return tree;

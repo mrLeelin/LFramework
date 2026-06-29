@@ -3,7 +3,6 @@ using Cysharp.Threading.Tasks;
 using GameFramework.Event;
 using LFramework.Runtime;
 using LFramework.Runtime.LaunchPipeline.Basic;
-using UnityEngine;
 using UnityGameFramework.Runtime;
 using Zenject;
 
@@ -12,10 +11,12 @@ namespace LFramework.Runtime.LaunchPipeline
     /// <summary>
     /// 版本检查启动任务。
     /// 通过 <see cref="WebRequestComponent"/> 发起 HTTP 请求获取远程版本信息，
-    /// 解析 <see cref="GameVersion"/> JSON 数据，比较客户端与远程版本，决定后续流程。
+    /// 解析 <see cref="IGameVersionConfig"/> JSON 数据，比较客户端与远程版本，决定后续流程。
     /// </summary>
     public class CheckVersionTask : RetryableLaunchTaskBase
     {
+        private readonly ICheckVersionConfigProvider _configProvider;
+
         /// <summary>
         /// 游戏设置，包含版本 URL、应用版本等配置
         /// </summary>
@@ -35,6 +36,23 @@ namespace LFramework.Runtime.LaunchPipeline
         /// Web 请求组件，用于发起 HTTP 请求
         /// </summary>
         [Inject] private WebRequestComponent _webRequestComponent;
+
+        /// <summary>
+        /// 使用默认版本检查配置策略创建任务。
+        /// </summary>
+        public CheckVersionTask()
+            : this(new DefaultCheckVersionConfigProvider())
+        {
+        }
+
+        /// <summary>
+        /// 使用指定的版本检查配置策略创建任务。
+        /// </summary>
+        /// <param name="configProvider">版本检查配置策略。为空时使用默认策略。</param>
+        public CheckVersionTask(ICheckVersionConfigProvider configProvider)
+        {
+            _configProvider = configProvider ?? new DefaultCheckVersionConfigProvider();
+        }
 
         /// <summary>
         /// 任务名称
@@ -63,14 +81,14 @@ namespace LFramework.Runtime.LaunchPipeline
                     return LaunchTaskResult.CreateFailed(TaskName, "GameSetting is null");
                 }
 
-                if (string.IsNullOrWhiteSpace(_gameSetting.versionUrl))
+                // 1. 构造版本检查 URL
+                var url = _configProvider.GetVersionUrl(_gameSetting, _settingComponent);
+                if (string.IsNullOrWhiteSpace(url))
                 {
-                    SetFailedResult(context, "versionUrl is empty");
-                    return LaunchTaskResult.CreateFailed(TaskName, "versionUrl is empty");
+                    SetFailedResult(context, "version check url is empty");
+                    return LaunchTaskResult.CreateFailed(TaskName, "version check url is empty");
                 }
 
-                // 1. 构造版本检查 URL
-                var url = $"{_gameSetting.versionUrl}/{_gameSetting.GetVersionRootDir()}";
                 Log.Info("[CheckVersionTask] 版本检查 URL: {0}", url);
                 context.ProgressReporter.ReportProgress(0.1f, "正在请求版本信息...");
 
@@ -128,11 +146,12 @@ namespace LFramework.Runtime.LaunchPipeline
                     return LaunchTaskResult.CreateFailed(TaskName, "JSON 数据为空");
                 }
 
+                Log.Info("[CheckVersionTask] The parsed game version is: {0}", jsonStr);
                 // 4. 解析远程版本信息
-                GameVersion remoteVersionInfo;
+                IGameVersionConfig remoteVersionInfo;
                 try
                 {
-                    remoteVersionInfo = JsonUtility.FromJson<GameVersion>(jsonStr);
+                    remoteVersionInfo = _configProvider.ParseRemoteGameVersion(jsonStr);
                 }
                 catch (Exception parseEx)
                 {
@@ -148,73 +167,49 @@ namespace LFramework.Runtime.LaunchPipeline
                     return LaunchTaskResult.CreateFailed(TaskName, "解析的远程版本信息为空");
                 }
 
-                // 5. 获取远程版本配置（支持白名单）
-                var remoteVersionConfig = GetRemoteVersionConfig(remoteVersionInfo, context);
-                if (remoteVersionConfig == null)
-                {
-                    Log.Error("[CheckVersionTask] 远程版本配置为空");
-                    SetFailedResult(context, "远程版本配置为空");
-                    return LaunchTaskResult.CreateFailed(TaskName, "远程版本配置为空");
-                }
-
                 // 6. 构造客户端版本信息用于比较
-                var clientVersionConfig = new GameVersionConfig
-                {
-                    resourceVersion = _gameSetting.GetResourceVersion(_settingComponent)
-                };
-                var clientVersionInfo = new GameVersion
-                {
-                    appVersion = _gameSetting.appVersion,
-                    defaultConfig = clientVersionConfig
-                };
-
+                var clientVersionConfig = _configProvider.BuildLocalGameVersion(_gameSetting, _settingComponent);
                 Log.Info("[CheckVersionTask] 客户端版本: {0}, 远程版本: {1}",
-                    clientVersionInfo, remoteVersionInfo);
-
+                    clientVersionConfig, remoteVersionInfo);
                 // 7. 版本比较
                 context.ProgressReporter.ReportProgress(0.8f, "正在比较版本...");
-                var (result, errorMessage) = GameVersion.IsNeedUpdate(
-                    remoteVersionInfo, clientVersionInfo, remoteVersionConfig, clientVersionConfig);
+                var (result, errorMessage) = _configProvider.CompareGameVersion(
+                    remoteVersionInfo, clientVersionConfig);
 
                 // 8. 根据比较结果处理
                 switch (result)
                 {
-                    case Result.ForceUpdate:
-                        Log.Error("[CheckVersionTask] 需要强制更新，下载地址: {0}",
-                            remoteVersionInfo.downloadPackage);
+                    case GameVersionCompareResult.ForceUpdate:
+                        Log.Error("[CheckVersionTask] Need force update.");
                         context.VersionCheckResult = new VersionCheckResult
                         {
                             ResultType = VersionCheckResultType.ForceUpdate,
-                            DownloadUrl = remoteVersionInfo.downloadPackage,
                             RemoteVersion = remoteVersionInfo,
-                            RemoteVersionConfig = remoteVersionConfig
                         };
                         return LaunchTaskResult.CreateFailed(TaskName,
-                            $"需要强制更新，下载地址: {remoteVersionInfo.downloadPackage}");
+                            $"Need force update");
 
-                    case Result.Update:
+                    case GameVersionCompareResult.Update:
                         Log.Info("[CheckVersionTask] 需要热更新资源");
-                        UpdateGameSettings(remoteVersionConfig);
+                        _configProvider.ApplyRemoteGameVersion(remoteVersionInfo, _gameSetting, _settingComponent);
                         context.VersionCheckResult = new VersionCheckResult
                         {
                             ResultType = VersionCheckResultType.HotUpdate,
                             RemoteVersion = remoteVersionInfo,
-                            RemoteVersionConfig = remoteVersionConfig
                         };
                         return LaunchTaskResult.CreateSuccess(TaskName);
 
-                    case Result.NoUpdate:
+                    case GameVersionCompareResult.NoUpdate:
                         Log.Info("[CheckVersionTask] 无需更新");
-                        UpdateGameSettings(remoteVersionConfig);
+                        _configProvider.ApplyRemoteGameVersion(remoteVersionInfo, _gameSetting, _settingComponent);
                         context.VersionCheckResult = new VersionCheckResult
                         {
                             ResultType = VersionCheckResultType.NoUpdate,
                             RemoteVersion = remoteVersionInfo,
-                            RemoteVersionConfig = remoteVersionConfig
                         };
                         return LaunchTaskResult.CreateSuccess(TaskName);
 
-                    case Result.Exception:
+                    case GameVersionCompareResult.Invalid:
                         Log.Error("[CheckVersionTask] 版本比较异常: {0}", errorMessage);
                         SetFailedResult(context, errorMessage);
                         return LaunchTaskResult.CreateFailed(TaskName, errorMessage);
@@ -233,7 +228,8 @@ namespace LFramework.Runtime.LaunchPipeline
             }
         }
 
-        protected override bool ShouldRetry(LaunchTaskResult result, Exception exception, LaunchErrorCategory errorCategory,
+        protected override bool ShouldRetry(LaunchTaskResult result, Exception exception,
+            LaunchErrorCategory errorCategory,
             LaunchContext context)
         {
             return errorCategory == LaunchErrorCategory.Network ||
@@ -241,7 +237,8 @@ namespace LFramework.Runtime.LaunchPipeline
                    errorCategory == LaunchErrorCategory.Server;
         }
 
-        protected override LaunchErrorCategory ClassifyFailure(LaunchTaskResult result, Exception exception, LaunchContext context)
+        protected override LaunchErrorCategory ClassifyFailure(LaunchTaskResult result, Exception exception,
+            LaunchContext context)
         {
             string errorMessage = result?.ErrorMessage ?? exception?.Message;
             if (string.IsNullOrWhiteSpace(errorMessage))
@@ -277,7 +274,8 @@ namespace LFramework.Runtime.LaunchPipeline
             return LaunchErrorCategory.Unknown;
         }
 
-        protected override UniTask BeforeRetryAsync(int attempt, LaunchContext context, LaunchTaskResult result, Exception exception)
+        protected override UniTask BeforeRetryAsync(int attempt, LaunchContext context, LaunchTaskResult result,
+            Exception exception)
         {
             string message = $"版本检查失败，正在重试 ({attempt}/{GetMaxRetryCount(context)})...";
             Log.Warning("[CheckVersionTask] {0} Error: {1}", message, result?.ErrorMessage ?? exception?.Message);
@@ -288,75 +286,6 @@ namespace LFramework.Runtime.LaunchPipeline
         protected override int GetMaxRetryCount(LaunchContext context)
         {
             return context.GetCustomData("CheckVersionRetryCount", context.DefaultRetryCount);
-        }
-
-
-        /// <summary>
-        /// 更新游戏设置，将远程版本配置写入 GameSetting
-        /// </summary>
-        /// <param name="remoteConfig">远程版本配置</param>
-        private void UpdateGameSettings(GameVersionConfig remoteConfig)
-        {
-            _gameSetting.SetResourceVersion(_settingComponent, remoteConfig.resourceVersion);
-            _gameSetting.ip = remoteConfig.logicIp;
-            _gameSetting.webSocketIp = remoteConfig.webSocketIp;
-            _gameSetting.cdnUrl = remoteConfig.cdnUrl;
-            Log.Info("[CheckVersionTask] 更新 GameSetting 完成: {0}", _gameSetting);
-        }
-
-        /// <summary>
-        /// 获取远程版本配置，支持白名单用户使用独立配置
-        /// </summary>
-        /// <param name="remoteVersionInfo">远程版本信息</param>
-        /// <param name="context"></param>
-        /// <returns>匹配的版本配置，失败返回 null</returns>
-        private GameVersionConfig GetRemoteVersionConfig(GameVersion remoteVersionInfo, LaunchContext context)
-        {
-            if (remoteVersionInfo.defaultConfig == null ||
-                string.IsNullOrEmpty(remoteVersionInfo.defaultConfig.resourceVersion))
-            {
-                Log.Error("[CheckVersionTask] 远程 defaultConfig 为空");
-                return null;
-            }
-
-            if (remoteVersionInfo.whiteListConfig == null ||
-                string.IsNullOrEmpty(remoteVersionInfo.whiteListConfig.resourceVersion))
-            {
-                Log.Info("[CheckVersionTask] 白名单配置为空，使用 defaultConfig");
-                return remoteVersionInfo.defaultConfig;
-            }
-
-            var isWhiteListUser = IsWhiteListUser(remoteVersionInfo, context);
-            Log.Info("[CheckVersionTask] 是否白名单用户: {0}", isWhiteListUser);
-            return isWhiteListUser ? remoteVersionInfo.whiteListConfig : remoteVersionInfo.defaultConfig;
-        }
-
-        /// <summary>
-        /// 判断当前设备是否在白名单中
-        /// </summary>
-        /// <param name="remoteVersionInfo">远程版本信息</param>
-        /// <param name="context"></param>
-        /// <returns>是否为白名单用户</returns>
-        private bool IsWhiteListUser(GameVersion remoteVersionInfo, LaunchContext context)
-        {
-            if (string.IsNullOrEmpty(remoteVersionInfo.userList))
-            {
-                return false;
-            }
-
-            string deviceId = context.GetCustomDeviceId();
-            Log.Info("[CheckVersionTask] 设备 ID: {0}", deviceId);
-
-            var userList = remoteVersionInfo.userList.Split(',');
-            foreach (var user in userList)
-            {
-                if (user.Equals(deviceId))
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         /// <summary>
