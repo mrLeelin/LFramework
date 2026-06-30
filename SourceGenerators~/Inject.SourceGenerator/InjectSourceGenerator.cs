@@ -21,6 +21,7 @@ namespace LFramework.Inject.SourceGenerator
     public sealed class InjectSourceGenerator : ISourceGenerator
     {
         private const string InjectAttributeName = "LFramework.Runtime.InjectAttribute";
+        private const string InjectHelperName = "__LFrameworkInjectGenerated";
         private static readonly DiagnosticDescriptor PartialClassRequired = new DiagnosticDescriptor(
             "LFI001",
             "Inject target must be partial",
@@ -48,7 +49,7 @@ namespace LFramework.Inject.SourceGenerator
         private static readonly DiagnosticDescriptor UnsupportedTargetType = new DiagnosticDescriptor(
             "LFI004",
             "Inject target type is unsupported",
-            "Type '{0}' contains [Inject] members but generated injection only supports non-generic top-level classes",
+            "Type '{0}' contains [Inject] members but generated injection only supports top-level classes",
             "LFramework.Inject",
             DiagnosticSeverity.Error,
             true);
@@ -107,7 +108,6 @@ namespace LFramework.Inject.SourceGenerator
                 var validTarget = true;
                 if (!(candidate is ClassDeclarationSyntax) ||
                     type.TypeKind != TypeKind.Class ||
-                    type.IsGenericType ||
                     type.ContainingType != null)
                 {
                     reportDiagnostic(Diagnostic.Create(
@@ -140,7 +140,7 @@ namespace LFramework.Inject.SourceGenerator
                 var key = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                 if (seen.Add(key))
                 {
-                    targets.Add(new InjectTarget(type, members));
+                    targets.Add(new InjectTarget(type, members, HasInjectableBase(type.BaseType)));
                 }
             }
 
@@ -284,10 +284,25 @@ namespace LFramework.Inject.SourceGenerator
         private static void AppendTarget(StringBuilder builder, InjectTarget target)
         {
             builder.Append("    ").Append(target.DeclarationPrefix).Append(" partial class ")
-                .Append(target.TypeName).AppendLine(" : IInjectable");
+                .Append(target.TypeDeclaration).AppendLine(" : IInjectable");
+            if (!string.IsNullOrEmpty(target.TypeConstraints))
+            {
+                builder.Append("        ").AppendLine(target.TypeConstraints);
+            }
+
             builder.AppendLine("    {");
             builder.AppendLine("        void IInjectable.Inject(IServiceResolver resolver)");
             builder.AppendLine("        {");
+            builder.Append("            ").Append(InjectHelperName).AppendLine("(resolver);");
+            builder.AppendLine("        }");
+            builder.AppendLine();
+            builder.Append("        protected void ").Append(InjectHelperName).AppendLine("(IServiceResolver resolver)");
+            builder.AppendLine("        {");
+
+            if (target.InjectsBase)
+            {
+                builder.Append("            base.").Append(InjectHelperName).AppendLine("(resolver);");
+            }
 
             for (var i = 0; i < target.Members.Count; i++)
             {
@@ -350,6 +365,70 @@ namespace LFramework.Inject.SourceGenerator
             return value.ToString();
         }
 
+        private static bool HasInjectableBase(INamedTypeSymbol type)
+        {
+            while (type != null && type.SpecialType != SpecialType.System_Object)
+            {
+                if (IsSupportedInjectTarget(type) &&
+                    (HasInjectHelper(type) || IsSourcePartialType(type) && HasOwnInjectableMembers(type)))
+                {
+                    return true;
+                }
+
+                type = type.BaseType;
+            }
+
+            return false;
+        }
+
+        private static bool HasInjectHelper(INamedTypeSymbol type)
+        {
+            return type.GetMembers(InjectHelperName).Any(member => member is IMethodSymbol);
+        }
+
+        private static bool IsSourcePartialType(INamedTypeSymbol type)
+        {
+            foreach (var syntaxReference in type.DeclaringSyntaxReferences)
+            {
+                if (syntaxReference.GetSyntax() is TypeDeclarationSyntax declaration &&
+                    declaration.Modifiers.Any(SyntaxKind.PartialKeyword))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsSupportedInjectTarget(INamedTypeSymbol type)
+        {
+            return type.TypeKind == TypeKind.Class &&
+                   type.ContainingType == null;
+        }
+
+        private static bool HasOwnInjectableMembers(INamedTypeSymbol type)
+        {
+            foreach (var member in type.GetMembers())
+            {
+                if (member.IsStatic || !TryGetMetadata(member, out _))
+                {
+                    continue;
+                }
+
+                if (member is IFieldSymbol)
+                {
+                    return true;
+                }
+
+                if (member is IPropertySymbol property && property.SetMethod != null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private sealed class Receiver : ISyntaxReceiver
         {
             public readonly List<TypeDeclarationSyntax> Candidates = new List<TypeDeclarationSyntax>();
@@ -403,12 +482,15 @@ namespace LFramework.Inject.SourceGenerator
 
         private sealed class InjectTarget
         {
-            public InjectTarget(INamedTypeSymbol type, List<InjectMember> members)
+            public InjectTarget(INamedTypeSymbol type, List<InjectMember> members, bool injectsBase)
             {
                 FullName = type.ToDisplayString();
                 Namespace = type.ContainingNamespace.IsGlobalNamespace ? string.Empty : type.ContainingNamespace.ToDisplayString();
                 TypeName = type.Name;
+                TypeDeclaration = GetTypeDeclaration(type);
+                TypeConstraints = GetTypeConstraints(type);
                 Members = members;
+                InjectsBase = injectsBase;
                 DeclarationPrefix = type.DeclaredAccessibility == Accessibility.Public ? "public" : "internal";
                 if (type.IsAbstract)
                 {
@@ -426,9 +508,82 @@ namespace LFramework.Inject.SourceGenerator
 
             public string TypeName { get; }
 
+            public string TypeDeclaration { get; }
+
+            public string TypeConstraints { get; }
+
             public string DeclarationPrefix { get; }
 
             public List<InjectMember> Members { get; }
+
+            public bool InjectsBase { get; }
+        }
+
+        private static string GetTypeDeclaration(INamedTypeSymbol type)
+        {
+            if (type.TypeParameters.Length == 0)
+            {
+                return type.Name;
+            }
+
+            return type.Name + "<" + string.Join(", ", type.TypeParameters.Select(parameter => parameter.Name)) + ">";
+        }
+
+        private static string GetTypeConstraints(INamedTypeSymbol type)
+        {
+            if (type.TypeParameters.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            var builder = new StringBuilder();
+            foreach (var parameter in type.TypeParameters)
+            {
+                var constraints = new List<string>();
+                if (parameter.HasNotNullConstraint)
+                {
+                    constraints.Add("notnull");
+                }
+
+                if (parameter.HasReferenceTypeConstraint)
+                {
+                    constraints.Add(parameter.ReferenceTypeConstraintNullableAnnotation == NullableAnnotation.Annotated
+                        ? "class?"
+                        : "class");
+                }
+                else if (parameter.HasUnmanagedTypeConstraint)
+                {
+                    constraints.Add("unmanaged");
+                }
+                else if (parameter.HasValueTypeConstraint)
+                {
+                    constraints.Add("struct");
+                }
+
+                constraints.AddRange(parameter.ConstraintTypes.Select(typeSymbol =>
+                    typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)));
+
+                if (parameter.HasConstructorConstraint)
+                {
+                    constraints.Add("new()");
+                }
+
+                if (constraints.Count == 0)
+                {
+                    continue;
+                }
+
+                if (builder.Length > 0)
+                {
+                    builder.AppendLine();
+                    builder.Append("        ");
+                }
+
+                builder.Append("where ").Append(parameter.Name).Append(" : ")
+                    .Append(string.Join(", ", constraints));
+            }
+
+            return builder.ToString();
         }
 
         private readonly struct InjectMember
