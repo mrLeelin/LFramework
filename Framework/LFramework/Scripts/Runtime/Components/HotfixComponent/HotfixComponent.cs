@@ -15,14 +15,13 @@ using LFramework.Runtime.Method;
 using LFramework.Runtime.Settings;
 using UnityEngine;
 using UnityGameFramework.Runtime;
-using Zenject;
 
 namespace LFramework.Runtime
 {
     /// <summary>
     /// 热更系统组件。
     /// </summary>
-    public class HotfixComponent : GameFrameworkComponent
+    public partial class HotfixComponent : GameFrameworkComponent
     {
         [Inject] private ProcedureComponent ProcedureComponent { get; set; }
         [Inject] private GameSetting GameSetting { get; }

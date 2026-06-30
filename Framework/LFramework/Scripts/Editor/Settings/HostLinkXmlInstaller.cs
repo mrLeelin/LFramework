@@ -21,9 +21,7 @@ namespace LFramework.Editor.Settings
         {
             "GameFramework",
             "UnityGameFramework.Runtime",
-            "LFramework.Runtime",
-            "Zenject",
-            "Zenject-usage"
+            "LFramework.Runtime"
         };
 
         [InitializeOnLoadMethod]

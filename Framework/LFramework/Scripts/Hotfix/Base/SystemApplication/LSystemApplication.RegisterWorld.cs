@@ -54,14 +54,15 @@ namespace LFramework.Hotfix
                     continue;
                 }
 
-                LFrameworkAspect.Instance.DiContainer.Inject(world);
+                Injection.Inject(world);
                 var interfaceType =
                     providerType.GetDerivedInterfaces(typeof(IWorld), typeof(IReference), typeof(IDisposable));
                 if (interfaceType != null)
                 {
-                    LFrameworkAspect.Instance.DiContainer.Bind(interfaceType).FromInstance(world);
+                    LServices.Register(interfaceType, world);
                 }
 
+                LServices.Register(providerType, world);
                 world.Initialized();
                 _worldBase = world;
                 return world;
@@ -80,16 +81,32 @@ namespace LFramework.Hotfix
             // 先获取类型信息并解绑 DI，再释放回对象池
             var interfaceType = _worldBase.GetType()
                 .GetDerivedInterfaces(typeof(IWorld), typeof(IReference), typeof(IDisposable));
+            UnRegisterWorldService(_worldBase);
             if (interfaceType != null)
             {
-                if (!LFrameworkAspect.Instance.DiContainer.Unbind(interfaceType))
-                {
-                    Log.Fatal($"Un bind '{interfaceType}' 'World' error.");
-                }
+                LServices.Unregister(interfaceType);
             }
 
+            Injection.ClearReflectionCache(_worldBase.GetType());
             ReferencePool.Release(_worldBase);
             _worldBase = null;
+        }
+
+        private static void UnRegisterWorldService(WorldBase world)
+        {
+            if (world == null)
+            {
+                return;
+            }
+
+            var worldType = world.GetType();
+            LServices.Unregister(worldType);
+            var interfaceType =
+                worldType.GetDerivedInterfaces(typeof(IWorld), typeof(IReference), typeof(IDisposable));
+            if (interfaceType != null)
+            {
+                LServices.Unregister(interfaceType);
+            }
         }
     }
 }

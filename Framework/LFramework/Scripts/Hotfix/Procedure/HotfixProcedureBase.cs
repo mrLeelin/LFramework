@@ -6,7 +6,6 @@ using GameFramework.Procedure;
 using LFramework.Runtime;
 using UnityEngine;
 using UnityGameFramework.Runtime;
-using Zenject;
 
 namespace LFramework.Hotfix.Procedure
 {
@@ -25,23 +24,22 @@ namespace LFramework.Hotfix.Procedure
         protected sealed override void OnEnter(IFsm<IProcedureManager> procedureOwner)
         {
             base.OnEnter(procedureOwner);
-            var container = LFrameworkAspect.Instance.DiContainer;
-            if (container == null)
+            if (!LServices.TryGet<ISystemProviderRegister>(out var providerRegister) ||
+                !LServices.TryGet<IWorldRegister>(out var worldRegister))
             {
-                Log.Fatal($"The  DiContainer is null in '{ProcedureState}'");
+                Log.Fatal($"Hotfix procedure registers are not ready in '{ProcedureState}'");
                 return;
             }
 
-            container.Resolve<ISystemProviderRegister>()
-                .TryRegisterProvider(ProcedureState);
-            var world = container.Resolve<IWorldRegister>().TryRegisterWorld(ProcedureState);
+            providerRegister.TryRegisterProvider(ProcedureState);
+            var world = worldRegister.TryRegisterWorld(ProcedureState);
             if (world != null)
             {
                 _linkWorld = world;
                 _linkWorld.LinkProcedure(this);
             }
 
-            container.Inject(this);
+            Injection.Inject(this);
             OnEnterProcedure(procedureOwner);
         }
 
@@ -54,15 +52,14 @@ namespace LFramework.Hotfix.Procedure
                 return;
             }
 
-            var container = LFrameworkAspect.Instance.DiContainer;
-            if (container == null)
+            if (!LServices.TryGet<ISystemProviderRegister>(out var providerRegister) ||
+                !LServices.TryGet<IWorldRegister>(out var worldRegister))
             {
                 return;
             }
 
-            container.Resolve<ISystemProviderRegister>()
-                .TryUnRegisterProvider(ProcedureState);
-            container.Resolve<IWorldRegister>().TryUnRegisterWorld();
+            providerRegister.TryUnRegisterProvider(ProcedureState);
+            worldRegister.TryUnRegisterWorld();
             _linkWorld = null;
         }
 

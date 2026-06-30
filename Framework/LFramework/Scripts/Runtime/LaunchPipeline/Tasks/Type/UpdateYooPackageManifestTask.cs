@@ -8,14 +8,13 @@ using LFramework.Runtime.Settings;
 using UnityEngine;
 using UnityGameFramework.Runtime;
 using YooAsset;
-using Zenject;
 
 namespace LFramework.Runtime.LaunchPipeline
 {
     /// <summary>
     /// Updates YooAsset package manifests before startup continues.
     /// </summary>
-    public class UpdateYooPackageManifestTask : LaunchTaskBase
+    public partial class UpdateYooPackageManifestTask : LaunchTaskBase
     {
         [Inject] private ResourceComponent _resourceComponent;
 

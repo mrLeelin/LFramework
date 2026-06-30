@@ -1,16 +1,14 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using GameFramework.Event;
 using UniRx;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityGameFramework.Runtime;
-using Zenject;
 using Object = System.Object;
 
 namespace LFramework.Runtime
 {
-    [PreLoadZenject]
     public abstract partial class Window : UIBehaviour
     {
         private const int DepthFactor = 10;

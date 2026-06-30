@@ -3,7 +3,6 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LFramework.Runtime.LaunchPipeline.Basic;
 using UnityGameFramework.Runtime;
-using Zenject;
 
 namespace LFramework.Runtime.LaunchPipeline
 {
@@ -13,7 +12,7 @@ namespace LFramework.Runtime.LaunchPipeline
     /// 使用 <see cref="UniTaskCompletionSource"/> 将回调模式转换为 UniTask 异步模式。
     /// 支持可配置的超时机制，防止回调永远不触发时导致启动管线永久挂起。
     /// </summary>
-    public class InitResourceTask : LaunchTaskBase
+    public partial class InitResourceTask : LaunchTaskBase
     {
         /// <summary>
         /// 自定义数据键：资源初始化超时时间（秒）。
@@ -27,7 +26,7 @@ namespace LFramework.Runtime.LaunchPipeline
         public const int DefaultTimeoutSeconds = 30;
 
         /// <summary>
-        /// 资源组件，通过 Zenject 依赖注入获取。
+        /// 资源组件，通过 Inject 依赖注入获取。
         /// </summary>
         [Inject]
         private ResourceComponent _resourceComponent;

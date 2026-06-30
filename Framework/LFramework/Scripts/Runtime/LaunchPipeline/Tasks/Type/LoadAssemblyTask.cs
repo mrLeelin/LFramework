@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using Cysharp.Threading.Tasks;
 using LFramework.Runtime.LaunchPipeline.Basic;
 using UnityGameFramework.Runtime;
-using Zenject;
 
 namespace LFramework.Runtime.LaunchPipeline
 {
@@ -10,7 +9,7 @@ namespace LFramework.Runtime.LaunchPipeline
     /// 启动流程任务：加载热更新Assembly文件
     /// 通过 HotfixComponent 加载热更程序集，将回调模式转换为 UniTask 异步等待
     /// </summary>
-    public class LoadAssemblyTask : LaunchTaskBase
+    public partial class LoadAssemblyTask : LaunchTaskBase
     {
         /// <summary>
         /// 热更新组件，负责加载热更程序集

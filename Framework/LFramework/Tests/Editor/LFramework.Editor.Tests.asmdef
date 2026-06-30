@@ -10,7 +10,6 @@
         "YooAsset",
         "UnityGameFramework.Runtime",
         "GameFramework",
-        "Zenject",
         "Luban.Runtime",
         "Luban.Editor"
     ],

@@ -130,7 +130,7 @@ namespace LFramework.Runtime
                 Log.Fatal($"The type '{type.FullName}' is not MonoBehaviour");
             }
             var t = go.AddComponent(type) as WorkNode;
-            LFrameworkAspect.Instance.DiContainer.Inject(t);
+            Injection.Inject(t);
             return t;
         }
  

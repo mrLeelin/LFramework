@@ -1,16 +1,15 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using GameFramework;
 using LFramework.Runtime;
-using UnityEngine;
 using UnityGameFramework.Runtime;
-using Zenject;
 
 namespace LFramework.Hotfix
 {
+    /// <summary>
+    /// Runtime owner for hotfix components, providers, and the active world.
+    /// </summary>
     public partial class LSystemApplication :
         Singleton<LSystemApplication>,
         ISystemProviderRegister,
@@ -25,14 +24,14 @@ namespace LFramework.Hotfix
         }
 
         [Inject] private HotfixComponent HotfixComponent { get; }
-        private readonly GameFrameworkLinkedList<GameFrameworkComponent> _hotfixComponents = new();
 
+        private readonly GameFrameworkLinkedList<GameFrameworkComponent> _hotfixComponents = new();
 
         public LSystemApplication()
         {
-            LFrameworkAspect.Instance.DiContainer.Inject(this);
-            LFrameworkAspect.Instance.DiContainer.Bind<ISystemProviderRegister>().FromInstance(this).AsSingle();
-            LFrameworkAspect.Instance.DiContainer.Bind<IWorldRegister>().FromInstance(this).AsSingle();
+            LServices.Inject(this);
+            LServices.Register<ISystemProviderRegister>(this);
+            LServices.Register<IWorldRegister>(this);
         }
 
         public void Update(float elapseSeconds, float realElapseSeconds)
@@ -67,7 +66,6 @@ namespace LFramework.Hotfix
             foreach (var provider in _systemProviders)
             {
                 ReferencePool.Release(provider.Value);
-                //provider.Value.Dispose();
             }
 
             _systemProviders.Clear();
@@ -75,17 +73,12 @@ namespace LFramework.Hotfix
             if (_worldBase != null)
             {
                 ReferencePool.Release(_worldBase);
-                //_worldBase.Dispose();
             }
 
             _worldBase = null;
-            if (LFrameworkAspect.Instance != null)
-            {
-                LFrameworkAspect.Instance.DiContainer.Unbind<ISystemProviderRegister>();
-                LFrameworkAspect.Instance.DiContainer.Unbind<IWorldRegister>();
-            }
+            LServices.Unregister<ISystemProviderRegister>();
+            LServices.Unregister<IWorldRegister>();
         }
-
 
         public void DisposeAllActiveProviders()
         {
@@ -97,7 +90,6 @@ namespace LFramework.Hotfix
             _systemProviders.Clear();
         }
 
-
         public void RegisterHotfixComponents(HotfixComponent hotfixComponent)
         {
             if (!GetHotfixComponentTypes(hotfixComponent, out var hotfixTypes))
@@ -107,12 +99,7 @@ namespace LFramework.Hotfix
 
             foreach (var type in hotfixTypes)
             {
-                if (type == null)
-                {
-                    continue;
-                }
-
-                if (type.IsAbstract || type.IsInterface)
+                if (type == null || type.IsAbstract || type.IsInterface)
                 {
                     continue;
                 }
@@ -122,8 +109,8 @@ namespace LFramework.Hotfix
                     continue;
                 }
 
-                LinkedListNode<GameFrameworkComponent> current = _hotfixComponents.First;
-                bool isDuplicate = false;
+                var current = _hotfixComponents.First;
+                var isDuplicate = false;
                 while (current != null)
                 {
                     if (current.Value.GetType() == type)
@@ -141,8 +128,7 @@ namespace LFramework.Hotfix
                     continue;
                 }
 
-                var instance = Activator.CreateInstance(type) as GameFrameworkComponent;
-                if (instance == null)
+                if (Activator.CreateInstance(type) is not GameFrameworkComponent instance)
                 {
                     continue;
                 }
@@ -154,18 +140,16 @@ namespace LFramework.Hotfix
                     var interfaceType = type.GetDerivedInterfaces();
                     if (interfaceType != null)
                     {
-                        // instance fo Hotfix component
-                        LFrameworkAspect.Instance.DiContainer.Bind(interfaceType).FromInstance(instance);
+                        LServices.Register(interfaceType, instance);
                     }
                     else
                     {
-                        Log.Fatal("Hotfix component type '{0}' is none bind type.");
+                        Log.Fatal("Hotfix component type '{0}' is none bind type.", type.FullName);
                     }
                 }
                 else
                 {
-                    LFrameworkAspect.Instance.DiContainer.Bind(hotfixComponentAttribute.BindType)
-                        .FromInstance(instance);
+                    LServices.Register(hotfixComponentAttribute.BindType, instance);
                 }
 
                 _hotfixComponents.AddLast(instance);
@@ -173,7 +157,7 @@ namespace LFramework.Hotfix
 
             foreach (var component in _hotfixComponents)
             {
-                LFrameworkAspect.Instance.DiContainer.Inject(component);
+                LServices.Inject(component);
             }
 
             foreach (var component in _hotfixComponents)
@@ -192,13 +176,8 @@ namespace LFramework.Hotfix
             }
         }
 
-        /// <summary>
-        /// 获取热更Components
-        /// </summary>
-        /// <param name="hotfixComponent"></param>
-        /// <param name="result"></param>
-        /// <returns></returns>
-        private bool GetHotfixComponentTypes(HotfixComponent hotfixComponent,
+        private bool GetHotfixComponentTypes(
+            HotfixComponent hotfixComponent,
             out GameFrameworkLinkedListRange<Type> result)
         {
             var attributes = hotfixComponent.GetTypesFromAttribute<HotfixComponentAttribute>();

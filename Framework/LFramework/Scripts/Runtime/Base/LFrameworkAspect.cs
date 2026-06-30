@@ -4,36 +4,26 @@ using System.Collections.Generic;
 using GameFramework.Event;
 using UnityEngine;
 using UnityGameFramework.Runtime;
-using Zenject;
 
 namespace LFramework.Runtime
 {
     public sealed class LFrameworkAspect : Singleton<LFrameworkAspect>
     {
-        private readonly DiContainer _diContainer;
         private EventComponent _cacheEventComponent;
 
         public LFrameworkAspect()
         {
-            throw new InvalidOperationException(
-                "LFrameworkAspect must be created with a DiContainer. Use LFrameworkAspect(DiContainer) constructor.");
-        }
-
-        public LFrameworkAspect(DiContainer diContainer)
-        {
-            _diContainer = diContainer;
+            LServices.Reset();
+            Injection.ClearReflectionCache();
         }
 
         public override void Dispose()
         {
             base.Dispose();
-            DiContainer.UnbindAll();
+            LServices.Reset();
+            Injection.ClearReflectionCache();
+            _cacheEventComponent = null;
         }
-
-        /// <summary>
-        /// DiContainer
-        /// </summary>
-        public DiContainer DiContainer => _diContainer;
 
         /// <summary>
         /// Get Anything
@@ -42,12 +32,18 @@ namespace LFramework.Runtime
         /// <returns></returns>
         public T Get<T>()
         {
-            return DiContainer.Resolve<T>();
+            if (LServices.TryGet(typeof(T), null, out var service))
+            {
+                return (T)service;
+            }
+
+            throw new InvalidOperationException(
+                "Service '" + typeof(T).FullName + "' is not registered in LServices.");
         }
 
         public bool HasBinding<T>()
         {
-            return DiContainer.HasBinding<T>();
+            return LServices.TryGet(typeof(T), null, out _);
         }
         
 
@@ -58,7 +54,9 @@ namespace LFramework.Runtime
         /// <param name="gameEventArgs"></param>
         public void Fire(object sender, GameEventArgs gameEventArgs)
         {
-            _cacheEventComponent ??= DiContainer.Resolve<EventComponent>();
+            _cacheEventComponent ??= LServices.TryGet<EventComponent>(out var eventComponent)
+                ? eventComponent
+                : Get<EventComponent>();
             _cacheEventComponent.Fire(sender, gameEventArgs);
         }
 
@@ -69,7 +67,9 @@ namespace LFramework.Runtime
         /// <param name="gameEventArgs"></param>
         public void FireNow(object sender, GameEventArgs gameEventArgs)
         {
-            _cacheEventComponent ??= DiContainer.Resolve<EventComponent>();
+            _cacheEventComponent ??= LServices.TryGet<EventComponent>(out var eventComponent)
+                ? eventComponent
+                : Get<EventComponent>();
             _cacheEventComponent?.FireNow(sender, gameEventArgs);
         }
     }

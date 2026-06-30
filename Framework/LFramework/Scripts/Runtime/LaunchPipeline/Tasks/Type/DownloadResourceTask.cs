@@ -9,14 +9,13 @@ using UnityEngine.AddressableAssets;
 #endif
 using UnityEngine;
 using UnityGameFramework.Runtime;
-using Zenject;
 
 namespace LFramework.Runtime.LaunchPipeline
 {
     /// <summary>
     /// Downloads hot-update resources during launch.
     /// </summary>
-    public class DownloadResourceTask : RetryableLaunchTaskBase
+    public partial class DownloadResourceTask : RetryableLaunchTaskBase
     {
         [Inject] private ResourceDownloadComponent _resourceDownloadComponent;
         [Inject] private ResourceComponent _resourceComponent;

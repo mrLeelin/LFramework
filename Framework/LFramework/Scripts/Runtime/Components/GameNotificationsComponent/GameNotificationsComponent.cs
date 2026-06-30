@@ -9,14 +9,13 @@ using UnityEngine;
 using Unity.Notifications;
 #endif
 using UnityGameFramework.Runtime;
-using Zenject;
 
 namespace LFramework.Runtime
 {
     /// <summary>
     /// Global notifications manager that serves as a wrapper for multiple platforms' notification systems.
     /// </summary>
-    public class GameNotificationsComponent : GameFrameworkComponent
+    public partial class GameNotificationsComponent : GameFrameworkComponent
     {
 #if NOTIFICATION_SUPPORT
         [Inject] private EventComponent EventComponent { get; }

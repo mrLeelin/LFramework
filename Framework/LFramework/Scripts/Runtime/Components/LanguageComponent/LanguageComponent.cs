@@ -6,11 +6,10 @@ using GameFramework.Localization;
 using LFramework.Runtime;
 using UnityEngine;
 using UnityGameFramework.Runtime;
-using Zenject;
 
 namespace LFramework.Runtime
 {
-    public class LanguageComponent : GameFrameworkComponent
+    public partial class LanguageComponent : GameFrameworkComponent
     {
 
         [Inject] private BaseComponent BaseComponent { get; }

@@ -1,4 +1,4 @@
-﻿
+
 using System;
 using GameFramework.UI;
 using UnityEngine;
@@ -38,7 +38,7 @@ namespace LFramework.Runtime
             
             if (isNewInstance)
             {
-                LFrameworkAspect.Instance.DiContainer.InjectGameObjectNotCheck(gameObject);
+                InjectUnity.InjectGameObjectNotCheck(gameObject);
             }
             
             return gameObject.GetOrAddComponent<UIForm>();

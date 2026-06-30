@@ -15,11 +15,10 @@ using UnityEngine.ResourceManagement.ResourceProviders;
 #endif
 
 using UnityGameFramework.Runtime;
-using Zenject;
 
 namespace LFramework.Runtime
 {
-    public class ResourceDownloadComponent : GameFrameworkComponent
+    public partial class ResourceDownloadComponent : GameFrameworkComponent
     {
         [Inject] private GameSetting GameSetting { get; }
         [Inject] private SettingComponent SettingComponent { get; }

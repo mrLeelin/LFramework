@@ -1,11 +1,9 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityGameFramework.Runtime;
-using Zenject;
 
 namespace LFramework.Runtime
 {
-    [MonoBehaviourValidation]
-    public class UIChildEntityLogic : EntityLogic<UIChildEntityData>
+    public partial class UIChildEntityLogic : EntityLogic<UIChildEntityData>
     {
         [Inject] private EntityComponent EntityComponent { get; }
 
@@ -47,7 +45,7 @@ namespace LFramework.Runtime
             var flag = EntityComponent.HasEntity(EntityData.DependOn);
             if (!flag)
             {
-                //如果没有直接不在设置父物体
+                // If the dependent entity is not ready yet, keep the current parent.
                 SetParent();
                 return;
             }

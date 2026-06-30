@@ -5,7 +5,6 @@ using GameFramework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityGameFramework.Runtime;
-using Zenject;
 
 namespace LFramework.Runtime
 {
@@ -18,7 +17,6 @@ namespace LFramework.Runtime
 
 
         private readonly GameFrameworkLinkedList<GameFrameworkComponent> _gameFrameworkComponents = new();
-        public DiContainer DiContainer { get; protected set; }
 
         /// <summary>
         /// The game framework components that are registered in the game framework.
@@ -30,7 +28,7 @@ namespace LFramework.Runtime
         {
             try
             {
-                SingletonManager.AddSingleton(new LFrameworkAspect(DiContainer));
+                SingletonManager.AddSingleton(new LFrameworkAspect());
             }
             catch (Exception e)
             {
@@ -224,7 +222,7 @@ namespace LFramework.Runtime
         {
             foreach (var gameFrameworkComponent in _gameFrameworkComponents)
             {
-                DiContainer.Bind(gameFrameworkComponent.GetType()).FromInstance(gameFrameworkComponent).AsSingle();
+                LServices.Register(gameFrameworkComponent.GetType(), gameFrameworkComponent);
             }
         }
 
@@ -232,7 +230,7 @@ namespace LFramework.Runtime
         {
             foreach (var gameFrameworkComponent in _gameFrameworkComponents)
             {
-                DiContainer.Inject(gameFrameworkComponent);
+                Injection.Inject(gameFrameworkComponent);
             }
         }
 

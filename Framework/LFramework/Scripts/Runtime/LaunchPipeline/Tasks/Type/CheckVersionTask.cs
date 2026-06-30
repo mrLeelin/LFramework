@@ -4,7 +4,6 @@ using GameFramework.Event;
 using LFramework.Runtime;
 using LFramework.Runtime.LaunchPipeline.Basic;
 using UnityGameFramework.Runtime;
-using Zenject;
 
 namespace LFramework.Runtime.LaunchPipeline
 {
@@ -13,7 +12,7 @@ namespace LFramework.Runtime.LaunchPipeline
     /// 通过 <see cref="WebRequestComponent"/> 发起 HTTP 请求获取远程版本信息，
     /// 解析 <see cref="IGameVersionConfig"/> JSON 数据，比较客户端与远程版本，决定后续流程。
     /// </summary>
-    public class CheckVersionTask : RetryableLaunchTaskBase
+    public partial class CheckVersionTask : RetryableLaunchTaskBase
     {
         private readonly ICheckVersionConfigProvider _configProvider;
 

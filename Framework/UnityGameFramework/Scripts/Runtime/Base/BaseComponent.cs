@@ -1,4 +1,4 @@
-﻿//------------------------------------------------------------
+//------------------------------------------------------------
 // Game Framework
 // Copyright © 2013-2021 Jiang Yin. All rights reserved.
 // Homepage: https://gameframework.cn/
@@ -10,7 +10,6 @@ using GameFramework.Localization;
 using GameFramework.Resource;
 using System;
 using UnityEngine;
-using Zenject;
 
 namespace UnityGameFramework.Runtime
 {

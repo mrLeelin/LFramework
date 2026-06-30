@@ -2,7 +2,6 @@ using System;
 using Cysharp.Threading.Tasks;
 using LFramework.Runtime.LaunchPipeline.Basic;
 using UnityGameFramework.Runtime;
-using Zenject;
 
 namespace LFramework.Runtime.LaunchPipeline
 {
@@ -10,7 +9,7 @@ namespace LFramework.Runtime.LaunchPipeline
     /// 启动流程任务：进入热更程序集
     /// 通过 HotfixComponent 调用热更入口方法，启动热更逻辑
     /// </summary>
-    public class HotfixEntryTask : LaunchTaskBase
+    public partial class HotfixEntryTask : LaunchTaskBase
     {
         /// <summary>
         /// 热更新组件，负责进入热更程序集

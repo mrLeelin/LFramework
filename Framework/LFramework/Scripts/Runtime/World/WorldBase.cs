@@ -7,11 +7,10 @@ using GameFramework.Event;
 using GameFramework.Procedure;
 using UnityEngine;
 using UnityGameFramework.Runtime;
-using Zenject;
 
 namespace LFramework.Runtime
 {
-    public abstract class WorldBase : IWorld
+    public abstract partial class WorldBase : IWorld
     {
         [Inject] protected EventComponent EventComponent { get; }
         [Inject] protected HotfixComponent HotfixComponent { get; }
@@ -253,12 +252,12 @@ namespace LFramework.Runtime
                 }
 
                 _autoRegisterWorldHelpers.Add(interfaceType);
-                LFrameworkAspect.Instance.DiContainer.Bind(interfaceType).FromInstance(worldHelper);
+                LServices.Register(interfaceType, worldHelper);
             }
 
             foreach (var worldHelper in _worldHelpers.Values)
             {
-                LFrameworkAspect.Instance.DiContainer.Inject(worldHelper);
+                LServices.Inject(worldHelper);
             }
         }
 
@@ -271,7 +270,7 @@ namespace LFramework.Runtime
 
             foreach (var @interfaceType in _autoRegisterWorldHelpers)
             {
-                LFrameworkAspect.Instance.DiContainer.Unbind(@interfaceType);
+                LServices.Unregister(@interfaceType);
             }
         }
     }

@@ -1,4 +1,4 @@
-﻿using GameFramework.Fsm;
+using GameFramework.Fsm;
 using GameFramework.Procedure;
 using System;
 using System.Collections.Generic;
@@ -11,7 +11,7 @@ namespace LFramework.Runtime.Procedure
         protected override void OnEnter(IFsm<IProcedureManager> procedureOwner)
         {
             base.OnEnter(procedureOwner);
-            LFrameworkAspect.Instance.DiContainer.Inject(this);
+            Injection.Inject(this);
         }
     }
 }

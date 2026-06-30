@@ -5,11 +5,10 @@ using GameFramework.Event;
 using LFramework.Runtime;
 using UnityEngine;
 using UnityGameFramework.Runtime;
-using Zenject;
 
 namespace LFramework.Runtime
 {
-    public abstract class SystemProviderBase : ISystemProvider
+    public abstract partial class SystemProviderBase : ISystemProvider
     {
         [Inject] protected EventComponent EventComponent;
         private bool _isSubscribed;

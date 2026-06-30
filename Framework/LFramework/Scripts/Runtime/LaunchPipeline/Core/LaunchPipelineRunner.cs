@@ -3,14 +3,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Cysharp.Threading.Tasks;
 using UnityGameFramework.Runtime;
-using Zenject;
 
 namespace LFramework.Runtime.LaunchPipeline
 {
     /// <summary>
     /// 启动管线运行器。
     /// 负责按顺序异步执行管线中的所有任务，处理错误和日志。
-    /// 镜像 Editor 侧的 <c>BuildPipelineRunner</c>，使用 UniTask 实现异步执行，支持 Zenject 依赖注入。
+    /// 镜像 Editor 侧的 <c>BuildPipelineRunner</c>，使用 UniTask 实现异步执行，支持 Inject 依赖注入。
     /// </summary>
     public class LaunchPipelineRunner
     {
@@ -70,11 +69,7 @@ namespace LFramework.Runtime.LaunchPipeline
 
                 try
                 {
-                    var diContainer = LFrameworkAspect.Instance.DiContainer;
-                    if (diContainer != null)
-                    {
-                        diContainer.Inject(task);
-                    }
+                    Injection.Inject(task);
 
                     // 检查任务是否可以执行
                     if (!task.CanExecute(context))
@@ -173,9 +168,8 @@ namespace LFramework.Runtime.LaunchPipeline
         /// </summary>
         /// <param name="task">要执行的启动任务。</param>
         /// <param name="context">启动管线上下文。</param>
-        /// <param name="diContainer">可选的 Zenject 依赖注入容器，用于在执行任务前注入依赖。</param>
         /// <returns>任务执行结果。</returns>
-        public static async UniTask<LaunchTaskResult> RunTaskAsync(ILaunchTask task, LaunchContext context, DiContainer diContainer = null)
+        public static async UniTask<LaunchTaskResult> RunTaskAsync(ILaunchTask task, LaunchContext context)
         {
             if (task == null)
             {
@@ -194,10 +188,7 @@ namespace LFramework.Runtime.LaunchPipeline
             try
             {
                 // 如果提供了 DI 容器，在执行前注入依赖
-                if (diContainer != null)
-                {
-                    diContainer.Inject(task);
-                }
+                Injection.Inject(task);
 
                 if (!task.CanExecute(context))
                 {

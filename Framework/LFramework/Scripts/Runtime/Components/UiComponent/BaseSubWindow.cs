@@ -1,9 +1,8 @@
-﻿using Sirenix.OdinInspector;
+using Sirenix.OdinInspector;
 using UnityGameFramework.Runtime;
 
 namespace LFramework.Runtime
 {
-    [PreLoadZenject]
     public abstract partial class BaseSubWindow:
         UnityEngine.MonoBehaviour
     {

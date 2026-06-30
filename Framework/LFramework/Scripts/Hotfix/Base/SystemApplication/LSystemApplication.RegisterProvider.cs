@@ -67,9 +67,10 @@ namespace LFramework.Hotfix
                     typeof(IDisposable));
                 if (interfaceType != null)
                 {
-                    LFrameworkAspect.Instance.DiContainer.Bind(interfaceType).FromInstance(systemProvider);
+                    LServices.Register(interfaceType, systemProvider);
                 }
 
+                LServices.Register(providerType, systemProvider);
                 _systemProviders.Add(providerType, systemProvider);
                 var sort = attribute.Sort;
                 _tempSystemProviders.Add(new TempSystemProviderContainer()
@@ -83,7 +84,7 @@ namespace LFramework.Hotfix
 
             foreach (var provider in _tempSystemProviders)
             {
-                LFrameworkAspect.Instance.DiContainer.Inject(provider.Provider);
+                Injection.Inject(provider.Provider);
             }
 
             foreach (var provider in _tempSystemProviders)
@@ -145,17 +146,32 @@ namespace LFramework.Hotfix
         {
             // 先完成所有使用，再释放回对象池
             UnRegisterCommonDataSync(v as SystemProviderBase);
+            UnRegisterProviderService(t);
             var interfaceType =
                 t.GetDerivedInterfaces(typeof(ISystemProvider), typeof(IReference), typeof(IDisposable));
             if (interfaceType != null)
             {
-                if (!LFrameworkAspect.Instance.DiContainer.Unbind(interfaceType))
-                {
-                    Log.Fatal($"Un bind '{interfaceType}' 'Provider' error.");
-                }
+                LServices.Unregister(interfaceType);
             }
 
+            Injection.ClearReflectionCache(t);
             ReferencePool.Release(v);
+        }
+
+        private static void UnRegisterProviderService(Type providerType)
+        {
+            if (providerType == null)
+            {
+                return;
+            }
+
+            LServices.Unregister(providerType);
+            var interfaceType =
+                providerType.GetDerivedInterfaces(typeof(ISystemProvider), typeof(IReference), typeof(IDisposable));
+            if (interfaceType != null)
+            {
+                LServices.Unregister(interfaceType);
+            }
         }
     }
 }

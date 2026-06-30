@@ -2,7 +2,6 @@ using System.Collections;
 using NUnit.Framework;
 using LFramework.Runtime;
 using UnityEngine;
-using Zenject;
 
 namespace LFramework.Editor.Tests.SequenceLine
 {
@@ -11,7 +10,7 @@ namespace LFramework.Editor.Tests.SequenceLine
         [SetUp]
         public void SetUp()
         {
-            SingletonManager.AddSingleton(new LFrameworkAspect(new DiContainer()));
+            SingletonManager.AddSingleton(new LFrameworkAspect());
         }
 
         [TearDown]

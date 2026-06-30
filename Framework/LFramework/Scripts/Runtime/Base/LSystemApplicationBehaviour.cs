@@ -1,43 +1,41 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using GameFramework;
 using LFramework.Runtime.Settings;
 using UnityEngine;
-using UnityEngine.U2D;
 using UnityGameFramework.Runtime;
-using Zenject;
 
 namespace LFramework.Runtime
 {
-    
     /// <summary>
-    /// 启动器
-    /// 可以继承这个启动器启动游戏
+    /// Default framework bootstrap behaviour.
     /// </summary>
-    public class LSystemApplicationBehaviour : UnitySystemApplicationBehaviour
+    /// <remarks>
+    /// The bootstrap owns object creation only. Created settings and components are registered into
+    /// <see cref="LServices"/> so generated <see cref="Inject"/> code can resolve dependencies without
+    /// a runtime reflection container.
+    /// </remarks>
+    public partial class LSystemApplicationBehaviour : UnitySystemApplicationBehaviour
     {
         [Inject] private DebuggerComponent DebuggerComponent { get; }
         [Inject] private EventComponent EventComponent { get; }
-  
 
         [SerializeField] private string[] allComponentTypes;
+
         protected virtual void Awake()
         {
-            DontDestroyOnLoad(this.gameObject);
+            DontDestroyOnLoad(gameObject);
             AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
             {
                 Log.Error(e.ExceptionObject.ToString());
             };
-            DiContainer = new DiContainer();
+
             StartApplication();
         }
 
         protected override bool RegisterSetting()
         {
-
-            // 使用 SettingManager 获取 ProjectSettingSelector
             var selector = SettingManager.GetProjectSelector();
             if (selector == null)
             {
@@ -45,20 +43,19 @@ namespace LFramework.Runtime
                 return false;
             }
 
-            // 自动绑定所有 Setting 到 DI 容器
-            var allSettingsFromSelector = selector.GetAllSettings();
-            foreach (var setting in allSettingsFromSelector)
+            foreach (var setting in selector.GetAllSettings())
             {
-                if (setting == null) continue;
+                if (setting == null)
+                {
+                    continue;
+                }
 
                 var settingType = setting.GetType();
-                DiContainer.Bind(settingType).FromInstance(setting).AsSingle();
-                Debug.Log($"[LSystemApplicationBehaviour] {settingType.Name} bound to DI: {setting.name}");
+                LServices.Register(settingType, setting);
+                Debug.Log($"[LSystemApplicationBehaviour] {settingType.Name} registered in LServices: {setting.name}");
             }
 
-            // 验证 GameSetting 是否存在
-            var gameSetting = SettingManager.GetSetting<GameSetting>();
-            if (gameSetting == null)
+            if (SettingManager.GetSetting<GameSetting>() == null)
             {
                 Debug.LogError("GameSetting not found in ProjectSettingSelector! Please assign it.");
                 return false;
@@ -79,22 +76,22 @@ namespace LFramework.Runtime
             var settingsDict = SettingToDict(effectiveSettings);
             foreach (var fullName in allComponentTypes)
             {
-                var fType = Utility.Assembly.GetType(fullName);
-                if (fType == null)
+                var componentType = Utility.Assembly.GetType(fullName);
+                if (componentType == null)
                 {
                     Log.Error($"Type '{fullName}' is null, skipping.");
                     continue;
                 }
 
-                if (fType.IsAbstract ||
-                    fType.IsInterface ||
-                    !typeof(GameFrameworkComponent).IsAssignableFrom(fType))
+                if (componentType.IsAbstract ||
+                    componentType.IsInterface ||
+                    !typeof(GameFrameworkComponent).IsAssignableFrom(componentType))
                 {
                     continue;
                 }
 
                 settingsDict.TryGetValue(fullName, out var setting);
-                var component = ComponentHelper.CreateComponent(fType, setting);
+                var component = ComponentHelper.CreateComponent(componentType, setting);
                 if (component == null)
                 {
                     continue;
@@ -107,7 +104,7 @@ namespace LFramework.Runtime
         }
 
         /// <summary>
-        /// 缺失 ProjectSettingSelector 时的引导信息
+        /// User-facing guidance when the project selector asset is missing.
         /// </summary>
         public static string GetMissingProjectSelectorGuidanceMessage()
         {
@@ -119,26 +116,22 @@ namespace LFramework.Runtime
         protected override void ResolveApplicationDependencies()
         {
             base.ResolveApplicationDependencies();
-            DiContainer.Inject(this);
+            LServices.Inject(this);
         }
 
         protected override void ApplicationStarted()
         {
-            DiContainer.Bind<ISystemApplication>().FromInstance(this).AsSingle();
+            LServices.Register<ISystemApplication>(this);
             AwaitableExtensions.SubscribeEvent(EventComponent);
         }
-
-      
 
         public override void StopApplication(ShutdownType shutdownType)
         {
             base.StopApplication(shutdownType);
-           
         }
 
         /// <summary>
-        /// 解析组件注册使用的 Setting 列表。
-        /// 优先使用工程侧 ProjectSettingSelector，历史项目回退到序列化列表。
+        /// Resolves component settings used while creating framework components.
         /// </summary>
         public static List<ComponentSetting> ResolveComponentSettingsForRegistration(
             ProjectSettingSelector projectSelector)
@@ -162,7 +155,7 @@ namespace LFramework.Runtime
                 .GroupBy(setting => setting.bindTypeName)
                 .ToDictionary(group => group.Key, group => group.First());
         }
-        
+
         private void OnGUI()
         {
             if (DebuggerComponent != null)
