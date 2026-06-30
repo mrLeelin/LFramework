@@ -24,10 +24,10 @@ namespace LFramework.Runtime
     public partial class HotfixComponent : GameFrameworkComponent
     {
         [Inject] private ProcedureComponent ProcedureComponent { get; set; }
-        [Inject] private GameSetting GameSetting { get; }
-        [Inject] private HybridCLRSetting HybridClrSetting { get; }
-        [Inject] private ResourceDownloadComponent ResourceDownloadComponent { get; }
-        [Inject] private ResourceComponent ResourceComponent { get; }
+        [Inject] private GameSetting GameSetting { get; set; }
+        [Inject] private HybridCLRSetting HybridClrSetting { get; set; }
+        [Inject] private ResourceDownloadComponent ResourceDownloadComponent { get; set; }
+        [Inject] private ResourceComponent ResourceComponent { get; set; }
 
         private Dictionary<string, Type> _allTypes;
         private readonly List<Assembly> _hotfixAssemblies = new();

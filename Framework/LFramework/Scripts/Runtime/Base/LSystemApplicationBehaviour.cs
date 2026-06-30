@@ -18,8 +18,8 @@ namespace LFramework.Runtime
     /// </remarks>
     public partial class LSystemApplicationBehaviour : UnitySystemApplicationBehaviour
     {
-        [Inject] private DebuggerComponent DebuggerComponent { get; }
-        [Inject] private EventComponent EventComponent { get; }
+        private DebuggerComponent DebuggerComponent { get; set; }
+        private EventComponent EventComponent { get; set; }
 
         [SerializeField] private string[] allComponentTypes;
 
@@ -117,6 +117,17 @@ namespace LFramework.Runtime
         {
             base.ResolveApplicationDependencies();
             LServices.Inject(this);
+            ResolveFrameworkDependencies();
+        }
+
+        /// <summary>
+        /// Resolves bootstrap-owned dependencies that must stay available even when a project subclass
+        /// has its own generated injector implementation.
+        /// </summary>
+        private void ResolveFrameworkDependencies()
+        {
+            DebuggerComponent = LServices.Get<DebuggerComponent>();
+            EventComponent = LServices.Get<EventComponent>();
         }
 
         protected override void ApplicationStarted()

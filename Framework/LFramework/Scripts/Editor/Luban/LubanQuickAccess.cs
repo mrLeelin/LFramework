@@ -11,10 +11,8 @@ namespace Luban.Editor
     /// </summary>
     internal static class LubanQuickAccess
     {
-        internal const string ExecuteExportMenuPath = "LFramework/Luban/执行导表 %#l";
         internal const string SceneToolbarElementId = "LFramework/Luban/QuickExportButton";
 
-        [MenuItem(ExecuteExportMenuPath, false, 120)]
         private static void ExecuteExport()
         {
             if(!CanExecuteQuickExport())
@@ -31,12 +29,6 @@ namespace Luban.Editor
             }
 
             config.RunCommand();
-        }
-
-        [MenuItem(ExecuteExportMenuPath, true)]
-        private static bool ValidateExecuteExport()
-        {
-            return CanExecuteQuickExport();
         }
 
         internal static bool CanExecuteQuickExport()

@@ -8,11 +8,11 @@ using UnityGameFramework.Runtime;
 
 namespace LFramework.Runtime
 {
-    public sealed class TableComponent : GameFrameworkComponent
+    public sealed partial class TableComponent : GameFrameworkComponent
     {
-        [Inject] private EventComponent EventComponent { get; }
-        [Inject] private BaseComponent BaseComponent { get; }
-        [Inject] private ResourceComponent ResourceComponent { get; }
+        [Inject] private EventComponent EventComponent { get; set; }
+        [Inject] private BaseComponent BaseComponent { get; set; }
+        [Inject] private ResourceComponent ResourceComponent { get; set; }
 
 
         private TableManager _tableManager = null;

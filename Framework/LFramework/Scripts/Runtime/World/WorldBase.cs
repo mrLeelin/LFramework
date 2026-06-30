@@ -12,8 +12,8 @@ namespace LFramework.Runtime
 {
     public abstract partial class WorldBase : IWorld
     {
-        [Inject] protected EventComponent EventComponent { get; }
-        [Inject] protected HotfixComponent HotfixComponent { get; }
+        protected EventComponent EventComponent { get; private set; }
+        protected HotfixComponent HotfixComponent { get; private set; }
 
         private readonly Dictionary<Type, IWorldHelper> _worldHelpers = new();
         private readonly List<IWorldUpdate> _worldUpdates = new();
@@ -23,10 +23,21 @@ namespace LFramework.Runtime
 
         public void Initialized()
         {
+            ResolveFrameworkDependencies();
             Subscribe(EventComponent);
             RegisterWorldHelper();
             InitializeAllHelpers();
             OnInitialized();
+        }
+
+        /// <summary>
+        /// Resolves base-world dependencies directly because concrete worlds can provide their own
+        /// generated injector implementation.
+        /// </summary>
+        private void ResolveFrameworkDependencies()
+        {
+            EventComponent = LServices.Get<EventComponent>();
+            HotfixComponent = LServices.Get<HotfixComponent>();
         }
 
         /*

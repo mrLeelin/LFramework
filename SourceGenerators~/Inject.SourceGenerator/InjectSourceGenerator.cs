@@ -21,6 +21,45 @@ namespace LFramework.Inject.SourceGenerator
     public sealed class InjectSourceGenerator : ISourceGenerator
     {
         private const string InjectAttributeName = "LFramework.Runtime.InjectAttribute";
+        private static readonly DiagnosticDescriptor PartialClassRequired = new DiagnosticDescriptor(
+            "LFI001",
+            "Inject target must be partial",
+            "Type '{0}' contains [Inject] members and must be declared partial so LFramework can generate a zero-reflection injector",
+            "LFramework.Inject",
+            DiagnosticSeverity.Error,
+            true);
+
+        private static readonly DiagnosticDescriptor PropertySetterRequired = new DiagnosticDescriptor(
+            "LFI002",
+            "Inject property must have a setter",
+            "Property '{0}' is marked [Inject] but has no setter; use a private setter or inject a field",
+            "LFramework.Inject",
+            DiagnosticSeverity.Error,
+            true);
+
+        private static readonly DiagnosticDescriptor StaticMemberUnsupported = new DiagnosticDescriptor(
+            "LFI003",
+            "Inject member cannot be static",
+            "Member '{0}' is marked [Inject] but static injection is not supported",
+            "LFramework.Inject",
+            DiagnosticSeverity.Error,
+            true);
+
+        private static readonly DiagnosticDescriptor UnsupportedTargetType = new DiagnosticDescriptor(
+            "LFI004",
+            "Inject target type is unsupported",
+            "Type '{0}' contains [Inject] members but generated injection only supports non-generic top-level classes",
+            "LFramework.Inject",
+            DiagnosticSeverity.Error,
+            true);
+
+        private static readonly DiagnosticDescriptor UnsupportedInjectMember = new DiagnosticDescriptor(
+            "LFI005",
+            "Inject member is unsupported",
+            "Member '{0}' is marked [Inject] but generated injection only supports fields and properties",
+            "LFramework.Inject",
+            DiagnosticSeverity.Error,
+            true);
 
         public void Initialize(GeneratorInitializationContext context)
         {
@@ -40,7 +79,7 @@ namespace LFramework.Inject.SourceGenerator
                 return;
             }
 
-            var targets = FindTargets(context.Compilation, receiver.Candidates);
+            var targets = FindTargets(context.Compilation, receiver.Candidates, context.ReportDiagnostic);
             if (targets.Count == 0)
             {
                 return;
@@ -49,30 +88,50 @@ namespace LFramework.Inject.SourceGenerator
             context.AddSource("LFramework.Inject.Generated.g.cs", SourceText.From(BuildSource(targets), Encoding.UTF8));
         }
 
-        private static List<InjectTarget> FindTargets(Compilation compilation, IEnumerable<TypeDeclarationSyntax> candidates)
+        private static List<InjectTarget> FindTargets(
+            Compilation compilation,
+            IEnumerable<TypeDeclarationSyntax> candidates,
+            Action<Diagnostic> reportDiagnostic)
         {
             var targets = new List<InjectTarget>();
             var seen = new HashSet<string>(StringComparer.Ordinal);
 
             foreach (var candidate in candidates)
             {
-                if (!(candidate is ClassDeclarationSyntax))
-                {
-                    continue;
-                }
-
                 var model = compilation.GetSemanticModel(candidate.SyntaxTree);
                 if (!(model.GetDeclaredSymbol(candidate) is INamedTypeSymbol type))
                 {
                     continue;
                 }
 
-                if (type.TypeKind != TypeKind.Class || type.IsGenericType || type.ContainingType != null)
+                var validTarget = true;
+                if (!(candidate is ClassDeclarationSyntax) ||
+                    type.TypeKind != TypeKind.Class ||
+                    type.IsGenericType ||
+                    type.ContainingType != null)
+                {
+                    reportDiagnostic(Diagnostic.Create(
+                        UnsupportedTargetType,
+                        GetLocation(candidate.Identifier),
+                        type.ToDisplayString()));
+                    validTarget = false;
+                }
+
+                if (!candidate.Modifiers.Any(SyntaxKind.PartialKeyword))
+                {
+                    reportDiagnostic(Diagnostic.Create(
+                        PartialClassRequired,
+                        GetLocation(candidate.Identifier),
+                        type.ToDisplayString()));
+                    validTarget = false;
+                }
+
+                var members = FindInjectMembers(type, reportDiagnostic);
+                if (!validTarget)
                 {
                     continue;
                 }
 
-                var members = FindInjectMembers(type);
                 if (members.Count == 0)
                 {
                     continue;
@@ -89,38 +148,62 @@ namespace LFramework.Inject.SourceGenerator
             return targets;
         }
 
-        private static List<InjectMember> FindInjectMembers(INamedTypeSymbol type)
+        private static List<InjectMember> FindInjectMembers(INamedTypeSymbol type, Action<Diagnostic> reportDiagnostic)
         {
             var members = new List<InjectMember>();
             foreach (var member in type.GetMembers())
             {
+                if (!TryGetMetadata(member, out var metadata))
+                {
+                    continue;
+                }
+
                 if (member.IsStatic)
                 {
+                    reportDiagnostic(Diagnostic.Create(
+                        StaticMemberUnsupported,
+                        GetLocation(member),
+                        member.ToDisplayString()));
                     continue;
                 }
 
                 if (member is IFieldSymbol field)
                 {
-                    if (TryGetMetadata(field, out var metadata))
-                    {
-                        members.Add(new InjectMember(field.Name, field.Type, metadata.Identifier, metadata.Optional));
-                    }
+                    members.Add(new InjectMember(field.Name, field.Type, metadata.Identifier, metadata.Optional));
                 }
                 else if (member is IPropertySymbol property)
                 {
                     if (property.SetMethod == null)
                     {
+                        reportDiagnostic(Diagnostic.Create(
+                            PropertySetterRequired,
+                            GetLocation(property),
+                            property.ToDisplayString()));
                         continue;
                     }
 
-                    if (TryGetMetadata(property, out var metadata))
-                    {
-                        members.Add(new InjectMember(property.Name, property.Type, metadata.Identifier, metadata.Optional));
-                    }
+                    members.Add(new InjectMember(property.Name, property.Type, metadata.Identifier, metadata.Optional));
+                }
+                else
+                {
+                    reportDiagnostic(Diagnostic.Create(
+                        UnsupportedInjectMember,
+                        GetLocation(member),
+                        member.ToDisplayString()));
                 }
             }
 
             return members;
+        }
+
+        private static Location GetLocation(ISymbol symbol)
+        {
+            return symbol.Locations.FirstOrDefault(location => location.IsInSource) ?? Location.None;
+        }
+
+        private static Location GetLocation(SyntaxToken token)
+        {
+            return token.GetLocation();
         }
 
         private static bool TryGetMetadata(ISymbol member, out InjectMetadata metadata)

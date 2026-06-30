@@ -18,7 +18,7 @@ namespace LFramework.Runtime
     public partial class GameNotificationsComponent : GameFrameworkComponent
     {
 #if NOTIFICATION_SUPPORT
-        [Inject] private EventComponent EventComponent { get; }
+        [Inject] private EventComponent EventComponent { get; set; }
 
         // Default filename for notifications serializer
         private const string DefaultFilename = "notifications.bin";

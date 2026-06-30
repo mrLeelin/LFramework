@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using LFramework.Editor;
 using LFramework.Runtime;
 using UnityEditor;
 using UnityEngine;
@@ -42,7 +43,16 @@ namespace LFramework.Editor.Windows
         // 验证结果
         private List<ValidationIssue> _validationIssues = new List<ValidationIssue>();
 
-        [MenuItem("LFramework/Injection Debug Window")]
+        private static GUIStyle _embeddedTabTitleStyle;
+        private static GUIStyle _embeddedTabMetaStyle;
+        private static GUIStyle _embeddedActionButtonStyle;
+        private static GUIStyle _embeddedSearchFieldStyle;
+        private static GUIStyle _embeddedPanelTitleStyle;
+        private static GUIStyle _embeddedPanelDescriptionStyle;
+        private static GUIStyle _embeddedBadgeStyle;
+        private static GUIStyle _embeddedHintStyle;
+        private static bool _embeddedStylesInitialized;
+
         public static void ShowWindow()
         {
             var window = GetWindow<InjectionDebugWindow>("Injection 调试");
@@ -173,16 +183,19 @@ namespace LFramework.Editor.Windows
 
         private void DrawEmbeddedPanel()
         {
+            EnsureEmbeddedStyles();
             DrawEmbeddedTabStrip();
             DrawEmbeddedActionBar();
             DrawEmbeddedSearchAndFilter();
+            GUILayout.Space(10f);
+            DrawEmbeddedSelectedTabHeader();
             GUILayout.Space(8f);
-            DrawSelectedTab();
+            DrawEmbeddedSelectedTabContent();
         }
 
         private void DrawEmbeddedTabStrip()
         {
-            int firstRowCount = EditorGUIUtility.currentViewWidth < 760f ? 4 : _embeddedTabNames.Length;
+            int firstRowCount = EditorGUIUtility.currentViewWidth < 820f ? 4 : _embeddedTabNames.Length;
             DrawEmbeddedTabRow(0, firstRowCount);
 
             if (firstRowCount < _embeddedTabNames.Length)
@@ -199,7 +212,7 @@ namespace LFramework.Editor.Windows
             for (int i = startIndex; i < endIndex; i++)
             {
                 DrawEmbeddedTabButton(i);
-                GUILayout.Space(4f);
+                GUILayout.Space(8f);
             }
 
             GUILayout.FlexibleSpace();
@@ -208,15 +221,27 @@ namespace LFramework.Editor.Windows
 
         private void DrawEmbeddedTabButton(int index)
         {
-            var previousColor = GUI.backgroundColor;
-            if (index == _selectedTab)
-            {
-                GUI.backgroundColor = EditorGUIUtility.isProSkin
-                    ? new Color(0.20f, 0.55f, 0.82f)
-                    : new Color(0.58f, 0.80f, 0.96f);
-            }
+            bool active = index == _selectedTab;
+            Rect rect = GUILayoutUtility.GetRect(96f, 48f, GUILayout.Width(96f), GUILayout.Height(48f));
+            Color accentColor = GetEmbeddedTabAccentColor(index);
+            Color backgroundColor = active ? accentColor : GetEmbeddedTabButtonColor();
+            DrawEmbeddedBlock(rect, backgroundColor, active ? Color.white : accentColor, active);
 
-            if (GUILayout.Button(_embeddedTabNames[index], EditorStyles.miniButton, GUILayout.Width(76f), GUILayout.Height(24f)))
+            Rect titleRect = new Rect(rect.x + 12f, rect.y + 8f, rect.width - 24f, 16f);
+            Rect metaRect = new Rect(rect.x + 12f, rect.y + 26f, rect.width - 24f, 14f);
+
+            _embeddedTabTitleStyle.normal.textColor = active
+                ? Color.white
+                : (EditorGUIUtility.isProSkin ? new Color(0.84f, 0.88f, 0.92f) : new Color(0.10f, 0.15f, 0.20f));
+            _embeddedTabMetaStyle.normal.textColor = active
+                ? new Color(1f, 1f, 1f, 0.82f)
+                : (EditorGUIUtility.isProSkin ? new Color(0.56f, 0.62f, 0.68f) : new Color(0.34f, 0.40f, 0.46f));
+
+            GUI.Label(titleRect, _embeddedTabNames[index], _embeddedTabTitleStyle);
+            GUI.Label(metaRect, GetEmbeddedTabMeta(index), _embeddedTabMetaStyle);
+
+            EditorGUIUtility.AddCursorRect(rect, MouseCursor.Link);
+            if (GUI.Button(rect, GUIContent.none, GUIStyle.none))
             {
                 if (_selectedTab != index)
                 {
@@ -225,47 +250,54 @@ namespace LFramework.Editor.Windows
                 }
             }
 
-            GUI.backgroundColor = previousColor;
         }
 
         private void DrawEmbeddedActionBar()
         {
-            EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
-            DrawHistoryButtons();
-            GUILayout.FlexibleSpace();
+            Rect contentRect = DrawEmbeddedControlFrame(38f, GameWindowChrome.AccentColor);
+            GUI.Label(new Rect(contentRect.x, contentRect.y + 3f, 52f, 18f), "Actions", _embeddedHintStyle);
 
-            _autoRefresh = GUILayout.Toggle(_autoRefresh, "Auto", EditorStyles.toolbarButton, GUILayout.Width(48f));
-
-            if (GUILayout.Button("Refresh", EditorStyles.toolbarButton, GUILayout.Width(60f)))
+            float right = contentRect.xMax;
+            if (DrawEmbeddedRightButton(ref right, contentRect.y, "导出", 52f, new Color(0.30f, 0.60f, 0.88f)))
             {
-                RefreshData();
-                ValidateConfiguration();
+                ShowExportMenu();
             }
 
-            if (GUILayout.Button("Rescan", EditorStyles.toolbarButton, GUILayout.Width(58f)))
+            if (DrawEmbeddedRightButton(ref right, contentRect.y, "Rescan", 64f, new Color(0.36f, 0.46f, 0.58f)))
             {
                 RefreshInjectPoints();
                 ValidateConfiguration();
                 Repaint();
             }
 
-            DrawExportButton();
-            EditorGUILayout.EndHorizontal();
+            if (DrawEmbeddedRightButton(ref right, contentRect.y, "Refresh", 68f, GameWindowChrome.AccentColor))
+            {
+                RefreshData();
+                ValidateConfiguration();
+            }
+
+            right -= 54f;
+            Rect autoRect = new Rect(right, contentRect.y, 54f, 22f);
+            Color previousBackgroundColor = GUI.backgroundColor;
+            GUI.backgroundColor = _autoRefresh ? GameWindowChrome.SuccessColor : GetEmbeddedActionButtonColor();
+            _autoRefresh = GUI.Toggle(autoRect, _autoRefresh, "Auto", _embeddedActionButtonStyle);
+            GUI.backgroundColor = previousBackgroundColor;
+            GUILayout.Space(4f);
         }
 
         private void DrawEmbeddedSearchAndFilter()
         {
-            EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
-            GUILayout.Label("Search", EditorStyles.miniLabel, GUILayout.Width(42f));
-            _searchText = EditorGUILayout.TextField(_searchText, EditorStyles.toolbarTextField);
+            Rect contentRect = DrawEmbeddedControlFrame(38f, GetMutedAccentColor());
+            GUI.Label(new Rect(contentRect.x, contentRect.y + 3f, 52f, 18f), "Search", _embeddedHintStyle);
 
-            if (GUILayout.Button("Clear", EditorStyles.toolbarButton, GUILayout.Width(44f)))
+            float right = contentRect.xMax;
+            var filterActive = _filterSettings.IsActive();
+            if (filterActive && DrawEmbeddedRightButton(ref right, contentRect.y, "Reset", 52f, GameWindowChrome.WarningColor))
             {
-                _searchText = string.Empty;
-                GUI.FocusControl(null);
+                _filterSettings.Reset();
+                Repaint();
             }
 
-            var filterActive = _filterSettings.IsActive();
             var previousColor = GUI.backgroundColor;
             if (filterActive)
             {
@@ -274,22 +306,34 @@ namespace LFramework.Editor.Windows
                     : new Color(0.62f, 0.82f, 0.96f);
             }
 
-            _showFilterPanel = GUILayout.Toggle(_showFilterPanel, filterActive ? "Filter *" : "Filter", EditorStyles.toolbarButton, GUILayout.Width(58f));
+            right -= 62f;
+            Rect filterRect = new Rect(right, contentRect.y, 62f, 22f);
+            previousColor = GUI.backgroundColor;
+            GUI.backgroundColor = filterActive ? GameWindowChrome.WarningColor : GetEmbeddedActionButtonColor();
+            _showFilterPanel = GUI.Toggle(filterRect, _showFilterPanel, filterActive ? "Filter *" : "Filter", _embeddedActionButtonStyle);
             GUI.backgroundColor = previousColor;
+            right -= 6f;
 
-            if (filterActive && GUILayout.Button("Reset", EditorStyles.toolbarButton, GUILayout.Width(48f)))
+            if (DrawEmbeddedRightButton(ref right, contentRect.y, "Clear", 50f, GetEmbeddedActionButtonColor()))
             {
-                _filterSettings.Reset();
-                Repaint();
+                _searchText = string.Empty;
+                GUI.FocusControl(null);
             }
 
-            EditorGUILayout.EndHorizontal();
+            Rect searchRect = new Rect(contentRect.x + 60f, contentRect.y + 1f, Mathf.Max(80f, right - contentRect.x - 66f), 20f);
+            string newSearchText = EditorGUI.TextField(searchRect, _searchText, _embeddedSearchFieldStyle);
+            if (newSearchText != _searchText)
+            {
+                OnSearchChanged(newSearchText);
+                _searchText = newSearchText;
+            }
 
             if (!_showFilterPanel)
             {
                 return;
             }
 
+            GUILayout.Space(4f);
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             switch (_selectedTab)
             {
@@ -305,6 +349,311 @@ namespace LFramework.Editor.Windows
             }
 
             EditorGUILayout.EndVertical();
+        }
+
+        private static void EnsureEmbeddedStyles()
+        {
+            if (_embeddedStylesInitialized)
+            {
+                return;
+            }
+
+            _embeddedStylesInitialized = true;
+            _embeddedTabTitleStyle = new GUIStyle(EditorStyles.boldLabel)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                clipping = TextClipping.Clip,
+                fontSize = 11
+            };
+
+            _embeddedTabMetaStyle = new GUIStyle(EditorStyles.miniLabel)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                clipping = TextClipping.Clip,
+                fontSize = 9
+            };
+
+            _embeddedActionButtonStyle = new GUIStyle(GUI.skin.button)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                clipping = TextClipping.Clip,
+                fontSize = 10,
+                fixedHeight = 22,
+                padding = new RectOffset(8, 8, 3, 4)
+            };
+            Color actionTextColor = EditorGUIUtility.isProSkin ? Color.white : new Color(0.08f, 0.12f, 0.16f);
+            _embeddedActionButtonStyle.normal.textColor = actionTextColor;
+            _embeddedActionButtonStyle.hover.textColor = actionTextColor;
+            _embeddedActionButtonStyle.active.textColor = actionTextColor;
+            _embeddedActionButtonStyle.focused.textColor = actionTextColor;
+
+            _embeddedSearchFieldStyle = new GUIStyle(EditorStyles.textField)
+            {
+                fontSize = 10,
+                fixedHeight = 20,
+                padding = new RectOffset(6, 6, 2, 2)
+            };
+
+            _embeddedPanelTitleStyle = new GUIStyle(EditorStyles.boldLabel)
+            {
+                fontSize = 13,
+                alignment = TextAnchor.MiddleLeft,
+                clipping = TextClipping.Clip
+            };
+            _embeddedPanelTitleStyle.normal.textColor = EditorGUIUtility.isProSkin ? Color.white : new Color(0.10f, 0.14f, 0.18f);
+
+            _embeddedPanelDescriptionStyle = new GUIStyle(EditorStyles.miniLabel)
+            {
+                fontSize = 10,
+                wordWrap = true,
+                alignment = TextAnchor.UpperLeft
+            };
+            _embeddedPanelDescriptionStyle.normal.textColor = EditorGUIUtility.isProSkin
+                ? new Color(0.66f, 0.71f, 0.77f)
+                : new Color(0.34f, 0.39f, 0.45f);
+
+            _embeddedBadgeStyle = new GUIStyle(EditorStyles.miniBoldLabel)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                clipping = TextClipping.Clip,
+                fontSize = 10
+            };
+            _embeddedBadgeStyle.normal.textColor = EditorGUIUtility.isProSkin ? Color.white : new Color(0.08f, 0.12f, 0.16f);
+
+            _embeddedHintStyle = new GUIStyle(EditorStyles.miniBoldLabel)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                fontSize = 10
+            };
+            _embeddedHintStyle.normal.textColor = EditorGUIUtility.isProSkin
+                ? new Color(0.56f, 0.61f, 0.68f)
+                : new Color(0.36f, 0.40f, 0.46f);
+        }
+
+        private void DrawEmbeddedSelectedTabHeader()
+        {
+            Color accentColor = GetEmbeddedTabAccentColor(_selectedTab);
+            Rect rect = GUILayoutUtility.GetRect(0f, 68f, GUILayout.ExpandWidth(true));
+            DrawEmbeddedBlock(rect, GetEmbeddedHeaderBackgroundColor(), accentColor, false);
+
+            Rect titleRect = new Rect(rect.x + 16f, rect.y + 12f, rect.width - 150f, 18f);
+            Rect descRect = new Rect(rect.x + 16f, rect.y + 34f, rect.width - 160f, 24f);
+            GUI.Label(titleRect, GetEmbeddedTabTitle(_selectedTab), _embeddedPanelTitleStyle);
+            GUI.Label(descRect, GetEmbeddedTabDescription(_selectedTab), _embeddedPanelDescriptionStyle);
+
+            Rect badgeRect = new Rect(rect.xMax - 126f, rect.y + 20f, 104f, 26f);
+            Color previousBackgroundColor = GUI.backgroundColor;
+            GUI.backgroundColor = accentColor;
+            if (GUI.Button(badgeRect, GetEmbeddedTabBadge(_selectedTab), _embeddedActionButtonStyle))
+            {
+                GUI.FocusControl(null);
+            }
+            GUI.backgroundColor = previousBackgroundColor;
+        }
+
+        private void DrawEmbeddedSelectedTabContent()
+        {
+            Color previousBackgroundColor = GUI.backgroundColor;
+            GUI.backgroundColor = GetEmbeddedContentBackgroundColor();
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            GUI.backgroundColor = previousBackgroundColor;
+
+            GUILayout.Space(6f);
+            DrawSelectedTab();
+            GUILayout.Space(4f);
+
+            EditorGUILayout.EndVertical();
+        }
+
+        private static void DrawEmbeddedCard(Rect rect, Color accentColor)
+        {
+            Color backgroundColor = EditorGUIUtility.isProSkin
+                ? new Color(0.20f, 0.22f, 0.25f, 0.96f)
+                : new Color(0.91f, 0.93f, 0.96f, 0.96f);
+
+            EditorGUI.DrawRect(rect, backgroundColor);
+            EditorGUI.DrawRect(new Rect(rect.x, rect.y, 3f, rect.height), accentColor);
+        }
+
+        private static void DrawEmbeddedBlock(Rect rect, Color backgroundColor, Color accentColor, bool active)
+        {
+            EditorGUI.DrawRect(rect, backgroundColor);
+            EditorGUI.DrawRect(new Rect(rect.x, rect.y, 3f, rect.height), accentColor);
+
+            if (active)
+            {
+                EditorGUI.DrawRect(new Rect(rect.x, rect.yMax - 2f, rect.width, 2f), new Color(1f, 1f, 1f, 0.35f));
+            }
+        }
+
+        private static Rect DrawEmbeddedControlFrame(float height, Color accentColor)
+        {
+            Rect rect = GUILayoutUtility.GetRect(0f, height, GUILayout.ExpandWidth(true));
+            DrawEmbeddedCard(rect, accentColor);
+            return new Rect(rect.x + 12f, rect.y + 8f, rect.width - 24f, 22f);
+        }
+
+        private static bool DrawEmbeddedRightButton(ref float right, float y, string text, float width, Color backgroundColor)
+        {
+            right -= width;
+            Rect rect = new Rect(right, y, width, 22f);
+            right -= 6f;
+
+            Color previousBackgroundColor = GUI.backgroundColor;
+            GUI.backgroundColor = backgroundColor;
+            bool clicked = GUI.Button(rect, text, _embeddedActionButtonStyle);
+            GUI.backgroundColor = previousBackgroundColor;
+            return clicked;
+        }
+
+        private static Color GetMutedAccentColor()
+        {
+            return EditorGUIUtility.isProSkin
+                ? new Color(0.32f, 0.35f, 0.40f, 0.9f)
+                : new Color(0.62f, 0.66f, 0.72f, 0.9f);
+        }
+
+        private static Color GetEmbeddedTabButtonColor()
+        {
+            return EditorGUIUtility.isProSkin
+                ? new Color(0.17f, 0.20f, 0.25f)
+                : new Color(0.82f, 0.88f, 0.94f);
+        }
+
+        private static Color GetEmbeddedHeaderBackgroundColor()
+        {
+            return EditorGUIUtility.isProSkin
+                ? new Color(0.18f, 0.20f, 0.24f, 0.98f)
+                : new Color(0.90f, 0.93f, 0.96f, 0.98f);
+        }
+
+        private static Color GetEmbeddedContentBackgroundColor()
+        {
+            return EditorGUIUtility.isProSkin
+                ? new Color(0.15f, 0.17f, 0.20f, 0.96f)
+                : new Color(0.94f, 0.96f, 0.98f, 0.96f);
+        }
+
+        private static Color GetEmbeddedActionButtonColor()
+        {
+            return EditorGUIUtility.isProSkin
+                ? new Color(0.22f, 0.30f, 0.38f)
+                : new Color(0.58f, 0.74f, 0.86f);
+        }
+
+        private static Color GetEmbeddedTabAccentColor(int index)
+        {
+            switch (index)
+            {
+                case 0:
+                    return GameWindowChrome.AccentColor;
+                case 1:
+                    return new Color(0.28f, 0.72f, 0.52f);
+                case 2:
+                    return new Color(0.90f, 0.64f, 0.20f);
+                case 3:
+                    return new Color(0.46f, 0.58f, 0.84f);
+                case 4:
+                    return new Color(0.34f, 0.66f, 0.86f);
+                case 5:
+                    return new Color(0.86f, 0.36f, 0.32f);
+                case 6:
+                    return new Color(0.54f, 0.68f, 0.82f);
+                default:
+                    return GameWindowChrome.AccentColor;
+            }
+        }
+
+        private string GetEmbeddedTabMeta(int index)
+        {
+            switch (index)
+            {
+                case 0:
+                    return $"{ServiceCount} services";
+                case 1:
+                    return $"{InjectorCount} dynamic";
+                case 2:
+                    return $"{InjectPointCount} points";
+                case 3:
+                    return $"{ScopeCount} scopes";
+                case 4:
+                    return "overview";
+                case 5:
+                    return ValidationIssueCount == 0 ? "clean" : $"{ValidationIssueCount} issues";
+                case 6:
+                    return _autoRefresh ? "live" : "manual";
+                default:
+                    return string.Empty;
+            }
+        }
+
+        private string GetEmbeddedTabTitle(int index)
+        {
+            switch (index)
+            {
+                case 0:
+                    return "Services";
+                case 1:
+                    return "Injectors";
+                case 2:
+                    return "Inject Points";
+                case 3:
+                    return "Scopes";
+                case 4:
+                    return "Statistics";
+                case 5:
+                    return "Diagnostics";
+                case 6:
+                    return "Performance";
+                default:
+                    return "Injection";
+            }
+        }
+
+        private string GetEmbeddedTabDescription(int index)
+        {
+            switch (index)
+            {
+                case 0:
+                    return "查看当前根作用域内注册的服务、实例、标识符和 Owned 状态。";
+                case 1:
+                    return "查看热更新程序集注册的动态注入器；主工程注入通常由生成代码处理。";
+                case 2:
+                    return "查看通过手动 Rescan 发现的 Inject 字段和属性，并可跳回对应服务。";
+                case 3:
+                    return "查看服务作用域层级、子作用域数量和 Dispose 状态。";
+                case 4:
+                    return "汇总服务数量、注入点分布、常用依赖和程序集占比。";
+                case 5:
+                    return "检查未注册服务、重复注册、类型歧义等配置问题。";
+                case 6:
+                    return "保留性能监控入口，真实数据需要运行时埋点后才会填充。";
+                default:
+                    return string.Empty;
+            }
+        }
+
+        private string GetEmbeddedTabBadge(int index)
+        {
+            switch (index)
+            {
+                case 0:
+                    return ServiceCount.ToString();
+                case 1:
+                    return InjectorCount.ToString();
+                case 2:
+                    return InjectPointCount.ToString();
+                case 3:
+                    return ScopeCount.ToString();
+                case 4:
+                    return $"{ServiceCount + InjectPointCount}";
+                case 5:
+                    return ValidationIssueCount == 0 ? "OK" : $"{ValidationIssueCount}";
+                case 6:
+                    return _autoRefresh ? "LIVE" : "MANUAL";
+                default:
+                    return "-";
+            }
         }
 
         private void DrawSelectedTab()

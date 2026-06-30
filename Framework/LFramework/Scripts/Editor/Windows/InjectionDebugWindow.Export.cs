@@ -18,7 +18,12 @@ namespace LFramework.Editor.Windows
 
         private void DrawExportButton()
         {
-            if (GUILayout.Button("导出", EditorStyles.toolbarButton, GUILayout.Width(50)))
+            GUIStyle style = _embeddedHost ? EditorStyles.miniButton : EditorStyles.toolbarButton;
+            GUILayoutOption[] options = _embeddedHost
+                ? new[] { GUILayout.Width(50f), GUILayout.Height(22f) }
+                : new[] { GUILayout.Width(50f) };
+
+            if (GUILayout.Button("导出", style, options))
             {
                 ShowExportMenu();
             }

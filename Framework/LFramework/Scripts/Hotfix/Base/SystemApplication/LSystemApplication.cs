@@ -23,7 +23,7 @@ namespace LFramework.Hotfix
             public int Sort;
         }
 
-        [Inject] private HotfixComponent HotfixComponent { get; }
+        [Inject] private HotfixComponent HotfixComponent { get; set; }
 
         private readonly GameFrameworkLinkedList<GameFrameworkComponent> _hotfixComponents = new();
 
