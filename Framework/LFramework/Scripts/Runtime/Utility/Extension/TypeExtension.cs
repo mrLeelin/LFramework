@@ -19,7 +19,7 @@ namespace LFramework.Runtime
             var bindInterfaceAttribute = type.GetCustomAttribute<BindInterfaceAttribute>();
             foreach (var iInterface in typeInterfaces)
             {
-                if (ignoreTypes.Contains(iInterface))
+                if (ignoreTypes.Contains(iInterface) || iInterface == typeof(IInjectable))
                 {
                     continue;
                 }

@@ -155,6 +155,57 @@ namespace LFramework.Runtime
         }
 
         /// <summary>
+        /// Injects a strongly-typed target using the current root service resolver.
+        /// This generic overload avoids GetType() calls for zero-GC hot path injection.
+        /// </summary>
+        /// <typeparam name="T">The compile-time type of the target object.</typeparam>
+        /// <param name="target">The object to inject dependencies into.</param>
+        public static void Inject<T>(T target) where T : class
+        {
+            Inject(target, LServices.Resolver);
+        }
+
+        /// <summary>
+        /// Injects a strongly-typed target using the provided resolver.
+        /// This generic overload uses typeof(T) at compile-time, eliminating runtime GetType() calls
+        /// and achieving zero-GC injection for performance-critical paths.
+        /// </summary>
+        /// <typeparam name="T">The compile-time type of the target object.</typeparam>
+        /// <param name="target">The object to inject dependencies into.</param>
+        /// <param name="resolver">The service resolver to pull dependencies from.</param>
+        public static void Inject<T>(T target, IServiceResolver resolver) where T : class
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            if (resolver == null)
+            {
+                throw new ArgumentNullException(nameof(resolver));
+            }
+
+            // Use compile-time type instead of runtime GetType() - zero GC
+            var targetType = typeof(T);
+            Action<object, IServiceResolver> generatedInjector;
+            lock (SyncRoot)
+            {
+                GeneratedInjectors.TryGetValue(targetType, out generatedInjector);
+            }
+
+            if (generatedInjector != null)
+            {
+                generatedInjector(target, resolver);
+                return;
+            }
+
+            if (target is IInjectable injectable)
+            {
+                injectable.Inject(resolver);
+            }
+        }
+
+        /// <summary>
         /// Compatibility no-op for older call sites that cleared reflection plans.
         /// Runtime injection no longer builds reflection plans.
         /// </summary>

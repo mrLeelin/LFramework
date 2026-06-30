@@ -1,3 +1,5 @@
+using System;
+using GameFramework;
 using LFramework.Runtime;
 using NUnit.Framework;
 
@@ -275,6 +277,55 @@ namespace LFramework.Editor.Tests
             Assert.That(target.Service, Is.Null);
         }
 
+        [Test]
+        public void GetDerivedInterfacesIgnoresGeneratedInjectableInterface()
+        {
+            var interfaceType = typeof(InterfaceSelectionProvider).GetDerivedInterfaces(
+                typeof(ISystemProvider),
+                typeof(IReference),
+                typeof(IDisposable));
+
+            Assert.That(interfaceType, Is.EqualTo(typeof(ITestProvider)));
+        }
+
+        [Test]
+        public void SystemProviderBaseHasGeneratedInjector()
+        {
+            Assert.That(typeof(IInjectable).IsAssignableFrom(typeof(SystemProviderBase)), Is.True);
+            Assert.That(FindGeneratedInjectMethod(typeof(SystemProviderBase)), Is.Not.Null);
+        }
+
+        [Test]
+        public void GenericAbstractBaseHasGeneratedInjector()
+        {
+            Assert.That(typeof(IInjectable).IsAssignableFrom(typeof(GenericInjectBase<>)), Is.True);
+            Assert.That(FindGeneratedInjectMethod(typeof(GenericInjectBase<>)), Is.Not.Null);
+        }
+
+        [Test]
+        public void GeneratedChildInjectorCallsBaseInjector()
+        {
+            var baseService = new BaseService();
+            var childService = new ChildService();
+            using var scope = LServices.CreateScope();
+            scope.Register(baseService);
+            scope.Register(childService);
+
+            var target = new ChildGeneratedInjectTarget();
+
+            ((IInjectable)target).Inject(scope);
+
+            Assert.That(target.BaseService, Is.SameAs(baseService));
+            Assert.That(target.ChildService, Is.SameAs(childService));
+        }
+
+        private static System.Reflection.MethodInfo FindGeneratedInjectMethod(Type type)
+        {
+            return type.GetMethod(
+                "__LFrameworkInjectGenerated",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        }
+
         private sealed class TestService
         {
             public TestService(string name)
@@ -318,7 +369,7 @@ namespace LFramework.Editor.Tests
 
         private sealed class NoGeneratedInjectTarget
         {
-            [Inject] private TestService ServiceProperty { get; }
+            private TestService ServiceProperty { get; }
 
             public TestService Service => ServiceProperty;
         }
@@ -360,5 +411,69 @@ namespace LFramework.Editor.Tests
         private sealed class MissingService
         {
         }
+
+        private sealed class InterfaceSelectionProvider : IInjectable, ITestProvider
+        {
+            void IInjectable.Inject(IServiceResolver resolver)
+            {
+            }
+
+            public void AwakeComponent()
+            {
+            }
+
+            public void SubscribeEvent()
+            {
+            }
+
+            public void SetUp()
+            {
+            }
+
+            public void UnSubscribeEvent()
+            {
+            }
+
+            public void Clear()
+            {
+            }
+        }
+    }
+
+    internal interface ITestProvider : ISystemProvider
+    {
+    }
+
+    internal sealed class GenericService
+    {
+    }
+
+    internal abstract partial class GenericInjectBase<T>
+    {
+        [Inject] private GenericService GenericService { get; set; }
+
+        public GenericService Service => GenericService;
+    }
+
+    internal sealed class BaseService
+    {
+    }
+
+    internal sealed class ChildService
+    {
+    }
+
+    internal partial class BaseGeneratedInjectTarget
+    {
+        [Inject] private BaseService BaseServiceProperty { get; set; }
+
+        public BaseService BaseService => BaseServiceProperty;
+    }
+
+    internal partial class ChildGeneratedInjectTarget : BaseGeneratedInjectTarget
+    {
+        [Inject] private ChildService ChildServiceProperty { get; set; }
+
+        public ChildService ChildService => ChildServiceProperty;
     }
 }
