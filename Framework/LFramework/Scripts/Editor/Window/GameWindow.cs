@@ -22,6 +22,7 @@ namespace LFramework.Editor.Window
 
         private GameWindowHome _gameWindowHome;
         private GameWindowLocalResourceServer _gameWindowLocalResourceServer;
+        private GameWindowInjectionDebug _gameWindowInjectionDebug;
         private GameWindowFrameworkSettingOverview _gameWindowFrameworkSettingOverview;
         private GameWindowFrameworkProfiledOverview _gameWindowFrameworkProfiledOverview;
         private GameWindowLubanOverview _gameWindowLubanOverview;
@@ -76,6 +77,7 @@ namespace LFramework.Editor.Window
                 new GameWindowFrameworkProfiledOverview(() => _allProfiled?.Count ?? 0);
             _gameWindowLubanOverview ??= new GameWindowLubanOverview();
             _gameWindowLubanPrimaryKeyOverview ??= new GameWindowLubanPrimaryKeyOverview();
+            _gameWindowInjectionDebug ??= new GameWindowInjectionDebug();
         }
 
         protected override void OnDisable()
@@ -98,16 +100,17 @@ namespace LFramework.Editor.Window
             {
                 { "Home", _gameWindowHome, EditorIcons.House },
 
-              
+
                 { "框架设置", _gameWindowFrameworkSettingOverview, EditorIcons.SettingsCog },
                 { "运行时预览", _gameWindowFrameworkProfiledOverview, EditorIcons.Car },
-                
+
 #if LUBAN_SUPPORT
                   { "Luban", _gameWindowLubanOverview, EditorIcons.SettingsCog },
                   { "Luban/主键映射", _gameWindowLubanPrimaryKeyOverview, EditorIcons.SettingsCog },
 #endif
-                
+
                 { "本地Cdn测试服务", _gameWindowLocalResourceServer, EditorIcons.SettingsCog },
+                { "Injection 调试", _gameWindowInjectionDebug, EditorIcons.SmartPhone },
             };
 
             AddAllAssetsAtType<ComponentSetting>(tree, "框架设置")
