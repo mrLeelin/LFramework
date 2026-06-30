@@ -22,7 +22,7 @@ namespace LFramework.Editor
             GameWindowChrome.BeginPage(ref _scrollPosition);
             GameWindowChrome.DrawHeader(
                 "Injection Debug",
-                "Inspect LFramework services, generated injectors, scopes, validation, and performance without opening a second window.",
+                "Embedded runtime injection inspector for services, injectors, scopes, validation, and performance.",
                 new GameWindowBadge("Host", "GameWindow"),
                 new GameWindowBadge("Mode", EditorApplication.isPlaying ? "Play Mode" : "Edit Mode"),
                 new GameWindowBadge("Scan", "Manual"));
@@ -32,8 +32,8 @@ namespace LFramework.Editor
             DrawOverviewCards();
 
             GameWindowChrome.DrawSectionHeader(
-                "Debug Panel",
-                "The full Injection debug surface is embedded below; the Rescan button is still explicit to avoid heavy reflection work during normal navigation.");
+                "Inspector",
+                "Rescan is manual because injection-point discovery uses heavier reflection.");
             GameWindowChrome.BeginContentCard();
             _embeddedWindow.DrawEmbedded();
             GameWindowChrome.EndContentCard();

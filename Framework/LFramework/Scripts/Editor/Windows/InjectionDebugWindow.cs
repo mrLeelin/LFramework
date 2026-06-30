@@ -17,6 +17,7 @@ namespace LFramework.Editor.Windows
         private Vector2 _scrollPosition;
         private int _selectedTab = 0;
         private readonly string[] _tabNames = { "注册的服务", "注入器信息", "注入点信息", "作用域层级", "统计分析", "问题诊断", "性能监控" };
+        private readonly string[] _embeddedTabNames = { "服务", "注入器", "注入点", "作用域", "统计", "诊断", "性能" };
 
         private bool _initialized;
         private bool _embeddedHost;
@@ -147,6 +148,12 @@ namespace LFramework.Editor.Windows
 
         private void DrawDebugPanel(bool useInternalScroll)
         {
+            if (_embeddedHost)
+            {
+                DrawEmbeddedPanel();
+                return;
+            }
+
             DrawToolbar();
             DrawSearchBar();
             DrawFilterPanel();
@@ -162,6 +169,142 @@ namespace LFramework.Editor.Windows
             {
                 EditorGUILayout.EndScrollView();
             }
+        }
+
+        private void DrawEmbeddedPanel()
+        {
+            DrawEmbeddedTabStrip();
+            DrawEmbeddedActionBar();
+            DrawEmbeddedSearchAndFilter();
+            GUILayout.Space(8f);
+            DrawSelectedTab();
+        }
+
+        private void DrawEmbeddedTabStrip()
+        {
+            int firstRowCount = EditorGUIUtility.currentViewWidth < 760f ? 4 : _embeddedTabNames.Length;
+            DrawEmbeddedTabRow(0, firstRowCount);
+
+            if (firstRowCount < _embeddedTabNames.Length)
+            {
+                DrawEmbeddedTabRow(firstRowCount, _embeddedTabNames.Length);
+            }
+
+            GUILayout.Space(6f);
+        }
+
+        private void DrawEmbeddedTabRow(int startIndex, int endIndex)
+        {
+            EditorGUILayout.BeginHorizontal();
+            for (int i = startIndex; i < endIndex; i++)
+            {
+                DrawEmbeddedTabButton(i);
+                GUILayout.Space(4f);
+            }
+
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private void DrawEmbeddedTabButton(int index)
+        {
+            var previousColor = GUI.backgroundColor;
+            if (index == _selectedTab)
+            {
+                GUI.backgroundColor = EditorGUIUtility.isProSkin
+                    ? new Color(0.20f, 0.55f, 0.82f)
+                    : new Color(0.58f, 0.80f, 0.96f);
+            }
+
+            if (GUILayout.Button(_embeddedTabNames[index], EditorStyles.miniButton, GUILayout.Width(76f), GUILayout.Height(24f)))
+            {
+                if (_selectedTab != index)
+                {
+                    _selectedTab = index;
+                    OnTabChanged(_selectedTab);
+                }
+            }
+
+            GUI.backgroundColor = previousColor;
+        }
+
+        private void DrawEmbeddedActionBar()
+        {
+            EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
+            DrawHistoryButtons();
+            GUILayout.FlexibleSpace();
+
+            _autoRefresh = GUILayout.Toggle(_autoRefresh, "Auto", EditorStyles.toolbarButton, GUILayout.Width(48f));
+
+            if (GUILayout.Button("Refresh", EditorStyles.toolbarButton, GUILayout.Width(60f)))
+            {
+                RefreshData();
+                ValidateConfiguration();
+            }
+
+            if (GUILayout.Button("Rescan", EditorStyles.toolbarButton, GUILayout.Width(58f)))
+            {
+                RefreshInjectPoints();
+                ValidateConfiguration();
+                Repaint();
+            }
+
+            DrawExportButton();
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private void DrawEmbeddedSearchAndFilter()
+        {
+            EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
+            GUILayout.Label("Search", EditorStyles.miniLabel, GUILayout.Width(42f));
+            _searchText = EditorGUILayout.TextField(_searchText, EditorStyles.toolbarTextField);
+
+            if (GUILayout.Button("Clear", EditorStyles.toolbarButton, GUILayout.Width(44f)))
+            {
+                _searchText = string.Empty;
+                GUI.FocusControl(null);
+            }
+
+            var filterActive = _filterSettings.IsActive();
+            var previousColor = GUI.backgroundColor;
+            if (filterActive)
+            {
+                GUI.backgroundColor = EditorGUIUtility.isProSkin
+                    ? new Color(0.24f, 0.42f, 0.56f)
+                    : new Color(0.62f, 0.82f, 0.96f);
+            }
+
+            _showFilterPanel = GUILayout.Toggle(_showFilterPanel, filterActive ? "Filter *" : "Filter", EditorStyles.toolbarButton, GUILayout.Width(58f));
+            GUI.backgroundColor = previousColor;
+
+            if (filterActive && GUILayout.Button("Reset", EditorStyles.toolbarButton, GUILayout.Width(48f)))
+            {
+                _filterSettings.Reset();
+                Repaint();
+            }
+
+            EditorGUILayout.EndHorizontal();
+
+            if (!_showFilterPanel)
+            {
+                return;
+            }
+
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            switch (_selectedTab)
+            {
+                case 0:
+                    DrawServiceFilters();
+                    break;
+                case 2:
+                    DrawInjectPointFilters();
+                    break;
+                default:
+                    EditorGUILayout.LabelField("当前标签页不支持筛选", EditorStyles.miniLabel);
+                    break;
+            }
+
+            EditorGUILayout.EndVertical();
         }
 
         private void DrawSelectedTab()
@@ -208,63 +351,7 @@ namespace LFramework.Editor.Windows
 
         private void DrawToolbar()
         {
-            if (_embeddedHost)
-            {
-                DrawEmbeddedToolbar();
-                return;
-            }
-
             DrawStandaloneToolbar();
-        }
-
-        private void DrawEmbeddedToolbar()
-        {
-            var oldTab = _selectedTab;
-            int columns = GetEmbeddedTabColumns();
-            _selectedTab = GUILayout.SelectionGrid(_selectedTab, _tabNames, columns, EditorStyles.toolbarButton);
-            if (oldTab != _selectedTab)
-            {
-                OnTabChanged(_selectedTab);
-            }
-
-            GUILayout.Space(6f);
-            EditorGUILayout.BeginHorizontal();
-            DrawHistoryButtons();
-            GUILayout.FlexibleSpace();
-
-            _autoRefresh = GUILayout.Toggle(_autoRefresh, "Auto Refresh", EditorStyles.miniButton, GUILayout.Width(94f));
-
-            if (GUILayout.Button("Refresh", EditorStyles.miniButton, GUILayout.Width(70f)))
-            {
-                RefreshData();
-                ValidateConfiguration();
-            }
-
-            if (GUILayout.Button("Rescan", EditorStyles.miniButton, GUILayout.Width(70f)))
-            {
-                RefreshInjectPoints();
-                ValidateConfiguration();
-                Repaint();
-            }
-
-            DrawExportButton();
-            EditorGUILayout.EndHorizontal();
-            GUILayout.Space(4f);
-        }
-
-        private static int GetEmbeddedTabColumns()
-        {
-            if (EditorGUIUtility.currentViewWidth < 620f)
-            {
-                return 2;
-            }
-
-            if (EditorGUIUtility.currentViewWidth < 860f)
-            {
-                return 3;
-            }
-
-            return 4;
         }
 
         private void DrawStandaloneToolbar()
