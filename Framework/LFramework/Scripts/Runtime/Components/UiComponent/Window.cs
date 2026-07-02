@@ -60,7 +60,7 @@ namespace LFramework.Runtime
                 Log.Error("[Window] The custom user data is null.]");
                 return null;
             }
-            
+
             if (_customUserData is NativeReference<TUserData> userData)
             {
                 return userData;
@@ -154,11 +154,15 @@ namespace LFramework.Runtime
             CacheRectTransform.anchoredPosition = Vector2.zero;
             CacheRectTransform.sizeDelta = Vector2.zero;
             gameObject.GetOrAddComponent<GraphicRaycaster>();
+            foreach (var subWindow in subModuleList)
+            {
+                _subModuleKeyMap.Add(subWindow.GetType(), subWindow);
+            }
+
             OnInit(userData);
             foreach (var subWindow in subModuleList)
             {
                 subWindow.OnInit(this, userData);
-                _subModuleKeyMap.Add(subWindow.GetType(), subWindow);
             }
         }
 
@@ -501,7 +505,6 @@ namespace LFramework.Runtime
             _canvasGroup.interactable = true;
             _canvasGroup.blocksRaycasts = true;
         }
-        
     }
 
     public abstract class Window<T> : Window
