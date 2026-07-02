@@ -235,7 +235,6 @@ namespace LFramework.Runtime
         {
             return entityData.EntityAssetsPath;
         }
-`
 
         private static string GetUIChildEntityGroupName()
         {
