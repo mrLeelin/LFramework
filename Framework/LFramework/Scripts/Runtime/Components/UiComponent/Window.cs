@@ -67,60 +67,60 @@ namespace LFramework.Runtime
 
         #region Lifecycle
 
-        public virtual void OnInit(object userData)
+        protected virtual void OnInit(object userData)
         {
         }
 
-        public virtual void OnOpen(object userData)
+        protected virtual void OnOpen(object userData)
         {
         }
 
-        public virtual void OnClose(bool isShutDown, object userData)
+        protected virtual void OnClose(bool isShutDown, object userData)
         {
         }
 
-        public virtual void OnRecycle()
+        protected virtual void OnRecycle()
         {
         }
 
-        public virtual void OnRelease()
+        protected virtual void OnRelease()
         {
         }
 
-        public virtual void OnPause()
+        protected virtual void OnPause()
         {
         }
 
-        public virtual void OnResume()
+        protected virtual void OnResume()
         {
         }
 
-        public virtual void OnCover()
+        protected virtual void OnCover()
         {
         }
 
-        public virtual void OnReveal()
+        protected virtual void OnReveal()
         {
         }
 
-        public virtual void OnRefocus(object userData)
+        protected virtual void OnRefocus(object userData)
         {
         }
 
-        public virtual void OnDepthChanged(int uiGroupDepth, int depthInUIGroup)
+        protected virtual void OnDepthChanged(int uiGroupDepth, int depthInUIGroup)
         {
         }
 
-        public virtual void Subscribe(EventComponent eventComponent)
+        protected virtual void Subscribe(EventComponent eventComponent)
         {
         }
 
 
-        public virtual void UnSubscribe(EventComponent eventComponent)
+        protected virtual void UnSubscribe(EventComponent eventComponent)
         {
         }
 
-        public virtual void OnUpdate(float elapseSeconds, float realElapseSeconds)
+        protected virtual void OnUpdate(float elapseSeconds, float realElapseSeconds)
         {
         }
 
