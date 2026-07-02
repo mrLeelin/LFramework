@@ -6,6 +6,8 @@ namespace LFramework.Runtime
 {
     public abstract partial class BaseSubEntity
     {
+        #region Internal Lifecycle
+
         protected virtual void OnInternalInit(object userData){}
         protected virtual void OnInternalShow(EntityData entityData){}
         protected virtual void OnInternalHide(bool isShutdown, object userData){}
@@ -25,5 +27,7 @@ namespace LFramework.Runtime
         }
         
         protected virtual  void OnInternalUnSubscribe(EventComponent eventComponent){}
+
+        #endregion
     }
 }

@@ -59,17 +59,83 @@ namespace LFramework.Runtime
             {
                 return userData;
             }
+
             Log.Error($"[Window] The get userData is not {nameof(TUserData)} so failure.");
             return null;
         }
 
-        public override void OnInit(object userData)
+
+        #region Lifecycle
+
+        protected virtual void OnInit(object userData)
         {
-            base.OnInit(userData);
+        }
+
+        protected virtual void OnOpen(object userData)
+        {
+        }
+
+        protected virtual void OnClose(bool isShutDown, object userData)
+        {
+        }
+
+        protected virtual void OnRecycle()
+        {
+        }
+
+        protected virtual void OnRelease()
+        {
+        }
+
+        protected virtual void OnPause()
+        {
+        }
+
+        protected virtual void OnResume()
+        {
+        }
+
+        protected virtual void OnCover()
+        {
+        }
+
+        protected virtual void OnReveal()
+        {
+        }
+
+        protected virtual void OnRefocus(object userData)
+        {
+        }
+
+        protected virtual void OnDepthChanged(int uiGroupDepth, int depthInUIGroup)
+        {
+        }
+
+        protected virtual void Subscribe(EventComponent eventComponent)
+        {
+        }
+
+
+        protected virtual void UnSubscribe(EventComponent eventComponent)
+        {
+        }
+
+        protected virtual void OnUpdate(float elapseSeconds, float realElapseSeconds)
+        {
+        }
+
+        #endregion
+
+        #region Inter Lifecycle
+
+        public sealed override void OnInterInit(object userData)
+        {
+            base.OnInterInit(userData);
             if (userData is NativeReference nativeReference)
             {
                 _customUserData = nativeReference;
             }
+
             _subModuleKeyMap.Clear();
             _windowAnimation = gameObject.GetComponent<IAnimation>();
             _canvas = gameObject.GetOrAddComponent<Canvas>();
@@ -82,6 +148,7 @@ namespace LFramework.Runtime
             CacheRectTransform.anchoredPosition = Vector2.zero;
             CacheRectTransform.sizeDelta = Vector2.zero;
             gameObject.GetOrAddComponent<GraphicRaycaster>();
+            OnInit(userData);
             foreach (var subWindow in subModuleList)
             {
                 subWindow.OnInit(this, userData);
@@ -89,7 +156,7 @@ namespace LFramework.Runtime
             }
         }
 
-        public override void OnOpen(object userData)
+        public sealed override void OnInterOpen(object userData)
         {
             if (userData is NativeReference nativeReference)
             {
@@ -97,10 +164,11 @@ namespace LFramework.Runtime
             }
 
             PrepareForEnterAnimation();
-            base.OnOpen(userData);
-            Subscribe(LFrameworkAspect.Instance.Get<EventComponent>());
+            base.OnInterOpen(userData);
+            InterSubscribe(LFrameworkAspect.Instance.Get<EventComponent>());
             _windowAnimationState = WindowAnimationState.None;
             _isClosing = false;
+            OnOpen(userData);
             foreach (var subWindow in subModuleList)
             {
                 subWindow.OnOpen(userData);
@@ -113,24 +181,25 @@ namespace LFramework.Runtime
             }
         }
 
-        public override void OnClose(bool isShutDown, object userData)
+        public sealed override void OnInterClose(bool isShutDown, object userData)
         {
-            base.OnClose(isShutDown, userData);
-            UnSubscribe(LFrameworkAspect.Instance.Get<EventComponent>());
+            InterUnSubscribe(LFrameworkAspect.Instance.Get<EventComponent>());
             foreach (var subWindow in subModuleList)
             {
                 subWindow.OnClose(isShutDown, userData);
             }
 
+            OnClose(isShutDown, userData);
             _customUserData?.Release();
             _customUserData = null;
             this.RemoveChild();
+            base.OnInterClose(isShutDown, userData);
         }
 
-        public override void OnDepthChanged(int uiGroupDepth, int depthInUIGroup)
+        public sealed override void OnInterDepthChanged(int uiGroupDepth, int depthInUIGroup)
         {
             var oldDepth = Depth;
-            base.OnDepthChanged(uiGroupDepth, depthInUIGroup);
+            base.OnInterDepthChanged(uiGroupDepth, depthInUIGroup);
             var deltaDepth = DefaultUIGroupHelper.DepthFactor * uiGroupDepth + DepthFactor
                 * depthInUIGroup - oldDepth + OriginalDepth;
             GetComponentsInChildren(true, _canvasContainer);
@@ -149,37 +218,121 @@ namespace LFramework.Runtime
             }
 
             _canvasContainer.Clear();
+            OnDepthChanged(uiGroupDepth, depthInUIGroup);
             foreach (var subWindow in subModuleList)
             {
                 subWindow.OnDepthChanged();
             }
         }
 
-        protected virtual void Subscribe(EventComponent eventComponent)
+        private void InterSubscribe(EventComponent eventComponent)
         {
+            Subscribe(eventComponent);
             foreach (var subWindow in subModuleList)
             {
                 subWindow.Subscribe(eventComponent);
             }
         }
 
-        protected virtual void UnSubscribe(EventComponent eventComponent)
+        private void InterUnSubscribe(EventComponent eventComponent)
         {
+            UnSubscribe(eventComponent);
             foreach (var subWindow in subModuleList)
             {
                 subWindow.UnSubscribe(eventComponent);
             }
         }
 
-        public override void OnUpdate(float elapseSeconds, float realElapseSeconds)
+        public sealed override void OnInterUpdate(float elapseSeconds, float realElapseSeconds)
         {
-            base.OnUpdate(elapseSeconds, realElapseSeconds);
+            base.OnInterUpdate(elapseSeconds, realElapseSeconds);
+            OnUpdate(elapseSeconds, realElapseSeconds);
             for (var index = 0; index < subModuleList.Count; index++)
             {
                 var subWindow = subModuleList[index];
-                subWindow.OUpdate(elapseSeconds, realElapseSeconds);
+                subWindow.OnUpdate(elapseSeconds, realElapseSeconds);
             }
         }
+
+        public sealed override void OnInterRecycle()
+        {
+            base.OnInterRecycle();
+            OnRecycle();
+            for (var index = 0; index < subModuleList.Count; index++)
+            {
+                var subWindow = subModuleList[index];
+                subWindow.OnRecycle();
+            }
+        }
+
+        public sealed override void OnInterRelease()
+        {
+            base.OnInterRelease();
+            OnRelease();
+            for (var index = 0; index < subModuleList.Count; index++)
+            {
+                var subWindow = subModuleList[index];
+                subWindow.OnRelease();
+            }
+        }
+
+        public sealed override void OnInterPause()
+        {
+            base.OnInterPause();
+            OnPause();
+            for (var index = 0; index < subModuleList.Count; index++)
+            {
+                var subWindow = subModuleList[index];
+                subWindow.OnPause();
+            }
+        }
+
+        public sealed override void OnInterResume()
+        {
+            base.OnInterResume();
+            OnResume();
+            for (var index = 0; index < subModuleList.Count; index++)
+            {
+                var subWindow = subModuleList[index];
+                subWindow.OnResume();
+            }
+        }
+
+        public sealed override void OnInterCover()
+        {
+            base.OnInterCover();
+            OnCover();
+            for (var index = 0; index < subModuleList.Count; index++)
+            {
+                var subWindow = subModuleList[index];
+                subWindow.OnCover();
+            }
+        }
+
+        public sealed override void OnInterReveal()
+        {
+            base.OnInterReveal();
+            OnReveal();
+            for (var index = 0; index < subModuleList.Count; index++)
+            {
+                var subWindow = subModuleList[index];
+                subWindow.OnReveal();
+            }
+        }
+
+        public sealed override void OnInterRefocus(object userData)
+        {
+            base.OnInterRefocus(userData);
+            OnRefocus(userData);
+            for (var index = 0; index < subModuleList.Count; index++)
+            {
+                var subWindow = subModuleList[index];
+                subWindow.OnRefocus(userData);
+            }
+        }
+
+        #endregion
+
 
         protected void Fire(GameEventArgs eventArgs)
         {

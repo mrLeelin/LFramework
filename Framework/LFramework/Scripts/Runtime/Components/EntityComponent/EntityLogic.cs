@@ -28,6 +28,8 @@ namespace LFramework.Runtime
 
         public CompositeDisposable CompositeDisposable => _compositeDisposable;
 
+        #region Lifecycle
+
         protected override void OnInit(object userData)
         {
             base.OnInit(userData);
@@ -157,6 +159,10 @@ namespace LFramework.Runtime
             }
         }
 
+        #endregion
+
+        #region Event
+
         protected virtual void Subscribe(EventComponent eventComponent)
         {
             foreach (var subWindow in subModuleList)
@@ -172,6 +178,8 @@ namespace LFramework.Runtime
                 subWindow.UnSubscribe(eventComponent);
             }
         }
+
+        #endregion
     }
 
     public abstract class EntityLogic<T> : NoParamEntityLogic where T : EntityData
@@ -181,6 +189,7 @@ namespace LFramework.Runtime
 
         public T EntityData => m_EntityData;
 
+        #region Lifecycle
 
         protected override void OnInit(object userData)
         {
@@ -200,6 +209,7 @@ namespace LFramework.Runtime
             }
 
             m_EntityData = entity;
+            OnInit(entity);
         }
 
         protected sealed override void OnShow(object userData)
@@ -227,14 +237,21 @@ namespace LFramework.Runtime
         {
         }
 
+        protected virtual void OnInit(T entityData){}
+
         protected virtual void OnShow(T entityData)
         {
         }
 
+        #endregion
+
+        #region Entity Data
 
         protected virtual void UpdateEntityData(T entityData)
         {
             m_EntityData = entityData;
         }
+
+        #endregion
     }
 }

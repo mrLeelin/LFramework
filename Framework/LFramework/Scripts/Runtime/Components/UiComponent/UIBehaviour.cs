@@ -45,7 +45,7 @@ namespace LFramework.Runtime
         public abstract void CloseSelf();
         public abstract void CloseSelf(object userData);
 
-        public virtual void OnInit(object userData)
+        public virtual void OnInterInit(object userData)
         {
             if (CacheTransform == null)
             {
@@ -61,22 +61,22 @@ namespace LFramework.Runtime
             _originalLayer = gameObject.layer;
         }
 
-        public virtual void OnRecycle()
+        public virtual void OnInterRecycle()
         {
         }
 
-        public virtual void OnRelease()
+        public virtual void OnInterRelease()
         {
             
         }
 
-        public virtual void OnOpen(object userData)
+        public virtual void OnInterOpen(object userData)
         {
             Available = true;
             Visible = true;
         }
 
-        public virtual void OnClose(bool isShutDown, object userData)
+        public virtual void OnInterClose(bool isShutDown, object userData)
         {
             //gameObject.SetLayer(_originalLayer, true);
             if (IsUnityObjectAlive())
@@ -91,33 +91,33 @@ namespace LFramework.Runtime
             Available = false;
         }
 
-        public virtual void OnPause()
+        public virtual void OnInterPause()
         {
             //Visible = false;
         }
 
-        public virtual void OnResume()
+        public virtual void OnInterResume()
         {
             //Visible = true;
         }
 
-        public virtual void OnCover()
+        public virtual void OnInterCover()
         {
         }
 
-        public virtual void OnReveal()
+        public virtual void OnInterReveal()
         {
         }
 
-        public virtual void OnRefocus(object userData)
+        public virtual void OnInterRefocus(object userData)
         {
         }
 
-        public virtual void OnUpdate(float elapseSeconds, float realElapseSeconds)
+        public virtual void OnInterUpdate(float elapseSeconds, float realElapseSeconds)
         {
         }
 
-        public virtual void OnDepthChanged(int uiGroupDepth, int depthInUIGroup)
+        public virtual void OnInterDepthChanged(int uiGroupDepth, int depthInUIGroup)
         {
         }
         

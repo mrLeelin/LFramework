@@ -12,6 +12,8 @@ namespace LFramework.Runtime
         protected NoParamEntityLogic BaseEntityLogic { get; private set; }
         public string GetKey() => key;
 
+        #region Lifecycle
+
         public void OnInit(NoParamEntityLogic noParamEntityLogic, object userData)
         {
             BaseEntityLogic = noParamEntityLogic;
@@ -77,6 +79,8 @@ namespace LFramework.Runtime
         {
             OnInternalRelease();
         }
+
+        #endregion
 
         public void SetKey(string newKey) => key = newKey;
     }

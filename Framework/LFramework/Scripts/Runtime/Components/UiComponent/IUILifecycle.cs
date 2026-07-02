@@ -4,18 +4,18 @@ namespace LFramework.Runtime
 {
     public interface IUILifecycle
     {
-        void OnInit(object userData);
-        void OnRecycle();
-        void OnRelease();
-        void OnOpen(object userData);
-        void OnClose(bool isShutDown, object userData);
-        void OnPause();
-        void OnResume();
-        void OnCover();
-        void OnReveal();
-        void OnRefocus(object userData);
-        void OnUpdate(float elapseSeconds, float realElapseSeconds);
-        void OnDepthChanged(int uiGroupDepth, int depthInUIGroup);
+        void OnInterInit(object userData);
+        void OnInterRecycle();
+        void OnInterRelease();
+        void OnInterOpen(object userData);
+        void OnInterClose(bool isShutDown, object userData);
+        void OnInterPause();
+        void OnInterResume();
+        void OnInterCover();
+        void OnInterReveal();
+        void OnInterRefocus(object userData);
+        void OnInterUpdate(float elapseSeconds, float realElapseSeconds);
+        void OnInterDepthChanged(int uiGroupDepth, int depthInUIGroup);
         
     }
 }

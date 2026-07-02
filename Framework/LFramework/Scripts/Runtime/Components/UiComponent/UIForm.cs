@@ -50,7 +50,7 @@ namespace LFramework.Runtime
 
             try
             {
-                uiBehaviour.OnInit(userData);
+                uiBehaviour.OnInterInit(userData);
             }
             catch (Exception e)
             {
@@ -71,7 +71,7 @@ namespace LFramework.Runtime
 
             try
             {
-                _uiBehaviour.OnRecycle();
+                _uiBehaviour.OnInterRecycle();
             }
             catch (Exception e)
             {
@@ -92,7 +92,7 @@ namespace LFramework.Runtime
 
             try
             {
-                _uiBehaviour.OnRelease();
+                _uiBehaviour.OnInterRelease();
             }
             catch (Exception e)
             {
@@ -110,7 +110,7 @@ namespace LFramework.Runtime
             try
             {
                 LFrameworkAspect.Instance.Get<ViewComponent>().ViewCreated(_uiBehaviour as IView);
-                _uiBehaviour.OnOpen(userData);
+                _uiBehaviour.OnInterOpen(userData);
             }
             catch (Exception e)
             {
@@ -129,7 +129,7 @@ namespace LFramework.Runtime
             {
                 if (!isShutdown)
                 {
-                    _uiBehaviour.OnClose(isShutdown,userData);
+                    _uiBehaviour.OnInterClose(isShutdown,userData);
                 }
                 LFrameworkAspect.Instance.Get<ViewComponent>().ViewDestroyed(_uiBehaviour as IView);
             }
@@ -150,7 +150,7 @@ namespace LFramework.Runtime
 
             try
             {
-                _uiBehaviour.OnPause();
+                _uiBehaviour.OnInterPause();
             }
             catch (Exception e)
             {
@@ -167,7 +167,7 @@ namespace LFramework.Runtime
 
             try
             {
-                _uiBehaviour.OnResume();
+                _uiBehaviour.OnInterResume();
             }
             catch (Exception e)
             {
@@ -184,7 +184,7 @@ namespace LFramework.Runtime
 
             try
             {
-                _uiBehaviour.OnCover();
+                _uiBehaviour.OnInterCover();
             }
             catch (Exception e)
             {
@@ -201,7 +201,7 @@ namespace LFramework.Runtime
 
             try
             {
-                _uiBehaviour.OnReveal();
+                _uiBehaviour.OnInterReveal();
             }
             catch (Exception e)
             {
@@ -218,7 +218,7 @@ namespace LFramework.Runtime
 
             try
             {
-                _uiBehaviour.OnRefocus(userData);
+                _uiBehaviour.OnInterRefocus(userData);
             }
             catch (Exception e)
             {
@@ -235,7 +235,7 @@ namespace LFramework.Runtime
 
             try
             {
-                _uiBehaviour.OnUpdate(elapseSeconds, realElapseSeconds);
+                _uiBehaviour.OnInterUpdate(elapseSeconds, realElapseSeconds);
             }
             catch (Exception e)
             {
@@ -253,7 +253,7 @@ namespace LFramework.Runtime
 
             try
             {
-                _uiBehaviour.OnDepthChanged(uiGroupDepth, depthInUIGroup);
+                _uiBehaviour.OnInterDepthChanged(uiGroupDepth, depthInUIGroup);
             }
             catch (Exception e)
             {

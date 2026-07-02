@@ -14,7 +14,7 @@ namespace LFramework.Runtime
 
         internal string GetKey() => key;
 
-        #region Children
+        #region Internal Lifecycle
 
         protected virtual void OnInternalInit(object userData)
         {
@@ -25,6 +25,34 @@ namespace LFramework.Runtime
         }
 
         protected virtual void OnInternalClose(bool isShutDown, object userData)
+        {
+        }
+
+        protected virtual void OnInternalRecycle()
+        {
+        }
+
+        protected virtual void OnInternalRelease()
+        {
+        }
+
+        protected virtual void OnInternalPause()
+        {
+        }
+
+        protected virtual void OnInternalResume()
+        {
+        }
+
+        protected virtual void OnInternalCover()
+        {
+        }
+
+        protected virtual void OnInternalReveal()
+        {
+        }
+
+        protected virtual void OnInternalRefocus(object userData)
         {
         }
 
@@ -46,6 +74,8 @@ namespace LFramework.Runtime
 
         #endregion
 
+        #region Lifecycle
+
         public void OnOpen(object userData)
         {
             OnInternalOpen(userData);
@@ -60,6 +90,41 @@ namespace LFramework.Runtime
         public void OnClose(bool isShutDown, object userData)
         {
             OnInternalClose(isShutDown, userData);
+        }
+
+        public void OnRecycle()
+        {
+            OnInternalRecycle();
+        }
+
+        public void OnRelease()
+        {
+            OnInternalRelease();
+        }
+
+        public void OnPause()
+        {
+            OnInternalPause();
+        }
+
+        public void OnResume()
+        {
+            OnInternalResume();
+        }
+
+        public void OnCover()
+        {
+            OnInternalCover();
+        }
+
+        public void OnReveal()
+        {
+            OnInternalReveal();
+        }
+
+        public void OnRefocus(object userData)
+        {
+            OnInternalRefocus(userData);
         }
 
         public void OnDepthChanged()
@@ -77,10 +142,12 @@ namespace LFramework.Runtime
             OnInternalUnSubscribe(eventComponent);
         }
 
-        public void OUpdate(float elapseSeconds, float realElapseSeconds)
+        public void OnUpdate(float elapseSeconds, float realElapseSeconds)
         {
             OnInternalUpdate(elapseSeconds, realElapseSeconds);
         }
+
+        #endregion
         
         public void SetKey(string newKey) => key = newKey;
     }
