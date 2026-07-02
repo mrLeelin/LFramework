@@ -110,8 +110,24 @@ namespace LFramework.Runtime
             }
 
             CachedTransform.SetParent(EntityData.Parent);
-            CachedTransform.localPosition = Vector3.zero;
-            CachedTransform.localScale = Vector3.one;
+            if (EntityData.Position != null)
+            {
+                CachedTransform.localPosition = EntityData.Position.Value;
+            }
+            else
+            {
+                CachedTransform.localPosition = Vector3.zero;
+            }
+
+            if (EntityData.Size != null)
+            {
+                CachedTransform.localScale = EntityData.Size.Value;
+            }
+            else
+            {
+                CachedTransform.localScale = Vector3.one;
+            }
+
             CachedTransform.localRotation = Quaternion.identity;
         }
     }
