@@ -19,7 +19,7 @@ namespace LFramework.Runtime
                 _originParent = CachedTransform.parent;
             }
 
-            if (entityData.DependOn == 0)
+            if (CanSetParent(entityData.DependOn, false, false))
             {
                 SetParent();
             }
@@ -43,15 +43,14 @@ namespace LFramework.Runtime
             }
 
             var flag = EntityComponent.HasEntity(EntityData.DependOn);
-            if (!flag)
+            var dependencyHasParent = false;
+            if (flag)
             {
-                // If the dependent entity is not ready yet, keep the current parent.
-                SetParent();
-                return;
+                var entity = EntityComponent.GetEntity(EntityData.DependOn);
+                dependencyHasParent = entity != null && entity.transform.parent != null;
             }
 
-            var entity = EntityComponent.GetEntity(EntityData.DependOn);
-            if (entity.transform.parent == null)
+            if (!CanSetParent(EntityData.DependOn, flag, dependencyHasParent))
             {
                 return;
             }
@@ -61,7 +60,6 @@ namespace LFramework.Runtime
 
         protected override void OnHide(bool isShutdown, object userData)
         {
-            base.OnHide(isShutdown, userData);
             if (_originParent != null)
             {
                 CachedTransform.SetParent(_originParent);
@@ -72,10 +70,10 @@ namespace LFramework.Runtime
             else
             {
                 CachedTransform.SetParent(null);
-                //Object.DontDestroyOnLoad(CachedTransform.gameObject);
             }
 
             _originParent = null;
+            base.OnHide(isShutdown, userData);
         }
 
         protected override void OnAttached(EntityLogic childEntity, Transform parentTransform, object userData)
@@ -85,7 +83,22 @@ namespace LFramework.Runtime
 
         protected override void OnAttachTo(EntityLogic parentEntity, Transform parentTransform, object userData)
         {
-            base.OnAttachTo(parentEntity, parentTransform, userData);
+            //让父类不执行SetParent
+            //让SubModule正常执行
+            //parentTransform is null.
+            base.OnAttachTo(parentEntity, null, userData);
+        }
+
+        /// <summary>
+        /// 判断子实体是否可以设置父节点。
+        /// </summary>
+        /// <param name="dependOn">依赖实体编号，0 表示不等待依赖。</param>
+        /// <param name="dependencyExists">依赖实体是否已存在。</param>
+        /// <param name="dependencyHasParent">依赖实体是否已经挂到父节点。</param>
+        /// <returns>是否可以设置父节点。</returns>
+        public static bool CanSetParent(int dependOn, bool dependencyExists, bool dependencyHasParent)
+        {
+            return dependOn == 0 || dependencyExists && dependencyHasParent;
         }
 
         private void SetParent()

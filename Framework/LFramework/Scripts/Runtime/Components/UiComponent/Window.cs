@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GameFramework;
 using GameFramework.Event;
 using UniRx;
 using UnityEngine;
@@ -19,6 +20,7 @@ namespace LFramework.Runtime
         private readonly List<Canvas> _canvasContainer = new List<Canvas>();
         private IAnimation _windowAnimation;
         private WindowAnimationState _windowAnimationState = WindowAnimationState.None;
+        private NativeReference _customUserData;
         public int OriginalDepth { get; private set; }
 
         public int Depth => _canvas.sortingOrder;
@@ -45,9 +47,29 @@ namespace LFramework.Runtime
         protected virtual string EnterAnimationName { get; } = "Enter";
         protected virtual string ExitAnimationName { get; } = "Exit";
 
+        /// <summary>
+        /// 获取自定义信息
+        /// </summary>
+        /// <typeparam name="TUserData"></typeparam>
+        /// <returns></returns>
+        protected NativeReference<TUserData> GetUserData<TUserData>()
+            where TUserData : NativeReference<TUserData>, new()
+        {
+            if (_customUserData is NativeReference<TUserData> userData)
+            {
+                return userData;
+            }
+            Log.Error($"[Window] The get userData is not {nameof(TUserData)} so failure.");
+            return null;
+        }
+
         public override void OnInit(object userData)
         {
             base.OnInit(userData);
+            if (userData is NativeReference nativeReference)
+            {
+                _customUserData = nativeReference;
+            }
             _subModuleKeyMap.Clear();
             _windowAnimation = gameObject.GetComponent<IAnimation>();
             _canvas = gameObject.GetOrAddComponent<Canvas>();
@@ -59,18 +81,21 @@ namespace LFramework.Runtime
             CacheRectTransform.anchorMin = Vector2.zero;
             CacheRectTransform.anchoredPosition = Vector2.zero;
             CacheRectTransform.sizeDelta = Vector2.zero;
-
             gameObject.GetOrAddComponent<GraphicRaycaster>();
-            
             foreach (var subWindow in subModuleList)
             {
-                subWindow.OnInit(this,userData);
-                _subModuleKeyMap.Add(subWindow.GetType(),subWindow);
+                subWindow.OnInit(this, userData);
+                _subModuleKeyMap.Add(subWindow.GetType(), subWindow);
             }
         }
 
         public override void OnOpen(object userData)
         {
+            if (userData is NativeReference nativeReference)
+            {
+                _customUserData = nativeReference;
+            }
+
             PrepareForEnterAnimation();
             base.OnOpen(userData);
             Subscribe(LFrameworkAspect.Instance.Get<EventComponent>());
@@ -80,6 +105,7 @@ namespace LFramework.Runtime
             {
                 subWindow.OnOpen(userData);
             }
+
             RestoreAfterEnterAnimation();
             if (AutoPlayEnterAnimation)
             {
@@ -93,8 +119,12 @@ namespace LFramework.Runtime
             UnSubscribe(LFrameworkAspect.Instance.Get<EventComponent>());
             foreach (var subWindow in subModuleList)
             {
-                subWindow.OnClose(isShutDown,userData);
+                subWindow.OnClose(isShutDown, userData);
             }
+
+            _customUserData?.Release();
+            _customUserData = null;
+            this.RemoveChild();
         }
 
         public override void OnDepthChanged(int uiGroupDepth, int depthInUIGroup)
@@ -183,7 +213,7 @@ namespace LFramework.Runtime
         {
             UIComponent.CloseUIForm(this.UIForm.SerialId);
         }
-        
+
         public override void CloseSelf()
         {
             if (_isClosing)

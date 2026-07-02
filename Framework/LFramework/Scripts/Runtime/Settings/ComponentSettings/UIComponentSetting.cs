@@ -55,6 +55,9 @@ namespace LFramework.Runtime.Settings
 
         [SerializeField]
         private bool m_VertexColorAlwaysGammaSpace = true;
+
+        [SerializeField]
+        private string m_ChildEntityGroupName = string.Empty;
         
         [SerializeField]
         private string m_UIFormHelperTypeName = "UnityGameFramework.Runtime.DefaultUIFormHelper";
@@ -75,6 +78,11 @@ namespace LFramework.Runtime.Settings
         /// 是否让 Canvas 顶点颜色始终使用 Gamma 空间。
         /// </summary>
         public bool VertexColorAlwaysGammaSpace => m_VertexColorAlwaysGammaSpace;
+
+        /// <summary>
+        /// Window 子实体使用的 EntityGroup 名称。
+        /// </summary>
+        public string ChildEntityGroupName => m_ChildEntityGroupName;
     }
     
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using LFramework.Editor;
 using LFramework.Runtime.Settings;
 using UnityEditor;
@@ -23,6 +24,7 @@ namespace LFramework.Editor.Inspector
         private SerializedProperty m_UIGroups = null;
         private SerializedProperty m_InstanceRootOffset = null;
         private SerializedProperty m_VertexColorAlwaysGammaSpace = null;
+        private SerializedProperty m_ChildEntityGroupName = null;
 
         private readonly HelperInfo<UIFormHelperBase> m_UIFormHelperInfo = new HelperInfo<UIFormHelperBase>("UIForm");
         private readonly HelperInfo<UIGroupHelperBase> m_UIGroupHelperInfo = new HelperInfo<UIGroupHelperBase>("UIGroup");
@@ -79,6 +81,7 @@ namespace LFramework.Editor.Inspector
             m_UIGroups = serializedObject.FindProperty("m_UIGroups");
             m_InstanceRootOffset = serializedObject.FindProperty("m_InstanceRootOffset");
             m_VertexColorAlwaysGammaSpace = serializedObject.FindProperty("m_VertexColorAlwaysGammaSpace");
+            m_ChildEntityGroupName = serializedObject.FindProperty("m_ChildEntityGroupName");
             m_UIFormHelperInfo.Init(serializedObject);
             m_UIGroupHelperInfo.Init(serializedObject);
 
@@ -187,6 +190,7 @@ namespace LFramework.Editor.Inspector
             EditorGUILayout.PropertyField(
                 m_VertexColorAlwaysGammaSpace,
                 new GUIContent("Vertex Color Always Gamma Space"));
+            DrawChildEntityGroupSelector();
             m_UIFormHelperInfo.Draw();
             m_UIGroupHelperInfo.Draw();
 
@@ -203,6 +207,83 @@ namespace LFramework.Editor.Inspector
             BeginSection("UI Groups", "Configure UI group names and depths in the same order they should be created.");
             EditorGUILayout.PropertyField(m_UIGroups, true);
             EndSection();
+        }
+
+        private void DrawChildEntityGroupSelector()
+        {
+            var entityGroupNames = CollectEntityGroupNames();
+            var currentValue = m_ChildEntityGroupName.stringValue;
+            var optionValues = new List<string> { string.Empty };
+            var optionLabels = new List<string> { "Not Set" };
+
+            for (var i = 0; i < entityGroupNames.Count; i++)
+            {
+                optionValues.Add(entityGroupNames[i]);
+                optionLabels.Add(entityGroupNames[i]);
+            }
+
+            if (!string.IsNullOrWhiteSpace(currentValue) && !optionValues.Contains(currentValue))
+            {
+                optionValues.Add(currentValue);
+                optionLabels.Add($"{currentValue} (Missing)");
+            }
+
+            var selectedIndex = optionValues.IndexOf(currentValue);
+            if (selectedIndex < 0)
+            {
+                selectedIndex = 0;
+            }
+
+            using (new EditorGUI.DisabledScope(entityGroupNames.Count == 0 && string.IsNullOrWhiteSpace(currentValue)))
+            {
+                var nextIndex = EditorGUILayout.Popup("Child Entity Group Name", selectedIndex, optionLabels.ToArray());
+                if (nextIndex >= 0 && nextIndex < optionValues.Count)
+                {
+                    m_ChildEntityGroupName.stringValue = optionValues[nextIndex];
+                }
+            }
+
+            if (entityGroupNames.Count == 0)
+            {
+                EditorGUILayout.HelpBox(
+                    "No EntityGroups are available. Add groups in EntityComponentSetting before selecting a child entity group.",
+                    MessageType.Warning);
+            }
+            else if (!string.IsNullOrWhiteSpace(currentValue) && !entityGroupNames.Contains(currentValue))
+            {
+                EditorGUILayout.HelpBox(
+                    $"The current child entity group '{currentValue}' is not present in EntityComponentSetting.",
+                    MessageType.Warning);
+            }
+        }
+
+        private static List<string> CollectEntityGroupNames()
+        {
+            var results = new List<string>();
+            var entitySetting = SettingManager.GetProjectSelector()?.GetComponentSetting<EntityComponentSetting>();
+            if (entitySetting == null)
+            {
+                return results;
+            }
+
+            var serializedEntitySetting = new SerializedObject(entitySetting);
+            var entityGroups = serializedEntitySetting.FindProperty("m_EntityGroups");
+            if (entityGroups == null || !entityGroups.isArray)
+            {
+                return results;
+            }
+
+            for (var i = 0; i < entityGroups.arraySize; i++)
+            {
+                var group = entityGroups.GetArrayElementAtIndex(i);
+                var name = group.FindPropertyRelative("m_Name")?.stringValue;
+                if (!string.IsNullOrWhiteSpace(name) && !results.Contains(name))
+                {
+                    results.Add(name);
+                }
+            }
+
+            return results;
         }
 
         private static void BeginSection(string title, string subtitle)

@@ -10,7 +10,7 @@ namespace LFramework.Runtime
         private bool? _isUseUpdate;
         private CompositeDisposable _compositeDisposable;
         public int Id => Entity.Id;
-
+      
 
         public sealed override bool HasUpdate
         {
