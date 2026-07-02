@@ -26,87 +26,95 @@ namespace LFramework.Runtime
 
         protected virtual void StartApplication()
         {
-            try
+            if (!RunStartupStage(
+                    "AddSingleton",
+                    () => SingletonManager.AddSingleton(new LFrameworkAspect()),
+                    cleanupOnFailure: false))
             {
-                SingletonManager.AddSingleton(new LFrameworkAspect());
-            }
-            catch (Exception e)
-            {
-                Log.Fatal($"StartApplication failed at AddSingleton: {e}");
                 return;
             }
 
+            if (!RunStartupStage("RegisterSetting", RegisterSetting))
+            {
+                return;
+            }
+
+            if (!RunStartupStage("RegisterComponents", RegisterComponents))
+            {
+                return;
+            }
+
+            if (!RunStartupStage("BindComponents", BindComponents))
+            {
+                return;
+            }
+
+            if (!RunStartupStage("ResolveApplicationDependencies", ResolveApplicationDependencies))
+            {
+                return;
+            }
+
+            if (!RunStartupStage("StartComponents", StartComponents))
+            {
+                return;
+            }
+
+            if (!RunStartupStage("ApplicationStarted", ApplicationStarted))
+            {
+                return;
+            }
+
+            RunStartupStage("SetUpComponents", SetUpComponents);
+        }
+
+        private bool RunStartupStage(string stageName, Action action, bool cleanupOnFailure = true)
+        {
             try
             {
-                if (!RegisterSetting())
+                action();
+                return true;
+            }
+            catch (Exception e)
+            {
+                Log.Fatal($"StartApplication failed at {stageName}: {e}");
+                if (cleanupOnFailure)
                 {
-                    return;
+                    CleanupFailedStartup(stageName);
                 }
-            }
-            catch (Exception e)
-            {
-                Log.Fatal($"StartApplication failed at RegisterSetting: {e}");
-                return;
-            }
 
+                return false;
+            }
+        }
+
+        private bool RunStartupStage(string stageName, Func<bool> action)
+        {
             try
             {
-                RegisterComponents();
+                if (action())
+                {
+                    return true;
+                }
+
+                CleanupFailedStartup(stageName);
+                return false;
             }
             catch (Exception e)
             {
-                Log.Fatal($"StartApplication failed at RegisterComponents: {e}");
-                return;
+                Log.Fatal($"StartApplication failed at {stageName}: {e}");
+                CleanupFailedStartup(stageName);
+                return false;
             }
+        }
 
+        private void CleanupFailedStartup(string stageName)
+        {
             try
             {
-                BindComponents();
+                StopApplication(ShutdownType.None);
             }
-            catch (Exception e)
+            catch (Exception cleanupException)
             {
-                Log.Fatal($"StartApplication failed at BindComponents: {e}");
-                return;
-            }
-
-            try
-            {
-                ResolveApplicationDependencies();
-            }
-            catch (Exception e)
-            {
-                Log.Fatal($"StartApplication failed at ResolveApplicationDependencies: {e}");
-                return;
-            }
-
-            try
-            {
-                StartComponents();
-            }
-            catch (Exception e)
-            {
-                Log.Fatal($"StartApplication failed at StartComponents: {e}");
-                return;
-            }
-
-            try
-            {
-                ApplicationStarted();
-            }
-            catch (Exception e)
-            {
-                Log.Fatal($"StartApplication failed at ApplicationStarted: {e}");
-                return;
-            }
-
-            try
-            {
-                SetUpComponents();
-            }
-            catch (Exception e)
-            {
-                Log.Fatal($"StartApplication failed at SetUpComponents: {e}");
-                return;
+                Log.Fatal($"StartApplication cleanup failed after {stageName}: {cleanupException}");
             }
         }
 

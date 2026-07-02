@@ -289,6 +289,28 @@ namespace LFramework.Editor.Tests
         }
 
         [Test]
+        public void GetDerivedInterfacesReturnsNullWhenMultipleBusinessInterfacesAreAmbiguous()
+        {
+            var interfaceType = typeof(AmbiguousInterfaceSelectionProvider).GetDerivedInterfaces(
+                typeof(ISystemProvider),
+                typeof(IReference),
+                typeof(IDisposable));
+
+            Assert.That(interfaceType, Is.Null);
+        }
+
+        [Test]
+        public void GetDerivedInterfacesUsesBindInterfaceWhenMultipleBusinessInterfacesExist()
+        {
+            var interfaceType = typeof(BoundInterfaceSelectionProvider).GetDerivedInterfaces(
+                typeof(ISystemProvider),
+                typeof(IReference),
+                typeof(IDisposable));
+
+            Assert.That(interfaceType, Is.EqualTo(typeof(ISecondaryTestProvider)));
+        }
+
+        [Test]
         public void SystemProviderBaseHasGeneratedInjector()
         {
             Assert.That(typeof(IInjectable).IsAssignableFrom(typeof(SystemProviderBase)), Is.True);
@@ -438,9 +460,74 @@ namespace LFramework.Editor.Tests
             {
             }
         }
+
+        private sealed class AmbiguousInterfaceSelectionProvider :
+            IInjectable,
+            ITestProvider,
+            ISecondaryTestProvider
+        {
+            void IInjectable.Inject(IServiceResolver resolver)
+            {
+            }
+
+            public void AwakeComponent()
+            {
+            }
+
+            public void SubscribeEvent()
+            {
+            }
+
+            public void SetUp()
+            {
+            }
+
+            public void UnSubscribeEvent()
+            {
+            }
+
+            public void Clear()
+            {
+            }
+        }
+
+        [BindInterface(typeof(ISecondaryTestProvider))]
+        private sealed class BoundInterfaceSelectionProvider :
+            IInjectable,
+            ITestProvider,
+            ISecondaryTestProvider
+        {
+            void IInjectable.Inject(IServiceResolver resolver)
+            {
+            }
+
+            public void AwakeComponent()
+            {
+            }
+
+            public void SubscribeEvent()
+            {
+            }
+
+            public void SetUp()
+            {
+            }
+
+            public void UnSubscribeEvent()
+            {
+            }
+
+            public void Clear()
+            {
+            }
+        }
     }
 
     internal interface ITestProvider : ISystemProvider
+    {
+    }
+
+    internal interface ISecondaryTestProvider : ISystemProvider
     {
     }
 

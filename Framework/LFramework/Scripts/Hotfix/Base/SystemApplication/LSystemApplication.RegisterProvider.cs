@@ -10,12 +10,9 @@ namespace LFramework.Hotfix
     {
         private readonly Dictionary<Type, ISystemProvider> _systemProviders = new();
         private readonly List<Type> _tempRemoveKeys = new();
+        private readonly List<Type> _tempRegisteredProviderTypes = new();
         private readonly List<TempSystemProviderContainer> _tempSystemProviders = new();
 
-        /// <summary>
-        /// 注册Provider
-        /// </summary>
-        /// <param name="procedureState"></param>
         public void TryRegisterProvider(int procedureState)
         {
             var allBelongToProcedureProviders = HotfixComponent.GetTypesFromAttribute<BelongToAttribute>();
@@ -25,90 +22,104 @@ namespace LFramework.Hotfix
             }
 
             _tempSystemProviders.Clear();
-            foreach (var providerType in allBelongToProcedureProviders.Value)
+            _tempRegisteredProviderTypes.Clear();
+            try
             {
-                //如果已经加载过了那么就不再继续加载
-                if (_systemProviders.ContainsKey(providerType))
+                foreach (var providerType in allBelongToProcedureProviders.Value)
                 {
-                    continue;
+                    if (_systemProviders.ContainsKey(providerType))
+                    {
+                        continue;
+                    }
+
+                    if (!typeof(SystemProviderBase).IsAssignableFrom(providerType))
+                    {
+                        continue;
+                    }
+
+                    var attribute = providerType.GetCustomAttribute<BelongToAttribute>();
+                    if (attribute == null)
+                    {
+                        Log.Fatal($"None BelongToAttribute in '{providerType.FullName}' Provider");
+                        continue;
+                    }
+
+                    if (attribute.ProcedureState != procedureState)
+                    {
+                        continue;
+                    }
+
+                    var instance = ReferencePool.Acquire(providerType);
+                    if (instance == null)
+                    {
+                        continue;
+                    }
+
+                    if (instance is not SystemProviderBase systemProvider)
+                    {
+                        Log.Fatal($"BelongToAttribute '{providerType.FullName}' is none impl ISystemProvider");
+                        if (instance is IReference reference)
+                        {
+                            ReferencePool.Release(reference);
+                        }
+
+                        continue;
+                    }
+
+                    RegisterCommonDataSync(systemProvider);
+                    var interfaceType = providerType.GetDerivedInterfaces(
+                        typeof(ISystemProvider),
+                        typeof(IReference),
+                        typeof(IDisposable));
+                    if (interfaceType != null)
+                    {
+                        LServices.Register(interfaceType, systemProvider);
+                    }
+
+                    LServices.Register(providerType, systemProvider);
+                    _systemProviders.Add(providerType, systemProvider);
+                    _tempRegisteredProviderTypes.Add(providerType);
+                    _tempSystemProviders.Add(new TempSystemProviderContainer
+                    {
+                        Provider = systemProvider,
+                        Sort = attribute.Sort
+                    });
                 }
 
-                if (!typeof(SystemProviderBase).IsAssignableFrom(providerType))
+                _tempSystemProviders.Sort((x, y) => y.Sort.CompareTo(x.Sort));
+
+                foreach (var provider in _tempSystemProviders)
                 {
-                    continue;
+                    Injection.Inject(provider.Provider);
                 }
 
-                var attribute = providerType.GetCustomAttribute<BelongToAttribute>();
-                if (attribute == null)
+                foreach (var provider in _tempSystemProviders)
                 {
-                    Log.Fatal($"None BelongToAttribute in '{providerType.FullName}' Provider");
-                    continue;
+                    provider.Provider.AwakeComponent();
                 }
 
-                if (attribute.ProcedureState != procedureState)
+                foreach (var provider in _tempSystemProviders)
                 {
-                    continue;
+                    provider.Provider.SubscribeEvent();
                 }
 
-                var instance = /*Activator.CreateInstance(providerType);*/ ReferencePool.Acquire(providerType);
-                if (instance == null)
+                foreach (var provider in _tempSystemProviders)
                 {
-                    continue;
+                    provider.Provider.SetUp();
                 }
-
-                if (!(instance is SystemProviderBase systemProvider))
-                {
-                    Log.Fatal($"BelongToAttribute '{providerType.FullName}' is none impl ISystemProvider");
-                    continue;
-                }
-
-                RegisterCommonDataSync(systemProvider);
-                var interfaceType = providerType.GetDerivedInterfaces(typeof(ISystemProvider), typeof(IReference),
-                    typeof(IDisposable));
-                if (interfaceType != null)
-                {
-                    LServices.Register(interfaceType, systemProvider);
-                }
-
-                LServices.Register(providerType, systemProvider);
-                _systemProviders.Add(providerType, systemProvider);
-                var sort = attribute.Sort;
-                _tempSystemProviders.Add(new TempSystemProviderContainer()
-                {
-                    Provider = systemProvider,
-                    Sort = sort
-                });
             }
-
-            _tempSystemProviders.Sort((x, y) => y.Sort.CompareTo(x.Sort));
-
-            foreach (var provider in _tempSystemProviders)
+            catch (Exception)
             {
-                Injection.Inject(provider.Provider);
+                RollbackCurrentProviderRegistration();
+                throw;
             }
-
-            foreach (var provider in _tempSystemProviders)
+            finally
             {
-                provider.Provider.AwakeComponent();
+                _tempSystemProviders.Clear();
+                _tempRegisteredProviderTypes.Clear();
             }
-
-            foreach (var provider in _tempSystemProviders)
-            {
-                provider.Provider.SubscribeEvent();
-            }
-
-            foreach (var provider in _tempSystemProviders)
-            {
-                provider.Provider.SetUp();
-            }
-
-            _tempSystemProviders.Clear();
         }
 
-        /// <summary>
-        /// 取消注册Provider
-        /// </summary>
-        /// <param name="procedureState"></param>
         public void TryUnRegisterProvider(int procedureState)
         {
             _tempRemoveKeys.Clear();
@@ -144,11 +155,12 @@ namespace LFramework.Hotfix
 
         private void UnRegisterProvider(Type t, ISystemProvider v)
         {
-            // 先完成所有使用，再释放回对象池
             UnRegisterCommonDataSync(v as SystemProviderBase);
             UnRegisterProviderService(t);
-            var interfaceType =
-                t.GetDerivedInterfaces(typeof(ISystemProvider), typeof(IReference), typeof(IDisposable));
+            var interfaceType = t.GetDerivedInterfaces(
+                typeof(ISystemProvider),
+                typeof(IReference),
+                typeof(IDisposable));
             if (interfaceType != null)
             {
                 LServices.Unregister(interfaceType);
@@ -156,6 +168,21 @@ namespace LFramework.Hotfix
 
             Injection.ClearReflectionCache(t);
             ReferencePool.Release(v);
+        }
+
+        private void RollbackCurrentProviderRegistration()
+        {
+            for (int i = _tempRegisteredProviderTypes.Count - 1; i >= 0; i--)
+            {
+                Type providerType = _tempRegisteredProviderTypes[i];
+                if (!_systemProviders.TryGetValue(providerType, out var provider))
+                {
+                    continue;
+                }
+
+                UnRegisterProvider(providerType, provider);
+                _systemProviders.Remove(providerType);
+            }
         }
 
         private static void UnRegisterProviderService(Type providerType)
@@ -166,8 +193,10 @@ namespace LFramework.Hotfix
             }
 
             LServices.Unregister(providerType);
-            var interfaceType =
-                providerType.GetDerivedInterfaces(typeof(ISystemProvider), typeof(IReference), typeof(IDisposable));
+            var interfaceType = providerType.GetDerivedInterfaces(
+                typeof(ISystemProvider),
+                typeof(IReference),
+                typeof(IDisposable));
             if (interfaceType != null)
             {
                 LServices.Unregister(interfaceType);

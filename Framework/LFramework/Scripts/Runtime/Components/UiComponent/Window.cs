@@ -52,9 +52,15 @@ namespace LFramework.Runtime
         /// </summary>
         /// <typeparam name="TUserData"></typeparam>
         /// <returns></returns>
-        protected NativeReference<TUserData> GetUserData<TUserData>()
+        protected NativeReference<TUserData> As<TUserData>()
             where TUserData : NativeReference<TUserData>, new()
         {
+            if (_customUserData == null)
+            {
+                Log.Error("[Window] The custom user data is null.]");
+                return null;
+            }
+            
             if (_customUserData is NativeReference<TUserData> userData)
             {
                 return userData;
@@ -495,18 +501,7 @@ namespace LFramework.Runtime
             _canvasGroup.interactable = true;
             _canvasGroup.blocksRaycasts = true;
         }
-
-        protected T As<T>(object userData)
-            where T : class
-        {
-            if (userData is T result)
-            {
-                return result;
-            }
-
-            Log.Fatal("UserData is not {0}", typeof(T).FullName);
-            return null;
-        }
+        
     }
 
     public abstract class Window<T> : Window

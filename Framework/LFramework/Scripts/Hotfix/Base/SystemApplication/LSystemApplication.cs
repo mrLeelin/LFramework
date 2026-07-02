@@ -26,6 +26,7 @@ namespace LFramework.Hotfix
         [Inject] private HotfixComponent HotfixComponent { get; set; }
 
         private readonly GameFrameworkLinkedList<GameFrameworkComponent> _hotfixComponents = new();
+        private readonly List<Type> _hotfixComponentServiceTypes = new();
 
         public LSystemApplication()
         {
@@ -63,19 +64,9 @@ namespace LFramework.Hotfix
             }
 
             _hotfixComponents.Clear();
-            foreach (var provider in _systemProviders)
-            {
-                ReferencePool.Release(provider.Value);
-            }
-
-            _systemProviders.Clear();
-
-            if (_worldBase != null)
-            {
-                ReferencePool.Release(_worldBase);
-            }
-
-            _worldBase = null;
+            UnregisterHotfixComponentServices();
+            DisposeAllActiveProviders();
+            TryUnRegisterWorld();
             LServices.Unregister<ISystemProviderRegister>();
             LServices.Unregister<IWorldRegister>();
         }
@@ -141,6 +132,7 @@ namespace LFramework.Hotfix
                     if (interfaceType != null)
                     {
                         LServices.Register(interfaceType, instance);
+                        _hotfixComponentServiceTypes.Add(interfaceType);
                     }
                     else
                     {
@@ -150,6 +142,7 @@ namespace LFramework.Hotfix
                 else
                 {
                     LServices.Register(hotfixComponentAttribute.BindType, instance);
+                    _hotfixComponentServiceTypes.Add(hotfixComponentAttribute.BindType);
                 }
 
                 _hotfixComponents.AddLast(instance);
@@ -191,6 +184,16 @@ namespace LFramework.Hotfix
             }
 
             return attributes.HasValue;
+        }
+
+        private void UnregisterHotfixComponentServices()
+        {
+            foreach (var serviceType in _hotfixComponentServiceTypes)
+            {
+                LServices.Unregister(serviceType);
+            }
+
+            _hotfixComponentServiceTypes.Clear();
         }
     }
 }

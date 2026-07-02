@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using GameFramework.Resource;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -25,6 +26,28 @@ namespace LFramework.Editor.Tests.ResourceComponent
             Assert.That(exactMatch, Is.True);
             Assert.That(missingMatch, Is.False);
             Assert.That(labelOnlyMatch, Is.False);
+        }
+
+        [Test]
+        public void ResolveCatalogAssetResult_ReturnsExist_WhenCatalogLocationExists()
+        {
+            MethodInfo method = GetAddressableHelperMethod("ResolveCatalogAssetResult");
+
+            object result = method.Invoke(null, new object[] { true, false });
+
+            Assert.That(result, Is.EqualTo(HasAssetResult.Exist));
+        }
+
+        [Test]
+        public void ResolveCatalogAssetResult_DistinguishesMissingCatalogFromUninitializedCatalog()
+        {
+            MethodInfo method = GetAddressableHelperMethod("ResolveCatalogAssetResult");
+
+            object missingAfterCatalogReady = method.Invoke(null, new object[] { false, true });
+            object catalogNotReady = method.Invoke(null, new object[] { false, false });
+
+            Assert.That(missingAfterCatalogReady, Is.EqualTo(HasAssetResult.NotExist));
+            Assert.That(catalogNotReady, Is.EqualTo(HasAssetResult.NotReady));
         }
 
         private static MethodInfo GetAddressableHelperMethod(string methodName)
