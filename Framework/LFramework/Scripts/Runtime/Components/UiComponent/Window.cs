@@ -52,7 +52,7 @@ namespace LFramework.Runtime
         /// </summary>
         /// <typeparam name="TUserData"></typeparam>
         /// <returns></returns>
-        protected NativeReference<TUserData> As<TUserData>()
+        protected TUserData As<TUserData>()
             where TUserData : NativeReference<TUserData>, new()
         {
             if (_customUserData == null)
@@ -61,7 +61,7 @@ namespace LFramework.Runtime
                 return null;
             }
 
-            if (_customUserData is NativeReference<TUserData> userData)
+            if (_customUserData is TUserData userData)
             {
                 return userData;
             }
