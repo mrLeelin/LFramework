@@ -33,6 +33,12 @@ namespace LFramework.Runtime
 
             foreach (var t in types)
             {
+                var attribute = t.GetCustomAttribute<AutoWorldHelperAttribute>();
+                if (attribute == null || !CanRegisterWorldHelper(attribute, t))
+                {
+                    continue;
+                }
+
                 var instance = (IWorldHelper)ReferencePool.Acquire(t);
                 TempWorldHelpers.Add(instance);
             }
@@ -73,6 +79,19 @@ namespace LFramework.Runtime
             }
 
             return result;
+        }
+
+        private static bool CanRegisterWorldHelper(AutoWorldHelperAttribute attribute, Type helperType)
+        {
+            try
+            {
+                return attribute.CanRegister();
+            }
+            catch (Exception e)
+            {
+                Log.Error($"Auto register world helper condition failed. Type: '{helperType.FullName}', Error: {e}");
+                return false;
+            }
         }
     }
 }
