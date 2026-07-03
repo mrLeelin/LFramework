@@ -1,0 +1,659 @@
+{
+  "nodes": [
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/SequenceLineComponent/EternitySequenceLineChunkGroup.cs",
+      "type": "file",
+      "name": "EternitySequenceLineChunkGroup.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/SequenceLineComponent/EternitySequenceLineChunkGroup.cs",
+      "summary": "无限循环序列线Chunk组。继承SequenceLineChunkGroup，重写Coroutine实现永不停止的循环执行，始终等待并执行新加入的Chunk。",
+      "tags": ["sequence-line", "chunk-group", "infinite-loop", "coroutine"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:LFramework.Runtime.EternitySequenceLineChunkGroup",
+      "type": "class",
+      "name": "EternitySequenceLineChunkGroup",
+      "filePath": "LFramework/Scripts/Runtime/Components/SequenceLineComponent/EternitySequenceLineChunkGroup.cs",
+      "summary": "无限循环Chunk组（sealed）。继承SequenceLineChunkGroup，Coroutine重写为while(true)无限循环，Chunk为空时yield return null等待。",
+      "tags": ["sequence-line", "chunk-group", "sealed", "infinite"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/SequenceLineComponent/InsertChunkArgs.cs",
+      "type": "file",
+      "name": "InsertChunkArgs.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/SequenceLineComponent/InsertChunkArgs.cs",
+      "summary": "Chunk插入参数类。包含ISequenceLineChunkSetting Setting字段，用于序列线Chunk组的插入事件参数传递。",
+      "tags": ["sequence-line", "args", "insert", "sealed"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:LFramework.Runtime.InsertChunkArgs",
+      "type": "class",
+      "name": "InsertChunkArgs",
+      "filePath": "LFramework/Scripts/Runtime/Components/SequenceLineComponent/InsertChunkArgs.cs",
+      "summary": "Chunk插入参数类（sealed）。仅包含Setting（ISequenceLineChunkSetting）字段，用于InsertChunkInGroup事件的事件参数。",
+      "tags": ["sequence-line", "args", "sealed"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/SequenceLineComponent/ISequenceLineChunk.cs",
+      "type": "file",
+      "name": "ISequenceLineChunk.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/SequenceLineComponent/ISequenceLineChunk.cs",
+      "summary": "序列线Chunk接口。继承IEnumerator<ISequenceLineChunkSetting>，定义SerialID、Sort、CreateNewGroup、Group等属性和SetSetting、Init方法。",
+      "tags": ["sequence-line", "interface", "chunk", "enumerator"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:LFramework.Runtime.ISequenceLineChunk",
+      "type": "class",
+      "name": "ISequenceLineChunk",
+      "filePath": "LFramework/Scripts/Runtime/Components/SequenceLineComponent/ISequenceLineChunk.cs",
+      "summary": "序列线Chunk接口。继承IEnumerator，声明SerialID、Sort（排序）、CreateNewGroup（是否创建新组）、Group属性和SetSetting、Init方法。",
+      "tags": ["sequence-line", "interface", "chunk"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/SequenceLineComponent/ISequenceLineChunkGroup.cs",
+      "type": "file",
+      "name": "ISequenceLineChunkGroup.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/SequenceLineComponent/ISequenceLineChunkGroup.cs",
+      "summary": "序列线Chunk组接口。继承IEnumerator<ISequenceLineChunkSetting>，定义Pause暂停、Count计数、HasChunk检查、InsertChunkInGroup事件等组管理能力。",
+      "tags": ["sequence-line", "interface", "chunk-group", "enumerator", "event"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:LFramework.Runtime.ISequenceLineChunkGroup",
+      "type": "class",
+      "name": "ISequenceLineChunkGroup",
+      "filePath": "LFramework/Scripts/Runtime/Components/SequenceLineComponent/ISequenceLineChunkGroup.cs",
+      "summary": "序列线Chunk组接口。继承IEnumerator，声明InsertChunkInGroup事件（EventHandler<InsertChunkArgs>）、Pause、Count、HasChunk属性。",
+      "tags": ["sequence-line", "interface", "chunk-group"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/SequenceLineComponent/ISequenceLineChunkSetting.cs",
+      "type": "file",
+      "name": "ISequenceLineChunkSetting.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/SequenceLineComponent/ISequenceLineChunkSetting.cs",
+      "summary": "序列线Chunk配置接口。继承IEqualityComparer，定义Sort排序、GroupType类型、ActionType动作类型、CreateNewGroup、Tag等配置属性。",
+      "tags": ["sequence-line", "interface", "chunk-setting", "equality-comparer"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:LFramework.Runtime.ISequenceLineChunkSetting",
+      "type": "class",
+      "name": "ISequenceLineChunkSetting",
+      "filePath": "LFramework/Scripts/Runtime/Components/SequenceLineComponent/ISequenceLineChunkSetting.cs",
+      "summary": "序列线Chunk配置接口。继承IEqualityComparer<ISequenceLineChunkSetting>，声明Sort（SequenceLineChunkSortInGroup）、GroupType、ActionType、CreateNewGroup、Tag属性。",
+      "tags": ["sequence-line", "interface", "setting", "equality"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineChunk.cs",
+      "type": "file",
+      "name": "SequenceLineChunk.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineChunk.cs",
+      "summary": "序列线Chunk泛型抽象基类。约束T为ISequenceLineChunkSetting，实现ISequenceLineChunk接口，管理Setting、SerialID、Sort等属性和生命周期。",
+      "tags": ["sequence-line", "chunk", "abstract", "generic"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:LFramework.Runtime.SequenceLineChunk<T>",
+      "type": "class",
+      "name": "SequenceLineChunk<T>",
+      "filePath": "LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineChunk.cs",
+      "summary": "泛型序列线Chunk抽象类。约束T为ISequenceLineChunkSetting，实现ISequenceLineChunk，持有Setting、SerialID、Sort、CreateNewGroup、Group属性，EDITOR下有Root GameObject。",
+      "tags": ["sequence-line", "chunk", "abstract", "generic"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineChunkGroup.cs",
+      "type": "file",
+      "name": "SequenceLineChunkGroup.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineChunkGroup.cs",
+      "summary": "序列线Chunk组实现类。实现ISequenceLineChunkGroup接口，管理Chunk列表的添加、暂停、执行，使用UniRx和协程驱动Chunk执行流程。",
+      "tags": ["sequence-line", "chunk-group", "coroutine", "unirx"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:LFramework.Runtime.SequenceLineChunkGroup",
+      "type": "class",
+      "name": "SequenceLineChunkGroup",
+      "filePath": "LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineChunkGroup.cs",
+      "summary": "序列线Chunk组实现类。持有SequenceLineComponent引用、_curRunningChunk当前Chunk和_isAllChunkCompleted标志，EDITOR下有Root GameObject，通过Coroutine驱动执行。",
+      "tags": ["sequence-line", "chunk-group", "coroutine"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineChunkGroupHandle.cs",
+      "type": "file",
+      "name": "SequenceLineChunkGroupHandle.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineChunkGroupHandle.cs",
+      "summary": "序列线Chunk组句柄。实现IReference接口，持有GroupType、Groups链表和Coroutine引用，提供组的管理、暂停、恢复和释放功能。",
+      "tags": ["sequence-line", "chunk-group", "handle", "reference-pool"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:LFramework.Runtime.SequenceLineChunkGroupHandle",
+      "type": "class",
+      "name": "SequenceLineChunkGroupHandle",
+      "filePath": "LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineChunkGroupHandle.cs",
+      "summary": "Chunk组句柄类。实现IReference，持有_releaseGroupAc释放委托、_coroutine协程引用、GroupType和Groups LinkedList，提供组生命周期管理。",
+      "tags": ["sequence-line", "handle", "reference-pool", "lifecycle"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineComponent.cs",
+      "type": "file",
+      "name": "SequenceLineComponent.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineComponent.cs",
+      "summary": "序列线组件。继承GameFrameworkComponent（sealed），管理多个SequenceLineChunkGroupHandle，提供Chunk的创建、添加到组、组管理等核心API。",
+      "tags": ["sequence-line", "component", "gameframework", "sealed"],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:LFramework.Runtime.SequenceLineComponent",
+      "type": "class",
+      "name": "SequenceLineComponent",
+      "filePath": "LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineComponent.cs",
+      "summary": "序列线组件（sealed）。继承GameFrameworkComponent，持有_multiGroups字典管理SequenceLineChunkGroupHandle，提供序列线的核心编排API。",
+      "tags": ["sequence-line", "component", "sealed", "gameframework"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineEnums.cs",
+      "type": "file",
+      "name": "SequenceLineEnums.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineEnums.cs",
+      "summary": "序列线枚举定义文件。定义SequenceLineChunkSortInGroup（组内排序）和SequenceLineInsertPosition（插入位置Before/After）两个枚举。",
+      "tags": ["sequence-line", "enum", "sort", "insert-position"],
+      "complexity": "simple"
+    },
+    {
+      "id": "enum:LFramework.Runtime.SequenceLineChunkSortInGroup",
+      "type": "class",
+      "name": "SequenceLineChunkSortInGroup",
+      "filePath": "LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineEnums.cs",
+      "summary": "Chunk组内排序枚举。当前仅定义None值。",
+      "tags": ["sequence-line", "enum", "sort"],
+      "complexity": "simple"
+    },
+    {
+      "id": "enum:LFramework.Runtime.SequenceLineInsertPosition",
+      "type": "class",
+      "name": "SequenceLineInsertPosition",
+      "filePath": "LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineEnums.cs",
+      "summary": "插入位置枚举。Before（前插）和After（后插），控制Chunk在组内的插入方向。",
+      "tags": ["sequence-line", "enum", "insert-position"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/SoundComponent/SoundExtension.cs",
+      "type": "file",
+      "name": "SoundExtension.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/SoundComponent/SoundExtension.cs",
+      "summary": "SoundComponent扩展方法类。提供Mute静音等便捷扩展方法，简化音效组的静音/取消静音操作。",
+      "tags": ["sound", "extension", "mute", "static"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:LFramework.Runtime.SoundExtension",
+      "type": "class",
+      "name": "SoundExtension",
+      "filePath": "LFramework/Scripts/Runtime/Components/SoundComponent/SoundExtension.cs",
+      "summary": "音效扩展静态类。Mute扩展方法对SoundComponent按音效组名称执行静音操作，包含空名称和无效组的日志警告。",
+      "tags": ["sound", "extension", "static"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/TableComponent/DefaultTableHelper.cs",
+      "type": "file",
+      "name": "DefaultTableHelper.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/TableComponent/DefaultTableHelper.cs",
+      "summary": "默认数据表辅助类。继承TableHelperBase，通过TextAsset读取JSON数据并反序列化到TableBase，提供ReadData和ParseData的默认实现。",
+      "tags": ["table", "helper", "json", "text-asset", "default"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:LFramework.Runtime.DefaultTableHelper",
+      "type": "class",
+      "name": "DefaultTableHelper",
+      "filePath": "LFramework/Scripts/Runtime/Components/TableComponent/DefaultTableHelper.cs",
+      "summary": "默认数据表辅助类。继承TableHelperBase，持有ResourceComponent引用，ReadData通过TextAsset读取JSON数据，ParseData解析字符串和字节数组到TableBase。",
+      "tags": ["table", "helper", "json", "default"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/TableComponent/LoadDataTableDependencyAssetEventArgs.cs",
+      "type": "file",
+      "name": "LoadDataTableDependencyAssetEventArgs.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/TableComponent/LoadDataTableDependencyAssetEventArgs.cs",
+      "summary": "加载数据表依赖资源事件参数。继承GameEventArgs，在加载数据表过程中触发，通知依赖资源的加载进度。",
+      "tags": ["table", "event", "dependency", "args"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/TableComponent/LoadDataTableFailureEventArgs.cs",
+      "type": "file",
+      "name": "LoadDataTableFailureEventArgs.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/TableComponent/LoadDataTableFailureEventArgs.cs",
+      "summary": "加载数据表失败事件参数。继承GameEventArgs，在数据表加载失败时触发，包含错误信息。",
+      "tags": ["table", "event", "failure", "args"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/TableComponent/LoadDataTableSuccessEventArgs.cs",
+      "type": "file",
+      "name": "LoadDataTableSuccessEventArgs.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/TableComponent/LoadDataTableSuccessEventArgs.cs",
+      "summary": "加载数据表成功事件参数。继承GameEventArgs，在数据表加载成功时触发。",
+      "tags": ["table", "event", "success", "args"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/TableComponent/LoadDataTableUpdateEventArgs.cs",
+      "type": "file",
+      "name": "LoadDataTableUpdateEventArgs.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/TableComponent/LoadDataTableUpdateEventArgs.cs",
+      "summary": "加载数据表更新事件参数。继承GameEventArgs，在数据表加载过程中周期性触发，报告加载进度。",
+      "tags": ["table", "event", "update", "progress", "args"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/TableComponent/TableBase.cs",
+      "type": "file",
+      "name": "TableBase.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/TableComponent/TableBase.cs",
+      "summary": "数据表抽象基类。实现IDataProvider<TableBase>接口，封装数据提供者的读取成功/失败/更新事件代理，所有具体数据表需继承此类。",
+      "tags": ["table", "abstract", "base-class", "data-provider"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:LFramework.Runtime.TableBase",
+      "type": "class",
+      "name": "TableBase",
+      "filePath": "LFramework/Scripts/Runtime/Components/TableComponent/TableBase.cs",
+      "summary": "数据表抽象基类。实现IDataProvider<TableBase>，持有_dataProvider字段，将ReadDataSuccess/ReadDataFailure/ReadDataUpdate事件代理到内部dataProvider。",
+      "tags": ["table", "abstract", "data-provider", "event-proxy"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/TableComponent/TableComponent.cs",
+      "type": "file",
+      "name": "TableComponent.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/TableComponent/TableComponent.cs",
+      "summary": "数据表组件。继承GameFrameworkComponent（sealed partial），通过Zenject [Inject]注入EventComponent、BaseComponent和ResourceComponent，持有TableManager管理数据表。",
+      "tags": ["table", "component", "gameframework", "zenject", "sealed", "partial-class"],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:LFramework.Runtime.TableComponent",
+      "type": "class",
+      "name": "TableComponent",
+      "filePath": "LFramework/Scripts/Runtime/Components/TableComponent/TableComponent.cs",
+      "summary": "数据表组件（sealed partial）。继承GameFrameworkComponent，通过[Inject]注入三个依赖组件，持有_tableManager管理所有数据表实例。",
+      "tags": ["table", "component", "sealed", "partial-class", "di"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/TableComponent/TableHelperBase.cs",
+      "type": "file",
+      "name": "TableHelperBase.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/TableComponent/TableHelperBase.cs",
+      "summary": "数据表辅助抽象基类。MonoBehaviour实现IDataProviderHelper<TableBase>接口，声明ReadData和ParseData抽象方法供具体辅助类实现。",
+      "tags": ["table", "helper", "abstract", "monoBehaviour", "data-provider"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:LFramework.Runtime.TableHelperBase",
+      "type": "class",
+      "name": "TableHelperBase",
+      "filePath": "LFramework/Scripts/Runtime/Components/TableComponent/TableHelperBase.cs",
+      "summary": "数据表辅助抽象基类。继承MonoBehaviour实现IDataProviderHelper<TableBase>，声明ReadData（object/byte[]重载）和ParseData（string/byte[]重载）抽象方法。",
+      "tags": ["table", "helper", "abstract", "monoBehaviour"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/TableComponent/TableManager.cs",
+      "type": "file",
+      "name": "TableManager.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/TableComponent/TableManager.cs",
+      "summary": "数据表管理器。内部密封类，使用Dictionary<TypeNamePair, TableBase>管理所有数据表实例，持有IDataProviderHelper和IResourceManager引用。",
+      "tags": ["table", "manager", "internal", "sealed", "dictionary"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:LFramework.Runtime.TableManager",
+      "type": "class",
+      "name": "TableManager",
+      "filePath": "LFramework/Scripts/Runtime/Components/TableComponent/TableManager.cs",
+      "summary": "数据表管理器（internal sealed）。持有_allTables字典（TypeNamePair到TableBase映射）、_dataProviderHelper和_resourceManager，管理数据表的注册、查询和加载。",
+      "tags": ["table", "manager", "internal", "sealed"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/Timer/TimerComponent.cs",
+      "type": "file",
+      "name": "TimerComponent.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/Timer/TimerComponent.cs",
+      "summary": "定时器组件。继承GameFrameworkComponent（sealed），管理TimerData字典，提供创建、暂停、恢复、删除定时器和延迟回调等API。",
+      "tags": ["timer", "component", "gameframework", "sealed", "scheduling"],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:LFramework.Runtime.TimerComponent",
+      "type": "class",
+      "name": "TimerComponent",
+      "filePath": "LFramework/Scripts/Runtime/Components/Timer/TimerComponent.cs",
+      "summary": "定时器组件（sealed）。继承GameFrameworkComponent，持有_timerDic字典、_deleteListWithCallBack和_deleteListNoCallBack两个删除队列，自增_onlyId生成唯一ID。",
+      "tags": ["timer", "component", "sealed", "id-generation"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/Timer/TimerData.cs",
+      "type": "file",
+      "name": "TimerData.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/Timer/TimerData.cs",
+      "summary": "定时器数据和扩展方法。包含TimerData定时器数据类和TimerDataExtension扩展方法（AddListener、RemoveListener），管理定时器回调的注册和移除。",
+      "tags": ["timer", "data", "extension", "callback"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:LFramework.Runtime.TimerDataExtension",
+      "type": "class",
+      "name": "TimerDataExtension",
+      "filePath": "LFramework/Scripts/Runtime/Components/Timer/TimerData.cs",
+      "summary": "TimerData扩展静态类。AddListener和RemoveListener扩展方法简化定时器回调的注册和移除操作，包含空引用检查。",
+      "tags": ["timer", "extension", "static"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/Timer/TimerExtension.cs",
+      "type": "file",
+      "name": "TimerExtension.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/Timer/TimerExtension.cs",
+      "summary": "定时器工具扩展方法。提供Ticks到Seconds的转换扩展方法（long ticks -> float seconds），用于定时器时间单位转换。",
+      "tags": ["timer", "extension", "utility", "time-conversion"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:LFramework.Runtime.TimerExtension",
+      "type": "class",
+      "name": "TimerExtension",
+      "filePath": "LFramework/Scripts/Runtime/Components/Timer/TimerExtension.cs",
+      "summary": "定时器扩展静态类。ToSeconds扩展方法将long ticks转换为float seconds（ticks/1000f/10000f）。",
+      "tags": ["timer", "extension", "static", "utility"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/SequenceLineComponent/EternitySequenceLineChunkGroup.cs",
+      "target": "class:LFramework.Runtime.EternitySequenceLineChunkGroup",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "EternitySequenceLineChunkGroup.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/SequenceLineComponent/InsertChunkArgs.cs",
+      "target": "class:LFramework.Runtime.InsertChunkArgs",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "InsertChunkArgs.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/SequenceLineComponent/ISequenceLineChunk.cs",
+      "target": "class:LFramework.Runtime.ISequenceLineChunk",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "ISequenceLineChunk.cs文件包含同名接口定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/SequenceLineComponent/ISequenceLineChunkGroup.cs",
+      "target": "class:LFramework.Runtime.ISequenceLineChunkGroup",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "ISequenceLineChunkGroup.cs文件包含同名接口定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/SequenceLineComponent/ISequenceLineChunkSetting.cs",
+      "target": "class:LFramework.Runtime.ISequenceLineChunkSetting",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "ISequenceLineChunkSetting.cs文件包含同名接口定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineChunk.cs",
+      "target": "class:LFramework.Runtime.SequenceLineChunk<T>",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "SequenceLineChunk.cs文件包含同名泛型类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineChunkGroup.cs",
+      "target": "class:LFramework.Runtime.SequenceLineChunkGroup",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "SequenceLineChunkGroup.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineChunkGroupHandle.cs",
+      "target": "class:LFramework.Runtime.SequenceLineChunkGroupHandle",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "SequenceLineChunkGroupHandle.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineComponent.cs",
+      "target": "class:LFramework.Runtime.SequenceLineComponent",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "SequenceLineComponent.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineEnums.cs",
+      "target": "enum:LFramework.Runtime.SequenceLineChunkSortInGroup",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "SequenceLineEnums.cs文件包含SequenceLineChunkSortInGroup枚举定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/SequenceLineComponent/SequenceLineEnums.cs",
+      "target": "enum:LFramework.Runtime.SequenceLineInsertPosition",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "SequenceLineEnums.cs文件包含SequenceLineInsertPosition枚举定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/SoundComponent/SoundExtension.cs",
+      "target": "class:LFramework.Runtime.SoundExtension",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "SoundExtension.cs文件包含SoundExtension类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/TableComponent/DefaultTableHelper.cs",
+      "target": "class:LFramework.Runtime.DefaultTableHelper",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "DefaultTableHelper.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/TableComponent/LoadDataTableDependencyAssetEventArgs.cs",
+      "target": "class:LFramework.Runtime.LoadDataTableDependencyAssetEventArgs",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "LoadDataTableDependencyAssetEventArgs.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/TableComponent/LoadDataTableFailureEventArgs.cs",
+      "target": "class:LFramework.Runtime.LoadDataTableFailureEventArgs",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "LoadDataTableFailureEventArgs.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/TableComponent/LoadDataTableSuccessEventArgs.cs",
+      "target": "class:LFramework.Runtime.LoadDataTableSuccessEventArgs",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "LoadDataTableSuccessEventArgs.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/TableComponent/LoadDataTableUpdateEventArgs.cs",
+      "target": "class:LFramework.Runtime.LoadDataTableUpdateEventArgs",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "LoadDataTableUpdateEventArgs.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/TableComponent/TableBase.cs",
+      "target": "class:LFramework.Runtime.TableBase",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "TableBase.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/TableComponent/TableComponent.cs",
+      "target": "class:LFramework.Runtime.TableComponent",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "TableComponent.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/TableComponent/TableHelperBase.cs",
+      "target": "class:LFramework.Runtime.TableHelperBase",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "TableHelperBase.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/TableComponent/TableManager.cs",
+      "target": "class:LFramework.Runtime.TableManager",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "TableManager.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/Timer/TimerComponent.cs",
+      "target": "class:LFramework.Runtime.TimerComponent",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "TimerComponent.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/Timer/TimerData.cs",
+      "target": "class:LFramework.Runtime.TimerDataExtension",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "TimerData.cs文件包含TimerDataExtension类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/Timer/TimerExtension.cs",
+      "target": "class:LFramework.Runtime.TimerExtension",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "TimerExtension.cs文件包含同名类定义"
+    },
+    {
+      "source": "class:LFramework.Runtime.EternitySequenceLineChunkGroup",
+      "target": "class:LFramework.Runtime.SequenceLineChunkGroup",
+      "type": "extends",
+      "weight": 1.0,
+      "label": "EternitySequenceLineChunkGroup继承SequenceLineChunkGroup"
+    },
+    {
+      "source": "class:LFramework.Runtime.SequenceLineChunk<T>",
+      "target": "class:LFramework.Runtime.ISequenceLineChunk",
+      "type": "implements",
+      "weight": 1.0,
+      "label": "SequenceLineChunk<T>实现ISequenceLineChunk接口"
+    },
+    {
+      "source": "class:LFramework.Runtime.SequenceLineChunkGroup",
+      "target": "class:LFramework.Runtime.ISequenceLineChunkGroup",
+      "type": "implements",
+      "weight": 1.0,
+      "label": "SequenceLineChunkGroup实现ISequenceLineChunkGroup接口"
+    },
+    {
+      "source": "class:LFramework.Runtime.SequenceLineChunkGroup",
+      "target": "class:LFramework.Runtime.SequenceLineComponent",
+      "type": "depends",
+      "weight": 0.9,
+      "label": "SequenceLineChunkGroup持有SequenceLineComponent引用"
+    },
+    {
+      "source": "class:LFramework.Runtime.SequenceLineChunkGroupHandle",
+      "target": "class:LFramework.Runtime.SequenceLineChunkGroup",
+      "type": "manages",
+      "weight": 0.9,
+      "label": "SequenceLineChunkGroupHandle持有Groups链表管理SequenceLineChunkGroup实例"
+    },
+    {
+      "source": "class:LFramework.Runtime.SequenceLineComponent",
+      "target": "class:LFramework.Runtime.SequenceLineChunkGroupHandle",
+      "type": "manages",
+      "weight": 1.0,
+      "label": "SequenceLineComponent通过_multiGroups字典管理SequenceLineChunkGroupHandle"
+    },
+    {
+      "source": "class:LFramework.Runtime.InsertChunkArgs",
+      "target": "class:LFramework.Runtime.ISequenceLineChunkSetting",
+      "type": "depends",
+      "weight": 1.0,
+      "label": "InsertChunkArgs包含ISequenceLineChunkSetting字段"
+    },
+    {
+      "source": "class:LFramework.Runtime.DefaultTableHelper",
+      "target": "class:LFramework.Runtime.TableHelperBase",
+      "type": "extends",
+      "weight": 1.0,
+      "label": "DefaultTableHelper继承TableHelperBase"
+    },
+    {
+      "source": "class:LFramework.Runtime.TableHelperBase",
+      "target": "class:LFramework.Runtime.TableBase",
+      "type": "depends",
+      "weight": 0.8,
+      "label": "TableHelperBase的ReadData和ParseData方法操作TableBase"
+    },
+    {
+      "source": "class:LFramework.Runtime.TableComponent",
+      "target": "class:LFramework.Runtime.TableManager",
+      "type": "manages",
+      "weight": 1.0,
+      "label": "TableComponent持有TableManager管理数据表"
+    },
+    {
+      "source": "class:LFramework.Runtime.TableManager",
+      "target": "class:LFramework.Runtime.TableBase",
+      "type": "manages",
+      "weight": 1.0,
+      "label": "TableManager通过_allTables字典管理TableBase实例"
+    },
+    {
+      "source": "class:LFramework.Runtime.TableComponent",
+      "target": "class:LFramework.Runtime.DefaultTableHelper",
+      "type": "depends",
+      "weight": 0.6,
+      "label": "TableComponent与DefaultTableHelper同属TableComponent模块"
+    },
+    {
+      "source": "class:LFramework.Runtime.TimerDataExtension",
+      "target": "class:LFramework.Runtime.TimerComponent",
+      "type": "depends",
+      "weight": 0.5,
+      "label": "TimerDataExtension扩展TimerData配合TimerComponent使用"
+    },
+    {
+      "source": "class:LFramework.Runtime.TimerComponent",
+      "target": "class:LFramework.Runtime.TimerDataExtension",
+      "type": "depends",
+      "weight": 0.5,
+      "label": "TimerComponent使用TimerData配合TimerDataExtension扩展"
+    }
+  ]
+}

@@ -1,0 +1,434 @@
+# LFramework 架构全景图
+
+> 生成日期：2026-07-01  
+> 源路径：Assets/Frame/Framework  
+> 分析文件数：1252  
+> 使用工具：understand-anything
+
+---
+
+## 目录
+
+1. [总体架构图](#1-总体架构图)
+2. [LFramework分层架构图](#2-lframework分层架构图)
+3. [核心系统关系图](#3-核心系统关系图)
+4. [组件系统架构图](#4-组件系统架构图)
+5. [启动流程图](#5-启动流程图)
+6. [架构特点总结](#架构特点总结)
+
+---
+
+## 1. 总体架构图
+
+展示 Framework 的4大模块及其文件分布。
+
+```mermaid
+graph TB
+    subgraph Framework["Assets/Frame/Framework (1252 files)"]
+        LFW["LFramework<br/>主框架核心<br/>650 files (51.9%)"]
+        UniRx["UniRx<br/>响应式编程<br/>约150 files (12.0%)"]
+        UniTask["UniTask<br/>异步任务<br/>约100 files (8.0%)"]
+        UGF["UnityGameFramework<br/>游戏框架基础<br/>约193 files (15.4%)"]
+    end
+    
+    LFW --> UniRx
+    LFW --> UniTask
+    LFW --> UGF
+    
+    style LFW fill:#4A90E2,color:#fff
+    style UniRx fill:#7B68EE,color:#fff
+    style UniTask fill:#50C878,color:#fff
+    style UGF fill:#FF6B6B,color:#fff
+    style Framework fill:#f9f9f9,stroke:#333,stroke-width:2px
+```
+
+**说明：**
+- **LFramework**：框架主体，包含运行时核心、组件系统、编辑器工具、热更新
+- **UniRx**：集成的响应式编程库，用于事件流处理
+- **UniTask**：异步任务库，提供高性能的 async/await 支持
+- **UnityGameFramework**：第三方游戏框架，提供基础组件实现
+
+---
+
+## 2. LFramework分层架构图
+
+展示 LFramework 的5层架构和职责划分。
+
+```mermaid
+graph TB
+    subgraph Layer5["第三方库层 (443 files, 35.4%)"]
+        UGF_Modules["UnityGameFramework<br/>· DataProvider<br/>· EventPool/ReferencePool<br/>· FSM/Procedure<br/>· Resource/UI/Entity"]
+        UniRx_Modules["UniRx<br/>· Observable<br/>· Operators<br/>· Subjects/Schedulers"]
+        UniTask_Modules["UniTask<br/>· Async/Await<br/>· Linq/Triggers<br/>· External集成"]
+    end
+    
+    subgraph Layer4["编辑器工具层 (182 files, 14.5%)"]
+        Inspector["Inspector扩展<br/>· ComponentInspectors<br/>· VariableAutoBindTool<br/>· ViewBehaviourInspector"]
+        BuildSystem["构建系统<br/>· BuildPackage<br/>· PlatformConfig<br/>· ResourceBuildMode"]
+        EditorWindows["编辑器窗口<br/>· GameWindow<br/>· LubanWindow<br/>· DebuggerWindow"]
+        EditorTools["工具集<br/>· LocalResourceServer<br/>· RouteIndexBuilder<br/>· SettingSyncService"]
+    end
+    
+    subgraph Layer3["热更新层 (12 files, 1.0%)"]
+        HotfixCore["热更新核心<br/>· Entry.cs<br/>· LSystemApplication<br/>· HotfixProcedureBase<br/>· HybridCLR集成"]
+    end
+    
+    subgraph Layer2["组件系统层 (114 files, 9.1%)"]
+        UI["UI组件<br/>· UIComponent<br/>· Window管理<br/>· MVVM支持"]
+        Entity["实体组件<br/>· EntityComponent<br/>· 对象池<br/>· SubEntity"]
+        Resource["资源组件<br/>· ResourceComponent<br/>· Addressables<br/>· YooAsset"]
+        Data["数据组件<br/>· TableComponent<br/>· EventComponent<br/>· NotificationComponent"]
+        Function["功能组件<br/>· Sound/Language<br/>· Timer/WorkFlow<br/>· SequenceLine"]
+    end
+    
+    subgraph Layer1["运行时核心层 (501 files, 40.0%)"]
+        DI["依赖注入<br/>· Injection.cs<br/>· LServices<br/>· IServiceResolver"]
+        Launch["启动管线<br/>· LaunchPipelineRunner<br/>· LaunchContext<br/>· LaunchTasks"]
+        Procedure["过程管理<br/>· ProcedureComponent<br/>· RuntimeBaseProcedure<br/>· FSM"]
+        Settings["配置系统<br/>· SettingManager<br/>· ComponentSettings<br/>· AndroidSetting/iOSSetting"]
+        Provider["Provider系统<br/>· SystemProviderBase<br/>· World系统<br/>· 生命周期管理"]
+    end
+    
+    Layer2 --> Layer1
+    Layer3 --> Layer1
+    Layer3 --> Layer2
+    Layer4 --> Layer1
+    Layer4 --> Layer2
+    Layer5 --> Layer1
+    
+    style Layer1 fill:#E8F4F8,stroke:#4A90E2,stroke-width:2px
+    style Layer2 fill:#F0E8F8,stroke:#7B68EE,stroke-width:2px
+    style Layer3 fill:#FFF4E8,stroke:#FFA500,stroke-width:2px
+    style Layer4 fill:#E8F8F0,stroke:#50C878,stroke-width:2px
+    style Layer5 fill:#F8E8E8,stroke:#FF6B6B,stroke-width:2px
+```
+
+**层次说明：**
+
+| 层次 | 文件数 | 占比 | 核心职责 |
+|------|--------|------|----------|
+| **运行时核心层** | 501 | 40.0% | 依赖注入、启动流程、过程管理、配置系统 |
+| **组件系统层** | 114 | 9.1% | UI、实体、资源、数据、功能组件 |
+| **热更新层** | 12 | 1.0% | HybridCLR集成、DLL动态加载 |
+| **编辑器工具层** | 182 | 14.5% | Inspector扩展、构建系统、编辑器窗口 |
+| **第三方库层** | 443 | 35.4% | UnityGameFramework、UniRx、UniTask |
+
+---
+
+## 3. 核心系统关系图
+
+展示依赖注入、启动流程、组件系统之间的关系。
+
+```mermaid
+graph TB
+    subgraph DI_System["依赖注入系统"]
+        Injection["Injection.cs<br/>注入容器核心"]
+        LServices["LServices<br/>服务容器"]
+        IServiceResolver["IServiceResolver<br/>服务解析器"]
+        InjectAttribute["InjectAttribute<br/>注入特性"]
+    end
+    
+    subgraph Launch_System["启动流程系统"]
+        LaunchRunner["LaunchPipelineRunner<br/>管线运行器"]
+        LaunchContext["LaunchContext<br/>启动上下文"]
+        LaunchTasks["启动任务<br/>· InitResourceTask<br/>· CheckVersionTask<br/>· DownloadResourceTask<br/>· LoadAssemblyTask<br/>· HotfixEntryTask"]
+    end
+    
+    subgraph Component_System["组件系统"]
+        UIComp["UIComponent<br/>UI管理"]
+        EntityComp["EntityComponent<br/>实体管理"]
+        ResourceComp["ResourceComponent<br/>资源加载"]
+        TableComp["TableComponent<br/>数据表"]
+        EventComp["EventComponent<br/>事件系统"]
+        SoundComp["SoundComponent<br/>音频"]
+    end
+    
+    subgraph Hotfix_System["热更新系统"]
+        HotfixEntry["Entry.cs<br/>热更新入口"]
+        LSystemApp["LSystemApplication<br/>系统应用"]
+        HotfixProc["HotfixProcedureBase<br/>热更新过程"]
+    end
+    
+    subgraph Procedure_System["过程管理系统"]
+        ProcedureComp["ProcedureComponent<br/>过程组件"]
+        RuntimeProc["RuntimeBaseProcedure<br/>运行时过程"]
+        FSM["FSM<br/>状态机"]
+    end
+    
+    DI_System -->|"注入服务"| Component_System
+    DI_System -->|"注入服务"| Procedure_System
+    DI_System -->|"注入服务"| Launch_System
+    
+    Launch_System -->|"初始化"| ResourceComp
+    Launch_System -->|"加载"| Hotfix_System
+    
+    Hotfix_System -->|"注册"| Component_System
+    Hotfix_System -->|"注册"| Procedure_System
+    
+    ResourceComp -->|"加载资源"| UIComp
+    ResourceComp -->|"加载资源"| EntityComp
+    ResourceComp -->|"加载资源"| SoundComp
+    
+    ProcedureComp -->|"状态切换"| RuntimeProc
+    RuntimeProc -->|"使用组件"| Component_System
+    
+    EventComp -->|"事件通知"| Component_System
+    TableComp -->|"提供数据"| Component_System
+    
+    style DI_System fill:#FFE5E5,stroke:#FF6B6B,stroke-width:3px
+    style Launch_System fill:#E5F5FF,stroke:#4A90E2,stroke-width:2px
+    style Component_System fill:#F0E5FF,stroke:#7B68EE,stroke-width:2px
+    style Hotfix_System fill:#FFF5E5,stroke:#FFA500,stroke-width:2px
+    style Procedure_System fill:#E5FFE5,stroke:#50C878,stroke-width:2px
+```
+
+**关键依赖关系：**
+
+1. **依赖注入系统** 是整个框架的基础，所有组件都通过它获取服务
+2. **启动流程** 负责初始化资源、检查版本、加载热更新代码
+3. **资源组件** 被 UI、实体、音频等组件依赖
+4. **过程管理** 控制游戏流程，协调各组件工作
+5. **热更新系统** 可动态注入组件和过程
+
+---
+
+## 4. 组件系统架构图
+
+展示各个组件的详细结构和关系。
+
+```mermaid
+graph TB
+    subgraph UI_Component["UI组件系统"]
+        UIComponent["UIComponent<br/>UI管理器"]
+        UIForm["UIForm<br/>UI表单"]
+        BaseSubWindow["BaseSubWindow<br/>窗口基类"]
+        ViewComponent["ViewComponent<br/>MVVM视图"]
+        UIAnimation["UI动画<br/>· IAnimation<br/>· AnimationEvent"]
+        UILifecycle["生命周期<br/>OnInit/OnOpen<br/>OnPause/OnResume<br/>OnClose/OnRecycle"]
+    end
+    
+    subgraph Entity_Component["实体组件系统"]
+        EntityComponent["EntityComponent<br/>实体管理器"]
+        EntityLogic["EntityLogic<br/>实体逻辑"]
+        BaseSubEntity["BaseSubEntity<br/>实体基类"]
+        EntityPool["对象池<br/>实体复用"]
+        SubModule["SubModule<br/>子模块扩展"]
+    end
+    
+    subgraph Resource_Component["资源组件系统"]
+        ResourceComponent["ResourceComponent<br/>资源管理器"]
+        AddressableHelper["Addressables支持<br/>· AddressableResourceHelper<br/>· AddressableDownloadHandler"]
+        YooAssetHelper["YooAsset支持<br/>· YooAssetResourceHelper<br/>· YooAssetDownloadHandler<br/>· MultiPackage管理"]
+        ResourceMode["资源模式<br/>· Editor模式<br/>· 单机模式<br/>· 联机模式"]
+    end
+    
+    subgraph Data_Component["数据组件系统"]
+        TableComponent["TableComponent<br/>数据表管理"]
+        EventComponent["EventComponent<br/>事件系统"]
+        GameNotification["GameNotificationsComponent<br/>游戏通知"]
+    end
+    
+    subgraph Function_Component["功能组件系统"]
+        SoundComponent["SoundComponent<br/>音频管理"]
+        LanguageComponent["LanguageComponent<br/>多语言"]
+        TimerComponent["TimerComponent<br/>定时器"]
+        WorkFlowComponent["WorkFlowComponent<br/>工作流"]
+        SequenceLineComponent["SequenceLineComponent<br/>序列线"]
+    end
+    
+    subgraph Download_Component["下载组件系统"]
+        ResourceDownload["ResourceDownloadComponent<br/>资源下载管理"]
+        DownloadHandler["下载处理器<br/>· Addressables<br/>· YooAsset"]
+    end
+    
+    Resource_Component -->|"加载UI资源"| UI_Component
+    Resource_Component -->|"加载实体资源"| Entity_Component
+    Resource_Component -->|"加载音频资源"| Function_Component
+    
+    Download_Component -->|"下载资源"| Resource_Component
+    
+    Data_Component -->|"提供数据"| UI_Component
+    Data_Component -->|"提供数据"| Entity_Component
+    Data_Component -->|"事件通知"| Function_Component
+    
+    EntityPool -->|"池化管理"| Entity_Component
+    
+    style UI_Component fill:#E5F0FF,stroke:#4A90E2,stroke-width:2px
+    style Entity_Component fill:#FFE5F0,stroke:#FF69B4,stroke-width:2px
+    style Resource_Component fill:#E5FFE5,stroke:#50C878,stroke-width:2px
+    style Data_Component fill:#FFF5E5,stroke:#FFA500,stroke-width:2px
+    style Function_Component fill:#F0E5FF,stroke:#7B68EE,stroke-width:2px
+    style Download_Component fill:#FFE5E5,stroke:#FF6B6B,stroke-width:2px
+```
+
+**组件分类：**
+
+| 类别 | 组件 | 核心功能 |
+|------|------|----------|
+| **UI组件** | UIComponent | 窗口管理、MVVM支持、动画系统、生命周期管理 |
+| **实体组件** | EntityComponent | 实体创建/销毁、对象池、SubModule扩展 |
+| **资源组件** | ResourceComponent | 多资源方案（Addressables/YooAsset）、多包管理 |
+| **数据组件** | TableComponent, EventComponent | 数据表管理、事件系统、游戏通知 |
+| **功能组件** | Sound, Language, Timer等 | 音频、多语言、定时器、工作流、序列线 |
+| **下载组件** | ResourceDownloadComponent | 资源下载、断点续传 |
+
+---
+
+## 5. 启动流程图
+
+展示游戏启动时的完整流程和任务序列。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant App as 应用启动
+    participant DI as 依赖注入系统
+    participant Launch as 启动管线
+    participant Resource as 资源组件
+    participant Hotfix as 热更新系统
+    participant Procedure as 过程管理
+    participant Game as 游戏逻辑
+    
+    App->>DI: 初始化依赖注入容器
+    DI->>DI: 注册核心服务
+    DI->>Launch: 创建启动管线
+    
+    Launch->>Launch: 创建 LaunchContext
+    Launch->>Resource: InitResourceTask<br/>初始化资源系统
+    Resource-->>Launch: 初始化完成
+    
+    Launch->>Resource: CheckVersionTask<br/>检查资源版本
+    Resource-->>Launch: 版本信息
+    
+    alt 需要更新
+        Launch->>Resource: UpdateYooPackageManifestTask<br/>更新资源清单
+        Resource-->>Launch: 清单更新完成
+        
+        Launch->>Resource: DownloadResourceTask<br/>下载更新资源
+        Resource-->>Launch: 下载完成
+    end
+    
+    Launch->>Hotfix: LoadAssemblyTask<br/>加载热更新程序集
+    Hotfix->>Hotfix: 加载 DLL
+    Hotfix->>DI: 注册热更新组件
+    Hotfix->>DI: 注册热更新过程
+    Hotfix-->>Launch: 程序集加载完成
+    
+    Launch->>Hotfix: HotfixEntryTask<br/>执行热更新入口
+    Hotfix->>Game: Entry.Start()
+    Hotfix-->>Launch: 热更新启动完成
+    
+    Launch->>Procedure: 切换到启动过程
+    Procedure->>Game: RuntimeBaseProcedure.OnEnter()
+    
+    Game->>Resource: 加载游戏资源
+    Game->>DI: 获取组件服务
+    Game->>Game: 初始化游戏逻辑
+    
+    Game-->>App: 游戏启动完成
+    
+    Note over App,Game: 启动流程完成，进入游戏主循环
+```
+
+**启动任务详解：**
+
+| 序号 | 任务名称 | 核心职责 | 关键类 |
+|------|----------|----------|--------|
+| 1-2 | 依赖注入初始化 | 注册核心服务、创建容器 | `Injection.cs`, `LServices` |
+| 3-4 | 资源系统初始化 | 初始化 Addressables/YooAsset | `InitResourceTask` |
+| 5-6 | 版本检查 | 检查本地和远程资源版本 | `CheckVersionTask` |
+| 7-9 | 资源更新 | 更新清单、下载新资源 | `UpdateYooPackageManifestTask`, `DownloadResourceTask` |
+| 10-13 | 热更新加载 | 加载 DLL、注册组件和过程 | `LoadAssemblyTask`, `HotfixEntryTask` |
+| 14-15 | 过程切换 | 切换到游戏主流程 | `ProcedureComponent`, `RuntimeBaseProcedure` |
+| 16-18 | 游戏初始化 | 加载游戏资源、初始化逻辑 | 游戏层代码 |
+
+---
+
+## 架构特点总结
+
+### 设计模式
+
+- **依赖注入 (DI)** - 核心架构模式，解耦组件依赖
+- **对象池模式** - 实体和UI对象复用
+- **状态机模式** - 过程管理和FSM
+- **观察者模式** - 事件系统
+- **工厂模式** - 组件创建
+- **单例模式** - 管理器类
+- **MVVM模式** - ViewComponent支持
+- **管线模式** - 启动流程和构建流程
+
+### 核心技术栈
+
+| 技术 | 用途 |
+|------|------|
+| **Unity 2020.3+** | 游戏引擎 |
+| **C# async/await** | 异步编程 |
+| **UniTask** | 高性能异步任务 |
+| **UniRx** | 响应式编程 |
+| **Addressables / YooAsset** | 资源管理方案 |
+| **HybridCLR** | 热更新方案 |
+| **Luban** | 配置表工具 |
+
+### 模块化特性
+
+✅ **组件化架构** - 15+核心组件，可插拔设计  
+✅ **多资源方案** - 支持 Addressables、YooAsset、Resources  
+✅ **热更新支持** - HybridCLR集成，动态加载 DLL  
+✅ **编辑器工具** - 35+测试用例，完善的编辑器扩展  
+✅ **跨平台支持** - Android/iOS/WebGL 平台配置  
+
+### 统计数据
+
+```
+总文件数：1252
+├── 运行时核心层：501 (40.0%)
+├── 组件系统层：114 (9.1%)
+├── 编辑器工具层：182 (14.5%)
+├── 热更新层：12 (1.0%)
+└── 第三方库层：443 (35.4%)
+
+组件数量：
+├── 核心组件：15
+├── 可选组件：8
+└── 第三方集成：3 (UnityGameFramework, UniRx, UniTask)
+```
+
+---
+
+## 学习路径建议
+
+推荐按照以下顺序学习 LFramework：
+
+1. **框架概览** → 了解整体架构
+2. **依赖注入系统** → 理解核心机制
+3. **启动流程管线** → 理解初始化过程
+4. **组件系统基础** → 学习组件设计
+5. **UI/实体/资源组件** → 掌握核心组件
+6. **过程管理系统** → 理解游戏流程控制
+7. **事件系统** → 理解事件通信
+8. **热更新机制** → 理解动态更新
+9. **构建系统** → 掌握自动化构建
+10. **编辑器扩展** → 提升开发效率
+
+详细学习路径请参考 `.understand-anything/intermediate/tour.json`。
+
+---
+
+## 参考资源
+
+- **分析数据**: `.understand-anything/intermediate/`
+  - `layers.json` - 层次结构数据
+  - `tour.json` - 学习导览数据
+  - `scan-result.json` - 扫描结果
+  - `batches.json` - 批次分析
+  - `framework_architecture_analysis.json` - 架构分析报告
+
+- **框架文档**:
+  - `LFramework/README.md` - 框架说明
+  - `LFramework/RELEASE_NOTES_v1.1.0.md` - 版本说明
+  - `LFramework/CHANGELOG.md` - 更新日志
+
+---
+
+**生成工具**: understand-anything + Claude Code  
+**最后更新**: 2026-07-01

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>资源与构建 - LFramework Wiki</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar"><div><p class="eyebrow">Resource and Build</p><h1>资源与构建</h1><p class="summary">YooAsset/Addressables 后端、资源就绪判断和编辑器构建管线。</p></div></header>
+  <main class="layout">
+    <nav class="nav">
+      <a href="index.html">总览</a><a href="startup-flow.html">启动流程</a><a href="configuration.html">配置整理</a><a href="runtime-systems.html">模块详解</a><a href="module-tree.html">模块树</a><a href="worldhelper-guide.html">WorldHelper</a><a href="class-index.html">类索引</a><a class="active" href="resource-and-build.html">资源与构建</a><a href="newcomer-checklist.html">新人清单</a>
+    </nav>
+    <article class="content">
+      <h2>资源模式</h2>
+      <p><code>ResourceComponentSetting.ResourceMode</code> 决定资源后端：YooAsset 或 Addressable。</p>
+
+      <h2>YooAsset 多包</h2>
+      <ul>
+        <li><code>packageId</code> 是逻辑包 ID。</li>
+        <li><code>yooPackageName</code> 是实际 YooAsset 包名。</li>
+        <li>默认包为空时取第一个有效包。</li>
+        <li>路由索引包通过 Routing 配置解析。</li>
+        <li>构建包、更新包、下载计划由 <code>YooAssetMultiPackageUtility</code> 收集。</li>
+      </ul>
+
+      <h2>Addressables HasAsset</h2>
+      <p>先查 catalog location，再查下载大小。<code>Exist</code> 表示本地已可用，<code>NotReady</code> 表示 catalog 未就绪或仍需下载，<code>NotExist</code> 表示 catalog 已就绪但 key 不存在。</p>
+
+      <h2>构建管线</h2>
+      <table>
+        <thead><tr><th>管线</th><th>任务</th></tr></thead>
+        <tbody>
+          <tr><td>AppBuildPipeline</td><td>CreateDirectory, Preprocess, Defines, BuildBefore, BuildDll, BuildResources, BuildGameSetting, BuildPlayer, Postprocess</td></tr>
+          <tr><td>ResourceBuildPipeline</td><td>BuildDll, BuildResources</td></tr>
+        </tbody>
+      </table>
+
+      <h2>定位顺序</h2>
+      <ol>
+        <li>确认 <code>BuildSetting.buildType</code>。</li>
+        <li>确认 <code>ResourceComponentSetting.ResourceMode</code>。</li>
+        <li>确认 <code>isbuildDll</code>、<code>isBuildResources</code>、<code>isResourcesBuildIn</code>。</li>
+        <li>确认平台 <code>IPlatformConfig</code> 是否写入正确 PlayerSettings。</li>
+        <li>确认资源输出路径和运行时加载路径一致。</li>
+      </ol>
+    </article>
+  </main>
+</body>
+</html>

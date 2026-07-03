@@ -1,0 +1,344 @@
+{
+  "nodes": [
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.QualityInformationWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.QualityInformationWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.QualityInformationWindow.cs",
+      "summary": "调试器画质信息窗口，显示当前画质等级和渲染设置",
+      "tags": [
+        "runtime",
+        "debugger",
+        "quality"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.ReferencePoolInformationWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.ReferencePoolInformationWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.ReferencePoolInformationWindow.cs",
+      "summary": "调试器引用池信息窗口，显示各引用池使用统计",
+      "tags": [
+        "runtime",
+        "debugger",
+        "referencepool"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.RuntimeMemoryInformationWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.RuntimeMemoryInformationWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.RuntimeMemoryInformationWindow.cs",
+      "summary": "调试器运行时内存信息窗口，监控Unity对象内存分配",
+      "tags": [
+        "runtime",
+        "debugger",
+        "memory"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.RuntimeMemoryInformationWindow.Sample.cs",
+      "type": "file",
+      "name": "DebuggerComponent.RuntimeMemoryInformationWindow.Sample.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.RuntimeMemoryInformationWindow.Sample.cs",
+      "summary": "运行时内存采样数据内部类，记录单次内存快照",
+      "tags": [
+        "runtime",
+        "debugger",
+        "memory",
+        "sample"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.RuntimeMemorySummaryWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.RuntimeMemorySummaryWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.RuntimeMemorySummaryWindow.cs",
+      "summary": "调试器运行时内存摘要窗口，汇总内存使用概况",
+      "tags": [
+        "runtime",
+        "debugger",
+        "memory",
+        "summary"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.RuntimeMemorySummaryWindow.Record.cs",
+      "type": "file",
+      "name": "DebuggerComponent.RuntimeMemorySummaryWindow.Record.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.RuntimeMemorySummaryWindow.Record.cs",
+      "summary": "运行时内存摘要记录内部类",
+      "tags": [
+        "runtime",
+        "debugger",
+        "memory",
+        "record"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.SceneInformationWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.SceneInformationWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.SceneInformationWindow.cs",
+      "summary": "调试器场景信息窗口，显示当前加载场景列表",
+      "tags": [
+        "runtime",
+        "debugger",
+        "scene"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.ScreenInformationWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.ScreenInformationWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.ScreenInformationWindow.cs",
+      "summary": "调试器屏幕信息窗口，显示分辨率和DPI等屏幕数据",
+      "tags": [
+        "runtime",
+        "debugger",
+        "screen"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.ScrollableDebuggerWindowBase.cs",
+      "type": "file",
+      "name": "DebuggerComponent.ScrollableDebuggerWindowBase.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.ScrollableDebuggerWindowBase.cs",
+      "summary": "可滚动调试窗口基类，提供滚动视图的通用实现",
+      "tags": [
+        "runtime",
+        "debugger",
+        "base",
+        "gui"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.SettingsWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.SettingsWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.SettingsWindow.cs",
+      "summary": "调试器设置窗口，提供调试器自身的配置选项",
+      "tags": [
+        "runtime",
+        "debugger",
+        "settings"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.SystemInformationWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.SystemInformationWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.SystemInformationWindow.cs",
+      "summary": "调试器系统信息窗口，显示操作系统和设备信息",
+      "tags": [
+        "runtime",
+        "debugger",
+        "system"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.TimeInformationWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.TimeInformationWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.TimeInformationWindow.cs",
+      "summary": "调试器时间信息窗口，显示游戏时间和帧时间数据",
+      "tags": [
+        "runtime",
+        "debugger",
+        "time"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.WebPlayerInformationWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.WebPlayerInformationWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.WebPlayerInformationWindow.cs",
+      "summary": "调试器Web平台信息窗口，显示浏览器环境数据",
+      "tags": [
+        "runtime",
+        "debugger",
+        "web"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Download/DownloadAgentHelperBase.cs",
+      "type": "file",
+      "name": "DownloadAgentHelperBase.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Download/DownloadAgentHelperBase.cs",
+      "summary": "下载代理辅助器基类，定义下载代理的通用操作",
+      "tags": [
+        "runtime",
+        "download",
+        "base",
+        "helper"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Download/DownloadComponent.cs",
+      "type": "file",
+      "name": "DownloadComponent.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Download/DownloadComponent.cs",
+      "summary": "下载组件，管理下载任务的创建、监控和生命周期",
+      "tags": [
+        "runtime",
+        "download",
+        "component",
+        "core"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Download/DownloadFailureEventArgs.cs",
+      "type": "file",
+      "name": "DownloadFailureEventArgs.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Download/DownloadFailureEventArgs.cs",
+      "summary": "下载失败事件参数类",
+      "tags": [
+        "runtime",
+        "download",
+        "event",
+        "failure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Download/DownloadStartEventArgs.cs",
+      "type": "file",
+      "name": "DownloadStartEventArgs.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Download/DownloadStartEventArgs.cs",
+      "summary": "下载开始事件参数类",
+      "tags": [
+        "runtime",
+        "download",
+        "event",
+        "start"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Download/DownloadSuccessEventArgs.cs",
+      "type": "file",
+      "name": "DownloadSuccessEventArgs.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Download/DownloadSuccessEventArgs.cs",
+      "summary": "下载成功事件参数类",
+      "tags": [
+        "runtime",
+        "download",
+        "event",
+        "success"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Download/DownloadUpdateEventArgs.cs",
+      "type": "file",
+      "name": "DownloadUpdateEventArgs.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Download/DownloadUpdateEventArgs.cs",
+      "summary": "下载更新事件参数类，报告下载进度",
+      "tags": [
+        "runtime",
+        "download",
+        "event",
+        "progress"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Download/UnityWebRequestDownloadAgentHelper.cs",
+      "type": "file",
+      "name": "UnityWebRequestDownloadAgentHelper.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Download/UnityWebRequestDownloadAgentHelper.cs",
+      "summary": "基于UnityWebRequest的下载代理辅助器实现",
+      "tags": [
+        "runtime",
+        "download",
+        "helper",
+        "unitywebrequest"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Download/UnityWebRequestDownloadAgentHelper.DownloadHandler.cs",
+      "type": "file",
+      "name": "UnityWebRequestDownloadAgentHelper.DownloadHandler.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Download/UnityWebRequestDownloadAgentHelper.DownloadHandler.cs",
+      "summary": "UnityWebRequest下载代理内部类，自定义下载处理器",
+      "tags": [
+        "runtime",
+        "download",
+        "internal"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Download/WWWDownloadAgentHelper.cs",
+      "type": "file",
+      "name": "WWWDownloadAgentHelper.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Download/WWWDownloadAgentHelper.cs",
+      "summary": "基于WWW的下载代理辅助器实现(旧版兼容)",
+      "tags": [
+        "runtime",
+        "download",
+        "helper",
+        "www"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Entity/AttachEntityInfo.cs",
+      "type": "file",
+      "name": "AttachEntityInfo.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Entity/AttachEntityInfo.cs",
+      "summary": "附加实体信息类，记录实体挂载的父Transform和位置",
+      "tags": [
+        "runtime",
+        "entity",
+        "info"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Entity/DefaultEntityGroupHelper.cs",
+      "type": "file",
+      "name": "DefaultEntityGroupHelper.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Entity/DefaultEntityGroupHelper.cs",
+      "summary": "默认实体组辅助器，空实现的实体分组辅助器",
+      "tags": [
+        "runtime",
+        "entity",
+        "helper",
+        "default"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Entity/DefaultEntityHelper.cs",
+      "type": "file",
+      "name": "DefaultEntityHelper.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Entity/DefaultEntityHelper.cs",
+      "summary": "默认实体辅助器，提供实体的实例化和销毁",
+      "tags": [
+        "runtime",
+        "entity",
+        "helper",
+        "default"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": []
+}

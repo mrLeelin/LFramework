@@ -1,0 +1,736 @@
+{
+  "nodes": [
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/PackageRegistry.cs",
+      "type": "file",
+      "name": "PackageRegistry.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/PackageRegistry.cs",
+      "summary": "YooAsset资源包注册表。管理已配置和活跃的PackageDefinition，按平台和渠道过滤出活跃包，提供按ID查询包定义的能力。",
+      "tags": ["resource", "yooasset", "registry", "multi-package", "platform-filter"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:LFramework.Runtime.PackageRegistry",
+      "type": "class",
+      "name": "PackageRegistry",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/PackageRegistry.cs",
+      "summary": "资源包注册表类。持有_configuredPackages和_activePackages两个Dictionary，Configure方法按平台和渠道过滤后填充活跃包列表，ActivePackages提供只读访问。",
+      "tags": ["resource", "registry", "multi-package", "filter"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/PackageResolver.cs",
+      "type": "file",
+      "name": "PackageResolver.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/PackageResolver.cs",
+      "summary": "YooAsset资源包解析器。根据路由设置和包注册表，将资源地址解析到目标包ID，支持路由索引查找、显式包ID、默认包和降级策略。",
+      "tags": ["resource", "yooasset", "resolver", "routing", "multi-package"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:LFramework.Runtime.PackageResolver",
+      "type": "class",
+      "name": "PackageResolver",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/PackageResolver.cs",
+      "summary": "资源包解析器类。持有RoutingSettings和PackageRegistry引用，维护_addressToPackageId缓存字典，提供地址到包ID的解析逻辑。",
+      "tags": ["resource", "resolver", "routing", "cache"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/PackageRouteResolutionResult.cs",
+      "type": "file",
+      "name": "PackageRouteResolutionResult.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/PackageRouteResolutionResult.cs",
+      "summary": "资源包路由解析结果类。记录地址解析到最终逻辑包ID的完整过程，包含显式包ID、默认包、路由索引包、降级链等解析路径信息。",
+      "tags": ["resource", "yooasset", "resolution-result", "routing", "diagnostics"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:LFramework.Runtime.PackageRouteResolutionResult",
+      "type": "class",
+      "name": "PackageRouteResolutionResult",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/PackageRouteResolutionResult.cs",
+      "summary": "路由解析结果类（sealed）。包含RequestedAddress、ExplicitPackageId、DefaultPackageId、RouteIndexPackageId、FinalPackageId和降级链，Used标志位记录解析路径。",
+      "tags": ["resource", "resolution-result", "sealed", "diagnostics"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/PackageRuntimeState.cs",
+      "type": "file",
+      "name": "PackageRuntimeState.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/PackageRuntimeState.cs",
+      "summary": "YooAsset物理包运行时状态追踪类。跟踪单个物理包的初始化、清单更新、下载完成状态和最后错误信息，支持Clone深拷贝。",
+      "tags": ["resource", "yooasset", "runtime-state", "tracking", "sealed"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:LFramework.Runtime.PackageRuntimeState",
+      "type": "class",
+      "name": "PackageRuntimeState",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/PackageRuntimeState.cs",
+      "summary": "物理包运行时状态类（sealed）。包含PackageName、LogicalPackageId、IsInitializing、IsInitialized、ManifestUpdated、DownloadCompleted、LastError和LastRouteIndexRefreshUtc字段，Clone方法返回深拷贝。",
+      "tags": ["resource", "runtime-state", "sealed", "cloneable"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/RouteIndexAsset.cs",
+      "type": "file",
+      "name": "RouteIndexAsset.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/RouteIndexAsset.cs",
+      "summary": "路由索引ScriptableObject资产。包含RouteIndexEntry列表（address到packageId的映射），通过CreateAssetMenu可在编辑器中创建和编辑路由索引。",
+      "tags": ["resource", "yooasset", "scriptable-object", "route-index", "asset"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:LFramework.Runtime.RouteIndexEntry",
+      "type": "class",
+      "name": "RouteIndexEntry",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/RouteIndexAsset.cs",
+      "summary": "路由索引条目类（Serializable）。包含address和packageId两个字符串字段，定义资源地址到包ID的映射关系。",
+      "tags": ["resource", "serializable", "route-index", "entry"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:LFramework.Runtime.RouteIndexAsset",
+      "type": "class",
+      "name": "RouteIndexAsset",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/RouteIndexAsset.cs",
+      "summary": "路由索引资产（ScriptableObject）。CreateAssetMenu创建于LFramework/YooAsset/Route Index，持有List<RouteIndexEntry>定义地址到包ID的映射表。",
+      "tags": ["resource", "scriptable-object", "route-index"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/RouteIndexBootstrapLoader.cs",
+      "type": "file",
+      "name": "RouteIndexBootstrapLoader.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/RouteIndexBootstrapLoader.cs",
+      "summary": "路由索引引导加载器。在资源系统启动初期，确定路由索引资产所在的包ID和加载地址，为后续PackageResolver提供初始路由数据。",
+      "tags": ["resource", "yooasset", "bootstrap", "route-index", "loader"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:LFramework.Runtime.RouteIndexBootstrapLoader",
+      "type": "class",
+      "name": "RouteIndexBootstrapLoader",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/RouteIndexBootstrapLoader.cs",
+      "summary": "路由索引引导加载器。持有PackageRegistry、RoutingSettings和defaultPackageId，TryGetBootstrapRequest方法输出路由索引包ID和地址。",
+      "tags": ["resource", "bootstrap", "loader", "diagnostics"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/RoutingSettings.cs",
+      "type": "file",
+      "name": "RoutingSettings.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/RoutingSettings.cs",
+      "summary": "路由配置设置类。包含路由索引启用开关、地址、包ID、资产路径常量，以及默认包降级和重复地址检测等配置。",
+      "tags": ["resource", "yooasset", "settings", "routing", "serializable"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:LFramework.Runtime.Settings.RoutingSettings",
+      "type": "class",
+      "name": "RoutingSettings",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/RoutingSettings.cs",
+      "summary": "路由配置类（Serializable）。包含enableRouteIndex、routeIndexAddress、routeIndexPackageId、routeIndexAssetPath常量和allowDefaultPackageFallback、detectDuplicateAddress开关。",
+      "tags": ["resource", "settings", "serializable", "routing"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/YooAssetMultiPackageUtility.cs",
+      "type": "file",
+      "name": "YooAssetMultiPackageUtility.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/YooAssetMultiPackageUtility.cs",
+      "summary": "YooAsset多包工具类。提供包下载计划生成（YooAssetPackageDownloadPlan struct）、包初始化、清单更新等多包操作的静态工具方法。",
+      "tags": ["resource", "yooasset", "utility", "multi-package", "download-plan"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "struct:LFramework.Runtime.YooAssetPackageDownloadPlan",
+      "type": "class",
+      "name": "YooAssetPackageDownloadPlan",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/YooAssetMultiPackageUtility.cs",
+      "summary": "YooAsset包下载计划值类型（readonly struct）。包含PackageId、PackageName和Labels只读属性，描述单个包的下载需求。",
+      "tags": ["resource", "struct", "download-plan", "readonly"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/YooAssetResourceHelper.cs",
+      "type": "file",
+      "name": "YooAssetResourceHelper.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/YooAssetResourceHelper.cs",
+      "summary": "YooAsset资源加载辅助类。框架核心资源加载器，封装YooAsset SDK的初始化、同步/异步资源加载、场景加载、资源释放，支持多包路由和DefaultRemoteServices远程服务。",
+      "tags": ["resource", "yooasset", "helper", "async", "scene-loading", "conditional-compilation"],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:LFramework.Runtime.DefaultRemoteServices",
+      "type": "class",
+      "name": "DefaultRemoteServices",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/YooAssetResourceHelper.cs",
+      "summary": "默认远程资源服务类。实现YooAsset的IRemoteServices接口，根据ResourceComponentSetting配置提供默认远程服务器地址和备用地址。",
+      "tags": ["resource", "yooasset", "remote-services", "fallback"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/AddressableAssetDownloadHandler.cs",
+      "type": "file",
+      "name": "AddressableAssetDownloadHandler.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/AddressableAssetDownloadHandler.cs",
+      "summary": "Addressable资产级下载处理器。继承ResourceDownloadHandlerBase，按显式AssetKey下载Addressable依赖，不触发目录更新流程，支持5次重试。",
+      "tags": ["resource", "download", "addressable", "handler", "retry", "conditional-compilation"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:LFramework.Runtime.AddressableAssetDownloadHandler",
+      "type": "class",
+      "name": "AddressableAssetDownloadHandler",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/AddressableAssetDownloadHandler.cs",
+      "summary": "Addressable资产下载处理器。继承ResourceDownloadHandlerBase，持有Addressables.MergeMode配置，通过AsyncOperationHandle下载指定Key的依赖资源，MaxRetryCount=5。",
+      "tags": ["resource", "download", "addressable", "handler"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/AddressableDownloadHandler.cs",
+      "type": "file",
+      "name": "AddressableDownloadHandler.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/AddressableDownloadHandler.cs",
+      "summary": "Addressable目录级下载处理器。继承ResourceDownloadHandlerBase，先检查并更新目录（Catalog），再计算下载大小和执行下载，适用于全量更新场景。",
+      "tags": ["resource", "download", "addressable", "catalog-update", "conditional-compilation"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:LFramework.Runtime.AddressableDownloadHandler",
+      "type": "class",
+      "name": "AddressableDownloadHandler",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/AddressableDownloadHandler.cs",
+      "summary": "Addressable目录下载处理器。继承ResourceDownloadHandlerBase，持有MergeMode配置，通过CheckCatalogHandle检查目录更新，再执行GetDownloadSize和下载操作。",
+      "tags": ["resource", "download", "addressable", "catalog"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/CdnType.cs",
+      "type": "file",
+      "name": "CdnType.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/CdnType.cs",
+      "summary": "CDN类型枚举。定义Local（本地）、Debug（调试）、Release（发布）三种资源下载源类型。",
+      "tags": ["resource", "download", "enum", "cdn"],
+      "complexity": "simple"
+    },
+    {
+      "id": "enum:LFramework.Runtime.CdnType",
+      "type": "class",
+      "name": "CdnType",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/CdnType.cs",
+      "summary": "CDN类型枚举。包含Local（本地）、Debug（调试）、Release（发布）三个值，用于区分资源下载源环境。",
+      "tags": ["resource", "enum", "cdn", "environment"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/DownloadedTagTracker.cs",
+      "type": "file",
+      "name": "DownloadedTagTracker.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/DownloadedTagTracker.cs",
+      "summary": "已下载Tag持久化记录管理器。静态类，使用PlayerPrefs跟踪哪些Tag的资源已被下载过，用于强更阶段检查增量更新。",
+      "tags": ["resource", "download", "tracker", "playerprefs", "static"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:LFramework.Runtime.DownloadedTagTracker",
+      "type": "class",
+      "name": "DownloadedTagTracker",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/DownloadedTagTracker.cs",
+      "summary": "已下载Tag追踪静态类。KeyPrefix=\"DownloadedTag_\"，MarkTagDownloaded标记已下载、IsTagDownloaded检查下载状态，通过PlayerPrefs持久化。",
+      "tags": ["resource", "tracker", "static", "persistence"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/GameVersion.cs",
+      "type": "file",
+      "name": "GameVersion.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/GameVersion.cs",
+      "summary": "游戏版本比较结果枚举和版本比较工具。定义None/Update/ForceUpdate/NotNeedUpdate等比较结果类型，用于热更流程中判断版本差异。",
+      "tags": ["resource", "download", "version", "enum", "comparison"],
+      "complexity": "simple"
+    },
+    {
+      "id": "enum:LFramework.Runtime.GameVersionCompareResult",
+      "type": "class",
+      "name": "GameVersionCompareResult",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/GameVersion.cs",
+      "summary": "游戏版本比较结果枚举。包含None、Update（热更更新）、ForceUpdate（强更包）、NotNeedUpdate四个值。",
+      "tags": ["resource", "enum", "version", "comparison"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/IResourceDownloadHandler.cs",
+      "type": "file",
+      "name": "IResourceDownloadHandler.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/IResourceDownloadHandler.cs",
+      "summary": "资源下载处理器接口。定义Name、SerialID属性和下载相关的生命周期方法，由AddressableDownloadHandler和YooAssetDownloadHandler实现。",
+      "tags": ["resource", "download", "interface", "handler"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:LFramework.Runtime.IResourceDownloadHandler",
+      "type": "class",
+      "name": "IResourceDownloadHandler",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/IResourceDownloadHandler.cs",
+      "summary": "资源下载处理器接口。声明Name（下载器名称）、SerialID（唯一ID）属性，定义下载处理器的统一契约。",
+      "tags": ["resource", "download", "interface"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourceDownloadComponent.cs",
+      "type": "file",
+      "name": "ResourceDownloadComponent.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourceDownloadComponent.cs",
+      "summary": "资源下载组件。继承GameFrameworkComponent，管理多个IResourceDownloadHandler的创建、启动、进度跟踪和事件分发，支持Addressable和YooAsset两种下载后端。",
+      "tags": ["resource", "download", "component", "multi-backend", "event-driven"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourceDownloadHandlerBase.cs",
+      "type": "file",
+      "name": "ResourceDownloadHandlerBase.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourceDownloadHandlerBase.cs",
+      "summary": "资源下载处理器抽象基类。实现IResourceDownloadHandler接口，包含通用的事件分发、进度计算、速度计算和生命周期管理逻辑，供Addressable和YooAsset处理器继承。",
+      "tags": ["resource", "download", "abstract", "base-class", "event-dispatch", "progress"],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:LFramework.Runtime.ResourceDownloadHandlerBase",
+      "type": "class",
+      "name": "ResourceDownloadHandlerBase",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourceDownloadHandlerBase.cs",
+      "summary": "资源下载处理器抽象基类。实现IResourceDownloadHandler，持有_handlerName、_updateLabels、_serialID、_totalDownloadSize等受保护字段，提供进度和速度计算的通用实现。",
+      "tags": ["resource", "download", "abstract", "base-class"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourceDownloadStep.cs",
+      "type": "file",
+      "name": "ResourceDownloadStep.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourceDownloadStep.cs",
+      "summary": "资源下载步骤枚举。定义CatalogSuccessful、UpdateCatalogsSuccessful、DownloadKey、GetDownloadSizeSuccessful四个下载流程阶段。",
+      "tags": ["resource", "download", "enum", "step", "lifecycle"],
+      "complexity": "simple"
+    },
+    {
+      "id": "enum:LFramework.Runtime.ResourceDownloadStep",
+      "type": "class",
+      "name": "ResourceDownloadStep",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourceDownloadStep.cs",
+      "summary": "资源下载步骤枚举。CatalogSuccessful（目录检查成功）、UpdateCatalogsSuccessful（目录更新成功）、DownloadKey（开始下载Key）、GetDownloadSizeSuccessful（获取下载大小成功）。",
+      "tags": ["resource", "download", "enum", "step"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourceDownloadStepEvent.cs",
+      "type": "file",
+      "name": "ResourceDownloadStepEvent.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourceDownloadStepEvent.cs",
+      "summary": "资源下载步骤事件参数。继承GameEventArgs，包含Step枚举、CustomData和SerialID，通过静态Create方法从ReferencePool获取实例。",
+      "tags": ["resource", "download", "event", "step", "reference-pool"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:LFramework.Runtime.ResourceDownloadStepEvent",
+      "type": "class",
+      "name": "ResourceDownloadStepEvent",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourceDownloadStepEvent.cs",
+      "summary": "资源下载步骤事件类。继承GameEventArgs<ResourceDownloadStepEvent>，持有Step（ResourceDownloadStep枚举）、CustomData和SerialID，Create静态工厂方法。",
+      "tags": ["resource", "download", "event", "factory-method"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourcesDownloadFailureEvent.cs",
+      "type": "file",
+      "name": "ResourcesDownloadFailureEvent.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourcesDownloadFailureEvent.cs",
+      "summary": "资源下载失败事件参数。继承GameEventArgs，包含UpdateResultType失败类型和SerialID，用于通知下载失败。",
+      "tags": ["resource", "download", "event", "failure"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:LFramework.Runtime.ResourcesDownloadFailureEvent",
+      "type": "class",
+      "name": "ResourcesDownloadFailureEvent",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourcesDownloadFailureEvent.cs",
+      "summary": "资源下载失败事件类。继承GameEventArgs<ResourcesDownloadFailureEvent>，持有UpdateResultType和SerialID字段，Create工厂方法从ReferencePool获取实例。",
+      "tags": ["resource", "download", "event", "failure"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourcesDownloadSuccessfulEvent.cs",
+      "type": "file",
+      "name": "ResourcesDownloadSuccessfulEvent.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourcesDownloadSuccessfulEvent.cs",
+      "summary": "资源下载成功事件参数。继承GameEventArgs，包含SerialID，通过静态Create方法从ReferencePool获取实例，通知下载成功。",
+      "tags": ["resource", "download", "event", "success"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:LFramework.Runtime.ResourcesDownloadSuccessfulEvent",
+      "type": "class",
+      "name": "ResourcesDownloadSuccessfulEvent",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourcesDownloadSuccessfulEvent.cs",
+      "summary": "资源下载成功事件类。继承GameEventArgs<ResourcesDownloadSuccessfulEvent>，持有SerialID字段，Create工厂方法通过ReferencePool.Acquire获取。",
+      "tags": ["resource", "download", "event", "success"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourcesDownloadUpdateEvent.cs",
+      "type": "file",
+      "name": "ResourcesDownloadUpdateEvent.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourcesDownloadUpdateEvent.cs",
+      "summary": "资源下载进度更新事件参数。继承GameEventArgs，包含Progress进度值和可选的下载大小、总大小、速度信息，提供两个Create重载。",
+      "tags": ["resource", "download", "event", "progress", "overload"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:LFramework.Runtime.ResourcesDownloadUpdateEvent",
+      "type": "class",
+      "name": "ResourcesDownloadUpdateEvent",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourcesDownloadUpdateEvent.cs",
+      "summary": "资源下载进度事件类。继承GameEventArgs<ResourcesDownloadUpdateEvent>，持有Progress浮点值，两个Create重载分别支持仅进度和进度+大小+速度的详细模式。",
+      "tags": ["resource", "download", "event", "progress"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/UpdateResultType.cs",
+      "type": "file",
+      "name": "UpdateResultType.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/UpdateResultType.cs",
+      "summary": "更新结果类型枚举。定义Successful、NoneDownload、CheckCatalogsFailure、NotReachable、GetDownloadSizeFailure、DownloadFailure等结果类型。",
+      "tags": ["resource", "download", "enum", "result-type", "error-handling"],
+      "complexity": "simple"
+    },
+    {
+      "id": "enum:LFramework.Runtime.UpdateResultType",
+      "type": "class",
+      "name": "UpdateResultType",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/UpdateResultType.cs",
+      "summary": "更新结果类型枚举。Successful（成功）、NoneDownload=1（无需下载）、CheckCatalogsFailure（目录检查失败）、NotReachable（无网络）、GetDownloadSizeFailure（获取大小失败）、DownloadFailure（下载失败）。",
+      "tags": ["resource", "download", "enum", "result"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/YooAssetAssetDownloadHandler.cs",
+      "type": "file",
+      "name": "YooAssetAssetDownloadHandler.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/YooAssetAssetDownloadHandler.cs",
+      "summary": "YooAsset资产级下载处理器。继承ResourceDownloadHandlerBase，按显式Tag或AssetLocation下载YooAsset资源，不触发版本或清单更新流程。",
+      "tags": ["resource", "download", "yooasset", "handler", "conditional-compilation"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:LFramework.Runtime.YooAssetAssetDownloadHandler",
+      "type": "class",
+      "name": "YooAssetAssetDownloadHandler",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/YooAssetAssetDownloadHandler.cs",
+      "summary": "YooAsset资产下载处理器。继承ResourceDownloadHandlerBase，持有_packageName、_downloadByLocation标志和_ensurePackageReadyAsync初始化委托，通过ResourceDownloaderOperation执行下载。",
+      "tags": ["resource", "download", "yooasset", "handler"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/YooAssetDownloadHandler.cs",
+      "type": "file",
+      "name": "YooAssetDownloadHandler.cs",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/YooAssetDownloadHandler.cs",
+      "summary": "YooAsset标签级下载处理器。继承ResourceDownloadHandlerBase，支持按Tag下载和已下载Tag的增量更新检查，包含DownloadedTagTracker交互逻辑。",
+      "tags": ["resource", "download", "yooasset", "tag", "incremental", "conditional-compilation"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:LFramework.Runtime.YooAssetDownloadHandler",
+      "type": "class",
+      "name": "YooAssetDownloadHandler",
+      "filePath": "LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/YooAssetDownloadHandler.cs",
+      "summary": "YooAsset标签下载处理器。继承ResourceDownloadHandlerBase，持有_packageName、_downloaderOperation和_downloadByLocation标志，支持标签级增量下载。",
+      "tags": ["resource", "download", "yooasset", "tag", "handler"],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/PackageRegistry.cs",
+      "target": "class:LFramework.Runtime.PackageRegistry",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "PackageRegistry.cs文件包含PackageRegistry类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/PackageResolver.cs",
+      "target": "class:LFramework.Runtime.PackageResolver",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "PackageResolver.cs文件包含PackageResolver类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/PackageRouteResolutionResult.cs",
+      "target": "class:LFramework.Runtime.PackageRouteResolutionResult",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "PackageRouteResolutionResult.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/PackageRuntimeState.cs",
+      "target": "class:LFramework.Runtime.PackageRuntimeState",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "PackageRuntimeState.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/RouteIndexAsset.cs",
+      "target": "class:LFramework.Runtime.RouteIndexEntry",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "RouteIndexAsset.cs文件包含RouteIndexEntry类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/RouteIndexAsset.cs",
+      "target": "class:LFramework.Runtime.RouteIndexAsset",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "RouteIndexAsset.cs文件包含RouteIndexAsset类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/RouteIndexBootstrapLoader.cs",
+      "target": "class:LFramework.Runtime.RouteIndexBootstrapLoader",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "RouteIndexBootstrapLoader.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/RoutingSettings.cs",
+      "target": "class:LFramework.Runtime.Settings.RoutingSettings",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "RoutingSettings.cs文件包含RoutingSettings类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/MultiPackage/YooAssetMultiPackageUtility.cs",
+      "target": "struct:LFramework.Runtime.YooAssetPackageDownloadPlan",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "YooAssetMultiPackageUtility.cs文件包含YooAssetPackageDownloadPlan结构体定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceComponent/YooAsset/YooAssetResourceHelper.cs",
+      "target": "class:LFramework.Runtime.DefaultRemoteServices",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "YooAssetResourceHelper.cs文件包含DefaultRemoteServices类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/AddressableAssetDownloadHandler.cs",
+      "target": "class:LFramework.Runtime.AddressableAssetDownloadHandler",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "AddressableAssetDownloadHandler.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/AddressableDownloadHandler.cs",
+      "target": "class:LFramework.Runtime.AddressableDownloadHandler",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "AddressableDownloadHandler.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/CdnType.cs",
+      "target": "enum:LFramework.Runtime.CdnType",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "CdnType.cs文件包含CdnType枚举定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/DownloadedTagTracker.cs",
+      "target": "class:LFramework.Runtime.DownloadedTagTracker",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "DownloadedTagTracker.cs文件包含DownloadedTagTracker类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/GameVersion.cs",
+      "target": "enum:LFramework.Runtime.GameVersionCompareResult",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "GameVersion.cs文件包含GameVersionCompareResult枚举定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/IResourceDownloadHandler.cs",
+      "target": "class:LFramework.Runtime.IResourceDownloadHandler",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "IResourceDownloadHandler.cs文件包含IResourceDownloadHandler接口定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourceDownloadHandlerBase.cs",
+      "target": "class:LFramework.Runtime.ResourceDownloadHandlerBase",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "ResourceDownloadHandlerBase.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourceDownloadStep.cs",
+      "target": "enum:LFramework.Runtime.ResourceDownloadStep",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "ResourceDownloadStep.cs文件包含同名枚举定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourceDownloadStepEvent.cs",
+      "target": "class:LFramework.Runtime.ResourceDownloadStepEvent",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "ResourceDownloadStepEvent.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourcesDownloadFailureEvent.cs",
+      "target": "class:LFramework.Runtime.ResourcesDownloadFailureEvent",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "ResourcesDownloadFailureEvent.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourcesDownloadSuccessfulEvent.cs",
+      "target": "class:LFramework.Runtime.ResourcesDownloadSuccessfulEvent",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "ResourcesDownloadSuccessfulEvent.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/ResourcesDownloadUpdateEvent.cs",
+      "target": "class:LFramework.Runtime.ResourcesDownloadUpdateEvent",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "ResourcesDownloadUpdateEvent.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/UpdateResultType.cs",
+      "target": "enum:LFramework.Runtime.UpdateResultType",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "UpdateResultType.cs文件包含同名枚举定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/YooAssetAssetDownloadHandler.cs",
+      "target": "class:LFramework.Runtime.YooAssetAssetDownloadHandler",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "YooAssetAssetDownloadHandler.cs文件包含同名类定义"
+    },
+    {
+      "source": "file:LFramework/Scripts/Runtime/Components/ResourceDownloadComponent/YooAssetDownloadHandler.cs",
+      "target": "class:LFramework.Runtime.YooAssetDownloadHandler",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "YooAssetDownloadHandler.cs文件包含同名类定义"
+    },
+    {
+      "source": "class:LFramework.Runtime.AddressableAssetDownloadHandler",
+      "target": "class:LFramework.Runtime.ResourceDownloadHandlerBase",
+      "type": "extends",
+      "weight": 1.0,
+      "label": "AddressableAssetDownloadHandler继承ResourceDownloadHandlerBase"
+    },
+    {
+      "source": "class:LFramework.Runtime.AddressableDownloadHandler",
+      "target": "class:LFramework.Runtime.ResourceDownloadHandlerBase",
+      "type": "extends",
+      "weight": 1.0,
+      "label": "AddressableDownloadHandler继承ResourceDownloadHandlerBase"
+    },
+    {
+      "source": "class:LFramework.Runtime.ResourceDownloadHandlerBase",
+      "target": "class:LFramework.Runtime.IResourceDownloadHandler",
+      "type": "implements",
+      "weight": 1.0,
+      "label": "ResourceDownloadHandlerBase实现IResourceDownloadHandler接口"
+    },
+    {
+      "source": "class:LFramework.Runtime.YooAssetAssetDownloadHandler",
+      "target": "class:LFramework.Runtime.ResourceDownloadHandlerBase",
+      "type": "extends",
+      "weight": 1.0,
+      "label": "YooAssetAssetDownloadHandler继承ResourceDownloadHandlerBase"
+    },
+    {
+      "source": "class:LFramework.Runtime.YooAssetDownloadHandler",
+      "target": "class:LFramework.Runtime.ResourceDownloadHandlerBase",
+      "type": "extends",
+      "weight": 1.0,
+      "label": "YooAssetDownloadHandler继承ResourceDownloadHandlerBase"
+    },
+    {
+      "source": "class:LFramework.Runtime.PackageResolver",
+      "target": "class:LFramework.Runtime.PackageRegistry",
+      "type": "depends",
+      "weight": 0.9,
+      "label": "PackageResolver持有PackageRegistry引用进行包查询"
+    },
+    {
+      "source": "class:LFramework.Runtime.PackageResolver",
+      "target": "class:LFramework.Runtime.Settings.RoutingSettings",
+      "type": "depends",
+      "weight": 0.9,
+      "label": "PackageResolver持有RoutingSettings引用进行路由配置"
+    },
+    {
+      "source": "class:LFramework.Runtime.RouteIndexBootstrapLoader",
+      "target": "class:LFramework.Runtime.PackageRegistry",
+      "type": "depends",
+      "weight": 0.8,
+      "label": "RouteIndexBootstrapLoader持有PackageRegistry引用"
+    },
+    {
+      "source": "class:LFramework.Runtime.RouteIndexBootstrapLoader",
+      "target": "class:LFramework.Runtime.Settings.RoutingSettings",
+      "type": "depends",
+      "weight": 0.8,
+      "label": "RouteIndexBootstrapLoader持有RoutingSettings引用"
+    },
+    {
+      "source": "class:LFramework.Runtime.RouteIndexAsset",
+      "target": "class:LFramework.Runtime.RouteIndexEntry",
+      "type": "contains",
+      "weight": 1.0,
+      "label": "RouteIndexAsset包含List<RouteIndexEntry>条目列表"
+    },
+    {
+      "source": "class:LFramework.Runtime.YooAssetDownloadHandler",
+      "target": "class:LFramework.Runtime.DownloadedTagTracker",
+      "type": "depends",
+      "weight": 0.7,
+      "label": "YooAssetDownloadHandler使用DownloadedTagTracker检查增量下载状态"
+    },
+    {
+      "source": "class:LFramework.Runtime.ResourceDownloadStepEvent",
+      "target": "enum:LFramework.Runtime.ResourceDownloadStep",
+      "type": "depends",
+      "weight": 1.0,
+      "label": "ResourceDownloadStepEvent持有ResourceDownloadStep枚举字段"
+    },
+    {
+      "source": "class:LFramework.Runtime.ResourcesDownloadFailureEvent",
+      "target": "enum:LFramework.Runtime.UpdateResultType",
+      "type": "depends",
+      "weight": 1.0,
+      "label": "ResourcesDownloadFailureEvent持有UpdateResultType枚举字段"
+    },
+    {
+      "source": "class:LFramework.Runtime.PackageRegistry",
+      "target": "class:LFramework.Runtime.Settings.PackageDefinition",
+      "type": "depends",
+      "weight": 0.9,
+      "label": "PackageRegistry管理PackageDefinition字典"
+    },
+    {
+      "source": "struct:LFramework.Runtime.YooAssetPackageDownloadPlan",
+      "target": "class:LFramework.Runtime.PackageDefinition",
+      "type": "depends",
+      "weight": 0.6,
+      "label": "YooAssetPackageDownloadPlan描述PackageDefinition的下载需求"
+    }
+  ]
+}

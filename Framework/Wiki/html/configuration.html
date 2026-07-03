@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>配置整理 - LFramework Wiki</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar"><div><p class="eyebrow">Settings</p><h1>配置整理</h1><p class="summary">配置统一从 ProjectSettingSelector 汇总，再由 SettingManager 读取。</p></div></header>
+  <main class="layout">
+    <nav class="nav">
+      <a href="index.html">总览</a><a href="startup-flow.html">启动流程</a><a class="active" href="configuration.html">配置整理</a><a href="runtime-systems.html">模块详解</a><a href="module-tree.html">模块树</a><a href="worldhelper-guide.html">WorldHelper</a><a href="class-index.html">类索引</a><a href="resource-and-build.html">资源与构建</a><a href="newcomer-checklist.html">新人清单</a>
+    </nav>
+    <article class="content">
+      <h2>配置入口</h2>
+      <p><code>ProjectSettingSelector</code> 汇总当前工程实际启用的 BaseSetting 和 ComponentSetting。<code>SettingManager</code> 是统一读取入口。</p>
+      <table>
+        <thead><tr><th>类型</th><th>例子</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td>BaseSetting</td><td>GameSetting, AndroidSetting, iOSSetting, HybridCLRSetting</td><td>项目级和平台配置</td></tr>
+          <tr><td>ComponentSetting</td><td>ResourceComponentSetting, ProcedureComponentSetting, UIComponentSetting</td><td>运行时组件配置</td></tr>
+          <tr><td>ProjectSettingSelector</td><td>ProjectSettingSelector</td><td>当前工程配置集合</td></tr>
+        </tbody>
+      </table>
+
+      <h2>运行时读取</h2>
+      <ul>
+        <li>Editor 下通过 AssetDatabase 查找第一个 <code>ProjectSettingSelector</code>。</li>
+        <li>Player 下通过 <code>Resources.Load&lt;ProjectSettingSelector&gt;("ProjectSettingSelector")</code> 读取。</li>
+        <li>所以打包前必须确认正式资源中能加载到 ProjectSettingSelector。</li>
+      </ul>
+
+      <h2>资源配置</h2>
+      <p><code>ResourceComponentSetting</code> 决定资源后端、Helper 类型、YooAsset 多包、默认包、路由索引和 Addressables URL 行为。</p>
+
+      <h2>构建配置</h2>
+      <p><code>BuildSetting</code> 控制平台、构建类型、版本、资源版本、CDN、是否构建 DLL 和是否构建资源。<code>BuildOrchestrator</code> 会读取当前 ResourceMode 后选择 App 或资源更新管线。</p>
+    </article>
+  </main>
+</body>
+</html>

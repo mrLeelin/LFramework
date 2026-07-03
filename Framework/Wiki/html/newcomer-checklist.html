@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>新人清单 - LFramework Wiki</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar"><div><p class="eyebrow">Checklist</p><h1>新人接手清单</h1><p class="summary">第一天跑通、常见入口和改动边界。</p></div></header>
+  <main class="layout">
+    <nav class="nav">
+      <a href="index.html">总览</a><a href="startup-flow.html">启动流程</a><a href="configuration.html">配置整理</a><a href="runtime-systems.html">模块详解</a><a href="module-tree.html">模块树</a><a href="worldhelper-guide.html">WorldHelper</a><a href="class-index.html">类索引</a><a href="resource-and-build.html">资源与构建</a><a class="active" href="newcomer-checklist.html">新人清单</a>
+    </nav>
+    <article class="content">
+      <h2>第一天必须跑通</h2>
+      <ol>
+        <li>Unity 打开主工程。</li>
+        <li>打开 <code>LFramework/GameSetting</code>。</li>
+        <li>找到当前工程的 <code>ProjectSettingSelector</code>。</li>
+        <li>确认 <code>ResourceComponentSetting.ResourceMode</code>。</li>
+        <li>确认入口 Procedure 配置。</li>
+        <li>进入 Play Mode，观察启动管线和热更入口日志。</li>
+      </ol>
+
+      <h2>问题入口</h2>
+      <table>
+        <thead><tr><th>问题</th><th>起点</th></tr></thead>
+        <tbody>
+          <tr><td>启动卡住</td><td>LaunchPipelineRunner.RunAsync</td></tr>
+          <tr><td>资源初始化失败</td><td>InitResourceTask / ResourceComponentSetting</td></tr>
+          <tr><td>热更 DLL 没加载</td><td>LoadAssemblyTask / HotfixComponent / HybridCLRSetting</td></tr>
+          <tr><td>Provider 没注册</td><td>LSystemApplication.RegisterProvider.cs</td></tr>
+          <tr><td>World 没注册</td><td>LSystemApplication.RegisterWorld.cs</td></tr>
+          <tr><td>构建失败</td><td>BuildOrchestrator / BuildPipelineRunner</td></tr>
+        </tbody>
+      </table>
+
+      <h2>改框架前判断</h2>
+      <ul>
+        <li>通用能力放框架，业务玩法不要塞框架。</li>
+        <li>配置数据优先改 Setting 资产和 Setting 类型。</li>
+        <li>平台打包差异放到 IPlatformConfig 或构建任务。</li>
+        <li>资源问题先判断后端是 YooAsset 还是 Addressables。</li>
+      </ul>
+    </article>
+  </main>
+</body>
+</html>

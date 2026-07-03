@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>模块详解 - LFramework Wiki</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar"><div><p class="eyebrow">Modules</p><h1>模块详解</h1><p class="summary">Component、Provider、HotfixComponent、World、WorldHelper 的职责边界和生命周期。</p></div></header>
+  <main class="layout">
+    <nav class="nav">
+      <a href="index.html">总览</a><a href="startup-flow.html">启动流程</a><a href="configuration.html">配置整理</a><a class="active" href="runtime-systems.html">模块详解</a><a href="module-tree.html">模块树</a><a href="worldhelper-guide.html">WorldHelper</a><a href="class-index.html">类索引</a><a href="resource-and-build.html">资源与构建</a><a href="newcomer-checklist.html">新人清单</a>
+    </nav>
+    <article class="content">
+      <h2>Component</h2>
+      <p>Component 是框架级长期服务，继承 <code>GameFrameworkComponent</code>。当前基类不是 MonoBehaviour，实例由配置或热更扫描创建，由框架显式调用生命周期。</p>
+      <p>查看完整继承树：<a href="module-tree.html">模块树</a></p>
+      <pre><code>AwakeComponent
+StartComponent
+SetUpComponent
+UpdateComponent
+LateUpdate
+ShutDown
+RuntimeOnApplicationFocus / Pause / Quit</code></pre>
+      <p><code>ComponentSetting.bindTypeName</code> 绑定运行时组件类型；<code>ComponentSettingExtension.CovertToComponent</code> 会反射创建组件，并把 Setting 同名字段拷贝到组件字段。</p>
+      <p>适合放资源、下载、表格、UI、实体、通知、声音、计时器等跨流程基础服务。不适合放随玩法流程释放的业务状态。</p>
+
+      <h2>HotfixComponent</h2>
+      <p>HotfixComponent 是热更系统组件，负责加载 DLL、建立类型索引、按 Attribute 反查热更类型，并反射进入热更入口。</p>
+      <ul>
+        <li>Editor：从当前 AppDomain 收集主逻辑程序集和热更程序集。</li>
+        <li>HybridCLR：先加载 AOT 元数据，再加载热更 DLL。</li>
+        <li>加载成功后建立 <code>_allTypes</code> 和 <code>_allAttributeTypes</code>。</li>
+        <li><code>EnterHotfixAssembly</code> 调用 <code>LFramework.Hotfix.Entry.HotfixEntryStart</code>。</li>
+      </ul>
+      <p>后续热更组件、Procedure、Provider、World、WorldHelper 的扫描都依赖它的 <code>GetTypesFromAttribute&lt;T&gt;()</code>。</p>
+
+      <h2>Provider</h2>
+      <p>Provider 是随 Procedure 生命周期管理的系统服务，继承 <code>SystemProviderBase</code>，通过 <code>[BelongTo(procedureState, lifeCycle, sort)]</code> 绑定流程。</p>
+      <pre><code>ReferencePool.Acquire
+  -&gt; RegisterCommonDataSync
+  -&gt; LServices.Register(interfaceType/providerType)
+  -&gt; sort desc
+  -&gt; Injection.Inject
+  -&gt; AwakeComponent
+  -&gt; SubscribeEvent
+  -&gt; SetUp</code></pre>
+      <p><code>SystemProviderBase</code> 提供事件组件注入、订阅/反订阅、<code>UpdateComponent</code>、<code>OnStop</code>、<code>Fire</code>、<code>FireNow</code>。</p>
+
+      <h2>World</h2>
+      <p>World 是当前 Procedure 的上下文容器，继承 <code>WorldBase</code>。一个流程最多有一个当前 World，保存在 <code>LSystemApplication._worldBase</code>。</p>
+      <pre><code>WorldBase.Initialized
+  -&gt; ResolveFrameworkDependencies
+  -&gt; Subscribe(EventComponent)
+  -&gt; RegisterWorldHelper
+  -&gt; InitializeAllHelpers
+  -&gt; OnInitialized</code></pre>
+      <p>Procedure 可以通过 <code>GetLinkWorld&lt;TWorld&gt;()</code> 找 World；World 可以通过 <code>GetLinkProcedure&lt;TProcedure&gt;()</code> 找当前 Procedure。</p>
+
+      <h2>WorldHelper</h2>
+      <p>WorldHelper 是 World 内部的子系统，继承 <code>WorldHelperBase</code>，通过 <code>[AutoWorldHelper(typeof(SomeWorld))]</code> 自动绑定 World。</p>
+      <pre><code>AutoRegisterWorldHelper
+  -&gt; scan [AutoWorldHelper]
+  -&gt; filter BindWorldType
+  -&gt; ReferencePool.Acquire
+  -&gt; SetWorld
+  -&gt; Register interface to LServices
+  -&gt; Inject
+  -&gt; Initialize</code></pre>
+      <p>Helper 可实现 <code>IWorldUpdate</code>、<code>IWorldLateUpdate</code> 进入 World 的更新列表。World 可批量调用 <code>InstantiateHelperGame</code>、<code>StartHelperGame</code>、<code>StopHelperGame</code>。</p>
+
+      <h2>模块选择表</h2>
+      <table>
+        <thead><tr><th>需求</th><th>放哪里</th><th>原因</th></tr></thead>
+        <tbody>
+          <tr><td>全局基础服务</td><td>Component</td><td>生命周期跨流程，配置驱动</td></tr>
+          <tr><td>热更 DLL 和类型索引</td><td>HotfixComponent</td><td>热更类型扫描源</td></tr>
+          <tr><td>当前流程业务系统</td><td>Provider</td><td>绑定 ProcedureState，可排序和释放</td></tr>
+          <tr><td>当前玩法上下文</td><td>World</td><td>一次流程一个上下文，持有 Helper</td></tr>
+          <tr><td>World 内部子系统</td><td>WorldHelper</td><td>拆分世界逻辑，可自动注册和更新</td></tr>
+          <tr><td>单个 UI 窗口逻辑</td><td>UIBehaviour / Window</td><td>受 UIComponent 管理</td></tr>
+          <tr><td>单个实体逻辑</td><td>EntityLogic</td><td>受 EntityComponent 管理</td></tr>
+        </tbody>
+      </table>
+
+      <h2>边界警告</h2>
+      <ul>
+        <li>不要把业务玩法状态塞进长期 Component。</li>
+        <li>不要让 WorldHelper 绕过 World 注册全局状态。</li>
+        <li>Provider 不要手动 new 依赖，优先用 <code>[Inject]</code> 或 <code>LServices</code>。</li>
+        <li>Provider/World 的业务接口选择会影响 <code>LServices</code> 注册结果。</li>
+        <li><code>IInjectable</code> 是生成注入标记，不是业务接口。</li>
+      </ul>
+    </article>
+  </main>
+</body>
+</html>

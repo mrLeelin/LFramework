@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WorldHelper 模块 - LFramework Wiki</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">World Module / Helper Layer</p>
+      <h1>WorldHelper 模块使用与文档规范</h1>
+      <p class="summary">这页不是单个示例说明，而是 WorldHelper 模块的交接模板：新人按模块树找到类，再按固定字段补充业务含义和调用关系。</p>
+    </div>
+  </header>
+
+  <main class="layout wiki-layout">
+    <nav class="nav wiki-nav">
+      <div class="nav-section">
+        <span class="nav-heading">主线</span>
+        <a href="index.html">总览</a>
+        <a href="startup-flow.html">启动流程</a>
+        <a href="configuration.html">配置整理</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-heading">模块</span>
+        <a href="runtime-systems.html">模块详解</a>
+        <a href="module-tree.html">模块树</a>
+        <a class="active" href="worldhelper-guide.html">WorldHelper</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-heading">索引</span>
+        <a href="class-index.html">类索引</a>
+        <a href="resource-and-build.html">资源与构建</a>
+        <a href="newcomer-checklist.html">新人清单</a>
+      </div>
+    </nav>
+
+    <article class="content wiki-content">
+      <section class="doc-hero">
+        <div>
+          <h2>在 wiki 里应该怎么体现</h2>
+          <p>WorldHelper 要体现成“World 下面的子系统树”，不是一堆平铺类名。每个 Helper 的详情都按同一套字段记录，这样新人能从模块关系、生命周期、依赖和调用关系读懂它。</p>
+        </div>
+        <a class="primary-link" href="module-tree.html?module=world-helper">进入模块树</a>
+      </section>
+
+      <section class="doc-grid">
+        <div class="doc-card">
+          <h3>第一层：模块入口</h3>
+          <p>在 `模块树` 里选择 `WorldHelper 模块`，看到 `WorldHelperBase` 到所有子类的树状关系。</p>
+        </div>
+        <div class="doc-card">
+          <h3>第二层：类详情</h3>
+          <p>点击某个 Helper，右侧展示继承、方法、引用、被引用，以及专门的 `Wiki 记录模板`。</p>
+        </div>
+        <div class="doc-card">
+          <h3>第三层：业务补充</h3>
+          <p>自动索引只能告诉你结构；业务职责、资源释放、调用原因，需要按模板人工补齐。</p>
+        </div>
+      </section>
+
+      <h2>固定记录模板</h2>
+      <p>每个 WorldHelper 文档块都用这套结构。不要改成自由散文，否则新人无法横向比较不同 Helper。</p>
+      <pre><code>HelperName
+- 绑定 World：AutoWorldHelper(typeof(目标World))
+- 所属流程：ProcedureState.xxx / 由哪个 Procedure 进入
+- 对外接口：IxxxHelper，谁通过 LServices 获取
+- 职责：一句话说明负责的局内子系统
+- 生命周期：
+  - Initialize：读取 World、订阅事件、准备状态
+  - InstantiateWorld：异步创建实体/加载资源
+  - StartGame：打开运行开关
+  - OnUpdate/LateUpdate：运行中的帧逻辑
+  - StopGame：关闭运行开关、停止行为
+  - Clear：取消订阅、释放资源、清空引用
+- 依赖：注入了哪些 Component / Provider / 业务接口
+- 调用关系：被哪个 World 启动；被哪些系统调用；调用哪些 Helper
+- 资源归属：创建了什么，在哪里释放
+- 注意事项：运行开关、对象池、异步取消、空引用保护</code></pre>
+
+      <h2>使用路径</h2>
+      <ol class="steps">
+        <li><strong>先看树：</strong>打开 <a href="module-tree.html?module=world-helper">模块树</a>，选择 `WorldHelper 模块`。</li>
+        <li><strong>再点类：</strong>点击 `WorldHelperBase` 或具体 Helper 子类。</li>
+        <li><strong>看右侧模板：</strong>右侧会自动生成“Wiki 记录模板”，里面有能从代码推断的信息。</li>
+        <li><strong>补业务信息：</strong>把 `TODO` 补成真实职责、调用方、资源释放点。</li>
+        <li><strong>需要查全局关系：</strong>跳到 <a href="class-index.html">类索引</a> 搜类名，看引用和被引用。</li>
+      </ol>
+
+      <h2>WorldHelper 的代码使用规则</h2>
+      <table>
+        <tr><th>问题</th><th>结论</th></tr>
+        <tr><td>什么时候用 WorldHelper</td><td>逻辑只在某个 World 生命周期内存在，例如局内刷怪、相机、结算、局内同步。</td></tr>
+        <tr><td>怎么绑定 World</td><td>在 Helper 类上写 <code>[AutoWorldHelper(typeof(YourWorld))]</code>。</td></tr>
+        <tr><td>World 何时启动 Helper</td><td><code>WorldBase</code> 只自动调用 <code>Initialize()</code>；<code>InstantiateHelperGame()</code>、<code>StartHelperGame()</code>、<code>StopHelperGame()</code> 由具体 World 主动调用。</td></tr>
+        <tr><td>World 内部怎么取 Helper</td><td>用具体类型：<code>GetWorldHelper&lt;ConcreteHelper&gt;()</code>。</td></tr>
+        <tr><td>外部系统怎么访问</td><td>用业务接口走 <code>LServices.Get&lt;IYourHelper&gt;()</code>。</td></tr>
+        <tr><td>实现 Update 要注意什么</td><td>实现 <code>IWorldUpdate</code> 或 <code>IWorldLateUpdate</code> 后必须有运行开关，例如 <code>_running</code>。</td></tr>
+      </table>
+
+      <h2>最小代码模板</h2>
+      <pre><code>[AutoWorldHelper(typeof(CombatWorld))]
+public sealed class CombatSpawnHelper : WorldHelperBase, ICombatSpawnHelper, IWorldUpdate
+{
+    private CombatWorld _world;
+    private bool _running;
+
+    public override void Initialize()
+    {
+        _world = GetWorld&lt;CombatWorld&gt;();
+    }
+
+    public override UniTask InstantiateWorld()
+    {
+        return UniTask.CompletedTask;
+    }
+
+    public override void StartGame()
+    {
+        _running = true;
+    }
+
+    public void OnUpdate(float elapseSeconds, float realElapseSeconds)
+    {
+        if (!_running)
+        {
+            return;
+        }
+    }
+
+    public override void StopGame()
+    {
+        _running = false;
+    }
+
+    public override void Clear()
+    {
+        _running = false;
+        _world = null;
+    }
+}</code></pre>
+
+      <h2>World 中的启动模板</h2>
+      <pre><code>protected override void OnInitialized()
+{
+    EnterWorldAsync().Forget();
+}
+
+private async UniTaskVoid EnterWorldAsync()
+{
+    await InstantiateHelperGame();
+    StartHelperGame();
+}
+
+protected override void OnDeInitialized()
+{
+    StopHelperGame();
+}</code></pre>
+
+      <h2>页面结构原则</h2>
+      <p>这个 wiki 后续应该按“模块 -> 基类 -> 子类 -> 类详情”的层级扩展。平铺页面只适合总览，不适合交接具体模块。WorldHelper 作为 World 的子层，应该挂在 World 模块下面，并通过模块树进入。</p>
+    </article>
+  </main>
+</body>
+</html>

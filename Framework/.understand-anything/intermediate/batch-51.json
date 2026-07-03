@@ -1,0 +1,345 @@
+{
+  "nodes": [
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/DataTable/DataTableComponent.cs",
+      "type": "file",
+      "name": "DataTableComponent.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/DataTable/DataTableComponent.cs",
+      "summary": "数据表组件，Unity层封装数据表管理器的MonoBehaviour组件",
+      "tags": [
+        "runtime",
+        "datatable",
+        "component"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/DataTable/DataTableHelperBase.cs",
+      "type": "file",
+      "name": "DataTableHelperBase.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/DataTable/DataTableHelperBase.cs",
+      "summary": "数据表辅助器基类，提供数据表读取的默认实现",
+      "tags": [
+        "runtime",
+        "datatable",
+        "base",
+        "helper"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/DataTable/DefaultDataTableHelper.cs",
+      "type": "file",
+      "name": "DefaultDataTableHelper.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/DataTable/DefaultDataTableHelper.cs",
+      "summary": "默认数据表辅助器，从文本资源解析数据表数据",
+      "tags": [
+        "runtime",
+        "datatable",
+        "default"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/DataTable/LoadDataTableDependencyAssetEventArgs.cs",
+      "type": "file",
+      "name": "LoadDataTableDependencyAssetEventArgs.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/DataTable/LoadDataTableDependencyAssetEventArgs.cs",
+      "summary": "加载数据表依赖资源事件参数类",
+      "tags": [
+        "runtime",
+        "datatable",
+        "event"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/DataTable/LoadDataTableFailureEventArgs.cs",
+      "type": "file",
+      "name": "LoadDataTableFailureEventArgs.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/DataTable/LoadDataTableFailureEventArgs.cs",
+      "summary": "加载数据表失败事件参数类",
+      "tags": [
+        "runtime",
+        "datatable",
+        "event",
+        "failure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/DataTable/LoadDataTableSuccessEventArgs.cs",
+      "type": "file",
+      "name": "LoadDataTableSuccessEventArgs.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/DataTable/LoadDataTableSuccessEventArgs.cs",
+      "summary": "加载数据表成功事件参数类",
+      "tags": [
+        "runtime",
+        "datatable",
+        "event",
+        "success"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/DataTable/LoadDataTableUpdateEventArgs.cs",
+      "type": "file",
+      "name": "LoadDataTableUpdateEventArgs.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/DataTable/LoadDataTableUpdateEventArgs.cs",
+      "summary": "加载数据表更新事件参数类",
+      "tags": [
+        "runtime",
+        "datatable",
+        "event",
+        "progress"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerActiveWindowType.cs",
+      "type": "file",
+      "name": "DebuggerActiveWindowType.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerActiveWindowType.cs",
+      "summary": "调试器激活窗口类型枚举",
+      "tags": [
+        "runtime",
+        "debugger",
+        "enum"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.ConsoleWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.ConsoleWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.ConsoleWindow.cs",
+      "summary": "调试器控制台窗口，显示日志信息和过滤功能",
+      "tags": [
+        "runtime",
+        "debugger",
+        "console",
+        "gui"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.cs",
+      "type": "file",
+      "name": "DebuggerComponent.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.cs",
+      "summary": "调试器主组件，管理调试器窗口的显示和交互",
+      "tags": [
+        "runtime",
+        "debugger",
+        "component",
+        "core"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.EnvironmentInformationWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.EnvironmentInformationWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.EnvironmentInformationWindow.cs",
+      "summary": "调试器环境信息窗口，显示运行环境信息",
+      "tags": [
+        "runtime",
+        "debugger",
+        "info"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.FpsCounter.cs",
+      "type": "file",
+      "name": "DebuggerComponent.FpsCounter.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.FpsCounter.cs",
+      "summary": "FPS计数器内部类，统计和计算帧率",
+      "tags": [
+        "runtime",
+        "debugger",
+        "fps",
+        "perf"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.GraphicsInformationWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.GraphicsInformationWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.GraphicsInformationWindow.cs",
+      "summary": "调试器图形信息窗口，显示GPU和渲染信息",
+      "tags": [
+        "runtime",
+        "debugger",
+        "graphics"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.InputAccelerationInformationWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.InputAccelerationInformationWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.InputAccelerationInformationWindow.cs",
+      "summary": "调试器加速度传感器信息窗口",
+      "tags": [
+        "runtime",
+        "debugger",
+        "input",
+        "acceleration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.InputCompassInformationWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.InputCompassInformationWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.InputCompassInformationWindow.cs",
+      "summary": "调试器指南针信息窗口",
+      "tags": [
+        "runtime",
+        "debugger",
+        "input",
+        "compass"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.InputGyroscopeInformationWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.InputGyroscopeInformationWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.InputGyroscopeInformationWindow.cs",
+      "summary": "调试器陀螺仪信息窗口",
+      "tags": [
+        "runtime",
+        "debugger",
+        "input",
+        "gyroscope"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.InputLocationInformationWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.InputLocationInformationWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.InputLocationInformationWindow.cs",
+      "summary": "调试器位置信息窗口，显示GPS定位数据",
+      "tags": [
+        "runtime",
+        "debugger",
+        "input",
+        "location"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.InputSummaryInformationWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.InputSummaryInformationWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.InputSummaryInformationWindow.cs",
+      "summary": "调试器输入摘要信息窗口，汇总各传感器数据",
+      "tags": [
+        "runtime",
+        "debugger",
+        "input",
+        "summary"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.InputTouchInformationWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.InputTouchInformationWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.InputTouchInformationWindow.cs",
+      "summary": "调试器触摸信息窗口，显示触摸输入状态",
+      "tags": [
+        "runtime",
+        "debugger",
+        "input",
+        "touch"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.LogNode.cs",
+      "type": "file",
+      "name": "DebuggerComponent.LogNode.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.LogNode.cs",
+      "summary": "日志结点数据类，存储单条日志的信息",
+      "tags": [
+        "runtime",
+        "debugger",
+        "log",
+        "data"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.NetworkInformationWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.NetworkInformationWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.NetworkInformationWindow.cs",
+      "summary": "调试器网络信息窗口，显示网络连接状态",
+      "tags": [
+        "runtime",
+        "debugger",
+        "network"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.ObjectPoolInformationWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.ObjectPoolInformationWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.ObjectPoolInformationWindow.cs",
+      "summary": "调试器对象池信息窗口，显示各对象池使用情况",
+      "tags": [
+        "runtime",
+        "debugger",
+        "objectpool"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.OperationsWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.OperationsWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.OperationsWindow.cs",
+      "summary": "调试器操作窗口，提供框架重载等操作按钮",
+      "tags": [
+        "runtime",
+        "debugger",
+        "operations"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.PathInformationWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.PathInformationWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.PathInformationWindow.cs",
+      "summary": "调试器路径信息窗口，显示各资源路径信息",
+      "tags": [
+        "runtime",
+        "debugger",
+        "path"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.ProfilerInformationWindow.cs",
+      "type": "file",
+      "name": "DebuggerComponent.ProfilerInformationWindow.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Debugger/DebuggerComponent.ProfilerInformationWindow.cs",
+      "summary": "调试器性能分析器信息窗口，显示内存和性能数据",
+      "tags": [
+        "runtime",
+        "debugger",
+        "profiler",
+        "perf"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": []
+}

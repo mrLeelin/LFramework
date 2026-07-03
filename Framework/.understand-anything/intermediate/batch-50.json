@@ -1,0 +1,339 @@
+{
+  "nodes": [
+    {
+      "id": "file:UnityGameFramework/Scripts/Editor/ResourceCollection/ResourceCollectionConfigPathAttribute.cs",
+      "type": "file",
+      "name": "ResourceCollectionConfigPathAttribute.cs",
+      "filePath": "UnityGameFramework/Scripts/Editor/ResourceCollection/ResourceCollectionConfigPathAttribute.cs",
+      "summary": "ResourceCollection配置路径特性，标记资源集合配置文件位置",
+      "tags": [
+        "editor",
+        "attribute",
+        "config"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Editor/ResourceEditor/AssetSorterType.cs",
+      "type": "file",
+      "name": "AssetSorterType.cs",
+      "filePath": "UnityGameFramework/Scripts/Editor/ResourceEditor/AssetSorterType.cs",
+      "summary": "资源编辑器资产排序类型枚举",
+      "tags": [
+        "editor",
+        "resource",
+        "enum"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Editor/ResourceEditor/ResourceEditor.cs",
+      "type": "file",
+      "name": "ResourceEditor.cs",
+      "filePath": "UnityGameFramework/Scripts/Editor/ResourceEditor/ResourceEditor.cs",
+      "summary": "资源编辑器主窗口，提供资源包的可视化编辑界面",
+      "tags": [
+        "editor",
+        "resource",
+        "gui",
+        "core"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Editor/ResourceEditor/ResourceEditor.MenuState.cs",
+      "type": "file",
+      "name": "ResourceEditor.MenuState.cs",
+      "filePath": "UnityGameFramework/Scripts/Editor/ResourceEditor/ResourceEditor.MenuState.cs",
+      "summary": "资源编辑器菜单状态枚举",
+      "tags": [
+        "editor",
+        "resource",
+        "enum"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Editor/ResourceEditor/ResourceEditor.ResourceFolder.cs",
+      "type": "file",
+      "name": "ResourceEditor.ResourceFolder.cs",
+      "filePath": "UnityGameFramework/Scripts/Editor/ResourceEditor/ResourceEditor.ResourceFolder.cs",
+      "summary": "资源编辑器内部类，表示资源目录树结构",
+      "tags": [
+        "editor",
+        "resource",
+        "folder"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Editor/ResourceEditor/ResourceEditor.ResourceItem.cs",
+      "type": "file",
+      "name": "ResourceEditor.ResourceItem.cs",
+      "filePath": "UnityGameFramework/Scripts/Editor/ResourceEditor/ResourceEditor.ResourceItem.cs",
+      "summary": "资源编辑器内部类，表示资源列表中的单个资源项",
+      "tags": [
+        "editor",
+        "resource",
+        "item"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Editor/ResourceEditor/ResourceEditorConfigPathAttribute.cs",
+      "type": "file",
+      "name": "ResourceEditorConfigPathAttribute.cs",
+      "filePath": "UnityGameFramework/Scripts/Editor/ResourceEditor/ResourceEditorConfigPathAttribute.cs",
+      "summary": "ResourceEditor配置路径特性，标记编辑器配置文件位置",
+      "tags": [
+        "editor",
+        "attribute",
+        "config"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Editor/ResourceEditor/ResourceEditorController.cs",
+      "type": "file",
+      "name": "ResourceEditorController.cs",
+      "filePath": "UnityGameFramework/Scripts/Editor/ResourceEditor/ResourceEditorController.cs",
+      "summary": "资源编辑器控制器，管理资源编辑的业务逻辑和数据操作",
+      "tags": [
+        "editor",
+        "resource",
+        "controller",
+        "core"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Editor/ResourceEditor/SourceAsset.cs",
+      "type": "file",
+      "name": "SourceAsset.cs",
+      "filePath": "UnityGameFramework/Scripts/Editor/ResourceEditor/SourceAsset.cs",
+      "summary": "源资产类，表示磁盘上的原始资产文件信息",
+      "tags": [
+        "editor",
+        "resource",
+        "asset"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Editor/ResourceEditor/SourceFolder.cs",
+      "type": "file",
+      "name": "SourceFolder.cs",
+      "filePath": "UnityGameFramework/Scripts/Editor/ResourceEditor/SourceFolder.cs",
+      "summary": "源文件夹类，表示磁盘上的目录结构",
+      "tags": [
+        "editor",
+        "resource",
+        "folder"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Editor/ResourceSyncTools/ResourceSyncTools.cs",
+      "type": "file",
+      "name": "ResourceSyncTools.cs",
+      "filePath": "UnityGameFramework/Scripts/Editor/ResourceSyncTools/ResourceSyncTools.cs",
+      "summary": "资源同步工具，同步资源包配置到实际资源目录",
+      "tags": [
+        "editor",
+        "resource",
+        "sync"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Editor/ResourceSyncTools/ResourceSyncToolsController.cs",
+      "type": "file",
+      "name": "ResourceSyncToolsController.cs",
+      "filePath": "UnityGameFramework/Scripts/Editor/ResourceSyncTools/ResourceSyncToolsController.cs",
+      "summary": "资源同步工具控制器，管理资源同步的业务逻辑",
+      "tags": [
+        "editor",
+        "resource",
+        "controller"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Base/BaseComponent.cs",
+      "type": "file",
+      "name": "BaseComponent.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Base/BaseComponent.cs",
+      "summary": "基础组件，游戏框架的核心MonoBehaviour组件，初始化资源路径和语言设置",
+      "tags": [
+        "runtime",
+        "base",
+        "component",
+        "core"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Base/GameEntry.cs",
+      "type": "file",
+      "name": "GameEntry.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Base/GameEntry.cs",
+      "summary": "游戏入口静态类，提供各框架组件的快捷访问入口",
+      "tags": [
+        "runtime",
+        "base",
+        "entry",
+        "core"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Base/GameFrameworkComponent.cs",
+      "type": "file",
+      "name": "GameFrameworkComponent.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Base/GameFrameworkComponent.cs",
+      "summary": "游戏框架组件抽象基类，所有Unity层组件的基类",
+      "tags": [
+        "runtime",
+        "base",
+        "component",
+        "abstract"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Base/ShutdownType.cs",
+      "type": "file",
+      "name": "ShutdownType.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Base/ShutdownType.cs",
+      "summary": "关闭游戏框架类型枚举，定义重载和退出两种关闭方式",
+      "tags": [
+        "runtime",
+        "base",
+        "enum"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Config/ConfigComponent.cs",
+      "type": "file",
+      "name": "ConfigComponent.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Config/ConfigComponent.cs",
+      "summary": "全局配置组件，Unity层封装配置管理器的MonoBehaviour组件",
+      "tags": [
+        "runtime",
+        "config",
+        "component"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Config/ConfigHelperBase.cs",
+      "type": "file",
+      "name": "ConfigHelperBase.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Config/ConfigHelperBase.cs",
+      "summary": "全局配置辅助器基类，提供配置读取的默认实现",
+      "tags": [
+        "runtime",
+        "config",
+        "base",
+        "helper"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Config/DefaultConfigHelper.cs",
+      "type": "file",
+      "name": "DefaultConfigHelper.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Config/DefaultConfigHelper.cs",
+      "summary": "默认全局配置辅助器，从文本资源解析配置数据",
+      "tags": [
+        "runtime",
+        "config",
+        "default"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Config/LoadConfigDependencyAssetEventArgs.cs",
+      "type": "file",
+      "name": "LoadConfigDependencyAssetEventArgs.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Config/LoadConfigDependencyAssetEventArgs.cs",
+      "summary": "加载全局配置依赖资源事件参数类",
+      "tags": [
+        "runtime",
+        "config",
+        "event"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Config/LoadConfigFailureEventArgs.cs",
+      "type": "file",
+      "name": "LoadConfigFailureEventArgs.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Config/LoadConfigFailureEventArgs.cs",
+      "summary": "加载全局配置失败事件参数类",
+      "tags": [
+        "runtime",
+        "config",
+        "event",
+        "failure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Config/LoadConfigSuccessEventArgs.cs",
+      "type": "file",
+      "name": "LoadConfigSuccessEventArgs.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Config/LoadConfigSuccessEventArgs.cs",
+      "summary": "加载全局配置成功事件参数类",
+      "tags": [
+        "runtime",
+        "config",
+        "event",
+        "success"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/Config/LoadConfigUpdateEventArgs.cs",
+      "type": "file",
+      "name": "LoadConfigUpdateEventArgs.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/Config/LoadConfigUpdateEventArgs.cs",
+      "summary": "加载全局配置更新事件参数类",
+      "tags": [
+        "runtime",
+        "config",
+        "event",
+        "progress"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/DataNode/DataNodeComponent.cs",
+      "type": "file",
+      "name": "DataNodeComponent.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/DataNode/DataNodeComponent.cs",
+      "summary": "数据结点组件，Unity层封装数据结点管理器的MonoBehaviour组件",
+      "tags": [
+        "runtime",
+        "datanode",
+        "component"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:UnityGameFramework/Scripts/Runtime/DataTable/DataRowBase.cs",
+      "type": "file",
+      "name": "DataRowBase.cs",
+      "filePath": "UnityGameFramework/Scripts/Runtime/DataTable/DataRowBase.cs",
+      "summary": "数据表行基类，所有数据表行的抽象基类",
+      "tags": [
+        "runtime",
+        "datatable",
+        "base"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": []
+}
