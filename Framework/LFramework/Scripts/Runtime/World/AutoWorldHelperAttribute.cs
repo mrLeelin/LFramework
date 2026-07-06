@@ -16,6 +16,8 @@ namespace LFramework.Runtime
 
         public System.Type[] BindWorldType { get; }
 
+        public int Sort { get; set; }
+
         public System.Type RegisterConditionType { get; set; }
 
         public bool CanRegister()

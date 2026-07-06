@@ -78,7 +78,9 @@ namespace LFramework.Runtime
                 result.Add(t);
             }
 
-            return result;
+            return result
+                .OrderBy(t => t.GetCustomAttribute<AutoWorldHelperAttribute>()?.Sort ?? 0)
+                .ToList();
         }
 
         private static bool CanRegisterWorldHelper(AutoWorldHelperAttribute attribute, Type helperType)
