@@ -13,7 +13,7 @@ namespace LFramework.Hotfix
         private readonly List<Type> _tempRegisteredProviderTypes = new();
         private readonly List<TempSystemProviderContainer> _tempSystemProviders = new();
 
-        public void TryRegisterProvider(int procedureState)
+        public void  TryRegisterProvider(int procedureState)
         {
             var allBelongToProcedureProviders = HotfixComponent.GetTypesFromAttribute<BelongToAttribute>();
             if (allBelongToProcedureProviders is not { Count: > 0 })
@@ -108,10 +108,11 @@ namespace LFramework.Hotfix
                     provider.Provider.SetUp();
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                RollbackCurrentProviderRegistration();
-                throw;
+                //加载Provider错误
+                Log.Error("[LSystemApplication.RegisterProvider] Error in RegisterProvider.]");
+                Log.Fatal(e);
             }
             finally
             {
