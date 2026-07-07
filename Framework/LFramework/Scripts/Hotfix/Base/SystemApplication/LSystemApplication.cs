@@ -20,6 +20,7 @@ namespace LFramework.Hotfix
         private struct TempSystemProviderContainer
         {
             public ISystemProvider Provider;
+            public Type ProviderType;
             public int Sort;
         }
 

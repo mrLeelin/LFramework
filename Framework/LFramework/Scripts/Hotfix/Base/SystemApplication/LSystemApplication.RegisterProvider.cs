@@ -13,7 +13,7 @@ namespace LFramework.Hotfix
         private readonly List<Type> _tempRegisteredProviderTypes = new();
         private readonly List<TempSystemProviderContainer> _tempSystemProviders = new();
 
-        public void  TryRegisterProvider(int procedureState)
+        public void TryRegisterProvider(int procedureState)
         {
             var allBelongToProcedureProviders = HotfixComponent.GetTypesFromAttribute<BelongToAttribute>();
             if (allBelongToProcedureProviders is not { Count: > 0 })
@@ -23,10 +23,16 @@ namespace LFramework.Hotfix
 
             _tempSystemProviders.Clear();
             _tempRegisteredProviderTypes.Clear();
+            ISystemProvider currentUseProviderBase = null;
+            Type currentProviderType = null;
+            string registerStage = "Scan";
             try
             {
                 foreach (var providerType in allBelongToProcedureProviders.Value)
                 {
+                    currentProviderType = providerType;
+                    registerStage = "Filter";
+
                     if (_systemProviders.ContainsKey(providerType))
                     {
                         continue;
@@ -49,6 +55,7 @@ namespace LFramework.Hotfix
                         continue;
                     }
 
+                    registerStage = "Acquire";
                     var instance = ReferencePool.Acquire(providerType);
                     if (instance == null)
                     {
@@ -66,6 +73,8 @@ namespace LFramework.Hotfix
                         continue;
                     }
 
+                    currentUseProviderBase = systemProvider;
+                    registerStage = "Register";
                     RegisterCommonDataSync(systemProvider);
                     var interfaceType = providerType.GetDerivedInterfaces(
                         typeof(ISystemProvider),
@@ -82,6 +91,7 @@ namespace LFramework.Hotfix
                     _tempSystemProviders.Add(new TempSystemProviderContainer
                     {
                         Provider = systemProvider,
+                        ProviderType = providerType,
                         Sort = attribute.Sort
                     });
                 }
@@ -90,28 +100,47 @@ namespace LFramework.Hotfix
 
                 foreach (var provider in _tempSystemProviders)
                 {
+                    currentUseProviderBase = provider.Provider;
+                    currentProviderType = provider.ProviderType;
+                    registerStage = "Inject";
                     Injection.Inject(provider.Provider);
                 }
 
                 foreach (var provider in _tempSystemProviders)
                 {
+                    currentUseProviderBase = provider.Provider;
+                    currentProviderType = provider.ProviderType;
+                    registerStage = "AwakeComponent";
                     provider.Provider.AwakeComponent();
                 }
 
                 foreach (var provider in _tempSystemProviders)
                 {
+                    currentUseProviderBase = provider.Provider;
+                    currentProviderType = provider.ProviderType;
+                    registerStage = "SubscribeEvent";
                     provider.Provider.SubscribeEvent();
                 }
 
                 foreach (var provider in _tempSystemProviders)
                 {
+                    currentUseProviderBase = provider.Provider;
+                    currentProviderType = provider.ProviderType;
+                    registerStage = "SetUp";
                     provider.Provider.SetUp();
                 }
             }
             catch (Exception e)
             {
                 //加载Provider错误
-                Log.Error("[LSystemApplication.RegisterProvider] Error in RegisterProvider.]");
+                var providerTypeName = currentProviderType == null ? "null" : currentProviderType.FullName;
+                var providerInstanceState = currentUseProviderBase == null ? "null" : "created";
+                Log.Error(
+                    "[LSystemApplication.RegisterProvider] Error while registering provider. ProcedureState: {0}, Stage: {1}, ProviderType: {2}, ProviderInstance: {3}.",
+                    procedureState,
+                    registerStage,
+                    providerTypeName,
+                    providerInstanceState);
                 Log.Fatal(e);
             }
             finally
