@@ -424,6 +424,23 @@ namespace LFramework.Runtime
             return ex.Message != null && ex.Message.Contains("invalid operation handle");
         }
 
+        private static void SafeUnloadScene(AsyncOperationHandle<SceneInstance> handle)
+        {
+            if (!handle.IsValid())
+            {
+                return;
+            }
+
+            try
+            {
+                Addressables.UnloadSceneAsync(handle, autoReleaseHandle: true);
+            }
+            catch (Exception ex) when (IsInvalidHandleException(ex))
+            {
+                Log.Warning("Addressables scene unload skipped because the handle is invalid: {0}", ex.Message);
+            }
+        }
+
         /// <summary>
         /// 异步加载场景（返回 Handle）
         /// </summary>
@@ -448,12 +465,13 @@ namespace LFramework.Runtime
                 }
                 if (op.Status == AsyncOperationStatus.Succeeded)
                 {
-                    handle.RegisterReleaseAction(() => Addressables.Release(op));
+                    handle.RegisterReleaseAction(() => SafeUnloadScene(op));
                     handle.SetCompleted();
                 }
                 else
                 {
                     handle.SetError(op.OperationException?.Message ?? $"Load scene '{sceneAssetName}' failed.");
+                    SafeRelease(op);
                 }
             }
             catch (Exception ex) { handle.SetError(ex.Message); }

@@ -2,6 +2,13 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.2.58]
+
+### Fixed
+
+- Skipped object-pool unspawn when an Entity handle was already destroyed during shutdown teardown.
+- Changed scene ResourceHandle disposal to use the Addressables scene unload flow, preventing duplicate handle release when exiting PlayMode.
+
 ## [0.2.57]
 
 ### Added

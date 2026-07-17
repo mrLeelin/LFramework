@@ -143,7 +143,15 @@ namespace GameFramework.Entity
                 entityInfo.Status = EntityStatus.WillRecycle;
                 entity.OnRecycle();
                 entityInfo.Status = EntityStatus.Recycled;
-                entityGroup.UnspawnEntity(entity);
+                if (entity.Handle != null)
+                {
+                    entityGroup.UnspawnEntity(entity);
+                }
+                else
+                {
+                    GameFrameworkLog.Warning("Entity '{0}' skipped object pool unspawn because its handle is invalid. The stale pool entry will be released when the object pool shuts down.", entity.EntityAssetName);
+                }
+
                 ReferencePool.Release(entityInfo);
             }
 
