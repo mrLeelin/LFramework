@@ -2,6 +2,13 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.2.57]
+
+### Added
+
+- Forwarded Unity application focus, pause, and quit callbacks to Hotfix-layer `GameFrameworkComponent` instances through a runtime lifecycle contract.
+- Added EditMode regression coverage for Runtime-to-Hotfix lifecycle dispatch and lifecycle-service cleanup.
+
 ## [0.2.56]
 
 ### Changed

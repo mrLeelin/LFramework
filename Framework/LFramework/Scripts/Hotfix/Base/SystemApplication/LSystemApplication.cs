@@ -14,6 +14,7 @@ namespace LFramework.Hotfix
         Singleton<LSystemApplication>,
         ISystemProviderRegister,
         IWorldRegister,
+        IApplicationLifecycle,
         ISingletonUpdate,
         ISingletonLateUpdate
     {
@@ -34,6 +35,7 @@ namespace LFramework.Hotfix
             LServices.Inject(this);
             LServices.Register<ISystemProviderRegister>(this);
             LServices.Register<IWorldRegister>(this);
+            LServices.Register<IApplicationLifecycle>(this);
         }
 
         public void Update(float elapseSeconds, float realElapseSeconds)
@@ -56,6 +58,30 @@ namespace LFramework.Hotfix
             _worldBase?.LateUpdate();
         }
 
+        public void OnApplicationFocus(bool hasFocus)
+        {
+            foreach (var component in _hotfixComponents)
+            {
+                component.RuntimeOnApplicationFocus(hasFocus);
+            }
+        }
+
+        public void OnApplicationPause(bool pauseStatus)
+        {
+            foreach (var component in _hotfixComponents)
+            {
+                component.RuntimeOnApplicationPause(pauseStatus);
+            }
+        }
+
+        public void OnApplicationQuit()
+        {
+            foreach (var component in _hotfixComponents)
+            {
+                component.RuntimeOnApplicationQuit();
+            }
+        }
+
         public override void Dispose()
         {
             base.Dispose();
@@ -70,6 +96,7 @@ namespace LFramework.Hotfix
             TryUnRegisterWorld();
             LServices.Unregister<ISystemProviderRegister>();
             LServices.Unregister<IWorldRegister>();
+            LServices.Unregister<IApplicationLifecycle>();
         }
 
         public void DisposeAllActiveProviders()

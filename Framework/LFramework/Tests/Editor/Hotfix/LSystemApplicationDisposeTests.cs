@@ -85,6 +85,32 @@ namespace LFramework.Editor.Tests.Hotfix
             application.Dispose();
         }
 
+        [Test]
+        public void ApplicationLifecycleCallbacksReachRegisteredHotfixComponents()
+        {
+            var hotfixComponent = new HotfixComponent();
+            LServices.Register(hotfixComponent);
+            ConfigureHotfixTypes(hotfixComponent, typeof(TestHotfixComponent));
+
+            var application = new LSystemApplication();
+            application.RegisterHotfixComponents(hotfixComponent);
+
+            Assert.That(LServices.TryGet<IApplicationLifecycle>(out var lifecycle), Is.True);
+            lifecycle.OnApplicationFocus(false);
+            lifecycle.OnApplicationPause(true);
+            lifecycle.OnApplicationQuit();
+
+            Assert.That(LServices.TryGet<ITestHotfixComponent>(out var service), Is.True);
+            var component = (TestHotfixComponent)service;
+            Assert.That(component.HasFocus, Is.False);
+            Assert.That(component.IsPaused, Is.True);
+            Assert.That(component.QuitCallCount, Is.EqualTo(1));
+
+            application.Dispose();
+
+            Assert.That(LServices.TryGet<IApplicationLifecycle>(out _), Is.False);
+        }
+
         private static void ConfigureHotfixTypes(HotfixComponent hotfixComponent, params Type[] types)
         {
             var typeMap = new Dictionary<string, Type>(StringComparer.Ordinal);
@@ -124,6 +150,24 @@ namespace LFramework.Editor.Tests.Hotfix
         [HotfixComponent(typeof(ITestHotfixComponent))]
         public sealed class TestHotfixComponent : GameFrameworkComponent, ITestHotfixComponent
         {
+            public bool HasFocus { get; private set; } = true;
+            public bool IsPaused { get; private set; }
+            public int QuitCallCount { get; private set; }
+
+            public override void RuntimeOnApplicationFocus(bool hasFocus)
+            {
+                HasFocus = hasFocus;
+            }
+
+            public override void RuntimeOnApplicationPause(bool pauseStatus)
+            {
+                IsPaused = pauseStatus;
+            }
+
+            public override void RuntimeOnApplicationQuit()
+            {
+                QuitCallCount++;
+            }
         }
 
         [BelongTo(ProcedureState)]

@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using LFramework.Runtime;
 using NUnit.Framework;
 using UnityEngine;
@@ -39,6 +40,60 @@ namespace LFramework.Editor.Tests.Base
             UnityEngine.Object.DestroyImmediate(gameObject);
         }
 
+        [Test]
+        public void UnityLifecycleCallbacksReachRegisteredLifecycleService()
+        {
+            var lifecycle = new TestApplicationLifecycle();
+            LServices.Register<IApplicationLifecycle>(lifecycle);
+            var gameObject = new GameObject("Application Lifecycle Test");
+            var application = gameObject.AddComponent<LifecycleTestApplicationBehaviour>();
+
+            InvokeUnityCallback(application, "OnApplicationFocus", false);
+            InvokeUnityCallback(application, "OnApplicationPause", true);
+            InvokeUnityCallback(application, "OnApplicationQuit");
+
+            Assert.That(lifecycle.HasFocus, Is.False);
+            Assert.That(lifecycle.IsPaused, Is.True);
+            Assert.That(lifecycle.QuitCallCount, Is.EqualTo(1));
+            Assert.That(application.ShutdownType, Is.EqualTo(ShutdownType.Quit));
+
+            UnityEngine.Object.DestroyImmediate(gameObject);
+        }
+
+        private static void InvokeUnityCallback(
+            UnitySystemApplicationBehaviour application,
+            string methodName,
+            params object[] args)
+        {
+            var method = typeof(UnitySystemApplicationBehaviour).GetMethod(
+                methodName,
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+            method.Invoke(application, args);
+        }
+
+        private sealed class TestApplicationLifecycle : IApplicationLifecycle
+        {
+            public bool HasFocus { get; private set; } = true;
+            public bool IsPaused { get; private set; }
+            public int QuitCallCount { get; private set; }
+
+            public void OnApplicationFocus(bool hasFocus)
+            {
+                HasFocus = hasFocus;
+            }
+
+            public void OnApplicationPause(bool pauseStatus)
+            {
+                IsPaused = pauseStatus;
+            }
+
+            public void OnApplicationQuit()
+            {
+                QuitCallCount++;
+            }
+        }
+
         public sealed class TestStartupComponent : GameFrameworkComponent
         {
             public bool ShutDownCalled { get; private set; }
@@ -72,6 +127,20 @@ namespace LFramework.Editor.Tests.Base
         protected override void RegisterComponents()
         {
             RegisterComponent(Component);
+        }
+
+        protected override void ApplicationStarted()
+        {
+        }
+    }
+
+    public sealed class LifecycleTestApplicationBehaviour : UnitySystemApplicationBehaviour
+    {
+        public ShutdownType ShutdownType { get; private set; }
+
+        public override void StopApplication(ShutdownType shutdownType)
+        {
+            ShutdownType = shutdownType;
         }
 
         protected override void ApplicationStarted()

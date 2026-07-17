@@ -13,4 +13,13 @@ namespace LFramework.Runtime
         void StopApplication(ShutdownType shutdownType);
 
     }
+
+    public interface IApplicationLifecycle
+    {
+        void OnApplicationFocus(bool hasFocus);
+
+        void OnApplicationPause(bool pauseStatus);
+
+        void OnApplicationQuit();
+    }
 }

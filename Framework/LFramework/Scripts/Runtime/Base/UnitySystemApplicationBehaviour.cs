@@ -149,13 +149,23 @@ namespace LFramework.Runtime
 
             Log.Info($"[The application OnApplicationFocus {hasFocus}]");
             OnApplicationFocusInternal(hasFocus);
+            if (LServices.TryGet<IApplicationLifecycle>(out var lifecycle))
+            {
+                lifecycle.OnApplicationFocus(hasFocus);
+            }
         }
 
-        protected virtual void OnApplicationFocusInternal(bool hasFocus){}
+        protected virtual void OnApplicationFocusInternal(bool hasFocus)
+        {
+        }
 
-        protected virtual void OnApplicationPauseInternal(bool pauseStatus){}
+        protected virtual void OnApplicationPauseInternal(bool pauseStatus)
+        {
+        }
 
-        protected virtual void OnApplicationQuitInternal(){}
+        protected virtual void OnApplicationQuitInternal()
+        {
+        }
 
         private void OnApplicationPause(bool pauseStatus)
         {
@@ -166,6 +176,10 @@ namespace LFramework.Runtime
 
             Log.Info($"[The application OnApplicationPause {pauseStatus}]");
             OnApplicationPauseInternal(pauseStatus);
+            if (LServices.TryGet<IApplicationLifecycle>(out var lifecycle))
+            {
+                lifecycle.OnApplicationPause(pauseStatus);
+            }
         }
 
         private void OnApplicationQuit()
@@ -176,6 +190,11 @@ namespace LFramework.Runtime
             }
 
             OnApplicationQuitInternal();
+            if (LServices.TryGet<IApplicationLifecycle>(out var lifecycle))
+            {
+                lifecycle.OnApplicationQuit();
+            }
+
             StopApplication(ShutdownType.Quit);
         }
 
