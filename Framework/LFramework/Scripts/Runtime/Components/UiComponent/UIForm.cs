@@ -12,9 +12,11 @@ namespace LFramework.Runtime
     public class UIForm : UnityEngine.MonoBehaviour, IUIForm
     {
         private IUILifecycle _uiBehaviour;
-        [SerializeField] [Sirenix.OdinInspector.ReadOnly] private int serialID;
-        
-       
+
+        [SerializeField] [Sirenix.OdinInspector.ReadOnly]
+        private int serialID;
+
+
         public int SerialId { get; private set; }
         public string UIFormAssetName { get; private set; }
         public object Handle => this != null ? gameObject : null;
@@ -99,14 +101,14 @@ namespace LFramework.Runtime
                 Log.Error($"UI form '[{SerialId}{UIFormAssetName}]' OnRelease with exception '{e}'");
             }
         }
-        
+
         public void OnOpen(object userData)
         {
             if (!IsUIBehaviourAlive())
             {
                 return;
             }
-        
+
             try
             {
                 LFrameworkAspect.Instance.Get<ViewComponent>().ViewCreated(_uiBehaviour as IView);
@@ -129,16 +131,15 @@ namespace LFramework.Runtime
             {
                 if (!isShutdown)
                 {
-                    _uiBehaviour.OnInterClose(isShutdown,userData);
+                    _uiBehaviour.OnInterClose(isShutdown, userData);
                 }
+
                 LFrameworkAspect.Instance.Get<ViewComponent>().ViewDestroyed(_uiBehaviour as IView);
             }
             catch (Exception e)
             {
                 Log.Error($"UI form '[{SerialId}{UIFormAssetName}]' OnClose with exception '{e}'");
             }
-            
-           
         }
 
         public void OnPause()
@@ -259,6 +260,27 @@ namespace LFramework.Runtime
             {
                 Log.Error($"UI form '[{SerialId}{UIFormAssetName}]' OnDepthChanged with exception '{e}'");
             }
+        }
+
+        public TUiBehaviour FindUiBehaviour<TUiBehaviour>() where TUiBehaviour : class
+        {
+            try
+            {
+                var result = _uiBehaviour as TUiBehaviour;
+                if (result == null)
+                {
+                    Log.Error(
+                        $"UI form '[{SerialId}{UIFormAssetName}]' FindUiBehaviour with exception '{typeof(TUiBehaviour).FullName}' returned null");
+                }
+
+                return result;
+            }
+            catch (Exception e)
+            {
+                Log.Error($"UI form '[{SerialId}{UIFormAssetName}]' FindUiBehaviour with exception '{e}'");
+            }
+
+            return null;
         }
 
         private bool IsUIBehaviourAlive()

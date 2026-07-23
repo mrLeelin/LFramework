@@ -130,5 +130,12 @@ namespace GameFramework.UI
         /// <param name="uiGroupDepth">界面组深度。</param>
         /// <param name="depthInUIGroup">界面在界面组中的深度。</param>
         void OnDepthChanged(int uiGroupDepth, int depthInUIGroup);
+
+        /// <summary>
+        /// 找到Ui上面挂载的类
+        /// </summary>
+        /// <typeparam name="TUiBehaviour"></typeparam>
+        /// <returns></returns>
+        TUiBehaviour FindUiBehaviour<TUiBehaviour>() where TUiBehaviour : class ;
     }
 }
