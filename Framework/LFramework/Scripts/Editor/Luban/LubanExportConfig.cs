@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -13,6 +14,29 @@ namespace Luban.Editor
         [TabGroup("Split", "预配置项")]
         [FoldoutGroup("Split/预配置项/Luban conf 文件配置")]
         public LubanConfig config;
+
+        [HideLabel]
+        [TabGroup("Split", "预配置项")]
+        [FoldoutGroup("Split/预配置项/Luban conf 文件配置")]
+        [LabelText("附加 Luban 配置")]
+        [Tooltip("用于合并框架包、项目层或其他模块的 Luban schema。导出时会与主配置生成同一个 conf。")]
+        [InfoBox("这里添加第二套、第三套 Luban 配置。比如主配置放项目表，附加配置放框架表。")]
+        [ListDrawerSettings(ShowIndexLabels = true, Expanded = true, DraggableItems = false)]
+        public List<LubanConfig> additional_configs;
+
+        [TabGroup("Split", "预配置项")]
+        [FoldoutGroup("Split/预配置项/Luban conf 文件配置")]
+        [Button("添加一套附加 Luban 配置")]
+        public void AddAdditionalConfig()
+        {
+            additional_configs ??= new List<LubanConfig>();
+            additional_configs.Add(new LubanConfig
+            {
+                groups = new List<RawGroup>(),
+                schema_files = new List<SchemaFileInfo>(),
+                targets = new List<RawTarget>()
+            });
+        }
 
         [LabelText("键值对")]
         [TabGroup("Split", "预配置项")]

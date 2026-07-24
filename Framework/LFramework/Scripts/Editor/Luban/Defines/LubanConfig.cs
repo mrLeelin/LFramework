@@ -62,23 +62,50 @@ namespace Luban.Editor
 
         public void PrepareJson()
         {
-            foreach (var group in groups)
+            if (groups != null)
             {
-                group.PrepareJson();
+                foreach (var group in groups)
+                {
+                    group?.PrepareJson();
+                }
             }
 
-            foreach (var target in targets)
+            if (targets != null)
             {
-                target.PrepareJson();
+                foreach (var target in targets)
+                {
+                    target?.PrepareJson();
+                }
             }
         }
 
         public IEnumerable<ValueDropdownItem<string>> GetTargetDropdown()
         {
+            if (targets == null)
+            {
+                yield break;
+            }
+
             foreach (var target in targets)
             {
+                if (target == null || string.IsNullOrWhiteSpace(target.name))
+                {
+                    continue;
+                }
+
                 yield return new ValueDropdownItem<string>(target.name, target.name);
             }
+        }
+
+        public LubanConfig Clone()
+        {
+            return new LubanConfig
+            {
+                data_dir = data_dir,
+                groups = groups?.Where(static group => group != null).Select(static group => group.Clone()).ToList(),
+                schema_files = schema_files?.Where(static file => file != null).Select(static file => file.Clone()).ToList(),
+                targets = targets?.Where(static target => target != null).Select(static target => target.Clone()).ToList()
+            };
         }
     }
 
@@ -95,7 +122,23 @@ namespace Luban.Editor
 
         public void PrepareJson()
         {
-            _names = names.Replace(" ", "").Split(",");
+            _names = SplitCsv(names);
+        }
+
+        public RawGroup Clone()
+        {
+            return new RawGroup
+            {
+                names = names,
+                is_default = is_default
+            };
+        }
+
+        internal static string[] SplitCsv(string value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? Array.Empty<string>()
+                : value.Replace(" ", "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
         }
     }
 
@@ -115,6 +158,15 @@ namespace Luban.Editor
             new ValueDropdownItem<string>("对象", "bean"),
             new ValueDropdownItem<string>("枚举", "enum")
         };
+
+        public SchemaFileInfo Clone()
+        {
+            return new SchemaFileInfo
+            {
+                file_name = file_name,
+                type = type
+            };
+        }
     }
 
     [Serializable]
@@ -136,7 +188,18 @@ namespace Luban.Editor
 
         public void PrepareJson()
         {
-            _groups = groups.Replace(" ", "").Split(",");
+            _groups = RawGroup.SplitCsv(groups);
+        }
+
+        public RawTarget Clone()
+        {
+            return new RawTarget
+            {
+                name = name,
+                manager = manager,
+                groups = groups,
+                top_module = top_module
+            };
         }
     }
 }

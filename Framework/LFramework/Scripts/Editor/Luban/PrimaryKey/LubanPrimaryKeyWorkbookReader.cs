@@ -16,6 +16,17 @@ namespace Luban.Editor.PrimaryKey
 
         public static string ResolveDataRoot(LubanExportConfig exportConfig)
         {
+            IReadOnlyList<string> roots = ResolveDataRoots(exportConfig);
+            if (roots.Count == 0)
+            {
+                throw new InvalidOperationException("No Luban data directory is configured.");
+            }
+
+            return roots[0];
+        }
+
+        public static IReadOnlyList<string> ResolveDataRoots(LubanExportConfig exportConfig)
+        {
             if (exportConfig == null)
             {
                 throw new ArgumentNullException(nameof(exportConfig));
@@ -24,24 +35,47 @@ namespace Luban.Editor.PrimaryKey
             string confAbsolutePath = Path.GetFullPath(exportConfig.luban_conf_path);
             string confDirectory = Path.GetDirectoryName(confAbsolutePath)
                                    ?? throw new InvalidOperationException("Cannot resolve Luban conf directory.");
-            return Path.GetFullPath(Path.Combine(confDirectory, exportConfig.config.data_dir));
+
+            var roots = new List<string>();
+            foreach (LubanConfig config in exportConfig.EnumerateLubanConfigs())
+            {
+                if (config == null || string.IsNullOrWhiteSpace(config.data_dir))
+                {
+                    continue;
+                }
+
+                roots.Add(Path.GetFullPath(Path.Combine(confDirectory, config.data_dir)));
+            }
+
+            return roots;
         }
 
         public static string ResolveWorkbookPath(LubanExportConfig exportConfig, string tableName)
         {
-            string dataRoot = ResolveDataRoot(exportConfig);
-            if (!Directory.Exists(dataRoot))
+            IReadOnlyList<string> dataRoots = ResolveDataRoots(exportConfig);
+            if (dataRoots.Count == 0)
             {
-                throw new DirectoryNotFoundException($"Luban data directory does not exist: {dataRoot}");
+                throw new InvalidOperationException("No Luban data directory is configured.");
             }
 
-            string[] matches = Directory.GetFiles(dataRoot, $"{tableName}.xlsx", SearchOption.AllDirectories);
-            if (matches.Length == 0)
+            var matches = new List<string>();
+            foreach (string dataRoot in dataRoots)
             {
-                throw new FileNotFoundException($"Cannot find workbook for table '{tableName}' under '{dataRoot}'.");
+                if (!Directory.Exists(dataRoot))
+                {
+                    continue;
+                }
+
+                matches.AddRange(Directory.GetFiles(dataRoot, $"{tableName}.xlsx", SearchOption.AllDirectories));
             }
 
-            if (matches.Length > 1)
+            if (matches.Count == 0)
+            {
+                throw new FileNotFoundException(
+                    $"Cannot find workbook for table '{tableName}' under '{string.Join(", ", dataRoots)}'.");
+            }
+
+            if (matches.Count > 1)
             {
                 throw new InvalidOperationException(
                     $"Found multiple workbooks for table '{tableName}': {string.Join(", ", matches)}");

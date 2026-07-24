@@ -127,7 +127,7 @@ namespace Luban.Editor
         [LabelText("生成目标")]
         [TabGroup("Split", "参数配置")]
         [BoxGroup("Split/参数配置/必要参数")]
-        [ValueDropdown("@config.GetTargetDropdown()")]
+        [ValueDropdown("@GetTargetDropdown()")]
         public string target;
 
         [Required]
@@ -340,6 +340,52 @@ namespace Luban.Editor
         private ValueDropdownList<string> _GetAllTimeZone()
         {
             return GetTimeZoneDropdownItems();
+        }
+
+        public IEnumerable<ValueDropdownItem<string>> GetTargetDropdown()
+        {
+            var seenNames = new HashSet<string>(StringComparer.Ordinal);
+            foreach (LubanConfig exportConfig in EnumerateLubanConfigs())
+            {
+                if (exportConfig?.targets == null)
+                {
+                    continue;
+                }
+
+                foreach (RawTarget rawTarget in exportConfig.targets)
+                {
+                    if (rawTarget == null || string.IsNullOrWhiteSpace(rawTarget.name))
+                    {
+                        continue;
+                    }
+
+                    if (seenNames.Add(rawTarget.name))
+                    {
+                        yield return new ValueDropdownItem<string>(rawTarget.name, rawTarget.name);
+                    }
+                }
+            }
+        }
+
+        public IEnumerable<LubanConfig> EnumerateLubanConfigs()
+        {
+            if (config != null)
+            {
+                yield return config;
+            }
+
+            if (additional_configs == null)
+            {
+                yield break;
+            }
+
+            foreach (LubanConfig additionalConfig in additional_configs)
+            {
+                if (additionalConfig != null)
+                {
+                    yield return additionalConfig;
+                }
+            }
         }
     }
 }

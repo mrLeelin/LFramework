@@ -4,7 +4,7 @@ using LFramework.Runtime;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
-using UnityGameFramework.Runtime;
+using UGResourceComponent = UnityGameFramework.Runtime.ResourceComponent;
 
 namespace LFramework.Editor.Tests
 {
@@ -35,7 +35,7 @@ namespace LFramework.Editor.Tests
                 allComponentTypes = serializedApplication.FindProperty("allComponentTypes");
 
                 Assert.That(allComponentTypes.arraySize, Is.GreaterThan(1));
-                Assert.That(ReadArray(allComponentTypes), Does.Contain(typeof(ResourceComponent).FullName));
+                Assert.That(ReadArray(allComponentTypes), Does.Contain(typeof(UGResourceComponent).FullName));
                 Assert.That(ReadArray(allComponentTypes), Does.Not.Contain("Stale.Component"));
             }
             finally
