@@ -21,6 +21,7 @@ namespace LFramework.Runtime
         private readonly List<Type> _autoRegisterWorldHelpers = new();
         private ProcedureBase _linkProcedure;
         private readonly Dictionary<Type, Type> _linkWorldHelperAndInterface = new();
+        private readonly Dictionary<Type, IWorldHelper> _interfaceWorldHelpers = new();
 
         public void Initialized()
         {
@@ -60,7 +61,7 @@ namespace LFramework.Runtime
             {
                 ReferencePool.Release(worldHelper);
             }
-
+            _interfaceWorldHelpers.Clear();
             _linkWorldHelperAndInterface.Clear();
             _worldHelpers.Clear();
             _worldUpdates.Clear();
@@ -159,7 +160,14 @@ namespace LFramework.Runtime
 
         public T GetWorldHelper<T>() where T : class, IWorldHelper
         {
-            if (_worldHelpers.TryGetValue(typeof(T), out var result))
+            var tType = typeof(T);
+            //先从Interface 里面查看是否包含
+            if (tType.IsInterface && _interfaceWorldHelpers.TryGetValue(tType, out var result))
+            {
+                return (T)result;
+            }
+            //再从WorldHelper里面查询
+            if (_worldHelpers.TryGetValue(tType, out result))
             {
                 return (T)result;
             }
@@ -243,7 +251,7 @@ namespace LFramework.Runtime
             // interface bind.
             if (interfaceType != null)
             {
-                _worldHelpers.Add(interfaceType, t);
+                _interfaceWorldHelpers.Add(interfaceType, t);
             }
 
             _worldHelpers.Add(typeof(T), t);
@@ -266,7 +274,7 @@ namespace LFramework.Runtime
             // interface bind.
             if (interfaceType != null)
             {
-                _worldHelpers.Add(interfaceType, worldHelperBase);
+                _interfaceWorldHelpers.Add(interfaceType, worldHelperBase);
             }
 
             _worldHelpers.Add(worldHelperBase.GetType(), worldHelperBase);
