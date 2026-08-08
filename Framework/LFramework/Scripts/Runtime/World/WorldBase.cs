@@ -52,10 +52,15 @@ namespace LFramework.Runtime
             UnSubscribe(EventComponent);
             // 先解绑 DI，再释放回对象池
             UnRegisterWorldHelper();
-            foreach (var worldHelper in _worldHelpers.Values)
+
+            // 注意：同一个 WorldHelper 可能以多个 Type 作为 key 存在于 _worldHelpers 中
+            // （例如：接口类型 + 具体类型），因此需要去重避免重复释放
+            var uniqueHelpers = new HashSet<IWorldHelper>(_worldHelpers.Values);
+            foreach (var worldHelper in uniqueHelpers)
             {
                 ReferencePool.Release(worldHelper);
             }
+
             _linkWorldHelperAndInterface.Clear();
             _worldHelpers.Clear();
             _worldUpdates.Clear();

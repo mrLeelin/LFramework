@@ -34,10 +34,16 @@ namespace LFramework.Runtime
         {
             base.OnInit(userData);
             _subModuleKeyMap.Clear();
+            _updatableSubEntities.Clear();
+
             foreach (var subModule in subModuleList)
             {
                 subModule.OnInit(this, userData);
-                _subModuleKeyMap.Add(subModule.GetType(),subModule);
+                _subModuleKeyMap.Add(subModule.GetType(), subModule);
+
+                // 缓存实现了 ISubModuleUpdate 接口的子模块
+                if (subModule is ISubModuleUpdate updatable)
+                    _updatableSubEntities.Add(updatable);
             }
         }
 
@@ -77,10 +83,11 @@ namespace LFramework.Runtime
         protected override void OnUpdate(float elapseSeconds, float realElapseSeconds)
         {
             base.OnUpdate(elapseSeconds, realElapseSeconds);
-            for (var index = 0; index < subModuleList.Count; index++)
+
+            // 只调用实现了 ISubModuleUpdate 接口的子模块
+            for (int i = 0; i < _updatableSubEntities.Count; i++)
             {
-                var subModule = subModuleList[index];
-                subModule.OnUpdate(elapseSeconds, realElapseSeconds);
+                _updatableSubEntities[i].OnSubModuleUpdate(elapseSeconds, realElapseSeconds);
             }
         }
 
@@ -165,17 +172,17 @@ namespace LFramework.Runtime
 
         protected virtual void Subscribe(EventComponent eventComponent)
         {
-            foreach (var subWindow in subModuleList)
+            foreach (var subModule in subModuleList)
             {
-                subWindow.Subscribe(eventComponent);
+                subModule.Subscribe(eventComponent);
             }
         }
 
         protected virtual void UnSubscribe(EventComponent eventComponent)
         {
-            foreach (var subWindow in subModuleList)
+            foreach (var subModule in subModuleList)
             {
-                subWindow.UnSubscribe(eventComponent);
+                subModule.UnSubscribe(eventComponent);
             }
         }
 

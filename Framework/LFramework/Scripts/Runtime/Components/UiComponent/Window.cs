@@ -143,6 +143,8 @@ namespace LFramework.Runtime
             }
 
             _subModuleKeyMap.Clear();
+            _updatableSubModules.Clear();
+
             _windowAnimation = gameObject.GetComponent<IAnimation>();
             _canvas = gameObject.GetOrAddComponent<Canvas>();
             _canvas.overrideSorting = true;
@@ -154,9 +156,14 @@ namespace LFramework.Runtime
             CacheRectTransform.anchoredPosition = Vector2.zero;
             CacheRectTransform.sizeDelta = Vector2.zero;
             gameObject.GetOrAddComponent<GraphicRaycaster>();
+
             foreach (var subWindow in subModuleList)
             {
                 _subModuleKeyMap.Add(subWindow.GetType(), subWindow);
+
+                // 缓存实现了 ISubModuleUpdate 接口的子模块
+                if (subWindow is ISubModuleUpdate updatable)
+                    _updatableSubModules.Add(updatable);
             }
 
             OnInit(userData);
@@ -257,10 +264,11 @@ namespace LFramework.Runtime
         {
             base.OnInterUpdate(elapseSeconds, realElapseSeconds);
             OnUpdate(elapseSeconds, realElapseSeconds);
-            for (var index = 0; index < subModuleList.Count; index++)
+
+            // 只调用实现了 ISubModuleUpdate 接口的子模块
+            for (int i = 0; i < _updatableSubModules.Count; i++)
             {
-                var subWindow = subModuleList[index];
-                subWindow.OnUpdate(elapseSeconds, realElapseSeconds);
+                _updatableSubModules[i].OnSubModuleUpdate(elapseSeconds, realElapseSeconds);
             }
         }
 

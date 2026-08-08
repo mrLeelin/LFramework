@@ -65,6 +65,8 @@ namespace LFramework.EditorTools
                     {
                         if (string.IsNullOrEmpty(path))
                             continue;
+                        if (!IsPendingPrefabStillLoadable(path))
+                            continue;
 
                         var root = PrefabUtility.LoadPrefabContents(path);
                         if (root == null)
@@ -116,6 +118,12 @@ namespace LFramework.EditorTools
                     EditorApplication.delayCall += ProcessPending;
                 }
             }
+        }
+
+        internal static bool IsPendingPrefabStillLoadable(string path)
+        {
+            return !string.IsNullOrEmpty(path) &&
+                   AssetDatabase.LoadAssetAtPath<GameObject>(path) != null;
         }
     }
 }

@@ -1,8 +1,11 @@
 using System.Collections.Generic;
+using System.Reflection;
 using GameFramework.UI;
 using LFramework.Runtime;
 using NUnit.Framework;
 using UnityEngine;
+using EventComponent = UnityGameFramework.Runtime.EventComponent;
+using RuntimeEntityLogic = UnityGameFramework.Runtime.EntityLogic;
 
 namespace LFramework.Editor.Tests.UI
 {
@@ -55,6 +58,83 @@ namespace LFramework.Editor.Tests.UI
                 "New UI instances should stay hidden until OnOpen to avoid a one-frame flash.");
         }
 
+        [Test]
+        public void BaseSubWindowSetEnabledUsesTheRequestedState()
+        {
+            var subWindow = CreateTrackedGameObject<InterfaceUpdateSubWindow>("Sub Window");
+
+            subWindow.SetEnabled(false, true);
+
+            Assert.That(subWindow.IsEnabled, Is.False);
+            Assert.That(subWindow.gameObject.activeSelf, Is.False);
+            Assert.That(subWindow.EnabledChangedCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void SubModuleUpdateDispatchHonorsEnabledState()
+        {
+            var subWindow = CreateTrackedGameObject<InterfaceUpdateSubWindow>("Sub Window");
+            var subEntity = CreateTrackedGameObject<InterfaceUpdateSubEntity>("Sub Entity");
+
+            subWindow.OnUpdate(0.1f, 0.1f);
+            subEntity.OnUpdate(0.1f, 0.1f);
+            subWindow.SetEnabled(false);
+            subEntity.SetEnabled(false);
+            subWindow.OnUpdate(0.1f, 0.1f);
+            subEntity.OnUpdate(0.1f, 0.1f);
+
+            Assert.That(subWindow.UpdateCount, Is.EqualTo(1));
+            Assert.That(subEntity.UpdateCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void DisabledSubModulesStillReceiveCleanupCallbacks()
+        {
+            var subWindow = CreateTrackedGameObject<CleanupSubWindow>("Sub Window");
+            var subEntity = CreateTrackedGameObject<CleanupSubEntity>("Sub Entity");
+            subWindow.OnInit(null, null);
+            subEntity.OnInit(null, null);
+            subWindow.Subscribe(null);
+            subEntity.Subscribe(null);
+
+            subWindow.enabled = false;
+            subWindow.SetEnabled(false);
+            subEntity.SetEnabled(false);
+            subWindow.UnSubscribe(null);
+            subWindow.OnClose(false, null);
+            subEntity.UnSubscribe(null);
+            subEntity.OnHide(false, null);
+            subEntity.OnDetached(null, null);
+            subEntity.OnDetachFrom(null, null);
+
+            Assert.That(subWindow.UnSubscribeCount, Is.EqualTo(1));
+            Assert.That(subWindow.CloseCount, Is.EqualTo(1));
+            Assert.That(subEntity.UnSubscribeCount, Is.EqualTo(1));
+            Assert.That(subEntity.HideCount, Is.EqualTo(1));
+            Assert.That(subEntity.DetachChildCount, Is.EqualTo(1));
+            Assert.That(subEntity.DetachFromCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void LegacyUpdateOverridesAreStillMarkedAsUpdatable()
+        {
+            var subWindow = CreateTrackedGameObject<LegacyUpdateSubWindow>("Legacy Sub Window");
+            var subEntity = CreateTrackedGameObject<LegacyUpdateSubEntity>("Legacy Sub Entity");
+
+            Assert.That(GetRequiresUpdate(subWindow), Is.True);
+            Assert.That(GetRequiresUpdate(subEntity), Is.True);
+        }
+
+        private static bool GetRequiresUpdate(object subModule)
+        {
+            var property = subModule.GetType().BaseType?.GetProperty(
+                "RequiresUpdate",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Assert.That(property, Is.Not.Null);
+            return (bool)property.GetValue(subModule);
+        }
+
         private T CreateTrackedGameObject<T>(string name) where T : Component
         {
             var gameObject = new GameObject(name);
@@ -72,6 +152,90 @@ namespace LFramework.Editor.Tests.UI
         private sealed class TestUIGroupHelper : MonoBehaviour, IUIGroupHelper
         {
             public void SetDepth(int depth)
+            {
+            }
+        }
+
+        private sealed class InterfaceUpdateSubWindow : BaseSubWindow, ISubModuleUpdate
+        {
+            public int UpdateCount { get; private set; }
+            public int EnabledChangedCount { get; private set; }
+
+            public void OnSubModuleUpdate(float elapseSeconds, float realElapseSeconds)
+            {
+                UpdateCount++;
+            }
+
+            protected override void OnInternalEnabledChanged(bool en)
+            {
+                EnabledChangedCount++;
+            }
+        }
+
+        private sealed class InterfaceUpdateSubEntity : BaseSubEntity, ISubModuleUpdate
+        {
+            public int UpdateCount { get; private set; }
+
+            public void OnSubModuleUpdate(float elapseSeconds, float realElapseSeconds)
+            {
+                UpdateCount++;
+            }
+        }
+
+        private sealed class CleanupSubWindow : BaseSubWindow
+        {
+            public int CloseCount { get; private set; }
+            public int UnSubscribeCount { get; private set; }
+
+            protected override void OnInternalClose(bool isShutDown, object userData)
+            {
+                CloseCount++;
+            }
+
+            protected override void OnInternalUnSubscribe(EventComponent eventComponent)
+            {
+                UnSubscribeCount++;
+            }
+        }
+
+        private sealed class CleanupSubEntity : BaseSubEntity
+        {
+            public int HideCount { get; private set; }
+            public int UnSubscribeCount { get; private set; }
+            public int DetachChildCount { get; private set; }
+            public int DetachFromCount { get; private set; }
+
+            protected override void OnInternalHide(bool isShutdown, object userData)
+            {
+                HideCount++;
+            }
+
+            protected override void OnInternalUnSubscribe(EventComponent eventComponent)
+            {
+                UnSubscribeCount++;
+            }
+
+            protected override void OnInternalDetachChild(RuntimeEntityLogic childEntity, object userData)
+            {
+                DetachChildCount++;
+            }
+
+            protected override void OnInternalDetachFrom(RuntimeEntityLogic parentEntity, object userData)
+            {
+                DetachFromCount++;
+            }
+        }
+
+        private sealed class LegacyUpdateSubWindow : BaseSubWindow
+        {
+            protected override void OnInternalUpdate(float elapseSeconds, float realElapseSeconds)
+            {
+            }
+        }
+
+        private sealed class LegacyUpdateSubEntity : BaseSubEntity
+        {
+            protected override void OnInternalUpdate(float elapseSeconds, float realElapseSeconds)
             {
             }
         }

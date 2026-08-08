@@ -24,6 +24,11 @@ namespace LFramework.Runtime
         private readonly GameFrameworkMultiDictionary<Type, BaseSubEntity> _subModuleKeyMap = new();
 
         /// <summary>
+        /// 缓存需要每帧更新的子模块（实现了 ISubModuleUpdate 接口）
+        /// </summary>
+        private readonly List<ISubModuleUpdate> _updatableSubEntities = new();
+
+        /// <summary>
         /// 获取第一个SubModule 根据类型
         /// </summary>
         /// <typeparam name="TSubModule"></typeparam>
@@ -44,21 +49,9 @@ namespace LFramework.Runtime
         }
 
         /// <summary>
-        /// 获取所有的SubModule 根据类型
+        /// 获取所有的SubModule 根据类型（推荐使用此重载，复用 List 避免 GC）
         /// </summary>
-        /// <typeparam name="TSubModule"></typeparam>
-        /// <returns></returns>
-        public List<TSubModule> GetSubModules<TSubModule>() where TSubModule : BaseSubEntity
-        {
-            var result = new List<TSubModule>();
-            GetSubModules(result);
-            return result;
-        }
-
-        /// <summary>
-        /// 获取所有的SubModule 根据类型
-        /// </summary>
-        /// <param name="result"></param>
+        /// <param name="result">用于接收结果的 List</param>
         /// <typeparam name="TSubModule"></typeparam>
         public void GetSubModules<TSubModule>(List<TSubModule> result) where TSubModule : BaseSubEntity
         {
@@ -73,6 +66,19 @@ namespace LFramework.Runtime
             {
                 result.Add((TSubModule)baseSubEntity);
             }
+        }
+
+        /// <summary>
+        /// 获取所有的SubModule 根据类型（会创建新 List，产生 GC 分配）
+        /// 注意：频繁调用会产生 GC 压力，推荐使用 GetSubModules(List&lt;TSubModule&gt; result) 重载
+        /// </summary>
+        /// <typeparam name="TSubModule"></typeparam>
+        /// <returns></returns>
+        public List<TSubModule> GetSubModules<TSubModule>() where TSubModule : BaseSubEntity
+        {
+            var result = new List<TSubModule>();
+            GetSubModules(result);
+            return result;
         }
 
         /// <summary>
