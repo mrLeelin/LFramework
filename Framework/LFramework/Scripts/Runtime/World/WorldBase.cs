@@ -20,6 +20,7 @@ namespace LFramework.Runtime
         private readonly List<IWorldLateUpdate> _worldLateUpdates = new();
         private readonly List<Type> _autoRegisterWorldHelpers = new();
         private ProcedureBase _linkProcedure;
+        private readonly Dictionary<Type, Type> _linkWorldHelperAndInterface = new();
 
         public void Initialized()
         {
@@ -55,7 +56,7 @@ namespace LFramework.Runtime
             {
                 ReferencePool.Release(worldHelper);
             }
-
+            _linkWorldHelperAndInterface.Clear();
             _worldHelpers.Clear();
             _worldUpdates.Clear();
             _worldLateUpdates.Clear();
@@ -131,6 +132,8 @@ namespace LFramework.Runtime
         {
         }
 
+        #region Public Method
+
         /// <summary>
         /// 下一帧抛出事件
         /// </summary>
@@ -160,6 +163,9 @@ namespace LFramework.Runtime
             return null;
         }
 
+        /// <summary>
+        /// 游戏开始
+        /// </summary>
         protected void StartHelperGame()
         {
             foreach (var helper in _worldHelpers.Values)
@@ -168,6 +174,10 @@ namespace LFramework.Runtime
             }
         }
 
+        /// <summary>
+        /// 实例化
+        /// </summary>
+        /// <returns></returns>
         protected UniTask InstantiateHelperGame()
         {
             var tasks = new List<UniTask>(_worldHelpers.Count);
@@ -180,6 +190,9 @@ namespace LFramework.Runtime
             return UniTask.WhenAll(tasks);
         }
 
+        /// <summary>
+        /// 停止游戏
+        /// </summary>
         protected void StopHelperGame()
         {
             foreach (var helper in _worldHelpers.Values)
@@ -188,13 +201,22 @@ namespace LFramework.Runtime
             }
         }
 
+        /// <summary>
+        /// 注册WorldHelper
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         protected T BuildWorldHelpers<T>() where T : class, IWorldHelper, new()
         {
             var t = ReferencePool.Acquire<T>();
-            return BuildWorldHelpers(t);
+            var interfaceType = GetWorldHelperInterfaces(t.GetType());
+            return BuildWorldHelpers(t, interfaceType);
         }
 
-        private T BuildWorldHelpers<T>(T helper) where T : IWorldHelper
+        #endregion
+
+
+        private T BuildWorldHelpers<T>(T helper, Type interfaceType) where T : IWorldHelper
         {
             var t = helper;
             if (t is not IWorldHelper worldHelper)
@@ -213,12 +235,17 @@ namespace LFramework.Runtime
             }
 
             worldHelper.SetWorld(this);
-            _worldHelpers.Add(typeof(T), t);
+            // interface bind.
+            if (interfaceType != null)
+            {
+                _worldHelpers.Add(interfaceType, t);
+            }
 
+            _worldHelpers.Add(typeof(T), t);
             return t;
         }
 
-        private void BuildWorldHelpers(IWorldHelper worldHelperBase)
+        private void BuildWorldHelpers(IWorldHelper worldHelperBase, Type interfaceType)
         {
             if (worldHelperBase is IWorldUpdate worldUpdate)
             {
@@ -231,6 +258,12 @@ namespace LFramework.Runtime
             }
 
             worldHelperBase.SetWorld(this);
+            // interface bind.
+            if (interfaceType != null)
+            {
+                _worldHelpers.Add(interfaceType, worldHelperBase);
+            }
+
             _worldHelpers.Add(worldHelperBase.GetType(), worldHelperBase);
         }
 
@@ -249,14 +282,8 @@ namespace LFramework.Runtime
             var autoWorldHelper = AutoRegisterWorldHelper.GetRegisterWorldHelper(worldType);
             foreach (var worldHelper in autoWorldHelper)
             {
-                BuildWorldHelpers(worldHelper);
-                var interfaceType = worldHelper.GetType().GetDerivedInterfaces(
-                    typeof(IWorld),
-                    typeof(IWorldHelper), 
-                    typeof(IWorldUpdate),
-                    typeof(IWorldLateUpdate),
-                    typeof(IReference),
-                    typeof(IDisposable));
+                var interfaceType = GetWorldHelperInterfaces(worldHelper.GetType());
+                BuildWorldHelpers(worldHelper, interfaceType);
                 if (interfaceType == null)
                 {
                     continue;
@@ -270,6 +297,58 @@ namespace LFramework.Runtime
             {
                 LServices.Inject(worldHelper);
             }
+        }
+
+        private Type GetWorldHelperInterfaces(Type worldHelperType)
+        {
+            if (worldHelperType == null)
+            {
+                Log.Error(
+                    "[WorldBase] [GetWorldHelperInterfaces] The world helper type is null. so get interface failure. ");
+                return null;
+            }
+
+            if (_linkWorldHelperAndInterface.TryGetValue(worldHelperType, out var interfaceType))
+            {
+                return interfaceType;
+            }
+
+            interfaceType = worldHelperType.GetDerivedInterfaces(
+                typeof(IWorld),
+                typeof(IWorldHelper),
+                typeof(IWorldUpdate),
+                typeof(IWorldLateUpdate),
+                typeof(IReference),
+                typeof(IDisposable));
+            if (interfaceType == null)
+            {
+                return null;
+            }
+
+            CheckAlreadyInterfaces(interfaceType, worldHelperType);
+            _linkWorldHelperAndInterface.Add(worldHelperType, interfaceType);
+            return interfaceType;
+        }
+
+        /// <summary>
+        /// 检查重复注册的Interfaces
+        /// </summary>
+        /// <param name="interfaceType"></param>
+        /// <param name="worldHelperType"></param>
+        /// <returns></returns>
+        private bool CheckAlreadyInterfaces(Type interfaceType, Type worldHelperType)
+        {
+            foreach (var kPair in _linkWorldHelperAndInterface)
+            {
+                if (kPair.Value == interfaceType)
+                {
+                    Log.Error(
+                        $"[WorldBase] [CheckAlreadyInterfaces]  The Interface '{nameof(interfaceType)}' already exists in '{nameof(kPair.Key)}' but you use '{nameof(worldHelperType)}'.");
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private void UnRegisterWorldHelper()
