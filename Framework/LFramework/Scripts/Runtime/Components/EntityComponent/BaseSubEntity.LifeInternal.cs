@@ -12,7 +12,6 @@ namespace LFramework.Runtime
         protected virtual void OnInternalShow(EntityData entityData){}
         protected virtual void OnInternalHide(bool isShutdown, object userData){}
         protected virtual void OnInternalRecycle(){}
-        protected virtual void OnInternalUpdate(float elapseSeconds, float realElapseSeconds){}
         protected virtual void OnInternalRelease(){}
         protected  virtual void OnInternalAttachTo(EntityLogic parentEntity, Transform parentTransform, object userData){}
         protected  virtual void OnInternalDetachFrom(EntityLogic parentEntity, object userData){}
@@ -23,9 +22,9 @@ namespace LFramework.Runtime
 
         protected virtual void OnInternalSubscribe(EventComponent eventComponent)
         {
-        
+
         }
-        
+
         protected virtual  void OnInternalUnSubscribe(EventComponent eventComponent){}
 
         #endregion

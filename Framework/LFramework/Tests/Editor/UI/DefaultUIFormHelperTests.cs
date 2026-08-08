@@ -75,13 +75,10 @@ namespace LFramework.Editor.Tests.UI
         {
             var subWindow = CreateTrackedGameObject<InterfaceUpdateSubWindow>("Sub Window");
             var subEntity = CreateTrackedGameObject<InterfaceUpdateSubEntity>("Sub Entity");
-
-            subWindow.OnUpdate(0.1f, 0.1f);
-            subEntity.OnUpdate(0.1f, 0.1f);
+            
             subWindow.SetEnabled(false);
             subEntity.SetEnabled(false);
-            subWindow.OnUpdate(0.1f, 0.1f);
-            subEntity.OnUpdate(0.1f, 0.1f);
+         
 
             Assert.That(subWindow.UpdateCount, Is.EqualTo(1));
             Assert.That(subEntity.UpdateCount, Is.EqualTo(1));
@@ -228,16 +225,12 @@ namespace LFramework.Editor.Tests.UI
 
         private sealed class LegacyUpdateSubWindow : BaseSubWindow
         {
-            protected override void OnInternalUpdate(float elapseSeconds, float realElapseSeconds)
-            {
-            }
+          
         }
 
         private sealed class LegacyUpdateSubEntity : BaseSubEntity
         {
-            protected override void OnInternalUpdate(float elapseSeconds, float realElapseSeconds)
-            {
-            }
+          
         }
 
         private sealed class TestUIGroup : IUIGroup

@@ -79,10 +79,6 @@ namespace LFramework.Runtime
         {
         }
 
-        protected virtual void OnInternalUpdate(float elapseSeconds, float realElapseSeconds)
-        {
-        }
-
         #endregion
 
         #region Lifecycle
@@ -168,12 +164,6 @@ namespace LFramework.Runtime
         {
             if (!IsEnabled) return;
             OnInternalUnSubscribe(eventComponent);
-        }
-
-        public void OnUpdate(float elapseSeconds, float realElapseSeconds)
-        {
-            if (!IsEnabled) return;
-            OnInternalUpdate(elapseSeconds, realElapseSeconds);
         }
 
         #endregion

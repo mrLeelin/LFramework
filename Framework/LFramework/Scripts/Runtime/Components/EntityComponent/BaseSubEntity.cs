@@ -44,12 +44,6 @@ namespace LFramework.Runtime
             OnInternalShow(entityData);
         }
 
-        public void OnUpdate(float elapseSeconds, float realElapseSeconds)
-        {
-            if (!IsEnabled) return;
-            OnInternalUpdate(elapseSeconds, realElapseSeconds);
-        }
-
         public void OnHide(bool isShutdown, object userData)
         {
             if (!IsEnabled) return;
