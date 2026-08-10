@@ -122,7 +122,7 @@ namespace LFramework.Runtime
                 return;
             }
 
-            DownLoad(firstDownloadKeys);
+            await DownloadAsync(firstDownloadKeys);
         }
 
         /// <summary>
@@ -239,46 +239,64 @@ namespace LFramework.Runtime
             return UpdateResultType.Successful;
         }
 
-        private async void DownLoad(List<string> downloadKeys)
+        private async Task DownloadAsync(List<string> downloadKeys)
         {
-            int retryCount = 0;
-            while (retryCount < MaxRetryCount)
+            for (int attempt = 1; attempt <= MaxRetryCount; attempt++)
             {
+                bool succeeded = false;
                 if (_downloadHandle.IsValid())
                 {
                     Addressables.Release(_downloadHandle);
                 }
 
-                _downloadHandle =
-                    Addressables.DownloadDependenciesAsync((IEnumerable)downloadKeys, _addressableMergeMode,
-                        false);
-                await _downloadHandle.Task;
-                if (_downloadHandle.Status == AsyncOperationStatus.Succeeded)
+                try
                 {
-                    break;
+                    _downloadHandle =
+                        Addressables.DownloadDependenciesAsync((IEnumerable)downloadKeys, _addressableMergeMode,
+                            false);
+                    await _downloadHandle.Task;
+                    if (_downloadHandle.Status == AsyncOperationStatus.Succeeded)
+                    {
+                        succeeded = true;
+                    }
+                }
+                catch (Exception exception)
+                {
+                    LogError($"Download attempt {attempt}/{MaxRetryCount} failed: {exception.Message}");
+                }
+                finally
+                {
+                    if (_downloadHandle.IsValid())
+                    {
+                        Addressables.Release(_downloadHandle);
+                    }
                 }
 
-                retryCount++;
-                var delayMs = Math.Min(500 * (1 << retryCount), 16000);
-                LogError($"Download failed, retry {retryCount}/{MaxRetryCount} after {delayMs}ms");
-                await Task.Delay(delayMs);
-            }
-
-            if (_downloadHandle.IsValid())
-            {
-                var succeeded = _downloadHandle.Status == AsyncOperationStatus.Succeeded;
-                Addressables.Release(_downloadHandle);
-
-                if (!succeeded)
+                if (succeeded)
                 {
-                    LogError($"Download failed after {MaxRetryCount} retries.");
-                    ExceptionFailure(UpdateResultType.DownloadFailure);
+                    try
+                    {
+                        DownloadSuccessful();
+                    }
+                    catch (Exception exception)
+                    {
+                        LogError($"Download succeeded, but a success callback failed: {exception}");
+                    }
+
+                    LogInfo("Download Successful.===============> ");
                     return;
                 }
+
+                if (attempt < MaxRetryCount)
+                {
+                    var delayMs = Math.Min(500 * (1 << attempt), 16000);
+                    LogError($"Retry download {attempt + 1}/{MaxRetryCount} after {delayMs}ms");
+                    await Task.Delay(delayMs);
+                }
             }
 
-            DownloadSuccessful();
-            LogInfo("Download Successful.===============> ");
+            LogError($"Download failed after {MaxRetryCount} attempts.");
+            ExceptionFailure(UpdateResultType.DownloadFailure);
         }
 
         /// <summary>

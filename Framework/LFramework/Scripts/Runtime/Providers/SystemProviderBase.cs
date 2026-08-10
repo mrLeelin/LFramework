@@ -20,8 +20,8 @@ namespace LFramework.Runtime
 
         public void SubscribeEvent()
         {
-            Subscribe(EventComponent);
             _isSubscribed = true;
+            Subscribe(EventComponent);
         }
 
         public virtual void SetUp()

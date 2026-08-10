@@ -41,7 +41,7 @@ namespace LFramework.Hotfix
                 }
 
 
-                var instance = /*Activator.CreateInstance(providerType); */ ReferencePool.Acquire(providerType);
+                var instance = ReferencePool.Acquire(providerType);
                 if (instance == null)
                 {
                     continue;
@@ -50,22 +50,53 @@ namespace LFramework.Hotfix
 
                 if (!(instance is WorldBase world))
                 {
-                    Log.Fatal($"BelongToAttribute '{providerType.FullName}' is none impl ISystemProvider");
+                    Log.Fatal($"BelongToAttribute '{providerType.FullName}' does not implement IWorld");
+                    if (instance is IReference reference)
+                    {
+                        ReferencePool.Release(reference);
+                    }
+
                     continue;
                 }
 
-                Injection.Inject(world);
-                var interfaceType =
-                    providerType.GetDerivedInterfaces(typeof(IWorld), typeof(IReference), typeof(IDisposable));
-                if (interfaceType != null)
+                try
                 {
-                    LServices.Register(interfaceType, world);
-                }
+                    Injection.Inject(world);
+                    var interfaceType =
+                        providerType.GetDerivedInterfaces(typeof(IWorld), typeof(IReference), typeof(IDisposable));
+                    if (interfaceType != null)
+                    {
+                        LServices.Register(interfaceType, world);
+                    }
 
-                LServices.Register(providerType, world);
-                world.Initialized();
-                _worldBase = world;
-                return world;
+                    LServices.Register(providerType, world);
+                    world.Initialized();
+                    _worldBase = world;
+                    return world;
+                }
+                catch (Exception registrationException)
+                {
+                    try
+                    {
+                        UnRegisterWorldService(world);
+                        Injection.ClearReflectionCache(providerType);
+                        ReferencePool.Release(world);
+                    }
+                    catch (Exception rollbackException)
+                    {
+                        Log.Error(
+                            "[LSystemApplication.RegisterWorld] Failed to roll back world '{0}'. {1}",
+                            providerType.FullName,
+                            rollbackException);
+                    }
+
+                    Log.Error(
+                        "[LSystemApplication.RegisterWorld] Failed to register world '{0}' for procedure '{1}'. {2}",
+                        providerType.FullName,
+                        procedureState,
+                        registrationException);
+                    throw;
+                }
             }
 
             return null;

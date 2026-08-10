@@ -39,21 +39,12 @@ namespace LFramework.Runtime.LaunchPipeline
                 Log.Info("[LoadAssemblyTask] 开始加载热更程序集");
                 context.ProgressReporter.ReportProgress(0f, "正在加载热更程序集...");
 
-                // 使用 UniTaskCompletionSource 将回调模式转换为可 await 的异步操作
-                var tcs = new UniTaskCompletionSource();
-                _hotfixComponent.LoadHotfixAssemblies((result) =>
+                var result = await _hotfixComponent.LoadHotfixAssembliesAsync();
+                if (result.ResultType != LoadAssemblyResultType.Successful)
                 {
-                    if (result.ResultType != LoadAssemblyResultType.Successful)
-                    {
-                        tcs.TrySetException(new Exception($"[LoadAssemblyTask] load assembly error. Type '{result.ResultType}' Message '{result.Message}'"));
-                    }
-                    else
-                    {
-                        tcs.TrySetResult();
-                    }
-                });
-                // 等待热更程序集加载完成
-                await tcs.Task;
+                    throw new Exception(
+                        $"[LoadAssemblyTask] load assembly error. Type '{result.ResultType}' Message '{result.Message}'");
+                }
 
                 Log.Info("[LoadAssemblyTask] 加载热更数据完成");
                 return LaunchTaskResult.CreateSuccess(TaskName);

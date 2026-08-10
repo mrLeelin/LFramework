@@ -10,7 +10,6 @@ namespace LFramework.Hotfix
     {
         private readonly Dictionary<Type, ISystemProvider> _systemProviders = new();
         private readonly List<Type> _tempRemoveKeys = new();
-        private readonly List<Type> _tempRegisteredProviderTypes = new();
         private readonly List<TempSystemProviderContainer> _tempSystemProviders = new();
 
         public void TryRegisterProvider(int procedureState)
@@ -22,7 +21,6 @@ namespace LFramework.Hotfix
             }
 
             _tempSystemProviders.Clear();
-            _tempRegisteredProviderTypes.Clear();
             ISystemProvider currentUseProviderBase = null;
             Type currentProviderType = null;
             string registerStage = "Scan";
@@ -74,6 +72,13 @@ namespace LFramework.Hotfix
                     }
 
                     currentUseProviderBase = systemProvider;
+                    _tempSystemProviders.Add(new TempSystemProviderContainer
+                    {
+                        Provider = systemProvider,
+                        ProviderType = providerType,
+                        Sort = attribute.Sort
+                    });
+
                     registerStage = "Register";
                     RegisterCommonDataSync(systemProvider);
                     var interfaceType = providerType.GetDerivedInterfaces(
@@ -87,13 +92,6 @@ namespace LFramework.Hotfix
 
                     LServices.Register(providerType, systemProvider);
                     _systemProviders.Add(providerType, systemProvider);
-                    _tempRegisteredProviderTypes.Add(providerType);
-                    _tempSystemProviders.Add(new TempSystemProviderContainer
-                    {
-                        Provider = systemProvider,
-                        ProviderType = providerType,
-                        Sort = attribute.Sort
-                    });
                 }
 
                 _tempSystemProviders.Sort((x, y) => y.Sort.CompareTo(x.Sort));
@@ -142,11 +140,12 @@ namespace LFramework.Hotfix
                     providerTypeName,
                     providerInstanceState);
                 Log.Fatal(e);
+                RollbackCurrentProviderRegistration();
+                throw;
             }
             finally
             {
                 _tempSystemProviders.Clear();
-                _tempRegisteredProviderTypes.Clear();
             }
         }
 
@@ -202,16 +201,21 @@ namespace LFramework.Hotfix
 
         private void RollbackCurrentProviderRegistration()
         {
-            for (int i = _tempRegisteredProviderTypes.Count - 1; i >= 0; i--)
+            for (int i = _tempSystemProviders.Count - 1; i >= 0; i--)
             {
-                Type providerType = _tempRegisteredProviderTypes[i];
-                if (!_systemProviders.TryGetValue(providerType, out var provider))
+                var registeredProvider = _tempSystemProviders[i];
+                try
                 {
-                    continue;
+                    _systemProviders.Remove(registeredProvider.ProviderType);
+                    UnRegisterProvider(registeredProvider.ProviderType, registeredProvider.Provider);
                 }
-
-                UnRegisterProvider(providerType, provider);
-                _systemProviders.Remove(providerType);
+                catch (Exception rollbackException)
+                {
+                    Log.Error(
+                        "[LSystemApplication.RegisterProvider] Failed to roll back provider '{0}'. {1}",
+                        registeredProvider.ProviderType.FullName,
+                        rollbackException);
+                }
             }
         }
 

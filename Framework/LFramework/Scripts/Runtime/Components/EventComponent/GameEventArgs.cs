@@ -25,11 +25,30 @@ namespace LFramework.Runtime
             return result;
         }
         
-        public static int EventID => typeof(T).GetHashCode();
+        private static readonly int CachedEventId = GetStableHashCode(typeof(T).FullName);
+
+        public static int EventID => CachedEventId;
         
         
         
         public override int Id => EventID;
+
+        private static int GetStableHashCode(string value)
+        {
+            unchecked
+            {
+                const uint offsetBasis = 2166136261;
+                const uint prime = 16777619;
+                uint hash = offsetBasis;
+                for (int i = 0; i < value.Length; i++)
+                {
+                    hash ^= value[i];
+                    hash *= prime;
+                }
+
+                return (int)hash;
+            }
+        }
     }
 
 }

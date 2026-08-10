@@ -12,6 +12,8 @@ namespace LFramework.Editor.Tests.Hotfix
     {
         private const int ProcedureState = 7101;
         private const int FailingProcedureState = 7102;
+        private const int FailingWorldProcedureState = 7103;
+        private const int FailingSubscribeProcedureState = 7104;
 
         [SetUp]
         public void SetUp()
@@ -86,6 +88,57 @@ namespace LFramework.Editor.Tests.Hotfix
         }
 
         [Test]
+        public void TryRegisterProviderRollsBackPartialSubscriptionWhenSubscribeFails()
+        {
+            PartiallySubscribedProvider.Reset();
+            var hotfixComponent = new HotfixComponent();
+            LServices.Register(hotfixComponent);
+            LServices.Register(new EventComponent());
+            ConfigureHotfixTypes(hotfixComponent, typeof(PartiallySubscribedProvider));
+
+            var application = new LSystemApplication();
+
+            Assert.Throws<InvalidOperationException>(() =>
+                application.TryRegisterProvider(FailingSubscribeProcedureState));
+
+            Assert.That(PartiallySubscribedProvider.HasSubscription, Is.False);
+            Assert.That(LServices.TryGet<PartiallySubscribedProvider>(out _), Is.False);
+
+            application.Dispose();
+        }
+
+        [Test]
+        public void TryRegisterWorldRollsBackServicesWhenInitializationFails()
+        {
+            var hotfixComponent = new HotfixComponent();
+            LServices.Register(hotfixComponent);
+            LServices.Register(new EventComponent());
+            ConfigureHotfixTypes(hotfixComponent, typeof(FailingWorld));
+
+            var application = new LSystemApplication();
+
+            Assert.Throws<InvalidOperationException>(() =>
+                application.TryRegisterWorld(FailingWorldProcedureState));
+
+            Assert.That(LServices.TryGet<IFailingWorld>(out _), Is.False);
+            Assert.That(LServices.TryGet<FailingWorld>(out _), Is.False);
+
+            application.Dispose();
+        }
+
+        [Test]
+        public void UnSubscribeFailureCanBeRetried()
+        {
+            var provider = new FailsOnceUnsubscribeProvider();
+            provider.SetEventComponent(new EventComponent());
+            provider.SubscribeEvent();
+
+            Assert.Throws<InvalidOperationException>(() => provider.UnSubscribeEvent());
+            Assert.DoesNotThrow(() => provider.UnSubscribeEvent());
+            Assert.That(provider.UnsubscribeCallCount, Is.EqualTo(2));
+        }
+
+        [Test]
         public void ApplicationLifecycleCallbacksReachRegisteredHotfixComponents()
         {
             var hotfixComponent = new HotfixComponent();
@@ -147,6 +200,10 @@ namespace LFramework.Editor.Tests.Hotfix
         {
         }
 
+        public interface IFailingWorld : IWorld
+        {
+        }
+
         [HotfixComponent(typeof(ITestHotfixComponent))]
         public sealed class TestHotfixComponent : GameFrameworkComponent, ITestHotfixComponent
         {
@@ -191,6 +248,56 @@ namespace LFramework.Editor.Tests.Hotfix
             public override void SetUp()
             {
                 throw new InvalidOperationException("Provider setup failure test.");
+            }
+        }
+
+        [BelongTo(FailingSubscribeProcedureState)]
+        public sealed class PartiallySubscribedProvider : SystemProviderBase
+        {
+            public static bool HasSubscription { get; private set; }
+
+            public static void Reset()
+            {
+                HasSubscription = false;
+            }
+
+            protected override void Subscribe(EventComponent eventComponent)
+            {
+                HasSubscription = true;
+                throw new InvalidOperationException("Provider subscribe failure test.");
+            }
+
+            protected override void UnSubscribe(EventComponent eventComponent)
+            {
+                HasSubscription = false;
+            }
+        }
+
+        [BelongTo(FailingWorldProcedureState)]
+        public sealed class FailingWorld : WorldBase, IFailingWorld
+        {
+            protected override void OnInitialized()
+            {
+                throw new InvalidOperationException("World initialization failure test.");
+            }
+        }
+
+        private sealed class FailsOnceUnsubscribeProvider : SystemProviderBase
+        {
+            public int UnsubscribeCallCount { get; private set; }
+
+            public void SetEventComponent(EventComponent eventComponent)
+            {
+                EventComponent = eventComponent;
+            }
+
+            protected override void UnSubscribe(EventComponent eventComponent)
+            {
+                UnsubscribeCallCount++;
+                if (UnsubscribeCallCount == 1)
+                {
+                    throw new InvalidOperationException("Unsubscribe failure test.");
+                }
             }
         }
     }

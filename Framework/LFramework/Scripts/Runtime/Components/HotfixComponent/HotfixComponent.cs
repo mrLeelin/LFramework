@@ -72,7 +72,7 @@ namespace LFramework.Runtime
             return null;
         }
 
-        public async void LoadHotfixAssemblies(Action<HotfixCodeResult> callBack)
+        public async UniTask<HotfixCodeResult> LoadHotfixAssembliesAsync()
         {
             try
             {
@@ -96,45 +96,54 @@ namespace LFramework.Runtime
 #endif
                 if (result.ResultType != LoadAssemblyResultType.Successful)
                 {
-                    callBack(result);
-                    return;
+                    return result;
                 }
 
                 Log.Info("The hotfix scripts loaded successfully.");
                 if (_hotfixAssemblies == null || _hotfixAssemblies.Count == 0)
                 {
-                    callBack(new HotfixCodeResult()
+                    return new HotfixCodeResult()
                     {
                         ResultType = LoadAssemblyResultType.HotfixError,
                         Message = "No hotfix assemblies loaded."
-                    });
-                    return;
+                    };
                 }
 
                 if (null == _mainLogicAssembly)
                 {
-                    callBack(new HotfixCodeResult()
+                    return new HotfixCodeResult()
                     {
                         ResultType = LoadAssemblyResultType.HotfixError,
                         Message = "Main logic assembly missing."
-                    });
-                    return;
+                    };
                 }
 
                 ParseHotfixAssembly();
-                callBack(new HotfixCodeResult()
+                return new HotfixCodeResult()
                 {
                     ResultType = LoadAssemblyResultType.Successful
-                });
+                };
             }
             catch (Exception e)
             {
                 Log.Error($"LoadHotfixAssemblies encountered an unhandled exception: {e}");
-                callBack(new HotfixCodeResult()
+                return new HotfixCodeResult()
                 {
                     ResultType = LoadAssemblyResultType.HotfixError,
                     Message = $"Unhandled exception in LoadHotfixAssemblies: {e.Message}"
-                });
+                };
+            }
+        }
+
+        public async void LoadHotfixAssemblies(Action<HotfixCodeResult> callBack)
+        {
+            try
+            {
+                callBack?.Invoke(await LoadHotfixAssembliesAsync());
+            }
+            catch (Exception e)
+            {
+                Log.Error($"LoadHotfixAssemblies callback failed: {e}");
             }
         }
 

@@ -117,16 +117,31 @@ namespace LFramework.Runtime
 
         protected void DownloadSuccessful()
         {
-            if (_downloadSuccessfulEventHandler != null)
+            ResourcesDownloadSuccessfulEvent arg = null;
+            try
             {
-                var arg = ResourcesDownloadSuccessfulEvent.Create(this._serialID);
-                _downloadSuccessfulEventHandler(this, arg);
-                ReferencePool.Release(arg);
+                if (_downloadSuccessfulEventHandler != null)
+                {
+                    arg = ResourcesDownloadSuccessfulEvent.Create(_serialID);
+                    _downloadSuccessfulEventHandler(this, arg);
+                }
             }
-
-            if (_autoReleaseHandle)
+            finally
             {
-                RemoveHandleAction?.Invoke(this);
+                try
+                {
+                    if (arg != null)
+                    {
+                        ReferencePool.Release(arg);
+                    }
+                }
+                finally
+                {
+                    if (_autoReleaseHandle)
+                    {
+                        RemoveHandleAction?.Invoke(this);
+                    }
+                }
             }
         }
 

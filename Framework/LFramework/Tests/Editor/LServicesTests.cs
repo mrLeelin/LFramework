@@ -34,6 +34,12 @@ namespace LFramework.Editor.Tests
         }
 
         [Test]
+        public void GameEventIdUsesDeterministicTypeNameHash()
+        {
+            Assert.That(StableEventArgs.EventID, Is.EqualTo(-1923378903));
+        }
+
+        [Test]
         public void ScopeResolvesParentAndOverridesLocalServices()
         {
             var rootService = new TestService("root");
@@ -529,6 +535,13 @@ namespace LFramework.Editor.Tests
 
     internal interface ISecondaryTestProvider : ISystemProvider
     {
+    }
+
+    internal sealed class StableEventArgs : GameEventArgs<StableEventArgs>
+    {
+        public override void Clear()
+        {
+        }
     }
 
     internal sealed class GenericService

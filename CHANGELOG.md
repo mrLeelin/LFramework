@@ -2,6 +2,24 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.3.3]
+
+### Added
+
+- Added EditMode regression coverage for provider and world registration rollback, partial subscription cleanup, retryable unsubscribe failures, and deterministic event IDs.
+
+### Changed
+
+- Added an awaitable Hotfix assembly-loading API and updated the launch pipeline to await it directly while preserving the original callback entry point.
+- Changed generic game-event IDs to use a deterministic type-name hash.
+
+### Fixed
+
+- Rolled back provider services, subscriptions, injection caches, and pooled instances when any registration lifecycle stage fails.
+- Rolled back world services, injection caches, and pooled instances when world initialization fails.
+- Made Addressables dependency downloads awaitable, retry failed operations safely, and report terminal download failure instead of leaving the launch flow pending.
+- Guaranteed successful-download event objects and auto-release handlers are cleaned up when a subscriber throws.
+
 ## [0.2.58]
 
 ### Fixed
