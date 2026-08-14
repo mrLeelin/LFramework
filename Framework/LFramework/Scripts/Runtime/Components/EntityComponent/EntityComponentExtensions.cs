@@ -124,5 +124,39 @@ namespace LFramework.Runtime
                 entityGroup,
                 priority, data);
         }
+
+        /// <summary>
+        /// 获取Entity Logic
+        /// 语法糖方便执行
+        /// </summary>
+        /// <param name="entityComponent"></param>
+        /// <param name="entitySerialID"></param>
+        /// <typeparam name="TLogic"></typeparam>
+        /// <returns></returns>
+        public static TLogic FindLogic<TLogic>(this EntityComponent entityComponent, int entitySerialID)
+            where TLogic : EntityLogic
+        {
+            if (entitySerialID == 0)
+            {
+                Log.Error("[EntityComponent] The entity Serial ID is invalid.");
+                return null;
+            }
+
+            if (!entityComponent.HasEntity(entitySerialID))
+            {
+                Log.Error($"[EntityComponent] The entity Serial ID '{entitySerialID}' is not has entity..");
+                return null;
+            }
+
+            var logic = entityComponent.GetEntity(entitySerialID).FindLogic<TLogic>();
+            if (logic == null)
+            {
+                Log.Error(
+                    $"[EntityComponent] The  entity Serial ID '{entitySerialID}' is not has logic '{nameof(TLogic)}'..");
+                return null;
+            }
+
+            return logic;
+        }
     }
 }

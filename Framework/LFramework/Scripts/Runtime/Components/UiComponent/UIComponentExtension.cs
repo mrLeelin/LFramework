@@ -29,6 +29,7 @@ namespace LFramework.Runtime
             var uiForm = uiComponent.GetUIForm(id);
             if (uiForm == null)
             {
+                Log.Error("[UIComponent] The ui Serial ID is invalid.");
                 return null;
             }
 
@@ -39,6 +40,40 @@ namespace LFramework.Runtime
             }
 
             return selfUiForm.UIBehaviour as T;
+        }
+
+        /// <summary>
+        /// 获取Ui Window
+        /// 语法糖方便执行
+        /// </summary>
+        /// <param name="uiComponent"></param>
+        /// <param name="uiSerialID"></param>
+        /// <typeparam name="TWindow"></typeparam>
+        /// <returns></returns>
+        public static TWindow FindWindow<TWindow>(this UIComponent uiComponent, int? uiSerialID)
+            where TWindow : Window
+        {
+            if (uiSerialID is null or 0)
+            {
+                Log.Error("[UIComponent] The ui Serial ID is invalid.");
+                return null;
+            }
+
+            if (!uiComponent.HasUIForm(uiSerialID.Value))
+            {
+                Log.Error($"[UIComponent] The ui Serial ID '{uiSerialID.Value}' is not has ui form..");
+                return null;
+            }
+
+            var logic = uiComponent.GetUIForm(uiSerialID.Value).FindUiBehaviour<TWindow>();
+            if (logic == null)
+            {
+                Log.Error(
+                    $"[UIComponent] The  ui Serial ID '{uiSerialID.Value}' is not has logic '{nameof(TWindow)}'..");
+                return null;
+            }
+
+            return logic;
         }
 
 

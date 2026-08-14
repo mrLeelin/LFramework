@@ -2,6 +2,9 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.3.5]
+- 增加 EntityComponent 和 UiComponent  的语法糖更容易获取到 EntityLogic 或者 Window
+
 ## [0.3.4]
 
 ### Added
