@@ -26,6 +26,11 @@ namespace UnityGameFramework.Runtime
 
         private IEntityManager m_EntityManager = null;
         private EventComponent m_EventComponent = null;
+
+        /// <summary>
+        /// 获取实体组件是否已完成框架模块初始化。
+        /// </summary>
+        public bool IsInitialized => m_EntityManager != null;
     
 
         private readonly List<IEntity> m_InternalEntityResults = new List<IEntity>();

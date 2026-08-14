@@ -21,6 +21,14 @@ namespace LFramework.Editor.Window
                 return;
             }
 
+            if (!_entityComponent.IsInitialized)
+            {
+                EditorGUILayout.HelpBox(
+                    "EntityComponent is registered but has not completed AwakeComponent yet.",
+                    MessageType.Info);
+                return;
+            }
+
             GameWindowChrome.DrawCompactHeader("Entity Overview");
             EditorGUILayout.BeginVertical("box");
             EditorGUILayout.LabelField("Entity Group Count", _entityComponent.EntityGroupCount.ToString());

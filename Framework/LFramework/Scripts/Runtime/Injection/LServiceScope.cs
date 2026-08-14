@@ -372,6 +372,35 @@ namespace LFramework.Runtime
             }
         }
 
+#if UNITY_EDITOR
+        internal void AppendDiagnostics(
+            string scopeName,
+            ICollection<LServiceRegistrationDiagnostics> registrations,
+            ref int scopeCount)
+        {
+            EnsureNotDisposed();
+            scopeCount++;
+
+            foreach (var pair in _services)
+            {
+                registrations.Add(new LServiceRegistrationDiagnostics(
+                    pair.Key.DiagnosticsType,
+                    pair.Key.DiagnosticsIdentifier,
+                    pair.Value.Instance,
+                    scopeName,
+                    pair.Value.DiagnosticsIsOwned));
+            }
+
+            for (var index = 0; index < _children.Count; index++)
+            {
+                _children[index].AppendDiagnostics(
+                    scopeName + "/Child " + (index + 1),
+                    registrations,
+                    ref scopeCount);
+            }
+        }
+#endif
+
         private readonly struct ServiceEntry
         {
             private readonly bool _disposeWithScope;
@@ -383,6 +412,10 @@ namespace LFramework.Runtime
             }
 
             public object Instance { get; }
+
+#if UNITY_EDITOR
+            internal bool DiagnosticsIsOwned => _disposeWithScope;
+#endif
 
             public void DisposeIfOwned()
             {
@@ -411,6 +444,11 @@ namespace LFramework.Runtime
                 _type = type;
                 _identifier = identifier;
             }
+
+#if UNITY_EDITOR
+            internal Type DiagnosticsType => _type;
+            internal object DiagnosticsIdentifier => _identifier;
+#endif
 
             public bool Equals(ServiceKey other)
             {

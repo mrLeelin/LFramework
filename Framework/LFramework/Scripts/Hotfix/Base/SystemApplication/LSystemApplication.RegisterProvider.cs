@@ -72,6 +72,12 @@ namespace LFramework.Hotfix
                     }
 
                     currentUseProviderBase = systemProvider;
+#if UNITY_EDITOR
+                    systemProvider.SetDiagnosticsRegistration(
+                        attribute.ProcedureState,
+                        attribute.ProviderLifeCycle,
+                        attribute.Sort);
+#endif
                     _tempSystemProviders.Add(new TempSystemProviderContainer
                     {
                         Provider = systemProvider,
@@ -92,6 +98,9 @@ namespace LFramework.Hotfix
 
                     LServices.Register(providerType, systemProvider);
                     _systemProviders.Add(providerType, systemProvider);
+#if UNITY_EDITOR
+                    systemProvider.SetDiagnosticsStage(ProviderDiagnosticsStage.Registered);
+#endif
                 }
 
                 _tempSystemProviders.Sort((x, y) => y.Sort.CompareTo(x.Sort));
@@ -102,6 +111,12 @@ namespace LFramework.Hotfix
                     currentProviderType = provider.ProviderType;
                     registerStage = "Inject";
                     Injection.Inject(provider.Provider);
+#if UNITY_EDITOR
+                    if (provider.Provider is SystemProviderBase injectedProvider)
+                    {
+                        injectedProvider.SetDiagnosticsStage(ProviderDiagnosticsStage.Injected);
+                    }
+#endif
                 }
 
                 foreach (var provider in _tempSystemProviders)
@@ -110,6 +125,12 @@ namespace LFramework.Hotfix
                     currentProviderType = provider.ProviderType;
                     registerStage = "AwakeComponent";
                     provider.Provider.AwakeComponent();
+#if UNITY_EDITOR
+                    if (provider.Provider is SystemProviderBase awakenedProvider)
+                    {
+                        awakenedProvider.SetDiagnosticsStage(ProviderDiagnosticsStage.Awakened);
+                    }
+#endif
                 }
 
                 foreach (var provider in _tempSystemProviders)
@@ -126,6 +147,12 @@ namespace LFramework.Hotfix
                     currentProviderType = provider.ProviderType;
                     registerStage = "SetUp";
                     provider.Provider.SetUp();
+#if UNITY_EDITOR
+                    if (provider.Provider is SystemProviderBase readyProvider)
+                    {
+                        readyProvider.SetDiagnosticsStage(ProviderDiagnosticsStage.Ready);
+                    }
+#endif
                 }
             }
             catch (Exception e)

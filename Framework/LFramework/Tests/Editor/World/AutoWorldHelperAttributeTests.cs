@@ -125,6 +125,30 @@ namespace LFramework.Editor.Tests.World
             Assert.That(exception.Message, Does.Contain(typeof(ConflictingWorldHelper).FullName));
         }
 
+        [Test]
+        public void DiagnosticsIdentifyAutoRegisteredHelperWithoutServiceInterface()
+        {
+            var hotfixComponent = new HotfixComponent();
+            LServices.Register(hotfixComponent);
+            ConfigureHotfixTypes(hotfixComponent, typeof(AutoDiagnosticsHelper));
+
+            var world = new AutoDiagnosticsWorld();
+            RegisterAutoWorldHelpers(world);
+
+            try
+            {
+                WorldHelperDiagnostics helper = world.GetDiagnosticsSnapshot().Helpers.Single();
+
+                Assert.That(helper.HelperType, Is.EqualTo(typeof(AutoDiagnosticsHelper)));
+                Assert.That(helper.ServiceInterface, Is.Null);
+                Assert.That(helper.IsAutoRegistered, Is.True);
+            }
+            finally
+            {
+                world.Clear();
+            }
+        }
+
         private static IReadOnlyList<IWorldHelper> GetRegisterWorldHelpers(Type worldType)
         {
             var getRegisterWorldHelper = typeof(AutoRegisterWorldHelper).GetMethod(
@@ -149,6 +173,16 @@ namespace LFramework.Editor.Tests.World
 
             Assert.That(parseAttributes, Is.Not.Null);
             parseAttributes.Invoke(hotfixComponent, new object[] { typeMap });
+        }
+
+        private static void RegisterAutoWorldHelpers(WorldBase world)
+        {
+            var registerWorldHelper = typeof(WorldBase).GetMethod(
+                "RegisterWorldHelper",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Assert.That(registerWorldHelper, Is.Not.Null);
+            registerWorldHelper.Invoke(world, null);
         }
 
         private static void ClearAutoRegisterWorldHelperCache()
@@ -204,6 +238,10 @@ namespace LFramework.Editor.Tests.World
             {
                 StopHelperGame();
             }
+        }
+
+        private sealed class AutoDiagnosticsWorld : WorldBase
+        {
         }
 
         private sealed class CountingWorldHelper : WorldHelperBase, ICountingWorldHelper
@@ -281,6 +319,26 @@ namespace LFramework.Editor.Tests.World
 
         [AutoWorldHelper(typeof(TestWorld), RegisterConditionType = typeof(TestRegisterCondition))]
         private sealed class ConditionTypeHelper : WorldHelperBase
+        {
+            public override void Clear()
+            {
+            }
+
+            public override void Initialize()
+            {
+            }
+
+            public override void StartGame()
+            {
+            }
+
+            public override void StopGame()
+            {
+            }
+        }
+
+        [AutoWorldHelper(typeof(AutoDiagnosticsWorld))]
+        private sealed class AutoDiagnosticsHelper : WorldHelperBase
         {
             public override void Clear()
             {

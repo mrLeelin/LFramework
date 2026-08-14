@@ -2,6 +2,18 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.3.4]
+
+### Added
+
+- Added live Editor diagnostics for registered providers, worlds, world helpers, and service scopes.
+- Added EditMode coverage for diagnostic snapshots, profiled data sources, and duplicate world-helper registrations.
+
+### Changed
+
+- Bounded profiled-window repaint frequency and made runtime preview panels tolerate framework bootstrap and shutdown states.
+- Exposed Entity component initialization state so diagnostics do not inspect it before its framework module is ready.
+
 ## [0.3.3]
 
 ### Added

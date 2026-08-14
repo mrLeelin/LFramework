@@ -1,4 +1,7 @@
 using System;
+#if UNITY_EDITOR
+using System.Collections.Generic;
+#endif
 
 namespace LFramework.Runtime
 {
@@ -165,6 +168,19 @@ namespace LFramework.Runtime
             oldRoot.Dispose();
         }
 
+#if UNITY_EDITOR
+        /// <summary>
+        /// Captures the current service tree for Editor diagnostics without exposing mutable scopes.
+        /// </summary>
+        public static LServicesDiagnosticsSnapshot GetDiagnosticsSnapshot()
+        {
+            var registrations = new List<LServiceRegistrationDiagnostics>();
+            var scopeCount = 0;
+            _root.AppendDiagnostics("Root", registrations, ref scopeCount);
+            return new LServicesDiagnosticsSnapshot(registrations, scopeCount);
+        }
+#endif
+
         private sealed class CurrentRootResolver : IServiceResolver
         {
             public T Get<T>() where T : class
@@ -198,4 +214,43 @@ namespace LFramework.Runtime
             }
         }
     }
+
+#if UNITY_EDITOR
+    public sealed class LServicesDiagnosticsSnapshot
+    {
+        internal LServicesDiagnosticsSnapshot(
+            IEnumerable<LServiceRegistrationDiagnostics> registrations,
+            int scopeCount)
+        {
+            Registrations = new List<LServiceRegistrationDiagnostics>(registrations).AsReadOnly();
+            ScopeCount = scopeCount;
+        }
+
+        public IReadOnlyList<LServiceRegistrationDiagnostics> Registrations { get; }
+        public int ScopeCount { get; }
+    }
+
+    public sealed class LServiceRegistrationDiagnostics
+    {
+        internal LServiceRegistrationDiagnostics(
+            Type serviceType,
+            object identifier,
+            object instance,
+            string scopeName,
+            bool isOwned)
+        {
+            ServiceType = serviceType;
+            Identifier = identifier;
+            Instance = instance;
+            ScopeName = scopeName;
+            IsOwned = isOwned;
+        }
+
+        public Type ServiceType { get; }
+        public object Identifier { get; }
+        public object Instance { get; }
+        public string ScopeName { get; }
+        public bool IsOwned { get; }
+    }
+#endif
 }

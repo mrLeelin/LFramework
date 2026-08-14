@@ -32,6 +32,8 @@ namespace LFramework.Editor.Window
         private UnityEngine.Object _cachedSettingTarget;
         private Vector2 _frameworkSettingScrollPosition;
         private Vector2 _frameworkProfiledScrollPosition;
+        private const double ProfiledRepaintInterval = 0.1d;
+        private double _nextProfiledRepaintTime;
         private const string SettingEditorFocusControlName = "LFramework.GameWindow.SettingEditorHost";
 
         [MenuItem("LFramework/GameSetting")]
@@ -44,6 +46,9 @@ namespace LFramework.Editor.Window
         protected override void OnEnable()
         {
             base.OnEnable();
+            EditorApplication.update -= OnEditorUpdate;
+            EditorApplication.update += OnEditorUpdate;
+            _nextProfiledRepaintTime = 0d;
             _gameWindowHome = new GameWindowHome();
             _gameWindowLocalResourceServer = new GameWindowLocalResourceServer();
 
@@ -82,6 +87,7 @@ namespace LFramework.Editor.Window
 
         protected override void OnDisable()
         {
+            EditorApplication.update -= OnEditorUpdate;
             base.OnDisable();
             if (_cachedSettingEditor != null)
             {
@@ -92,6 +98,20 @@ namespace LFramework.Editor.Window
             _cachedSettingTarget = null;
             _gameWindowLubanOverview?.Dispose();
             _gameWindowLubanPrimaryKeyOverview?.Dispose();
+        }
+
+        private void OnEditorUpdate()
+        {
+            if (EditorApplication.timeSinceStartup < _nextProfiledRepaintTime)
+            {
+                return;
+            }
+
+            _nextProfiledRepaintTime = EditorApplication.timeSinceStartup + ProfiledRepaintInterval;
+            if (MenuTree?.Selection?.SelectedValue is ProfiledBase)
+            {
+                Repaint();
+            }
         }
 
         protected override OdinMenuTree BuildMenuTree()
@@ -370,7 +390,7 @@ namespace LFramework.Editor.Window
 
             GameWindowChrome.DrawStatCards(
                 new GameWindowStatCard("Panel", title, "The currently selected diagnostic panel.", GameWindowChrome.AccentColor),
-                new GameWindowStatCard("State", "Live", "The window keeps repainting while the game is running.", GameWindowChrome.SuccessColor),
+                new GameWindowStatCard("State", "Live", "The panel refreshes at a bounded editor cadence.", GameWindowChrome.SuccessColor),
                 new GameWindowStatCard("Host", "Unified Shell", "Adds scroll, state banners, and draw-failure protection.", GameWindowChrome.WarningColor));
             GameWindowChrome.DrawSectionHeader("Live View", "The body below is still drawn by the original profiled page.");
             GameWindowChrome.BeginContentCard();
@@ -387,7 +407,6 @@ namespace LFramework.Editor.Window
 
             GameWindowChrome.EndContentCard();
             GameWindowChrome.EndPage();
-            Repaint();
         }
 
         private void EnsureSettingEditor(UnityEngine.Object settingTarget)

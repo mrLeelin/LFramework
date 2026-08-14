@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Cysharp.Threading.Tasks;
 using GameFramework;
 using GameFramework.Event;
@@ -19,6 +20,10 @@ namespace LFramework.Runtime
         private readonly List<IWorldUpdate> _worldUpdates = new();
         private readonly List<IWorldLateUpdate> _worldLateUpdates = new();
         private readonly List<Type> _autoRegisterWorldHelpers = new();
+#if UNITY_EDITOR
+        private readonly HashSet<IWorldHelper> _autoRegisteredWorldHelperInstances =
+            new(WorldHelperReferenceComparer.Instance);
+#endif
         private ProcedureBase _linkProcedure;
         private readonly Dictionary<Type, Type> _linkWorldHelperAndInterface = new();
         private readonly Dictionary<Type, IWorldHelper> _interfaceWorldHelpers = new();
@@ -56,7 +61,9 @@ namespace LFramework.Runtime
 
             // 注意：同一个 WorldHelper 可能以多个 Type 作为 key 存在于 _worldHelpers 中
             // （例如：接口类型 + 具体类型），因此需要去重避免重复释放
-            var uniqueHelpers = new HashSet<IWorldHelper>(_worldHelpers.Values);
+            var uniqueHelpers = new HashSet<IWorldHelper>(
+                _worldHelpers.Values,
+                WorldHelperReferenceComparer.Instance);
             foreach (var worldHelper in uniqueHelpers)
             {
                 ReferencePool.Release(worldHelper);
@@ -67,6 +74,9 @@ namespace LFramework.Runtime
             _worldUpdates.Clear();
             _worldLateUpdates.Clear();
             _autoRegisterWorldHelpers.Clear();
+#if UNITY_EDITOR
+            _autoRegisteredWorldHelperInstances.Clear();
+#endif
             OnDeInitialized();
         }
 
@@ -297,6 +307,9 @@ namespace LFramework.Runtime
             {
                 var interfaceType = GetWorldHelperInterfaces(worldHelper.GetType());
                 BuildWorldHelpers(worldHelper, interfaceType);
+#if UNITY_EDITOR
+                _autoRegisteredWorldHelperInstances.Add(worldHelper);
+#endif
                 if (interfaceType == null)
                 {
                     continue;
@@ -309,6 +322,21 @@ namespace LFramework.Runtime
             foreach (var worldHelper in _worldHelpers.Values)
             {
                 LServices.Inject(worldHelper);
+            }
+        }
+
+        private sealed class WorldHelperReferenceComparer : IEqualityComparer<IWorldHelper>
+        {
+            internal static readonly WorldHelperReferenceComparer Instance = new();
+
+            public bool Equals(IWorldHelper x, IWorldHelper y)
+            {
+                return ReferenceEquals(x, y);
+            }
+
+            public int GetHashCode(IWorldHelper obj)
+            {
+                return RuntimeHelpers.GetHashCode(obj);
             }
         }
 

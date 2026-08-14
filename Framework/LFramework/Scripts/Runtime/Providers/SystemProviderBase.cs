@@ -22,6 +22,9 @@ namespace LFramework.Runtime
         {
             _isSubscribed = true;
             Subscribe(EventComponent);
+#if UNITY_EDITOR
+            _diagnosticsStage = ProviderDiagnosticsStage.Subscribed;
+#endif
         }
 
         public virtual void SetUp()
@@ -54,6 +57,9 @@ namespace LFramework.Runtime
         {
             UnSubscribeEvent();
             OnStop();
+#if UNITY_EDITOR
+            _diagnosticsStage = ProviderDiagnosticsStage.Stopped;
+#endif
         }
 
         public virtual void UpdateComponent(float elapseSeconds, float realElapseSeconds)

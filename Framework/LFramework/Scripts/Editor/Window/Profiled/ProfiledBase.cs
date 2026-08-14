@@ -27,7 +27,14 @@ namespace LFramework.Editor.Window
                 return;
             }
 
-            instance = LFrameworkAspect.Instance.Get<T>();
+            // Runtime preview pages are allowed to open during bootstrap and shutdown.
+            // A missing binding is a normal unavailable state, not a draw exception.
+            if (LFrameworkAspect.Instance == null || !LServices.TryGet(out T resolved))
+            {
+                return;
+            }
+
+            instance = resolved;
         }
 
         protected void DrawMetricCards(params ProfiledMetric[] metrics)
