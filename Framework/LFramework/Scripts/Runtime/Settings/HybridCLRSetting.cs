@@ -6,6 +6,12 @@ using UnityEngine;
 
 namespace LFramework.Runtime.Settings
 {
+    public enum HybridCLRLoadMode
+    {
+        Standard,
+        DifferentialHybridMetaVersion
+    }
+
     /// <summary>
     /// The setting for HybridClr
     /// </summary>
@@ -13,6 +19,10 @@ namespace LFramework.Runtime.Settings
         menuName = "LFramework/HybridCLR/HybridCLRSetting")]
     public sealed class HybridCLRSetting : BaseSetting
     {
+        [FoldoutGroup("Runtime Mode")]
+        [Tooltip("Selects the standard interpreter loader or the commercial DHE MetaVersion loader.")]
+        public HybridCLRLoadMode loadMode = HybridCLRLoadMode.Standard;
+
 #if UNITY_EDITOR
         [FoldoutGroup("Editor Settings")]
         /// <summary>
@@ -45,12 +55,23 @@ namespace LFramework.Runtime.Settings
         [Tooltip("Default label for init assets, this is the label used to mark the initial assets that need to be loaded at the start of the game.")]
         [FoldoutGroup("Default Labels")]
         public string defaultInitLabel = "init_assets";
+
+        [FoldoutGroup("DHE Labels")]
+        [Tooltip("Label for current DHE MetaVersion files.")]
+        public string dheCurrentMetaLabel = "dhe_current_meta";
+
+        [FoldoutGroup("DHE Labels")]
+        [Tooltip("Label for the original MetaVersion files generated from the player baseline.")]
+        public string dheOriginalMetaLabel = "dhe_original_meta";
         
         [Tooltip("Sort order of AOT assemblies, this is the order in which the AOT assemblies will be loaded.")]
         /// <summary>
         /// Sort order of AOT assemblies.
         /// </summary>
         public List<string> hotfixAssembliesSort;
+
+        [Tooltip("DHE assembly load order. Referenced DHE assemblies must appear before their dependants.")]
+        public List<string> differentialHybridAssembliesSort;
 
         /// <summary>
         /// Main Hotfix assembly name

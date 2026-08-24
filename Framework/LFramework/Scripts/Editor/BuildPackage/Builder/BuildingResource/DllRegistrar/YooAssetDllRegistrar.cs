@@ -48,6 +48,38 @@ namespace LFramework.Editor.Builder.BuildingResource
 #endif
         }
 
+        public bool RegisterDheArtifacts(
+            List<string> dllPaths,
+            List<string> currentMetaVersionPaths,
+            List<string> originalMetaVersionPaths,
+            HybridCLRSetting setting,
+            BuildType buildType)
+        {
+#if YOOASSET_SUPPORT
+            return RegisterDllCollectors(
+                       dllPaths,
+                       setting,
+                       $"{setting.codeAddressableGroupName}_DHE_Code",
+                       setting.defaultInitLabel,
+                       setting.defaultCodeDllLabel) &&
+                   RegisterDllCollectors(
+                       currentMetaVersionPaths,
+                       setting,
+                       $"{setting.codeAddressableGroupName}_DHE_CurrentMeta",
+                       setting.defaultInitLabel,
+                       setting.dheCurrentMetaLabel) &&
+                   RegisterDllCollectors(
+                       originalMetaVersionPaths,
+                       setting,
+                       $"{setting.codeAddressableGroupName}_DHE_OriginalMeta",
+                       setting.defaultInitLabel,
+                       setting.dheOriginalMetaLabel);
+#else
+            Debug.LogError("YooAsset support is not enabled. Define YOOASSET_SUPPORT in Player Settings -> Scripting Define Symbols.");
+            return false;
+#endif
+        }
+
         public bool EnsureGroupExists(string groupName)
         {
 #if YOOASSET_SUPPORT

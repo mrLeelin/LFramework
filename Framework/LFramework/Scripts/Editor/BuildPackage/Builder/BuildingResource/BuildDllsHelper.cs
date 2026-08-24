@@ -17,6 +17,7 @@ using GameFramework.Resource;
 using LFramework.Editor;
 using LFramework.Editor.Builder;
 using LFramework.Editor.Builder.BuildingResource;
+using LFramework.Editor.Builder.HybridCLR;
 using LFramework.Runtime;
 using LFramework.Runtime.Settings;
 using Sirenix.Utilities.Editor;
@@ -39,13 +40,28 @@ namespace LFramework.Editor
                 return false;
             }
 
-            if (ShouldCopyAotDlls(buildSetting.buildType) &&
+            bool useDhe = IsDheEnabled(hybridClrSetting);
+            if (!useDhe && ShouldCopyAotDlls(buildSetting.buildType) &&
                 !CopyAotDllToProject(buildSetting, registrar, hybridClrSetting, backAotFolder))
             {
                 return false;
             }
 
-            if (!CopyHotfixDllToProject(buildSetting, registrar, hybridClrSetting))
+            if (useDhe)
+            {
+#if LFRAMEWORK_HYBRIDCLR_DHE
+                if (buildSetting.buildType != BuildType.App &&
+                    !CopyDheArtifactsToProject(buildSetting, registrar, hybridClrSetting,
+                        backAotFolder))
+                {
+                    return false;
+                }
+#else
+                Debug.LogError("DHE mode requires the LFRAMEWORK_HYBRIDCLR_DHE scripting define.");
+                return false;
+#endif
+            }
+            else if (!CopyHotfixDllToProject(buildSetting, registrar, hybridClrSetting))
             {
                 return false;
             }
@@ -63,21 +79,34 @@ namespace LFramework.Editor
         {
 #if HybridCLR_SUPPORT
             CheckInstallHybridClr();
+            var hybridClrSetting = SettingManager.GetSetting<HybridCLRSetting>();
+            bool useDhe = IsDheEnabled(hybridClrSetting);
 
             if (isBuildApp)
             {
                 PrebuildCommand.GenerateAll();
                 //构建整包
                 //Copy 裁剪aot 到 备份目录
-                StripAOTAssembly(backAotFolder);
                 BuildTarget target = EditorUserBuildSettings.activeBuildTarget;
-                GenerateAOTGenericReference(target, backAotFolder);
+                if (!useDhe)
+                {
+                    StripAOTAssembly(backAotFolder);
+                    GenerateAOTGenericReference(target, backAotFolder);
+                }
             }
             else
             {
                 //编译Dll
                 BuildTarget target = EditorUserBuildSettings.activeBuildTarget;
                 CompileDllCommand.CompileDll(target, EditorUserBuildSettings.development);
+#if LFRAMEWORK_HYBRIDCLR_DHE
+                if (useDhe)
+                {
+                    HybridCLRBuildWorkflow.GenerateHotUpdateMetaVersionFiles(
+                        GetDheSnapshotDirectory(backAotFolder, target),
+                        target);
+                }
+#endif
             }
 
 #endif
@@ -86,6 +115,21 @@ namespace LFramework.Editor
         }
 
 #if HybridCLR_SUPPORT
+        private static bool IsDheEnabled(HybridCLRSetting setting)
+        {
+            return setting != null &&
+                   setting.loadMode == HybridCLRLoadMode.DifferentialHybridMetaVersion;
+        }
+
+        internal static string GetDheSnapshotDirectory(string backupPath, BuildTarget target)
+        {
+            return Path.GetFullPath(Path.Combine(
+                backupPath,
+                "DHE",
+                target.ToString(),
+                "AotSnapshot"));
+        }
+
         /// <summary>
         /// 根据 ResourceMode 创建对应的 DLL 资源注册器
         /// </summary>
@@ -308,6 +352,78 @@ namespace LFramework.Editor
             return true;
         }
 
+#if LFRAMEWORK_HYBRIDCLR_DHE
+        private static bool CopyDheArtifactsToProject(
+            BuildSetting buildSetting,
+            IDllResourceRegistrar registrar,
+            HybridCLRSetting setting,
+            string backupPath)
+        {
+            string outputRoot = GetHotfixPathInProject(setting);
+            if (Directory.Exists(outputRoot))
+            {
+                Directory.Delete(outputRoot, true);
+            }
+
+            string codeOutput = Path.Combine(outputRoot, "DHE", "Code");
+            string currentMetaOutput = Path.Combine(outputRoot, "DHE", "CurrentMeta");
+            string originalMetaOutput = Path.Combine(outputRoot, "DHE", "OriginalMeta");
+            Directory.CreateDirectory(codeOutput);
+            Directory.CreateDirectory(currentMetaOutput);
+            Directory.CreateDirectory(originalMetaOutput);
+
+            BuildTarget target = EditorUserBuildSettings.activeBuildTarget;
+            string hotUpdateDirectory = SettingsUtil.GetHotUpdateDllsOutputDirByTarget(target);
+            string currentMetaDirectory = HybridCLR.Editor.DHE.Snapshot.GetMetaVersionDir(
+                hotUpdateDirectory);
+            string baselineDirectory = GetDheSnapshotDirectory(backupPath, target);
+            string originalMetaDirectory = HybridCLR.Editor.DHE.Snapshot.GetMetaVersionDir(
+                baselineDirectory);
+
+            var dllPaths = new List<string>();
+            var currentMetaPaths = new List<string>();
+            var originalMetaPaths = new List<string>();
+            foreach (string assemblyName in SettingsUtil.DifferentialHybridAssemblyNames)
+            {
+                string sourceDll = Path.Combine(hotUpdateDirectory, $"{assemblyName}.dll");
+                string sourceCurrentMeta = Path.Combine(currentMetaDirectory,
+                    $"{assemblyName}.mv.bytes");
+                string sourceOriginalMeta = Path.Combine(originalMetaDirectory,
+                    $"{assemblyName}.mv.bytes");
+                if (!File.Exists(sourceDll) || !File.Exists(sourceCurrentMeta) ||
+                    !File.Exists(sourceOriginalMeta))
+                {
+                    Debug.LogError(
+                        $"DHE artifacts are incomplete for '{assemblyName}'. " +
+                        $"DLL={File.Exists(sourceDll)}, currentMeta={File.Exists(sourceCurrentMeta)}, " +
+                        $"originalMeta={File.Exists(sourceOriginalMeta)}");
+                    return false;
+                }
+
+                string targetDll = Path.Combine(codeOutput, $"{assemblyName}.dll.bytes");
+                string targetCurrentMeta = Path.Combine(currentMetaOutput,
+                    $"{assemblyName}.mv.bytes");
+                string targetOriginalMeta = Path.Combine(originalMetaOutput,
+                    $"{assemblyName}.mv.bytes");
+                File.WriteAllBytes(targetDll, AESUtility.Encrypt(File.ReadAllBytes(sourceDll)));
+                File.Copy(sourceCurrentMeta, targetCurrentMeta, true);
+                File.Copy(sourceOriginalMeta, targetOriginalMeta, true);
+                dllPaths.Add(targetDll);
+                currentMetaPaths.Add(targetCurrentMeta);
+                originalMetaPaths.Add(targetOriginalMeta);
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            return registrar.RegisterDheArtifacts(
+                dllPaths,
+                currentMetaPaths,
+                originalMetaPaths,
+                setting,
+                buildSetting.buildType);
+        }
+#endif
+
         [MenuItem("HybridCLR/Check Access Missing Metadata")]
         private static void CheckAccessMissingMetadata()
         {
@@ -319,7 +435,13 @@ namespace LFramework.Editor
             string aotDir = SettingsUtil.GetAssembliesPostIl2CppStripDir(target);
 
             // 第2个参数hotUpdateAssNames为热更新程序集列表。对于旗舰版本，该列表需要包含DHE程序集，即SettingsUtil.HotUpdateAndDHEAssemblyNamesIncludePreserved。
-            var checker = new MissingMetadataChecker(aotDir, SettingsUtil.HotUpdateAssemblyNamesIncludePreserved);
+#if LFRAMEWORK_HYBRIDCLR_DHE
+            var checker = new MissingMetadataChecker(aotDir,
+                SettingsUtil.HotUpdateAndDHEAssemblyNamesIncludePreserved);
+#else
+            var checker = new MissingMetadataChecker(aotDir,
+                SettingsUtil.HotUpdateAssemblyNamesIncludePreserved);
+#endif
 
             string hotUpdateDir = SettingsUtil.GetHotUpdateDllsOutputDirByTarget(target);
             foreach (var dll in SettingsUtil.HotUpdateAssemblyFilesExcludePreserved)

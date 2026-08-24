@@ -82,6 +82,45 @@ namespace LFramework.Editor.Builder.BuildingResource
             return true;
         }
 
+        public bool RegisterDheArtifacts(
+            List<string> dllPaths,
+            List<string> currentMetaVersionPaths,
+            List<string> originalMetaVersionPaths,
+            HybridCLRSetting setting,
+            BuildType buildType)
+        {
+            if (!EnsureGroupExists(setting.codeAddressableGroupName, buildType))
+            {
+                return false;
+            }
+
+            var group = _settings.FindGroup(setting.codeAddressableGroupName);
+            RegisterPaths(group, dllPaths, setting.defaultInitLabel, setting.defaultCodeDllLabel);
+            RegisterPaths(group, currentMetaVersionPaths, setting.defaultInitLabel,
+                setting.dheCurrentMetaLabel);
+            RegisterPaths(group, originalMetaVersionPaths, setting.defaultInitLabel,
+                setting.dheOriginalMetaLabel);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            return true;
+        }
+
+        private void RegisterPaths(AddressableAssetGroup group, IEnumerable<string> paths,
+            params string[] labels)
+        {
+            foreach (string path in paths ?? System.Linq.Enumerable.Empty<string>())
+            {
+                string guid = AssetDatabase.AssetPathToGUID(FullPathToUnityPath(path));
+                var entry = _settings.CreateOrMoveEntry(guid, group);
+                foreach (string label in labels)
+                {
+                    entry.SetLabel(label, true, true);
+                }
+
+                _settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryMoved, entry, true);
+            }
+        }
+
         public bool EnsureGroupExists(string groupName)
         {
             return EnsureGroupExists(groupName, BuildType.App);

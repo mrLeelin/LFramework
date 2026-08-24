@@ -49,9 +49,9 @@ namespace LFramework.Editor.Builder
                 return;
             }
 
-            var hotUpdateAssemblyNames = ResolveHotUpdateAssemblyNames(runtimeSetting);
-            SyncRuntimeSetting(runtimeSetting, hotUpdateAssemblyNames);
-            SyncHybridClrSettingsAsset(hotUpdateAssemblyNames);
+            var assemblyNames = ResolveConfiguredAssemblyNames(runtimeSetting);
+            SyncRuntimeSetting(runtimeSetting, assemblyNames);
+            SyncHybridClrSettingsAsset(runtimeSetting.loadMode, assemblyNames);
 #endif
 
 #if ADDRESSABLE_SUPPORT
@@ -74,9 +74,11 @@ namespace LFramework.Editor.Builder
         }
 
 #if HybridCLR_SUPPORT
-        private static string[] ResolveHotUpdateAssemblyNames(HybridCLRSetting runtimeSetting)
+        private static string[] ResolveConfiguredAssemblyNames(HybridCLRSetting runtimeSetting)
         {
-            var sourceAssemblies = runtimeSetting.hotfixAssembliesSort ?? new List<string>();
+            var sourceAssemblies = runtimeSetting.loadMode == HybridCLRLoadMode.DifferentialHybridMetaVersion
+                ? runtimeSetting.differentialHybridAssembliesSort ?? new List<string>()
+                : runtimeSetting.hotfixAssembliesSort ?? new List<string>();
             var results = new List<string>();
 
             if (!string.IsNullOrWhiteSpace(runtimeSetting.logicMainDllName))
@@ -93,25 +95,34 @@ namespace LFramework.Editor.Builder
                 .ToArray();
         }
 
-        private static void SyncRuntimeSetting(HybridCLRSetting runtimeSetting, string[] hotUpdateAssemblyNames)
+        private static void SyncRuntimeSetting(HybridCLRSetting runtimeSetting, string[] assemblyNames)
         {
-            var current = runtimeSetting.hotfixAssembliesSort ?? new List<string>();
-            if (current.SequenceEqual(hotUpdateAssemblyNames, StringComparer.Ordinal))
+            var current = runtimeSetting.loadMode == HybridCLRLoadMode.DifferentialHybridMetaVersion
+                ? runtimeSetting.differentialHybridAssembliesSort ?? new List<string>()
+                : runtimeSetting.hotfixAssembliesSort ?? new List<string>();
+            if (current.SequenceEqual(assemblyNames, StringComparer.Ordinal))
             {
                 return;
             }
 
-            runtimeSetting.hotfixAssembliesSort = hotUpdateAssemblyNames.ToList();
+            if (runtimeSetting.loadMode == HybridCLRLoadMode.DifferentialHybridMetaVersion)
+            {
+                runtimeSetting.differentialHybridAssembliesSort = assemblyNames.ToList();
+            }
+            else
+            {
+                runtimeSetting.hotfixAssembliesSort = assemblyNames.ToList();
+            }
             EditorUtility.SetDirty(runtimeSetting);
             AssetDatabase.SaveAssets();
 
             Debug.Log(
-                $"[BuildEnvironmentConfigurator] Updated runtime HybridCLR setting assemblies: {string.Join(", ", hotUpdateAssemblyNames)}");
+                $"[BuildEnvironmentConfigurator] Updated runtime HybridCLR setting assemblies: {string.Join(", ", assemblyNames)}");
         }
 
-        private static void SyncHybridClrSettingsAsset(string[] hotUpdateAssemblyNames)
+        private static void SyncHybridClrSettingsAsset(HybridCLRLoadMode loadMode, string[] assemblyNames)
         {
-            var asmdefAssets = hotUpdateAssemblyNames
+            var asmdefAssets = assemblyNames
                 .Select(FindAssemblyDefinitionAsset)
                 .Where(asset => asset != null)
                 .ToArray();
@@ -119,8 +130,23 @@ namespace LFramework.Editor.Builder
             var settings = HybridCLRSettings.Instance;
             bool changed = false;
 
-            changed |= UpdateStringArray(ref settings.hotUpdateAssemblies, Array.Empty<string>());
-            changed |= UpdateAsmdefArray(ref settings.hotUpdateAssemblyDefinitions, asmdefAssets);
+#if LFRAMEWORK_HYBRIDCLR_DHE
+            if (loadMode == HybridCLRLoadMode.DifferentialHybridMetaVersion)
+            {
+                changed |= UpdateStringArray(ref settings.hotUpdateAssemblies, Array.Empty<string>());
+                changed |= UpdateAsmdefArray(ref settings.hotUpdateAssemblyDefinitions,
+                    Array.Empty<AssemblyDefinitionAsset>());
+                changed |= UpdateStringArray(ref settings.differentialHybridAssemblies, assemblyNames);
+            }
+            else
+#endif
+            {
+                changed |= UpdateStringArray(ref settings.hotUpdateAssemblies, Array.Empty<string>());
+                changed |= UpdateAsmdefArray(ref settings.hotUpdateAssemblyDefinitions, asmdefAssets);
+#if LFRAMEWORK_HYBRIDCLR_DHE
+                changed |= UpdateStringArray(ref settings.differentialHybridAssemblies, Array.Empty<string>());
+#endif
+            }
 
             if (!changed)
             {
@@ -129,7 +155,7 @@ namespace LFramework.Editor.Builder
 
             HybridCLRSettings.Save();
             Debug.Log(
-                $"[BuildEnvironmentConfigurator] Synchronized ProjectSettings/HybridCLRSettings.asset with assemblies: {string.Join(", ", hotUpdateAssemblyNames)}");
+                $"[BuildEnvironmentConfigurator] Synchronized ProjectSettings/HybridCLRSettings.asset for {loadMode}: {string.Join(", ", assemblyNames)}");
         }
 
         private static bool AssemblyDefinitionExists(string assemblyName)

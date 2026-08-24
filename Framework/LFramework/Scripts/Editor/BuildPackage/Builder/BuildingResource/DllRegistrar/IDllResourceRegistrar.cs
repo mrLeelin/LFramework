@@ -26,6 +26,13 @@ namespace LFramework.Editor.Builder.BuildingResource
         /// <returns>注册是否成功</returns>
         bool RegisterHotfixDlls(List<string> dllPaths, HybridCLRSetting setting, BuildType buildType);
 
+        bool RegisterDheArtifacts(
+            List<string> dllPaths,
+            List<string> currentMetaVersionPaths,
+            List<string> originalMetaVersionPaths,
+            HybridCLRSetting setting,
+            BuildType buildType);
+
         /// <summary>
         /// 确保资源系统中存在指定的资源分组
         /// </summary>
