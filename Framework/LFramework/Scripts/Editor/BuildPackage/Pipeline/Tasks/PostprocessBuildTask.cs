@@ -50,11 +50,12 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
         {
             try
             {
-#if HybridCLR_SUPPORT && LFRAMEWORK_HYBRIDCLR_DHE
+#if HybridCLR_SUPPORT
                 var hybridClrSetting = SettingManager.GetSetting<HybridCLRSetting>();
                 if (context.BuildSetting.isbuildDll && hybridClrSetting != null &&
                     hybridClrSetting.loadMode == HybridCLRLoadMode.DifferentialHybridMetaVersion)
                 {
+                    HybridCLRBuildWorkflow.EnsureDheAvailable();
                     BuildTarget target = context.PlatformConfig.GetBuildTarget();
                     string backupPath = BuildingResource.BuildResourcePathHelper.GetBackupPath(
                         context.BuildSetting);

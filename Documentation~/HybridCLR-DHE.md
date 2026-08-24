@@ -1,10 +1,10 @@
 # HybridCLR DHE Integration
 
-LFramework supports both the standard HybridCLR hot-update loader and the commercial Differential Hybrid Execution (DHE) MetaVersion workflow. DHE support is opt-in so projects using the community package continue to compile unchanged.
+LFramework supports both the standard HybridCLR hot-update loader and the commercial Differential Hybrid Execution (DHE) MetaVersion workflow. This integration is locked to the licensed flagship HybridCLR 8.3.0 package and its matching official `libil2cpp` release matrix. Do not mix it with community packages or other flagship versions.
 
 ## Install the commercial package
 
-Install the licensed `com.code-philosophy.hybridclr` package in the consuming Unity project. A local package reference can be used while validating a package checkout:
+Install the licensed `com.code-philosophy.hybridclr` 8.3.0 package in the consuming Unity project. A local package reference can be used while validating a package checkout:
 
 ```json
 {
@@ -15,19 +15,13 @@ Install the licensed `com.code-philosophy.hybridclr` package in the consuming Un
 }
 ```
 
-Run the HybridCLR installer after replacing the package so its matching `libil2cpp` files are installed. Keep the commercial package version and installed `libil2cpp` version aligned.
+Run the HybridCLR 8.3.0 installer after replacing the package so the `libil2cpp` branch selected by the 8.3.0 release matrix is installed. The installer must report both the package and installed `libil2cpp` version as `8.3.0` before building.
 
-## Enable commercial APIs
+## Commercial API detection
 
-Add the following scripting define to every assembly that compiles LFramework, for example through the Player scripting defines or a project-level `Assets/csc.rsp`:
+No project scripting define is required. LFramework detects the flagship 8.3.0 API surface at runtime and in the editor. This is necessary because community and flagship packages can use the same package name and version.
 
-```text
--define:LFRAMEWORK_HYBRIDCLR_DHE
-```
-
-`HybridCLR_SUPPORT` remains managed by HybridCLR. `LFRAMEWORK_HYBRIDCLR_DHE` explicitly enables commercial-only APIs because community and commercial packages can share the same package name and version.
-
-Do not define `LFRAMEWORK_HYBRIDCLR_DHE` in a project that uses the community package.
+If `DifferentialHybridMetaVersion` is selected while the installed package does not expose the flagship APIs, the build fails before generating artifacts instead of silently switching to standard HybridCLR.
 
 ## Configure LFramework
 
@@ -45,7 +39,7 @@ Before a build, `BuildEnvironmentConfigurator` synchronizes this list into Hybri
 
 ## Build the initial Player
 
-Build an App with DLL generation enabled through the LFramework build pipeline. After the Player succeeds, the post-process task creates the target-specific AOT snapshot and baseline MetaVersion files under the build backup directory:
+Build an App with both DLL and resource generation enabled through the LFramework build pipeline. DHE App builds reject any other combination because a Player assembled from stale resources cannot have a trustworthy baseline. Before the resource build, LFramework writes one-byte placeholder DLL and MetaVersion assets. Existing files are overwritten in place to retain their Unity GUIDs, while artifacts for assemblies removed from the configuration are deleted. These placeholders prevent an old local patch from being embedded into the new Player. After the Player succeeds, the post-process task creates the target-specific AOT snapshot and baseline MetaVersion files under the build backup directory:
 
 ```text
 <backup>/DHE/<BuildTarget>/AotSnapshot
@@ -53,7 +47,7 @@ Build an App with DLL generation enabled through the LFramework build pipeline. 
 
 Preserve this backup for every released Player version. Resource updates must use the snapshot created by the exact Player they target.
 
-At runtime, when no `code_dll` patch label exists, LFramework calls `LoadOriginalDifferentialHybridAssembly` and runs the DHE assemblies embedded in the Player.
+At runtime, a missing `code_dll` label or a one-byte placeholder causes LFramework to call `LoadOriginalDifferentialHybridAssembly` and run the DHE assemblies embedded in the Player. A resource update may patch only a subset of the configured assemblies; the remaining assemblies continue to use their original Player versions.
 
 ## Build a resource update
 
@@ -70,9 +64,8 @@ A DLL patch without both matching MetaVersion files is rejected at build time an
 
 For a project using ordinary HybridCLR:
 
-1. Do not define `LFRAMEWORK_HYBRIDCLR_DHE`.
-2. Set `loadMode` to `Standard`.
-3. Configure `hotfixAssembliesSort` and `logicMainDllName` as before.
+1. Set `loadMode` to `Standard`.
+2. Configure `hotfixAssembliesSort` and `logicMainDllName` as before.
 
 The existing AOT metadata and `Assembly.Load` workflow remains active in this mode.
 
@@ -80,8 +73,8 @@ The existing AOT metadata and `Assembly.Load` workflow remains active in this mo
 
 Before publishing a Player or patch, verify:
 
-- Unity, HybridCLR package, and installed `libil2cpp` versions match the release matrix.
-- The DHE scripting define is present in both runtime and editor assemblies.
+- The licensed package version and installed `libil2cpp` version both report `8.3.0`, and the selected native branches match the 8.3.0 Unity release matrix.
+- `HybridCLRBuildWorkflow.IsDheAvailable` is true for the installed package.
 - `ProjectSettings/HybridCLRSettings.asset` contains the expected differential assemblies.
 - The baseline snapshot belongs to the exact released Player and target.
 - The resource catalog contains the DLL, current MetaVersion, and original MetaVersion labels for a patch.

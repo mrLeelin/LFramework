@@ -9,6 +9,7 @@ using HybridCLR.Editor.Settings;
 #endif
 
 using LFramework.Editor.Builder.Pipeline;
+using LFramework.Editor.Builder.HybridCLR;
 using LFramework.Runtime.Settings;
 using UnityEditor;
 using UnityEditorInternal;
@@ -32,6 +33,10 @@ namespace LFramework.Editor.Builder
         public static void Prepare(BuildPipelineContext context)
         {
             EnsureProjectSettingsSynchronized();
+
+#if HybridCLR_SUPPORT
+            ValidateDheBuildConfiguration(context);
+#endif
 
             if (context?.BuildTarget == BuildTarget.Android)
             {
@@ -74,19 +79,40 @@ namespace LFramework.Editor.Builder
         }
 
 #if HybridCLR_SUPPORT
+        private static void ValidateDheBuildConfiguration(BuildPipelineContext context)
+        {
+            if (context?.BuildSetting == null || context.BuildSetting.buildType != BuildType.App)
+            {
+                return;
+            }
+
+            var runtimeSetting = SettingManager.GetSetting<HybridCLRSetting>();
+            if (runtimeSetting == null ||
+                runtimeSetting.loadMode != HybridCLRLoadMode.DifferentialHybridMetaVersion)
+            {
+                return;
+            }
+
+            HybridCLRBuildWorkflow.EnsureDheAvailable();
+            if (!context.BuildSetting.isbuildDll || !context.BuildSetting.isBuildResources)
+            {
+                throw new InvalidOperationException(
+                    "A DHE App build must enable both DLL and resource builds so the Player contains " +
+                    "fresh placeholder artifacts and produces a matching baseline snapshot.");
+            }
+        }
+
         private static string[] ResolveConfiguredAssemblyNames(HybridCLRSetting runtimeSetting)
         {
             var sourceAssemblies = runtimeSetting.loadMode == HybridCLRLoadMode.DifferentialHybridMetaVersion
                 ? runtimeSetting.differentialHybridAssembliesSort ?? new List<string>()
                 : runtimeSetting.hotfixAssembliesSort ?? new List<string>();
-            var results = new List<string>();
-
-            if (!string.IsNullOrWhiteSpace(runtimeSetting.logicMainDllName))
+            var results = new List<string>(sourceAssemblies);
+            if (!string.IsNullOrWhiteSpace(runtimeSetting.logicMainDllName) &&
+                !results.Contains(runtimeSetting.logicMainDllName, StringComparer.Ordinal))
             {
                 results.Add(runtimeSetting.logicMainDllName);
             }
-
-            results.AddRange(sourceAssemblies);
 
             return results
                 .Where(name => !string.IsNullOrWhiteSpace(name))
@@ -130,22 +156,41 @@ namespace LFramework.Editor.Builder
             var settings = HybridCLRSettings.Instance;
             bool changed = false;
 
-#if LFRAMEWORK_HYBRIDCLR_DHE
             if (loadMode == HybridCLRLoadMode.DifferentialHybridMetaVersion)
             {
+                if (!HybridCLRBuildWorkflow.IsDheAvailable)
+                {
+                    Debug.LogError(
+                        "[BuildEnvironmentConfigurator] DHE mode requires a HybridCLR flagship package exposing the 8.3.0 MetaVersion APIs.");
+                    return;
+                }
+
                 changed |= UpdateStringArray(ref settings.hotUpdateAssemblies, Array.Empty<string>());
                 changed |= UpdateAsmdefArray(ref settings.hotUpdateAssemblyDefinitions,
                     Array.Empty<AssemblyDefinitionAsset>());
-                changed |= UpdateStringArray(ref settings.differentialHybridAssemblies, assemblyNames);
+                if (!HybridCLRBuildWorkflow.TryUpdateDifferentialHybridAssemblies(
+                        settings,
+                        assemblyNames,
+                        out bool differentialChanged))
+                {
+                    Debug.LogError(
+                        "[BuildEnvironmentConfigurator] The installed HybridCLR package has no DHE assembly setting.");
+                    return;
+                }
+
+                changed |= differentialChanged;
             }
             else
-#endif
             {
                 changed |= UpdateStringArray(ref settings.hotUpdateAssemblies, Array.Empty<string>());
                 changed |= UpdateAsmdefArray(ref settings.hotUpdateAssemblyDefinitions, asmdefAssets);
-#if LFRAMEWORK_HYBRIDCLR_DHE
-                changed |= UpdateStringArray(ref settings.differentialHybridAssemblies, Array.Empty<string>());
-#endif
+                if (HybridCLRBuildWorkflow.TryUpdateDifferentialHybridAssemblies(
+                        settings,
+                        Array.Empty<string>(),
+                        out bool differentialChanged))
+                {
+                    changed |= differentialChanged;
+                }
             }
 
             if (!changed)

@@ -49,17 +49,18 @@ namespace LFramework.Editor
 
             if (useDhe)
             {
-#if LFRAMEWORK_HYBRIDCLR_DHE
-                if (buildSetting.buildType != BuildType.App &&
-                    !CopyDheArtifactsToProject(buildSetting, registrar, hybridClrSetting,
-                        backAotFolder))
+                HybridCLRBuildWorkflow.EnsureDheAvailable();
+                bool copied = buildSetting.buildType == BuildType.App
+                    ? CopyDhePlaceholdersToProject(buildSetting, registrar, hybridClrSetting)
+                    : CopyDheArtifactsToProject(
+                        buildSetting,
+                        registrar,
+                        hybridClrSetting,
+                        backAotFolder);
+                if (!copied)
                 {
                     return false;
                 }
-#else
-                Debug.LogError("DHE mode requires the LFRAMEWORK_HYBRIDCLR_DHE scripting define.");
-                return false;
-#endif
             }
             else if (!CopyHotfixDllToProject(buildSetting, registrar, hybridClrSetting))
             {
@@ -81,6 +82,10 @@ namespace LFramework.Editor
             CheckInstallHybridClr();
             var hybridClrSetting = SettingManager.GetSetting<HybridCLRSetting>();
             bool useDhe = IsDheEnabled(hybridClrSetting);
+            if (useDhe)
+            {
+                HybridCLRBuildWorkflow.EnsureDheAvailable();
+            }
 
             if (isBuildApp)
             {
@@ -99,14 +104,12 @@ namespace LFramework.Editor
                 //编译Dll
                 BuildTarget target = EditorUserBuildSettings.activeBuildTarget;
                 CompileDllCommand.CompileDll(target, EditorUserBuildSettings.development);
-#if LFRAMEWORK_HYBRIDCLR_DHE
                 if (useDhe)
                 {
                     HybridCLRBuildWorkflow.GenerateHotUpdateMetaVersionFiles(
                         GetDheSnapshotDirectory(backAotFolder, target),
                         target);
                 }
-#endif
             }
 
 #endif
@@ -352,62 +355,33 @@ namespace LFramework.Editor
             return true;
         }
 
-#if LFRAMEWORK_HYBRIDCLR_DHE
-        private static bool CopyDheArtifactsToProject(
+        private static bool CopyDhePlaceholdersToProject(
             BuildSetting buildSetting,
             IDllResourceRegistrar registrar,
-            HybridCLRSetting setting,
-            string backupPath)
+            HybridCLRSetting setting)
         {
             string outputRoot = GetHotfixPathInProject(setting);
-            if (Directory.Exists(outputRoot))
-            {
-                Directory.Delete(outputRoot, true);
-            }
-
-            string codeOutput = Path.Combine(outputRoot, "DHE", "Code");
-            string currentMetaOutput = Path.Combine(outputRoot, "DHE", "CurrentMeta");
-            string originalMetaOutput = Path.Combine(outputRoot, "DHE", "OriginalMeta");
-            Directory.CreateDirectory(codeOutput);
-            Directory.CreateDirectory(currentMetaOutput);
-            Directory.CreateDirectory(originalMetaOutput);
-
-            BuildTarget target = EditorUserBuildSettings.activeBuildTarget;
-            string hotUpdateDirectory = SettingsUtil.GetHotUpdateDllsOutputDirByTarget(target);
-            string currentMetaDirectory = HybridCLR.Editor.DHE.Snapshot.GetMetaVersionDir(
-                hotUpdateDirectory);
-            string baselineDirectory = GetDheSnapshotDirectory(backupPath, target);
-            string originalMetaDirectory = HybridCLR.Editor.DHE.Snapshot.GetMetaVersionDir(
-                baselineDirectory);
+            IReadOnlyList<string> assemblyNames = GetConfiguredDheAssemblyNames(setting);
+            PrepareDheOutputDirectories(
+                outputRoot,
+                assemblyNames,
+                out string codeOutput,
+                out string currentMetaOutput,
+                out string originalMetaOutput);
 
             var dllPaths = new List<string>();
             var currentMetaPaths = new List<string>();
             var originalMetaPaths = new List<string>();
-            foreach (string assemblyName in SettingsUtil.DifferentialHybridAssemblyNames)
+            foreach (string assemblyName in assemblyNames)
             {
-                string sourceDll = Path.Combine(hotUpdateDirectory, $"{assemblyName}.dll");
-                string sourceCurrentMeta = Path.Combine(currentMetaDirectory,
-                    $"{assemblyName}.mv.bytes");
-                string sourceOriginalMeta = Path.Combine(originalMetaDirectory,
-                    $"{assemblyName}.mv.bytes");
-                if (!File.Exists(sourceDll) || !File.Exists(sourceCurrentMeta) ||
-                    !File.Exists(sourceOriginalMeta))
-                {
-                    Debug.LogError(
-                        $"DHE artifacts are incomplete for '{assemblyName}'. " +
-                        $"DLL={File.Exists(sourceDll)}, currentMeta={File.Exists(sourceCurrentMeta)}, " +
-                        $"originalMeta={File.Exists(sourceOriginalMeta)}");
-                    return false;
-                }
-
                 string targetDll = Path.Combine(codeOutput, $"{assemblyName}.dll.bytes");
                 string targetCurrentMeta = Path.Combine(currentMetaOutput,
                     $"{assemblyName}.mv.bytes");
                 string targetOriginalMeta = Path.Combine(originalMetaOutput,
                     $"{assemblyName}.mv.bytes");
-                File.WriteAllBytes(targetDll, AESUtility.Encrypt(File.ReadAllBytes(sourceDll)));
-                File.Copy(sourceCurrentMeta, targetCurrentMeta, true);
-                File.Copy(sourceOriginalMeta, targetOriginalMeta, true);
+                File.WriteAllBytes(targetDll, new byte[] { 1 });
+                File.WriteAllBytes(targetCurrentMeta, new byte[] { 1 });
+                File.WriteAllBytes(targetOriginalMeta, new byte[] { 1 });
                 dllPaths.Add(targetDll);
                 currentMetaPaths.Add(targetCurrentMeta);
                 originalMetaPaths.Add(targetOriginalMeta);
@@ -422,7 +396,155 @@ namespace LFramework.Editor
                 setting,
                 buildSetting.buildType);
         }
-#endif
+
+        private static bool CopyDheArtifactsToProject(
+            BuildSetting buildSetting,
+            IDllResourceRegistrar registrar,
+            HybridCLRSetting setting,
+            string backupPath)
+        {
+            string outputRoot = GetHotfixPathInProject(setting);
+            IReadOnlyList<string> assemblyNames = GetConfiguredDheAssemblyNames(setting);
+
+            BuildTarget target = EditorUserBuildSettings.activeBuildTarget;
+            string hotUpdateDirectory = SettingsUtil.GetHotUpdateDllsOutputDirByTarget(target);
+            string currentMetaDirectory = HybridCLRBuildWorkflow.GetMetaVersionDirectory(
+                hotUpdateDirectory);
+            string baselineDirectory = GetDheSnapshotDirectory(backupPath, target);
+            string originalMetaDirectory = HybridCLRBuildWorkflow.GetMetaVersionDirectory(
+                baselineDirectory);
+
+            var sourceArtifacts = assemblyNames.Select(assemblyName => new
+            {
+                AssemblyName = assemblyName,
+                Dll = Path.Combine(hotUpdateDirectory, $"{assemblyName}.dll"),
+                CurrentMeta = Path.Combine(currentMetaDirectory, $"{assemblyName}.mv.bytes"),
+                OriginalMeta = Path.Combine(originalMetaDirectory, $"{assemblyName}.mv.bytes")
+            }).ToList();
+            foreach (var artifact in sourceArtifacts)
+            {
+                if (!File.Exists(artifact.Dll) || !File.Exists(artifact.CurrentMeta) ||
+                    !File.Exists(artifact.OriginalMeta))
+                {
+                    Debug.LogError(
+                        $"DHE artifacts are incomplete for '{artifact.AssemblyName}'. " +
+                        $"DLL={File.Exists(artifact.Dll)}, currentMeta={File.Exists(artifact.CurrentMeta)}, " +
+                        $"originalMeta={File.Exists(artifact.OriginalMeta)}");
+                    return false;
+                }
+            }
+
+            PrepareDheOutputDirectories(
+                outputRoot,
+                assemblyNames,
+                out string codeOutput,
+                out string currentMetaOutput,
+                out string originalMetaOutput);
+
+            var dllPaths = new List<string>();
+            var currentMetaPaths = new List<string>();
+            var originalMetaPaths = new List<string>();
+            foreach (var artifact in sourceArtifacts)
+            {
+                string targetDll = Path.Combine(codeOutput, $"{artifact.AssemblyName}.dll.bytes");
+                string targetCurrentMeta = Path.Combine(currentMetaOutput,
+                    $"{artifact.AssemblyName}.mv.bytes");
+                string targetOriginalMeta = Path.Combine(originalMetaOutput,
+                    $"{artifact.AssemblyName}.mv.bytes");
+                File.WriteAllBytes(targetDll, AESUtility.Encrypt(File.ReadAllBytes(artifact.Dll)));
+                File.Copy(artifact.CurrentMeta, targetCurrentMeta, true);
+                File.Copy(artifact.OriginalMeta, targetOriginalMeta, true);
+                dllPaths.Add(targetDll);
+                currentMetaPaths.Add(targetCurrentMeta);
+                originalMetaPaths.Add(targetOriginalMeta);
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            return registrar.RegisterDheArtifacts(
+                dllPaths,
+                currentMetaPaths,
+                originalMetaPaths,
+                setting,
+                buildSetting.buildType);
+        }
+
+        private static void PrepareDheOutputDirectories(
+            string outputRoot,
+            IReadOnlyList<string> assemblyNames,
+            out string codeOutput,
+            out string currentMetaOutput,
+            out string originalMetaOutput)
+        {
+            codeOutput = Path.Combine(outputRoot, "DHE", "Code");
+            currentMetaOutput = Path.Combine(outputRoot, "DHE", "CurrentMeta");
+            originalMetaOutput = Path.Combine(outputRoot, "DHE", "OriginalMeta");
+            Directory.CreateDirectory(codeOutput);
+            Directory.CreateDirectory(currentMetaOutput);
+            Directory.CreateDirectory(originalMetaOutput);
+
+            DeleteStaleDheArtifacts(
+                codeOutput,
+                assemblyNames.Select(name => $"{name}.dll.bytes"));
+            DeleteStaleDheArtifacts(
+                currentMetaOutput,
+                assemblyNames.Select(name => $"{name}.mv.bytes"));
+            DeleteStaleDheArtifacts(
+                originalMetaOutput,
+                assemblyNames.Select(name => $"{name}.mv.bytes"));
+        }
+
+        private static void DeleteStaleDheArtifacts(
+            string directory,
+            IEnumerable<string> expectedFileNames)
+        {
+            var expected = new HashSet<string>(expectedFileNames, StringComparer.OrdinalIgnoreCase);
+            foreach (string filePath in Directory.EnumerateFiles(directory, "*.bytes"))
+            {
+                if (expected.Contains(Path.GetFileName(filePath)))
+                {
+                    continue;
+                }
+
+                string assetPath = FullPathToUnityPath(filePath);
+                if (!string.IsNullOrWhiteSpace(assetPath) && AssetDatabase.DeleteAsset(assetPath))
+                {
+                    continue;
+                }
+
+                File.Delete(filePath);
+                string metaPath = filePath + ".meta";
+                if (File.Exists(metaPath))
+                {
+                    File.Delete(metaPath);
+                }
+            }
+        }
+
+        private static IReadOnlyList<string> GetConfiguredDheAssemblyNames(HybridCLRSetting setting)
+        {
+            var assemblyNames = setting?.differentialHybridAssembliesSort?
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Distinct(StringComparer.Ordinal)
+                .ToList() ?? new List<string>();
+            if (setting != null && !string.IsNullOrWhiteSpace(setting.logicMainDllName) &&
+                !assemblyNames.Contains(setting.logicMainDllName, StringComparer.Ordinal))
+            {
+                assemblyNames.Add(setting.logicMainDllName);
+            }
+
+            if (assemblyNames.Count == 0)
+            {
+                throw new InvalidOperationException("DHE mode has no configured assemblies.");
+            }
+
+            if (setting == null || string.IsNullOrWhiteSpace(setting.logicMainDllName))
+            {
+                throw new InvalidOperationException("DHE mode requires a main logic assembly name.");
+            }
+
+            return assemblyNames;
+        }
 
         [MenuItem("HybridCLR/Check Access Missing Metadata")]
         private static void CheckAccessMissingMetadata()
@@ -435,22 +557,39 @@ namespace LFramework.Editor
             string aotDir = SettingsUtil.GetAssembliesPostIl2CppStripDir(target);
 
             // 第2个参数hotUpdateAssNames为热更新程序集列表。对于旗舰版本，该列表需要包含DHE程序集，即SettingsUtil.HotUpdateAndDHEAssemblyNamesIncludePreserved。
-#if LFRAMEWORK_HYBRIDCLR_DHE
-            var checker = new MissingMetadataChecker(aotDir,
-                SettingsUtil.HotUpdateAndDHEAssemblyNamesIncludePreserved);
-#else
-            var checker = new MissingMetadataChecker(aotDir,
-                SettingsUtil.HotUpdateAssemblyNamesIncludePreserved);
-#endif
-
-            string hotUpdateDir = SettingsUtil.GetHotUpdateDllsOutputDirByTarget(target);
-            foreach (var dll in SettingsUtil.HotUpdateAssemblyFilesExcludePreserved)
+            var hybridClrSetting = SettingManager.GetSetting<HybridCLRSetting>();
+            if (IsDheEnabled(hybridClrSetting))
             {
-                string dllPath = $"{hotUpdateDir}/{dll}";
+                var hotUpdateAndDheAssemblies = SettingsUtil.HotUpdateAssemblyNamesIncludePreserved
+                    .Concat(GetConfiguredDheAssemblyNames(hybridClrSetting))
+                    .Distinct(StringComparer.Ordinal);
+                var checker = new MissingMetadataChecker(aotDir, hotUpdateAndDheAssemblies);
+                CheckHotUpdateAssemblies(checker, target, hotUpdateAndDheAssemblies);
+                return;
+            }
+
+            {
+                var checker = new MissingMetadataChecker(aotDir,
+                    SettingsUtil.HotUpdateAssemblyNamesIncludePreserved);
+                CheckHotUpdateAssemblies(
+                    checker,
+                    target,
+                    SettingsUtil.HotUpdateAssemblyNamesExcludePreserved);
+            }
+        }
+
+        private static void CheckHotUpdateAssemblies(
+            MissingMetadataChecker checker,
+            BuildTarget target,
+            IEnumerable<string> assemblyNames)
+        {
+            string hotUpdateDir = SettingsUtil.GetHotUpdateDllsOutputDirByTarget(target);
+            foreach (string assemblyName in assemblyNames.Distinct(StringComparer.Ordinal))
+            {
+                string dllPath = $"{hotUpdateDir}/{assemblyName}.dll";
                 bool notAnyMissing = checker.Check(dllPath);
                 if (!notAnyMissing)
                 {
-                    // DO SOMETHING
                     Log.Info("Missing metadata found in hot update dll: " + dllPath);
                 }
             }
@@ -458,7 +597,14 @@ namespace LFramework.Editor
 
         private static string FullPathToUnityPath(string fullFilePath)
         {
-            return "Assets/" + fullFilePath.Replace(Application.dataPath + "/", "");
+            string normalizedPath = Path.GetFullPath(fullFilePath).Replace('\\', '/');
+            string dataPath = Path.GetFullPath(Application.dataPath).Replace('\\', '/');
+            if (!normalizedPath.StartsWith(dataPath + "/", StringComparison.OrdinalIgnoreCase))
+            {
+                return string.Empty;
+            }
+
+            return "Assets" + normalizedPath.Substring(dataPath.Length);
         }
 
         private static string GetHotfixPathInProject(HybridCLRSetting fHybridClrSetting)
