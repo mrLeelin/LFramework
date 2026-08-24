@@ -161,7 +161,7 @@ namespace LFramework.Editor.Builder
                 if (!HybridCLRBuildWorkflow.IsDheAvailable)
                 {
                     Debug.LogError(
-                        "[BuildEnvironmentConfigurator] DHE mode requires a HybridCLR flagship package exposing the 8.3.0 MetaVersion APIs.");
+                        "[BuildEnvironmentConfigurator] DHE mode requires a HybridCLR flagship package exposing the 8.11.1 MetaVersion APIs.");
                     return;
                 }
 

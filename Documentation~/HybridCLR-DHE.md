@@ -1,10 +1,10 @@
 # HybridCLR DHE Integration
 
-LFramework supports both the standard HybridCLR hot-update loader and the commercial Differential Hybrid Execution (DHE) MetaVersion workflow. This integration is locked to the licensed flagship HybridCLR 8.3.0 package and its matching official `libil2cpp` release matrix. Do not mix it with community packages or other flagship versions.
+LFramework supports both the standard HybridCLR hot-update loader and the commercial Differential Hybrid Execution (DHE) MetaVersion workflow. This integration is locked to the licensed flagship HybridCLR 8.11.1 package and its matching official `libil2cpp` release matrix. Do not mix it with community packages or other flagship versions.
 
 ## Install the commercial package
 
-Install the licensed `com.code-philosophy.hybridclr` 8.3.0 package in the consuming Unity project. A local package reference can be used while validating a package checkout:
+Install the licensed `com.code-philosophy.hybridclr` 8.11.1 package in the consuming Unity project. A local package reference can be used while validating a package checkout:
 
 ```json
 {
@@ -15,11 +15,11 @@ Install the licensed `com.code-philosophy.hybridclr` 8.3.0 package in the consum
 }
 ```
 
-Run the HybridCLR 8.3.0 installer after replacing the package so the `libil2cpp` branch selected by the 8.3.0 release matrix is installed. The installer must report both the package and installed `libil2cpp` version as `8.3.0` before building.
+Run the HybridCLR 8.11.1 installer after replacing the package so the `libil2cpp` branch selected by the 8.11.1 release matrix is installed. The installer must report both the package and installed `libil2cpp` version as `8.11.1` before building.
 
 ## Commercial API detection
 
-No project scripting define is required. LFramework detects the flagship 8.3.0 API surface at runtime and in the editor. This is necessary because community and flagship packages can use the same package name and version.
+No project scripting define is required. LFramework detects the flagship 8.11.1 API surface at runtime and in the editor. This is necessary because community and flagship packages can use the same package name and version.
 
 If `DifferentialHybridMetaVersion` is selected while the installed package does not expose the flagship APIs, the build fails before generating artifacts instead of silently switching to standard HybridCLR.
 
@@ -73,7 +73,7 @@ The existing AOT metadata and `Assembly.Load` workflow remains active in this mo
 
 Before publishing a Player or patch, verify:
 
-- The licensed package version and installed `libil2cpp` version both report `8.3.0`, and the selected native branches match the 8.3.0 Unity release matrix.
+- The licensed package version and installed `libil2cpp` version both report `8.11.1`, and the selected native branches match the 8.11.1 Unity release matrix.
 - `HybridCLRBuildWorkflow.IsDheAvailable` is true for the installed package.
 - `ProjectSettings/HybridCLRSettings.asset` contains the expected differential assemblies.
 - The baseline snapshot belongs to the exact released Player and target.

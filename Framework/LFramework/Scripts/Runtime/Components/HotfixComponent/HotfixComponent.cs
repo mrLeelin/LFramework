@@ -315,7 +315,7 @@ namespace LFramework.Runtime
                         out MethodInfo loadPatchedMethod))
                 {
                     return CreateDheError(
-                        "DHE mode requires a HybridCLR flagship runtime exposing the 8.3.0 MetaVersion APIs.");
+                        "DHE mode requires a HybridCLR flagship runtime exposing the 8.11.1 MetaVersion APIs.");
                 }
 
                 var dllByAssembly = loadPatchAssets

@@ -28,7 +28,7 @@ namespace LFramework.Editor.Tests.BuildPackage
         }
 
         [Test]
-        public void GetMetaVersionDirectory_UsesHybridClr83Layout()
+        public void GetMetaVersionDirectory_UsesHybridClr811Layout()
         {
             string result = HybridCLRBuildWorkflow.GetMetaVersionDirectory(
                 Path.Combine("Snapshots", "Android", "AotSnapshot"));
@@ -37,12 +37,12 @@ namespace LFramework.Editor.Tests.BuildPackage
                 Path.Combine("Snapshots", "Android", "AotSnapshot", "MetaVersions")));
         }
 
-        [TestCase("8.3.0", true)]
-        [TestCase(" 8.3.0 ", true)]
-        [TestCase("8.11.1", false)]
-        [TestCase("8.3.1", false)]
+        [TestCase("8.11.1", true)]
+        [TestCase(" 8.11.1 ", true)]
+        [TestCase("8.3.0", false)]
+        [TestCase("8.11.0", false)]
         [TestCase(null, false)]
-        public void IsRequiredVersion_AcceptsOnlyFlagship830(string version, bool expected)
+        public void IsRequiredVersion_AcceptsOnlyFlagship8111(string version, bool expected)
         {
             Assert.That(HybridCLRBuildWorkflow.IsRequiredVersion(version), Is.EqualTo(expected));
         }

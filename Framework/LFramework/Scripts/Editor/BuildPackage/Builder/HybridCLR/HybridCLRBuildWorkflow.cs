@@ -18,7 +18,7 @@ namespace LFramework.Editor.Builder.HybridCLR
     /// </summary>
     public static class HybridCLRBuildWorkflow
     {
-        public const string RequiredHybridClrVersion = "8.3.0";
+        public const string RequiredHybridClrVersion = "8.11.1";
 
         private const string MetaVersionWorkflowTypeName =
             "HybridCLR.Editor.DHE.MetaVersionWorkflow, HybridCLR.Editor";
@@ -151,7 +151,7 @@ namespace LFramework.Editor.Builder.HybridCLR
             if (!HasRequiredApis)
             {
                 throw new NotSupportedException(
-                    "DHE mode requires a HybridCLR flagship package exposing the 8.3.0 MetaVersion APIs.");
+                    "DHE mode requires a HybridCLR flagship package exposing the 8.11.1 MetaVersion APIs.");
             }
 
             string packageVersion = GetPackageVersion();
