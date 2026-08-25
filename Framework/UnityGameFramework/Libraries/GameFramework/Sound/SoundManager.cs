@@ -245,7 +245,7 @@ namespace GameFramework.Sound
         /// <returns>鏄惁澧炲姞澹伴煶缁勬垚鍔熴€?/returns>
         public bool AddSoundGroup(string soundGroupName, ISoundGroupHelper soundGroupHelper)
         {
-            return AddSoundGroup(soundGroupName, false, Constant.DefaultMute, Constant.DefaultVolume, soundGroupHelper);
+            return AddSoundGroup(soundGroupName, false, Constant.DefaultMute, Constant.DefaultVolume, SoundOverflowPolicy.ReplaceByPriority, soundGroupHelper);
         }
 
         /// <summary>
@@ -258,6 +258,14 @@ namespace GameFramework.Sound
         /// <param name="soundGroupHelper">澹伴煶缁勮緟鍔╁櫒銆?/param>
         /// <returns>鏄惁澧炲姞澹伴煶缁勬垚鍔熴€?/returns>
         public bool AddSoundGroup(string soundGroupName, bool soundGroupAvoidBeingReplacedBySamePriority, bool soundGroupMute, float soundGroupVolume, ISoundGroupHelper soundGroupHelper)
+        {
+            return AddSoundGroup(soundGroupName, soundGroupAvoidBeingReplacedBySamePriority, soundGroupMute, soundGroupVolume, SoundOverflowPolicy.ReplaceByPriority, soundGroupHelper);
+        }
+
+        /// <summary>
+        /// Adds a sound group with an explicit overflow policy.
+        /// </summary>
+        public bool AddSoundGroup(string soundGroupName, bool soundGroupAvoidBeingReplacedBySamePriority, bool soundGroupMute, float soundGroupVolume, SoundOverflowPolicy overflowPolicy, ISoundGroupHelper soundGroupHelper)
         {
             if (string.IsNullOrEmpty(soundGroupName))
             {
@@ -277,6 +285,7 @@ namespace GameFramework.Sound
             SoundGroup soundGroup = new SoundGroup(soundGroupName, soundGroupHelper)
             {
                 AvoidBeingReplacedBySamePriority = soundGroupAvoidBeingReplacedBySamePriority,
+                OverflowPolicy = overflowPolicy,
                 Mute = soundGroupMute,
                 Volume = soundGroupVolume
             };
@@ -466,6 +475,11 @@ namespace GameFramework.Sound
             {
                 errorCode = PlaySoundErrorCode.SoundGroupHasNoAgent;
                 errorMessage = Utility.Text.Format("Sound group '{0}' is have no sound agent.", soundGroupName);
+            }
+            else if (soundGroup.OverflowPolicy == SoundOverflowPolicy.QueueNonLooping && playSoundParams.Loop)
+            {
+                errorCode = PlaySoundErrorCode.LoopingSoundNotSupportedByQueue;
+                errorMessage = Utility.Text.Format("Sound group '{0}' does not support looping sounds with queue overflow policy.", soundGroupName);
             }
 
             if (errorCode.HasValue)

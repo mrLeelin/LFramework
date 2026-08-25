@@ -20,6 +20,7 @@ namespace GameFramework.Sound
             private readonly ISoundGroupHelper m_SoundGroupHelper;
             private readonly List<SoundAgent> m_SoundAgents;
             private bool m_AvoidBeingReplacedBySamePriority;
+            private SoundOverflowPolicy m_OverflowPolicy;
             private bool m_Mute;
             private float m_Volume;
 
@@ -79,6 +80,21 @@ namespace GameFramework.Sound
                 set
                 {
                     m_AvoidBeingReplacedBySamePriority = value;
+                }
+            }
+
+            /// <summary>
+            /// Gets or sets how the sound group handles agent overflow.
+            /// </summary>
+            public SoundOverflowPolicy OverflowPolicy
+            {
+                get
+                {
+                    return m_OverflowPolicy;
+                }
+                set
+                {
+                    m_OverflowPolicy = value;
                 }
             }
 

@@ -102,6 +102,18 @@ namespace GameFramework.Sound
         bool AddSoundGroup(string soundGroupName, bool soundGroupAvoidBeingReplacedBySamePriority, bool soundGroupMute, float soundGroupVolume, ISoundGroupHelper soundGroupHelper);
 
         /// <summary>
+        /// Adds a sound group with an explicit overflow policy.
+        /// </summary>
+        /// <param name="soundGroupName">Sound group name.</param>
+        /// <param name="soundGroupAvoidBeingReplacedBySamePriority">Whether equal-priority sounds avoid replacement.</param>
+        /// <param name="soundGroupMute">Whether the sound group is muted.</param>
+        /// <param name="soundGroupVolume">Sound group volume.</param>
+        /// <param name="overflowPolicy">Sound overflow policy.</param>
+        /// <param name="soundGroupHelper">Sound group helper.</param>
+        /// <returns>Whether the sound group was added.</returns>
+        bool AddSoundGroup(string soundGroupName, bool soundGroupAvoidBeingReplacedBySamePriority, bool soundGroupMute, float soundGroupVolume, SoundOverflowPolicy overflowPolicy, ISoundGroupHelper soundGroupHelper);
+
+        /// <summary>
         /// 增加声音代理辅助器。
         /// </summary>
         /// <param name="soundGroupName">声音组名称。</param>

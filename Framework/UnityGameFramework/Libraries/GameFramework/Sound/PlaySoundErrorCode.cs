@@ -40,6 +40,11 @@ namespace GameFramework.Sound
         /// <summary>
         /// 设置声音资源失败。
         /// </summary>
-        SetSoundAssetFailure
+        SetSoundAssetFailure,
+
+        /// <summary>
+        /// Queue-based sound groups do not support looping sounds.
+        /// </summary>
+        LoopingSoundNotSupportedByQueue
     }
 }

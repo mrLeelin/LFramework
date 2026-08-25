@@ -38,6 +38,15 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
+        /// Gets or sets how the sound group handles agent overflow.
+        /// </summary>
+        SoundOverflowPolicy OverflowPolicy
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// 获取或设置声音组静音。
         /// </summary>
         bool Mute
