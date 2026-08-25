@@ -19,12 +19,13 @@ This package bundles or depends on third-party components.
 - Location: `Framework/UniRx`
 - Note: this repository snapshot does not currently include a local UniRx license file. Confirm upstream licensing before external redistribution.
 
-## External prerequisites not fully declarable from this package manifest
-
 ### HybridCLR
 
-- Current source project dependency: `com.code-philosophy.hybridclr`
-- Current source project install mode: Git dependency in the consuming project's `manifest.json`
+- Location: `Framework/HybridCLR`
+- Version: licensed flagship 8.11.1 with DHE support
+- Bundled license file: `Framework/HybridCLR/LICENSE`
+
+## External prerequisites not fully declarable from this package manifest
 
 ### UniTask
 

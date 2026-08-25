@@ -13,7 +13,6 @@ From `package.json`:
 
 These are expected by the current package contents and integration patterns:
 
-- `com.code-philosophy.hybridclr`
 - `com.cysharp.unitask`
 - Odin Inspector / Sirenix runtime and editor assemblies
 - `com.tuyoogame.yooasset` via scoped registry
@@ -22,6 +21,7 @@ These are expected by the current package contents and integration patterns:
 
 The package currently preserves source for:
 
+- licensed HybridCLR 8.11.1, including the DHE Editor/Runtime APIs and installation data
 - `UniRx`
 - `UniTask`
 - `UnityGameFramework`
@@ -35,7 +35,7 @@ Before adoption, verify:
 
 1. your Unity version matches package expectations (`6000.3.0f1`)
 2. your project can resolve YooAsset through a registry
-3. your project has the expected HybridCLR and Sirenix setup
+3. your project has the expected Sirenix setup and uses Unity `6000.3.6f1` for the bundled DHE-modified `Unity.IL2CPP.dll`
 4. your own copies of embedded third-party code will not conflict with this package layout
 
 ## Recommended compatibility policy

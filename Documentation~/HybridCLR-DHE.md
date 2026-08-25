@@ -2,20 +2,19 @@
 
 LFramework supports both the standard HybridCLR hot-update loader and the commercial Differential Hybrid Execution (DHE) MetaVersion workflow. This integration is locked to the licensed flagship HybridCLR 8.11.1 package and its matching official `libil2cpp` release matrix. Do not mix it with community packages or other flagship versions.
 
-## Install the commercial package
+## Install the framework package
 
-Install the licensed `com.code-philosophy.hybridclr` 8.11.1 package in the consuming Unity project. A local package reference can be used while validating a package checkout:
+The licensed HybridCLR 8.11.1 package is embedded in `com.lframework.core`. Consumers must not add a separate `com.code-philosophy.hybridclr` dependency. A local package reference can be used while validating a package checkout:
 
 ```json
 {
   "dependencies": {
-    "com.code-philosophy.hybridclr": "file:C:/path/to/com.code-philosophy.hybridclr",
     "com.lframework.core": "file:C:/path/to/lframework"
   }
 }
 ```
 
-Run the HybridCLR 8.11.1 installer after replacing the package so the `libil2cpp` branch selected by the 8.11.1 release matrix is installed. The installer must report both the package and installed `libil2cpp` version as `8.11.1` before building.
+Run the embedded HybridCLR installer after replacing the package so the `libil2cpp` branch selected by the 8.11.1 release matrix is installed. On Windows with Unity `6000.3.6f1`, the installer also copies the bundled DHE-modified `Unity.IL2CPP.dll` and verifies its SHA-256 before and after copying. The installer rejects other Unity 6000 versions rather than installing an incompatible modified DLL. It must report both the HybridCLR package metadata and installed `libil2cpp` version as `8.11.1` before building.
 
 ## Commercial API detection
 

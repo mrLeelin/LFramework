@@ -20,6 +20,7 @@
 
 ## Included source
 
+- `Framework/HybridCLR` (licensed HybridCLR 8.11.1 with DHE support)
 - `Framework/LFramework`
 - `Framework/UniRx`
 - `Framework/UnityGameFramework`
@@ -52,9 +53,10 @@ Some dependencies cannot be declared fully from a package manifest because they 
 
 Install these before importing `com.lframework.core`:
 
-- `com.code-philosophy.hybridclr`
 - `com.cysharp.unitask`
 - Odin Inspector / Sirenix runtime and editor assemblies
+
+HybridCLR 8.11.1 is embedded in `com.lframework.core`; do not add a separate `com.code-philosophy.hybridclr` package reference.
 
 ## Registry requirement for YooAsset
 

@@ -6,10 +6,11 @@ This guide gets `com.lframework.core` into a new Unity project with the minimum 
 
 Install these dependencies before importing the package:
 
-- `com.code-philosophy.hybridclr`
 - `com.cysharp.unitask`
 - Odin Inspector / Sirenix runtime and editor assemblies
 - Scoped registry support for `com.tuyoogame.yooasset`
+
+HybridCLR 8.11.1 is already embedded in `com.lframework.core` and must not be installed as a separate package.
 
 See `Dependencies.md` for details.
 
