@@ -5,8 +5,6 @@
 // Feedback: mailto:ellan@gameframework.cn
 //------------------------------------------------------------
 
-using System;
-
 namespace GameFramework.Sound
 {
     internal sealed partial class SoundManager : GameFrameworkModule, ISoundManager
@@ -17,30 +15,30 @@ namespace GameFramework.Sound
         private sealed class SoundAgent : ISoundAgent
         {
             private readonly SoundGroup m_SoundGroup;
-            private readonly ISoundHelper m_SoundHelper;
+            private readonly SoundManager m_SoundManager;
             private readonly ISoundAgentHelper m_SoundAgentHelper;
             private int m_SerialId;
-            private object m_SoundAsset;
-            private DateTime m_SetSoundAssetTime;
+            private SoundAssetEntry m_SoundAssetEntry;
+            private double m_SetSoundAssetTime;
             private bool m_MuteInSoundGroup;
             private float m_VolumeInSoundGroup;
 
             /// <summary>
             /// 初始化声音代理的新实例。
             /// </summary>
+            /// <param name="soundManager">声音管理器。</param>
             /// <param name="soundGroup">所在的声音组。</param>
-            /// <param name="soundHelper">声音辅助器接口。</param>
             /// <param name="soundAgentHelper">声音代理辅助器接口。</param>
-            public SoundAgent(SoundGroup soundGroup, ISoundHelper soundHelper, ISoundAgentHelper soundAgentHelper)
+            public SoundAgent(SoundManager soundManager, SoundGroup soundGroup, ISoundAgentHelper soundAgentHelper)
             {
+                if (soundManager == null)
+                {
+                    throw new GameFrameworkException("Sound manager is invalid.");
+                }
+
                 if (soundGroup == null)
                 {
                     throw new GameFrameworkException("Sound group is invalid.");
-                }
-
-                if (soundHelper == null)
-                {
-                    throw new GameFrameworkException("Sound helper is invalid.");
                 }
 
                 if (soundAgentHelper == null)
@@ -48,12 +46,12 @@ namespace GameFramework.Sound
                     throw new GameFrameworkException("Sound agent helper is invalid.");
                 }
 
+                m_SoundManager = soundManager;
                 m_SoundGroup = soundGroup;
-                m_SoundHelper = soundHelper;
                 m_SoundAgentHelper = soundAgentHelper;
                 m_SoundAgentHelper.ResetSoundAgent += OnResetSoundAgent;
                 m_SerialId = 0;
-                m_SoundAsset = null;
+                m_SoundAssetEntry = null;
                 Reset();
             }
 
@@ -293,7 +291,7 @@ namespace GameFramework.Sound
             /// <summary>
             /// 获取声音创建时间。
             /// </summary>
-            internal DateTime SetSoundAssetTime
+            internal double SetSoundAssetTime
             {
                 get
                 {
@@ -374,13 +372,10 @@ namespace GameFramework.Sound
             /// </summary>
             public void Reset()
             {
-                if (m_SoundAsset != null)
-                {
-                    m_SoundHelper.ReleaseSoundAsset(m_SoundAsset);
-                    m_SoundAsset = null;
-                }
+                SoundAssetEntry soundAssetEntry = m_SoundAssetEntry;
+                m_SoundAssetEntry = null;
 
-                m_SetSoundAssetTime = DateTime.MinValue;
+                m_SetSoundAssetTime = 0d;
                 Time = Constant.DefaultTime;
                 MuteInSoundGroup = Constant.DefaultMute;
                 Loop = Constant.DefaultLoop;
@@ -391,15 +386,37 @@ namespace GameFramework.Sound
                 SpatialBlend = Constant.DefaultSpatialBlend;
                 MaxDistance = Constant.DefaultMaxDistance;
                 DopplerLevel = Constant.DefaultDopplerLevel;
-                m_SoundAgentHelper.Reset();
+                try
+                {
+                    m_SoundAgentHelper.Reset();
+                }
+                finally
+                {
+                    if (soundAssetEntry != null)
+                    {
+                        m_SoundManager.ReleaseAgentBorrow(soundAssetEntry);
+                    }
+                }
             }
 
-            internal bool SetSoundAsset(object soundAsset)
+            internal bool SetSoundAsset(SoundAssetEntry soundAssetEntry, double startedAt)
             {
                 Reset();
-                m_SoundAsset = soundAsset;
-                m_SetSoundAssetTime = DateTime.UtcNow;
-                return m_SoundAgentHelper.SetSoundAsset(soundAsset);
+                if (soundAssetEntry == null || soundAssetEntry.Asset == null)
+                {
+                    return false;
+                }
+
+                if (!m_SoundAgentHelper.SetSoundAsset(soundAssetEntry.Asset))
+                {
+                    m_SoundAgentHelper.Reset();
+                    return false;
+                }
+
+                m_SoundAssetEntry = soundAssetEntry;
+                m_SetSoundAssetTime = startedAt;
+                m_SoundManager.RetainAgentBorrow(soundAssetEntry);
+                return true;
             }
 
             internal void RefreshMute()

@@ -51,6 +51,19 @@ namespace LFramework.Editor.Tests.Sound
                 load.AssetName, LoadResourceStatus.AssetError, message, load.UserData);
         }
 
+        internal void ReportProgress(int index, float progress)
+        {
+            PendingLoad load = Loads[index];
+            load.Callbacks.LoadAssetUpdateCallback(load.AssetName, progress, load.UserData);
+        }
+
+        internal void ReportDependency(int index, string dependencyAssetName)
+        {
+            PendingLoad load = Loads[index];
+            load.Callbacks.LoadAssetDependencyAssetCallback(
+                load.AssetName, dependencyAssetName, 1, 1, load.UserData);
+        }
+
         public void UnloadAsset(object asset)
         {
             UnloadedAssets.Add(asset);
@@ -138,9 +151,11 @@ namespace LFramework.Editor.Tests.Sound
     internal sealed class FakeSoundHelper : ISoundHelper
     {
         internal readonly List<object> ReleasedAssets = new List<object>();
+        internal Action<object> ReleaseObserver;
 
         public void ReleaseSoundAsset(object soundAsset)
         {
+            ReleaseObserver?.Invoke(soundAsset);
             ReleasedAssets.Add(soundAsset);
         }
     }
@@ -166,6 +181,8 @@ namespace LFramework.Editor.Tests.Sound
         public int PlayCount { get; private set; }
         public int StopCount { get; private set; }
         public object SoundAsset { get; private set; }
+        internal bool AutoCompleteOnStop { get; set; } = true;
+        internal bool RejectSoundAsset { get; set; }
 
         public event EventHandler<ResetSoundAgentEventArgs> ResetSoundAgent;
 
@@ -178,7 +195,10 @@ namespace LFramework.Editor.Tests.Sound
         public void Stop(float fadeOutSeconds)
         {
             StopCount++;
-            Complete();
+            if (AutoCompleteOnStop)
+            {
+                Complete();
+            }
         }
 
         public void Pause(float fadeOutSeconds)
@@ -200,7 +220,7 @@ namespace LFramework.Editor.Tests.Sound
         public bool SetSoundAsset(object soundAsset)
         {
             SoundAsset = soundAsset;
-            return soundAsset != null;
+            return soundAsset != null && !RejectSoundAsset;
         }
 
         internal void Complete()

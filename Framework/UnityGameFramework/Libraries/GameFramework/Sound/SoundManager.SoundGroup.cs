@@ -17,6 +17,7 @@ namespace GameFramework.Sound
         private sealed class SoundGroup : ISoundGroup
         {
             private readonly string m_Name;
+            private readonly SoundManager m_SoundManager;
             private readonly ISoundGroupHelper m_SoundGroupHelper;
             private readonly List<SoundAgent> m_SoundAgents;
             private bool m_AvoidBeingReplacedBySamePriority;
@@ -29,8 +30,13 @@ namespace GameFramework.Sound
             /// </summary>
             /// <param name="name">声音组名称。</param>
             /// <param name="soundGroupHelper">声音组辅助器。</param>
-            public SoundGroup(string name, ISoundGroupHelper soundGroupHelper)
+            public SoundGroup(SoundManager soundManager, string name, ISoundGroupHelper soundGroupHelper)
             {
+                if (soundManager == null)
+                {
+                    throw new GameFrameworkException("Sound manager is invalid.");
+                }
+
                 if (string.IsNullOrEmpty(name))
                 {
                     throw new GameFrameworkException("Sound group name is invalid.");
@@ -42,6 +48,7 @@ namespace GameFramework.Sound
                 }
 
                 m_Name = name;
+                m_SoundManager = soundManager;
                 m_SoundGroupHelper = soundGroupHelper;
                 m_SoundAgents = new List<SoundAgent>();
             }
@@ -150,22 +157,22 @@ namespace GameFramework.Sound
             /// <summary>
             /// 增加声音代理辅助器。
             /// </summary>
-            /// <param name="soundHelper">声音辅助器接口。</param>
             /// <param name="soundAgentHelper">要增加的声音代理辅助器。</param>
-            public void AddSoundAgentHelper(ISoundHelper soundHelper, ISoundAgentHelper soundAgentHelper)
+            public void AddSoundAgentHelper(ISoundAgentHelper soundAgentHelper)
             {
-                m_SoundAgents.Add(new SoundAgent(this, soundHelper, soundAgentHelper));
+                m_SoundAgents.Add(new SoundAgent(m_SoundManager, this, soundAgentHelper));
             }
 
             /// <summary>
             /// 播放声音。
             /// </summary>
             /// <param name="serialId">声音的序列编号。</param>
-            /// <param name="soundAsset">声音资源。</param>
+            /// <param name="soundAssetEntry">声音资源条目。</param>
             /// <param name="playSoundParams">播放声音参数。</param>
+            /// <param name="startedAt">声音请求的实时时间。</param>
             /// <param name="errorCode">错误码。</param>
             /// <returns>用于播放的声音代理。</returns>
-            public ISoundAgent PlaySound(int serialId, object soundAsset, PlaySoundParams playSoundParams, out PlaySoundErrorCode? errorCode)
+            public ISoundAgent PlaySound(int serialId, SoundAssetEntry soundAssetEntry, PlaySoundParams playSoundParams, double startedAt, out PlaySoundErrorCode? errorCode)
             {
                 errorCode = null;
                 SoundAgent candidateAgent = null;
@@ -186,7 +193,7 @@ namespace GameFramework.Sound
                     }
                     else if (!m_AvoidBeingReplacedBySamePriority && soundAgent.Priority == playSoundParams.Priority)
                     {
-                        if (candidateAgent == null || soundAgent.SetSoundAssetTime < candidateAgent.SetSoundAssetTime)
+                        if (candidateAgent == null || soundAgent.SetSoundAssetTime < candidateAgent.SetSoundAssetTime || (soundAgent.SetSoundAssetTime == candidateAgent.SetSoundAssetTime && soundAgent.SerialId < candidateAgent.SerialId))
                         {
                             candidateAgent = soundAgent;
                         }
@@ -199,7 +206,7 @@ namespace GameFramework.Sound
                     return null;
                 }
 
-                if (!candidateAgent.SetSoundAsset(soundAsset))
+                if (!candidateAgent.SetSoundAsset(soundAssetEntry, startedAt))
                 {
                     errorCode = PlaySoundErrorCode.SetSoundAssetFailure;
                     return null;

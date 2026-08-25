@@ -19,12 +19,14 @@ namespace GameFramework.Sound
     internal sealed partial class SoundManager : GameFrameworkModule, ISoundManager
     {
         private readonly Dictionary<string, SoundGroup> m_SoundGroups;
-        private readonly List<int> m_SoundsBeingLoaded;
-        private readonly HashSet<int> m_SoundsToReleaseOnLoad;
+        private readonly Dictionary<int, SoundPlayRequest> m_PendingRequests;
+        private readonly Dictionary<string, SoundAssetEntry> m_SoundAssets;
         private readonly LoadAssetCallbacks m_LoadAssetCallbacks;
         private IResourceManager m_ResourceManager;
         private ISoundHelper m_SoundHelper;
         private int m_Serial;
+        private double m_RealTime;
+        private bool m_IsShuttingDown;
         private EventHandler<PlaySoundSuccessEventArgs> m_PlaySoundSuccessEventHandler;
         private EventHandler<PlaySoundFailureEventArgs> m_PlaySoundFailureEventHandler;
         private EventHandler<PlaySoundUpdateEventArgs> m_PlaySoundUpdateEventHandler;
@@ -36,12 +38,14 @@ namespace GameFramework.Sound
         public SoundManager()
         {
             m_SoundGroups = new Dictionary<string, SoundGroup>(StringComparer.Ordinal);
-            m_SoundsBeingLoaded = new List<int>();
-            m_SoundsToReleaseOnLoad = new HashSet<int>();
+            m_PendingRequests = new Dictionary<int, SoundPlayRequest>();
+            m_SoundAssets = new Dictionary<string, SoundAssetEntry>(StringComparer.Ordinal);
             m_LoadAssetCallbacks = new LoadAssetCallbacks(LoadAssetSuccessCallback, LoadAssetFailureCallback, LoadAssetUpdateCallback, LoadAssetDependencyAssetCallback);
             m_ResourceManager = null;
             m_SoundHelper = null;
             m_Serial = 0;
+            m_RealTime = 0d;
+            m_IsShuttingDown = false;
             m_PlaySoundSuccessEventHandler = null;
             m_PlaySoundFailureEventHandler = null;
             m_PlaySoundUpdateEventHandler = null;
@@ -126,6 +130,10 @@ namespace GameFramework.Sound
         /// <param name="realElapseSeconds">鐪熷疄娴侀€濇椂闂达紝浠ョ涓哄崟浣嶃€?/param>
         internal override void Update(float elapseSeconds, float realElapseSeconds)
         {
+            if (realElapseSeconds > 0f)
+            {
+                m_RealTime += realElapseSeconds;
+            }
         }
 
         /// <summary>
@@ -133,10 +141,37 @@ namespace GameFramework.Sound
         /// </summary>
         internal override void Shutdown()
         {
+            m_IsShuttingDown = true;
             StopAllLoadedSounds();
             m_SoundGroups.Clear();
-            m_SoundsBeingLoaded.Clear();
-            m_SoundsToReleaseOnLoad.Clear();
+            foreach (KeyValuePair<int, SoundPlayRequest> pair in m_PendingRequests)
+            {
+                SoundPlayRequest request = pair.Value;
+                request.State = SoundPlayRequestState.Cancelled;
+                SoundAssetEntry entry = null;
+                if (m_SoundAssets.TryGetValue(request.SoundAssetName, out entry))
+                {
+                    entry.LoadingRequests.Remove(request);
+                }
+
+                ReleaseRequest(request);
+            }
+
+            m_PendingRequests.Clear();
+            foreach (KeyValuePair<string, SoundAssetEntry> pair in m_SoundAssets)
+            {
+                SoundAssetEntry entry = pair.Value;
+                if (entry.IsLoading)
+                {
+                    entry.ReleaseOnLoad = true;
+                }
+                else if (entry.AgentBorrowCount == 0)
+                {
+                    ReleaseSoundAsset(entry);
+                }
+            }
+
+            m_SoundAssets.Clear();
         }
 
         /// <summary>
@@ -282,7 +317,7 @@ namespace GameFramework.Sound
                 return false;
             }
 
-            SoundGroup soundGroup = new SoundGroup(soundGroupName, soundGroupHelper)
+            SoundGroup soundGroup = new SoundGroup(this, soundGroupName, soundGroupHelper)
             {
                 AvoidBeingReplacedBySamePriority = soundGroupAvoidBeingReplacedBySamePriority,
                 OverflowPolicy = overflowPolicy,
@@ -313,7 +348,7 @@ namespace GameFramework.Sound
                 throw new GameFrameworkException(Utility.Text.Format("Sound group '{0}' is not exist.", soundGroupName));
             }
 
-            soundGroup.AddSoundAgentHelper(m_SoundHelper, soundAgentHelper);
+            soundGroup.AddSoundAgentHelper(soundAgentHelper);
         }
 
         /// <summary>
@@ -322,7 +357,9 @@ namespace GameFramework.Sound
         /// <returns>鎵€鏈夋鍦ㄥ姞杞藉０闊崇殑搴忓垪缂栧彿銆?/returns>
         public int[] GetAllLoadingSoundSerialIds()
         {
-            return m_SoundsBeingLoaded.ToArray();
+            List<int> results = new List<int>();
+            GetAllLoadingSoundSerialIds(results);
+            return results.ToArray();
         }
 
         /// <summary>
@@ -337,7 +374,15 @@ namespace GameFramework.Sound
             }
 
             results.Clear();
-            results.AddRange(m_SoundsBeingLoaded);
+            foreach (KeyValuePair<int, SoundPlayRequest> pair in m_PendingRequests)
+            {
+                if (pair.Value.State == SoundPlayRequestState.WaitingAsset)
+                {
+                    results.Add(pair.Key);
+                }
+            }
+
+            results.Sort();
         }
 
         /// <summary>
@@ -347,7 +392,8 @@ namespace GameFramework.Sound
         /// <returns>鏄惁姝ｅ湪鍔犺浇澹伴煶銆?/returns>
         public bool IsLoadingSound(int serialId)
         {
-            return m_SoundsBeingLoaded.Contains(serialId);
+            SoundPlayRequest request = null;
+            return m_PendingRequests.TryGetValue(serialId, out request) && request.State == SoundPlayRequestState.WaitingAsset;
         }
 
         /// <summary>
@@ -501,8 +547,38 @@ namespace GameFramework.Sound
                 throw new GameFrameworkException(errorMessage);
             }
 
-            m_SoundsBeingLoaded.Add(serialId);
-            m_ResourceManager.LoadAsset(soundAssetName, null, priority, m_LoadAssetCallbacks, PlaySoundInfo.Create(serialId, soundGroup, playSoundParams, userData));
+            SoundPlayRequest request = SoundPlayRequest.Create(serialId, soundAssetName, soundGroup, priority, playSoundParams, userData, GetRealTime());
+            m_PendingRequests.Add(serialId, request);
+
+            SoundAssetEntry entry = null;
+            if (m_SoundAssets.TryGetValue(soundAssetName, out entry))
+            {
+                if (entry.IsLoading)
+                {
+                    entry.ReleaseOnLoad = false;
+                    request.WaitedForLoad = true;
+                    request.State = SoundPlayRequestState.WaitingAsset;
+                    entry.LoadingRequests.Add(request);
+                }
+                else
+                {
+                    request.State = SoundPlayRequestState.WaitingAgent;
+                    Exception exception = StartSoundRequest(request, entry, 0f);
+                    if (exception != null)
+                    {
+                        throw exception;
+                    }
+                }
+
+                return serialId;
+            }
+
+            entry = new SoundAssetEntry(soundAssetName);
+            request.WaitedForLoad = true;
+            request.State = SoundPlayRequestState.WaitingAsset;
+            entry.LoadingRequests.Add(request);
+            m_SoundAssets.Add(soundAssetName, entry);
+            m_ResourceManager.LoadAsset(soundAssetName, null, priority, m_LoadAssetCallbacks, entry);
             return serialId;
         }
 
@@ -524,10 +600,22 @@ namespace GameFramework.Sound
         /// <returns>鏄惁鍋滄鎾斁澹伴煶鎴愬姛銆?/returns>
         public bool StopSound(int serialId, float fadeOutSeconds)
         {
-            if (IsLoadingSound(serialId))
+            SoundPlayRequest request = null;
+            if (m_PendingRequests.TryGetValue(serialId, out request))
             {
-                m_SoundsToReleaseOnLoad.Add(serialId);
-                m_SoundsBeingLoaded.Remove(serialId);
+                request.State = SoundPlayRequestState.Cancelled;
+                SoundAssetEntry entry = null;
+                if (m_SoundAssets.TryGetValue(request.SoundAssetName, out entry))
+                {
+                    entry.LoadingRequests.Remove(request);
+                    if (entry.IsLoading && entry.LoadingRequests.Count == 0)
+                    {
+                        entry.ReleaseOnLoad = true;
+                    }
+                }
+
+                m_PendingRequests.Remove(serialId);
+                ReleaseRequest(request);
                 return true;
             }
 
@@ -567,9 +655,10 @@ namespace GameFramework.Sound
         /// </summary>
         public void StopAllLoadingSounds()
         {
-            foreach (int serialId in m_SoundsBeingLoaded)
+            int[] serialIds = GetAllLoadingSoundSerialIds();
+            foreach (int serialId in serialIds)
             {
-                m_SoundsToReleaseOnLoad.Add(serialId);
+                StopSound(serialId);
             }
         }
 
@@ -627,143 +716,346 @@ namespace GameFramework.Sound
             throw new GameFrameworkException(Utility.Text.Format("Can not find sound '{0}'.", serialId));
         }
 
-        private void LoadAssetSuccessCallback(string soundAssetName, object soundAsset, float duration, object userData)
+        private void RetainAgentBorrow(SoundAssetEntry entry)
         {
-            PlaySoundInfo playSoundInfo = (PlaySoundInfo)userData;
-            if (playSoundInfo == null)
+            entry.AgentBorrowCount++;
+        }
+
+        private void ReleaseAgentBorrow(SoundAssetEntry entry)
+        {
+            entry.AgentBorrowCount--;
+            if (entry.AgentBorrowCount < 0)
             {
-                throw new GameFrameworkException("Play sound info is invalid.");
+                throw new GameFrameworkException("Sound asset entry borrow count is invalid.");
             }
 
-            if (m_SoundsToReleaseOnLoad.Contains(playSoundInfo.SerialId))
+            if (entry.AgentBorrowCount == 0)
             {
-                m_SoundsToReleaseOnLoad.Remove(playSoundInfo.SerialId);
-                if (playSoundInfo.PlaySoundParams.Referenced)
+                entry.IdleSince = GetRealTime();
+                if (m_IsShuttingDown || entry.ReleaseWhenIdle)
                 {
-                    ReferencePool.Release(playSoundInfo.PlaySoundParams);
+                    ReleaseSoundAsset(entry);
                 }
-
-                ReferencePool.Release(playSoundInfo);
-                m_SoundHelper.ReleaseSoundAsset(soundAsset);
-                return;
             }
+        }
 
-            m_SoundsBeingLoaded.Remove(playSoundInfo.SerialId);
-
+        private Exception StartSoundRequest(SoundPlayRequest request, SoundAssetEntry entry, float loadDuration)
+        {
             PlaySoundErrorCode? errorCode = null;
-            ISoundAgent soundAgent = playSoundInfo.SoundGroup.PlaySound(playSoundInfo.SerialId, soundAsset, playSoundInfo.PlaySoundParams, out errorCode);
+            ISoundAgent soundAgent = request.SoundGroup.PlaySound(request.SerialId, entry, request.PlaySoundParams, GetRealTime(), out errorCode);
             if (soundAgent != null)
             {
-                if (m_PlaySoundSuccessEventHandler != null)
+                Exception callbackException = null;
+                request.State = SoundPlayRequestState.Started;
+                m_PendingRequests.Remove(request.SerialId);
+                try
                 {
-                    PlaySoundSuccessEventArgs playSoundSuccessEventArgs = PlaySoundSuccessEventArgs.Create(playSoundInfo.SerialId, soundAssetName, soundAgent, duration, playSoundInfo.UserData);
-                    m_PlaySoundSuccessEventHandler(this, playSoundSuccessEventArgs);
-                    ReferencePool.Release(playSoundSuccessEventArgs);
+                    if (m_PlaySoundSuccessEventHandler != null)
+                    {
+                        PlaySoundSuccessEventArgs eventArgs = PlaySoundSuccessEventArgs.Create(request.SerialId, request.SoundAssetName, soundAgent, loadDuration, request.UserData);
+                        try
+                        {
+                            m_PlaySoundSuccessEventHandler(this, eventArgs);
+                        }
+                        catch (Exception exception)
+                        {
+                            callbackException = exception;
+                        }
+                        finally
+                        {
+                            ReferencePool.Release(eventArgs);
+                        }
+                    }
+                }
+                finally
+                {
+                    ReleaseRequest(request);
                 }
 
-                if (playSoundInfo.PlaySoundParams.Referenced)
-                {
-                    ReferencePool.Release(playSoundInfo.PlaySoundParams);
-                }
+                return callbackException;
+            }
 
-                ReferencePool.Release(playSoundInfo);
+            string errorMessage = Utility.Text.Format("Sound group '{0}' play sound '{1}' failure.", request.SoundGroup.Name, request.SoundAssetName);
+            if (errorCode == PlaySoundErrorCode.SetSoundAssetFailure)
+            {
+                InvalidateSoundAsset(entry);
+            }
+
+            return FailSoundRequest(request, errorCode.Value, errorMessage);
+        }
+
+        private Exception FailSoundRequest(SoundPlayRequest request, PlaySoundErrorCode errorCode, string errorMessage)
+        {
+            bool hasFailureHandler = m_PlaySoundFailureEventHandler != null;
+            Exception callbackException = null;
+            request.State = SoundPlayRequestState.Failed;
+            m_PendingRequests.Remove(request.SerialId);
+            try
+            {
+                if (hasFailureHandler)
+                {
+                    PlaySoundFailureEventArgs eventArgs = PlaySoundFailureEventArgs.Create(request.SerialId, request.SoundAssetName, request.SoundGroup.Name, request.PlaySoundParams, errorCode, errorMessage, request.UserData);
+                    try
+                    {
+                        m_PlaySoundFailureEventHandler(this, eventArgs);
+                    }
+                    catch (Exception exception)
+                    {
+                        callbackException = exception;
+                    }
+                    finally
+                    {
+                        ReferencePool.Release(eventArgs);
+                    }
+                }
+            }
+            finally
+            {
+                ReleaseRequest(request);
+            }
+
+            return callbackException ?? (hasFailureHandler ? null : new GameFrameworkException(errorMessage));
+        }
+
+        private void ReleaseRequest(SoundPlayRequest request)
+        {
+            if (request.PlaySoundParams.Referenced)
+            {
+                ReferencePool.Release(request.PlaySoundParams);
+            }
+
+            ReferencePool.Release(request);
+        }
+
+        private void ReleaseSoundAsset(SoundAssetEntry entry)
+        {
+            if (entry.Released)
+            {
                 return;
             }
 
-            m_SoundsToReleaseOnLoad.Remove(playSoundInfo.SerialId);
-            m_SoundHelper.ReleaseSoundAsset(soundAsset);
-            string errorMessage = Utility.Text.Format("Sound group '{0}' play sound '{1}' failure.", playSoundInfo.SoundGroup.Name, soundAssetName);
-            if (m_PlaySoundFailureEventHandler != null)
+            entry.Released = true;
+            SoundAssetEntry cachedEntry = null;
+            if (!m_IsShuttingDown && m_SoundAssets.TryGetValue(entry.SoundAssetName, out cachedEntry) && ReferenceEquals(cachedEntry, entry))
             {
-                PlaySoundFailureEventArgs playSoundFailureEventArgs = PlaySoundFailureEventArgs.Create(playSoundInfo.SerialId, soundAssetName, playSoundInfo.SoundGroup.Name, playSoundInfo.PlaySoundParams, errorCode.Value, errorMessage, playSoundInfo.UserData);
-                m_PlaySoundFailureEventHandler(this, playSoundFailureEventArgs);
-                ReferencePool.Release(playSoundFailureEventArgs);
+                m_SoundAssets.Remove(entry.SoundAssetName);
+            }
 
-                if (playSoundInfo.PlaySoundParams.Referenced)
-                {
-                    ReferencePool.Release(playSoundInfo.PlaySoundParams);
-                }
+            if (entry.Asset != null)
+            {
+                m_SoundHelper.ReleaseSoundAsset(entry.Asset);
+                entry.Asset = null;
+            }
+        }
 
-                ReferencePool.Release(playSoundInfo);
+        private void InvalidateSoundAsset(SoundAssetEntry entry)
+        {
+            SoundAssetEntry cachedEntry = null;
+            if (m_SoundAssets.TryGetValue(entry.SoundAssetName, out cachedEntry) && ReferenceEquals(cachedEntry, entry))
+            {
+                m_SoundAssets.Remove(entry.SoundAssetName);
+            }
+
+            entry.ReleaseWhenIdle = true;
+            if (entry.AgentBorrowCount == 0)
+            {
+                ReleaseSoundAsset(entry);
+            }
+        }
+
+        private int[] GetLoadingRequestSerialIds(SoundAssetEntry entry)
+        {
+            int count = entry.LoadingRequests.Count;
+            int[] serialIds = new int[count];
+            for (int i = 0; i < count; i++)
+            {
+                serialIds[i] = entry.LoadingRequests[i].SerialId;
+            }
+
+            return serialIds;
+        }
+
+        private bool TryGetWaitingAssetRequest(int serialId, SoundAssetEntry entry, out SoundPlayRequest request)
+        {
+            return m_PendingRequests.TryGetValue(serialId, out request) &&
+                   request.State == SoundPlayRequestState.WaitingAsset &&
+                   string.Equals(request.SoundAssetName, entry.SoundAssetName, StringComparison.Ordinal);
+        }
+
+        private double GetRealTime()
+        {
+            return m_RealTime;
+        }
+
+        private void LoadAssetSuccessCallback(string soundAssetName, object soundAsset, float duration, object userData)
+        {
+            SoundAssetEntry entry = userData as SoundAssetEntry;
+            if (entry == null || !string.Equals(entry.SoundAssetName, soundAssetName, StringComparison.Ordinal))
+            {
+                throw new GameFrameworkException("Sound asset entry is invalid.");
+            }
+
+            entry.IsLoading = false;
+            entry.Asset = soundAsset;
+            entry.LoadDuration = duration;
+            if (entry.ReleaseOnLoad)
+            {
+                ReleaseSoundAsset(entry);
                 return;
             }
 
-            if (playSoundInfo.PlaySoundParams.Referenced)
+            int[] serialIds = GetLoadingRequestSerialIds(entry);
+            entry.LoadingRequests.Clear();
+            Exception firstException = null;
+            foreach (int serialId in serialIds)
             {
-                ReferencePool.Release(playSoundInfo.PlaySoundParams);
+                SoundPlayRequest request = null;
+                if (!TryGetWaitingAssetRequest(serialId, entry, out request))
+                {
+                    continue;
+                }
+
+                request.State = SoundPlayRequestState.WaitingAgent;
+                Exception exception = StartSoundRequest(request, entry, request.WaitedForLoad ? duration : 0f);
+                if (firstException == null)
+                {
+                    firstException = exception;
+                }
             }
 
-            ReferencePool.Release(playSoundInfo);
-            throw new GameFrameworkException(errorMessage);
+            if (firstException != null)
+            {
+                throw firstException;
+            }
         }
 
         private void LoadAssetFailureCallback(string soundAssetName, LoadResourceStatus status, string errorMessage, object userData)
         {
-            PlaySoundInfo playSoundInfo = (PlaySoundInfo)userData;
-            if (playSoundInfo == null)
+            SoundAssetEntry entry = userData as SoundAssetEntry;
+            if (entry == null || !string.Equals(entry.SoundAssetName, soundAssetName, StringComparison.Ordinal))
             {
-                throw new GameFrameworkException("Play sound info is invalid.");
+                throw new GameFrameworkException("Sound asset entry is invalid.");
             }
 
-            if (m_SoundsToReleaseOnLoad.Contains(playSoundInfo.SerialId))
-            {
-                m_SoundsToReleaseOnLoad.Remove(playSoundInfo.SerialId);
-                if (playSoundInfo.PlaySoundParams.Referenced)
-                {
-                    ReferencePool.Release(playSoundInfo.PlaySoundParams);
-                }
-
-                return;
-            }
-
-            m_SoundsBeingLoaded.Remove(playSoundInfo.SerialId);
+            entry.IsLoading = false;
+            entry.Released = true;
+            m_SoundAssets.Remove(soundAssetName);
+            int[] serialIds = GetLoadingRequestSerialIds(entry);
+            entry.LoadingRequests.Clear();
             string appendErrorMessage = Utility.Text.Format("Load sound failure, asset name '{0}', status '{1}', error message '{2}'.", soundAssetName, status, errorMessage);
-            if (m_PlaySoundFailureEventHandler != null)
+            Exception firstException = null;
+            foreach (int serialId in serialIds)
             {
-                PlaySoundFailureEventArgs playSoundFailureEventArgs = PlaySoundFailureEventArgs.Create(playSoundInfo.SerialId, soundAssetName, playSoundInfo.SoundGroup.Name, playSoundInfo.PlaySoundParams, PlaySoundErrorCode.LoadAssetFailure, appendErrorMessage, playSoundInfo.UserData);
-                m_PlaySoundFailureEventHandler(this, playSoundFailureEventArgs);
-                ReferencePool.Release(playSoundFailureEventArgs);
-
-                if (playSoundInfo.PlaySoundParams.Referenced)
+                SoundPlayRequest request = null;
+                if (!TryGetWaitingAssetRequest(serialId, entry, out request))
                 {
-                    ReferencePool.Release(playSoundInfo.PlaySoundParams);
+                    continue;
                 }
 
-                return;
+                Exception exception = FailSoundRequest(request, PlaySoundErrorCode.LoadAssetFailure, appendErrorMessage);
+                if (firstException == null)
+                {
+                    firstException = exception;
+                }
             }
 
-            throw new GameFrameworkException(appendErrorMessage);
+            if (firstException != null)
+            {
+                throw firstException;
+            }
         }
 
         private void LoadAssetUpdateCallback(string soundAssetName, float progress, object userData)
         {
-            PlaySoundInfo playSoundInfo = (PlaySoundInfo)userData;
-            if (playSoundInfo == null)
+            SoundAssetEntry entry = userData as SoundAssetEntry;
+            if (entry == null || !string.Equals(entry.SoundAssetName, soundAssetName, StringComparison.Ordinal))
             {
-                throw new GameFrameworkException("Play sound info is invalid.");
+                throw new GameFrameworkException("Sound asset entry is invalid.");
             }
 
-            if (m_PlaySoundUpdateEventHandler != null)
+            if (m_PlaySoundUpdateEventHandler == null)
             {
-                PlaySoundUpdateEventArgs playSoundUpdateEventArgs = PlaySoundUpdateEventArgs.Create(playSoundInfo.SerialId, soundAssetName, playSoundInfo.SoundGroup.Name, playSoundInfo.PlaySoundParams, progress, playSoundInfo.UserData);
-                m_PlaySoundUpdateEventHandler(this, playSoundUpdateEventArgs);
-                ReferencePool.Release(playSoundUpdateEventArgs);
+                return;
+            }
+
+            int[] serialIds = GetLoadingRequestSerialIds(entry);
+            Exception firstException = null;
+            foreach (int serialId in serialIds)
+            {
+                SoundPlayRequest request = null;
+                if (!TryGetWaitingAssetRequest(serialId, entry, out request))
+                {
+                    continue;
+                }
+
+                PlaySoundUpdateEventArgs eventArgs = PlaySoundUpdateEventArgs.Create(request.SerialId, soundAssetName, request.SoundGroup.Name, request.PlaySoundParams, progress, request.UserData);
+                try
+                {
+                    m_PlaySoundUpdateEventHandler(this, eventArgs);
+                }
+                catch (Exception exception)
+                {
+                    if (firstException == null)
+                    {
+                        firstException = exception;
+                    }
+                }
+                finally
+                {
+                    ReferencePool.Release(eventArgs);
+                }
+            }
+
+            if (firstException != null)
+            {
+                throw firstException;
             }
         }
 
         private void LoadAssetDependencyAssetCallback(string soundAssetName, string dependencyAssetName, int loadedCount, int totalCount, object userData)
         {
-            PlaySoundInfo playSoundInfo = (PlaySoundInfo)userData;
-            if (playSoundInfo == null)
+            SoundAssetEntry entry = userData as SoundAssetEntry;
+            if (entry == null || !string.Equals(entry.SoundAssetName, soundAssetName, StringComparison.Ordinal))
             {
-                throw new GameFrameworkException("Play sound info is invalid.");
+                throw new GameFrameworkException("Sound asset entry is invalid.");
             }
 
-            if (m_PlaySoundDependencyAssetEventHandler != null)
+            if (m_PlaySoundDependencyAssetEventHandler == null)
             {
-                PlaySoundDependencyAssetEventArgs playSoundDependencyAssetEventArgs = PlaySoundDependencyAssetEventArgs.Create(playSoundInfo.SerialId, soundAssetName, playSoundInfo.SoundGroup.Name, playSoundInfo.PlaySoundParams, dependencyAssetName, loadedCount, totalCount, playSoundInfo.UserData);
-                m_PlaySoundDependencyAssetEventHandler(this, playSoundDependencyAssetEventArgs);
-                ReferencePool.Release(playSoundDependencyAssetEventArgs);
+                return;
+            }
+
+            int[] serialIds = GetLoadingRequestSerialIds(entry);
+            Exception firstException = null;
+            foreach (int serialId in serialIds)
+            {
+                SoundPlayRequest request = null;
+                if (!TryGetWaitingAssetRequest(serialId, entry, out request))
+                {
+                    continue;
+                }
+
+                PlaySoundDependencyAssetEventArgs eventArgs = PlaySoundDependencyAssetEventArgs.Create(request.SerialId, soundAssetName, request.SoundGroup.Name, request.PlaySoundParams, dependencyAssetName, loadedCount, totalCount, request.UserData);
+                try
+                {
+                    m_PlaySoundDependencyAssetEventHandler(this, eventArgs);
+                }
+                catch (Exception exception)
+                {
+                    if (firstException == null)
+                    {
+                        firstException = exception;
+                    }
+                }
+                finally
+                {
+                    ReferencePool.Release(eventArgs);
+                }
+            }
+
+            if (firstException != null)
+            {
+                throw firstException;
             }
         }
     }
