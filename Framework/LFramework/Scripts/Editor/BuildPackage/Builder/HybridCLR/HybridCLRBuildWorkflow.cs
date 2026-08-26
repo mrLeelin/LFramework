@@ -6,7 +6,7 @@ using UnityEditor;
 
 #if HybridCLR_SUPPORT
 using HybridCLR.Editor;
-using PackageManagerPackageInfo = UnityEditor.PackageManager.PackageInfo;
+using HybridCLR.Editor.Installer;
 #endif
 
 namespace LFramework.Editor.Builder.HybridCLR
@@ -187,9 +187,7 @@ namespace LFramework.Editor.Builder.HybridCLR
         private static string GetPackageVersion()
         {
 #if HybridCLR_SUPPORT
-            return RuntimeApiType == null
-                ? null
-                : PackageManagerPackageInfo.FindForAssembly(RuntimeApiType.Assembly)?.version;
+            return new InstallerController().PackageVersion?.Trim();
 #else
             return null;
 #endif
