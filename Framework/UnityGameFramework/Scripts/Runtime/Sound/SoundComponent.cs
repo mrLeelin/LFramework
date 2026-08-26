@@ -38,6 +38,18 @@ namespace UnityGameFramework.Runtime
         private bool m_EnablePlaySoundDependencyAssetEvent = false;
 
         [SerializeField]
+        private float m_SoundAssetIdleReleaseSeconds = 2f;
+
+        [SerializeField]
+        private int m_MaxIdleSoundAssetCount = 64;
+
+        [SerializeField]
+        private int m_SoundQueueWarningThreshold = 64;
+
+        [SerializeField]
+        private int m_SoundQueueWarningResetThreshold = 32;
+
+        [SerializeField]
         private Transform m_InstanceRoot = null;
 
         [SerializeField]
@@ -99,6 +111,12 @@ namespace UnityGameFramework.Runtime
                 Log.Fatal("Sound manager is invalid.");
                 return;
             }
+
+            m_SoundManager.SetSoundCacheSettings(
+                m_SoundAssetIdleReleaseSeconds,
+                m_MaxIdleSoundAssetCount,
+                m_SoundQueueWarningThreshold,
+                m_SoundQueueWarningResetThreshold);
 
             m_SoundManager.PlaySoundSuccess += OnPlaySoundSuccess;
             m_SoundManager.PlaySoundFailure += OnPlaySoundFailure;
@@ -185,7 +203,13 @@ namespace UnityGameFramework.Runtime
 
             for (int i = 0; i < m_SoundGroups.Length; i++)
             {
-                if (!AddSoundGroup(m_SoundGroups[i].Name, m_SoundGroups[i].AvoidBeingReplacedBySamePriority, m_SoundGroups[i].Mute, m_SoundGroups[i].Volume, m_SoundGroups[i].AgentHelperCount))
+                if (!AddSoundGroup(
+                    m_SoundGroups[i].Name,
+                    m_SoundGroups[i].AvoidBeingReplacedBySamePriority,
+                    m_SoundGroups[i].Mute,
+                    m_SoundGroups[i].Volume,
+                    m_SoundGroups[i].OverflowPolicy,
+                    m_SoundGroups[i].AgentHelperCount))
                 {
                     Log.Warning("Add sound group '{0}' failure.", m_SoundGroups[i].Name);
                     continue;
@@ -195,6 +219,17 @@ namespace UnityGameFramework.Runtime
 
         public override void ShutDown()
         {
+            if (m_SoundManager != null)
+            {
+                m_SoundManager.StopAllLoadingSounds();
+                m_SoundManager.StopAllLoadedSounds();
+                m_SoundManager.PlaySoundSuccess -= OnPlaySoundSuccess;
+                m_SoundManager.PlaySoundFailure -= OnPlaySoundFailure;
+                m_SoundManager.PlaySoundCanceled -= OnPlaySoundCanceled;
+                m_SoundManager.PlaySoundUpdate -= OnPlaySoundUpdate;
+                m_SoundManager.PlaySoundDependencyAsset -= OnPlaySoundDependencyAsset;
+            }
+
             base.ShutDown();
 #if UNITY_5_4_OR_NEWER
             SceneManager.sceneLoaded -= OnSceneLoaded;
@@ -248,7 +283,8 @@ namespace UnityGameFramework.Runtime
         /// <returns>是否增加声音组成功。</returns>
         public bool AddSoundGroup(string soundGroupName, int soundAgentHelperCount)
         {
-            return AddSoundGroup(soundGroupName, false, false, 1f, soundAgentHelperCount);
+            return AddSoundGroup(soundGroupName, false, false, 1f,
+                SoundOverflowPolicy.ReplaceByPriority, soundAgentHelperCount);
         }
 
         /// <summary>
@@ -261,6 +297,27 @@ namespace UnityGameFramework.Runtime
         /// <param name="soundAgentHelperCount">声音代理辅助器数量。</param>
         /// <returns>是否增加声音组成功。</returns>
         public bool AddSoundGroup(string soundGroupName, bool soundGroupAvoidBeingReplacedBySamePriority, bool soundGroupMute, float soundGroupVolume, int soundAgentHelperCount)
+        {
+            return AddSoundGroup(
+                soundGroupName,
+                soundGroupAvoidBeingReplacedBySamePriority,
+                soundGroupMute,
+                soundGroupVolume,
+                SoundOverflowPolicy.ReplaceByPriority,
+                soundAgentHelperCount);
+        }
+
+        /// <summary>
+        /// 增加带溢出策略的声音组。
+        /// </summary>
+        /// <param name="soundGroupName">声音组名称。</param>
+        /// <param name="soundGroupAvoidBeingReplacedBySamePriority">声音组中的声音是否避免被同优先级声音替换。</param>
+        /// <param name="soundGroupMute">声音组是否静音。</param>
+        /// <param name="soundGroupVolume">声音组音量。</param>
+        /// <param name="soundGroupOverflowPolicy">声音代理耗尽时的处理策略。</param>
+        /// <param name="soundAgentHelperCount">声音代理辅助器数量。</param>
+        /// <returns>是否增加声音组成功。</returns>
+        public bool AddSoundGroup(string soundGroupName, bool soundGroupAvoidBeingReplacedBySamePriority, bool soundGroupMute, float soundGroupVolume, SoundOverflowPolicy soundGroupOverflowPolicy, int soundAgentHelperCount)
         {
             if (m_SoundManager.HasSoundGroup(soundGroupName))
             {
@@ -292,7 +349,13 @@ namespace UnityGameFramework.Runtime
                 }
             }
 
-            if (!m_SoundManager.AddSoundGroup(soundGroupName, soundGroupAvoidBeingReplacedBySamePriority, soundGroupMute, soundGroupVolume, soundGroupHelper))
+            if (!m_SoundManager.AddSoundGroup(
+                soundGroupName,
+                soundGroupAvoidBeingReplacedBySamePriority,
+                soundGroupMute,
+                soundGroupVolume,
+                soundGroupOverflowPolicy,
+                soundGroupHelper))
             {
                 return false;
             }

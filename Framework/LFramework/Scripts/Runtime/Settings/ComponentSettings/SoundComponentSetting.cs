@@ -15,6 +15,14 @@ namespace LFramework.Runtime.Settings
 
         public bool m_EnablePlaySoundDependencyAssetEvent = false;
 
+        public float m_SoundAssetIdleReleaseSeconds = 2f;
+
+        public int m_MaxIdleSoundAssetCount = 64;
+
+        public int m_SoundQueueWarningThreshold = 64;
+
+        public int m_SoundQueueWarningResetThreshold = 32;
+
         public Transform m_InstanceRoot = null;
 
         public AudioMixer m_AudioMixer = null;

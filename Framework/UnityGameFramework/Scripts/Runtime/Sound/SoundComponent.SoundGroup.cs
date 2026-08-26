@@ -6,6 +6,7 @@
 //------------------------------------------------------------
 
 using System;
+using GameFramework.Sound;
 using UnityEngine;
 
 namespace UnityGameFramework.Runtime
@@ -29,6 +30,9 @@ namespace UnityGameFramework.Runtime
 
             [SerializeField]
             private int m_AgentHelperCount = 1;
+
+            [SerializeField]
+            private SoundOverflowPolicy m_OverflowPolicy = SoundOverflowPolicy.ReplaceByPriority;
 
             public string Name
             {
@@ -67,6 +71,14 @@ namespace UnityGameFramework.Runtime
                 get
                 {
                     return m_AgentHelperCount;
+                }
+            }
+
+            public SoundOverflowPolicy OverflowPolicy
+            {
+                get
+                {
+                    return m_OverflowPolicy;
                 }
             }
         }

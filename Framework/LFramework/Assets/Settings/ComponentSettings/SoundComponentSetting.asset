@@ -15,6 +15,10 @@ MonoBehaviour:
   bindTypeName: UnityGameFramework.Runtime.SoundComponent
   m_EnablePlaySoundUpdateEvent: 0
   m_EnablePlaySoundDependencyAssetEvent: 0
+  m_SoundAssetIdleReleaseSeconds: 2
+  m_MaxIdleSoundAssetCount: 64
+  m_SoundQueueWarningThreshold: 64
+  m_SoundQueueWarningResetThreshold: 32
   m_InstanceRoot: {fileID: 0}
   m_AudioMixer: {fileID: 24100000, guid: 6e706a95df1749b42829c8e82f9af049, type: 2}
   m_SoundHelperTypeName: UnityGameFramework.Runtime.DefaultSoundHelper
@@ -29,13 +33,16 @@ MonoBehaviour:
     m_Mute: 0
     m_Volume: 1
     m_AgentHelperCount: 1
+    m_OverflowPolicy: 0
   - m_Name: Sound
     m_AvoidBeingReplacedBySamePriority: 0
     m_Mute: 0
     m_Volume: 1
     m_AgentHelperCount: 20
+    m_OverflowPolicy: 0
   - m_Name: UISound
     m_AvoidBeingReplacedBySamePriority: 0
     m_Mute: 0
     m_Volume: 1
     m_AgentHelperCount: 16
+    m_OverflowPolicy: 1
