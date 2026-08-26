@@ -195,7 +195,6 @@ namespace GameFramework.Sound
             internal void IncrementQueuedRequestCount()
             {
                 m_QueuedRequestCount++;
-                m_SoundManager.OnQueuedRequestCountChanged(this);
             }
 
             internal void DecrementQueuedRequestCount()

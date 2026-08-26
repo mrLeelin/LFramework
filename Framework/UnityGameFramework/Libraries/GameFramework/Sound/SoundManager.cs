@@ -23,6 +23,7 @@ namespace GameFramework.Sound
         private readonly Dictionary<string, SoundAssetEntry> m_SoundAssets;
         private readonly Dictionary<SoundPlaybackLaneKey, SoundPlaybackLane> m_PlaybackLanes;
         private readonly HashSet<SoundGroup> m_QueueWarningRaisedGroups;
+        private readonly List<SoundAssetEntry> m_IdleEvictionCandidates;
         private readonly LoadAssetCallbacks m_LoadAssetCallbacks;
         private IResourceManager m_ResourceManager;
         private ISoundHelper m_SoundHelper;
@@ -30,6 +31,7 @@ namespace GameFramework.Sound
         private double m_RealTime;
         private bool m_IsShuttingDown;
         private bool m_IsScheduling;
+        private bool m_IsEvictingIdleSoundAssets;
         private float m_IdleReleaseSeconds;
         private int m_MaxIdleEntryCount;
         private int m_QueueWarningThreshold;
@@ -50,6 +52,7 @@ namespace GameFramework.Sound
             m_SoundAssets = new Dictionary<string, SoundAssetEntry>(StringComparer.Ordinal);
             m_PlaybackLanes = new Dictionary<SoundPlaybackLaneKey, SoundPlaybackLane>();
             m_QueueWarningRaisedGroups = new HashSet<SoundGroup>();
+            m_IdleEvictionCandidates = new List<SoundAssetEntry>();
             m_LoadAssetCallbacks = new LoadAssetCallbacks(LoadAssetSuccessCallback, LoadAssetFailureCallback, LoadAssetUpdateCallback, LoadAssetDependencyAssetCallback);
             m_ResourceManager = null;
             m_SoundHelper = null;
@@ -57,6 +60,7 @@ namespace GameFramework.Sound
             m_RealTime = 0d;
             m_IsShuttingDown = false;
             m_IsScheduling = false;
+            m_IsEvictingIdleSoundAssets = false;
             m_IdleReleaseSeconds = 2f;
             m_MaxIdleEntryCount = 64;
             m_QueueWarningThreshold = 64;
@@ -684,6 +688,7 @@ namespace GameFramework.Sound
                     }
                 }
 
+                NotifyQueuedRequestAccepted(serialId, request);
                 return serialId;
             }
 
@@ -693,7 +698,22 @@ namespace GameFramework.Sound
             request.State = SoundPlayRequestState.WaitingAsset;
             entry.LoadingRequests.Add(request);
             m_SoundAssets.Add(soundAssetName, entry);
-            m_ResourceManager.LoadAsset(soundAssetName, null, priority, m_LoadAssetCallbacks, entry);
+            NotifyQueuedRequestAccepted(serialId, request);
+            SoundAssetEntry cachedEntry = null;
+            if (!m_IsShuttingDown &&
+                m_SoundAssets.TryGetValue(soundAssetName, out cachedEntry) &&
+                ReferenceEquals(cachedEntry, entry))
+            {
+                if (entry.LoadingRequests.Count > 0)
+                {
+                    m_ResourceManager.LoadAsset(soundAssetName, null, priority, m_LoadAssetCallbacks, entry);
+                }
+                else
+                {
+                    ReleaseAssetEntry(entry);
+                }
+            }
+
             return serialId;
         }
 
@@ -873,6 +893,17 @@ namespace GameFramework.Sound
             {
                 request.CountsTowardQueue = true;
                 request.SoundGroup.IncrementQueuedRequestCount();
+            }
+        }
+
+        private void NotifyQueuedRequestAccepted(int serialId, SoundPlayRequest request)
+        {
+            SoundPlayRequest pendingRequest = null;
+            if (m_PendingRequests.TryGetValue(serialId, out pendingRequest) &&
+                ReferenceEquals(pendingRequest, request) &&
+                request.CountsTowardQueue)
+            {
+                OnQueuedRequestCountChanged(request.SoundGroup);
             }
         }
 
@@ -1221,56 +1252,76 @@ namespace GameFramework.Sound
 
         private void EvictIdleSoundAssets()
         {
-            if (m_IsShuttingDown || m_SoundAssets.Count == 0)
+            if (m_IsShuttingDown || m_IsEvictingIdleSoundAssets || m_SoundAssets.Count == 0)
             {
                 return;
             }
 
-            List<SoundAssetEntry> idleEntries = new List<SoundAssetEntry>();
+            m_IsEvictingIdleSoundAssets = true;
+            try
+            {
+                CollectIdleEvictionCandidates();
+                double realTime = GetRealTime();
+                foreach (SoundAssetEntry entry in m_IdleEvictionCandidates)
+                {
+                    if (IsIdleEvictionCandidate(entry) &&
+                        realTime - entry.IdleSince + 0.0001d >= m_IdleReleaseSeconds)
+                    {
+                        ReleaseAssetEntry(entry);
+                    }
+                }
+
+                CollectIdleEvictionCandidates();
+                while (m_IdleEvictionCandidates.Count > m_MaxIdleEntryCount)
+                {
+                    SoundAssetEntry entry = m_IdleEvictionCandidates[0];
+                    if (!IsIdleEvictionCandidate(entry))
+                    {
+                        CollectIdleEvictionCandidates();
+                        continue;
+                    }
+
+                    ReleaseAssetEntry(entry);
+                    CollectIdleEvictionCandidates();
+                }
+            }
+            finally
+            {
+                m_IdleEvictionCandidates.Clear();
+                m_IsEvictingIdleSoundAssets = false;
+            }
+        }
+
+        private void CollectIdleEvictionCandidates()
+        {
+            m_IdleEvictionCandidates.Clear();
             foreach (KeyValuePair<string, SoundAssetEntry> pair in m_SoundAssets)
             {
-                SoundAssetEntry entry = pair.Value;
-                if (entry.IsIdle && !entry.Released)
+                if (IsIdleEvictionCandidate(pair.Value))
                 {
-                    idleEntries.Add(entry);
+                    m_IdleEvictionCandidates.Add(pair.Value);
                 }
             }
 
-            idleEntries.Sort((left, right) =>
+            m_IdleEvictionCandidates.Sort((left, right) =>
             {
                 int timeComparison = left.IdleSince.CompareTo(right.IdleSince);
                 return timeComparison != 0 ? timeComparison : string.CompareOrdinal(left.SoundAssetName, right.SoundAssetName);
             });
+        }
 
-            int retainedIdleCount = idleEntries.Count;
-            foreach (SoundAssetEntry entry in idleEntries)
-            {
-                if (GetRealTime() - entry.IdleSince + 0.0001d >= m_IdleReleaseSeconds)
-                {
-                    ReleaseAssetEntry(entry);
-                    retainedIdleCount--;
-                }
-            }
-
-            int excessIdleCount = retainedIdleCount - m_MaxIdleEntryCount;
-            if (excessIdleCount <= 0)
-            {
-                return;
-            }
-
-            foreach (SoundAssetEntry entry in idleEntries)
-            {
-                if (excessIdleCount <= 0)
-                {
-                    break;
-                }
-
-                if (!entry.Released)
-                {
-                    ReleaseAssetEntry(entry);
-                    excessIdleCount--;
-                }
-            }
+        private bool IsIdleEvictionCandidate(SoundAssetEntry entry)
+        {
+            SoundAssetEntry cachedEntry = null;
+            return entry != null &&
+                   !entry.Released &&
+                   entry.IsIdle &&
+                   !entry.IsLoading &&
+                   entry.Asset != null &&
+                   entry.PendingRequestCount == 0 &&
+                   entry.AgentBorrowCount == 0 &&
+                   m_SoundAssets.TryGetValue(entry.SoundAssetName, out cachedEntry) &&
+                   ReferenceEquals(cachedEntry, entry);
         }
 
         private void ReleaseAssetEntry(SoundAssetEntry entry)

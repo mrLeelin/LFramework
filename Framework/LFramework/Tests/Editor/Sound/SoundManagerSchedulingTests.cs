@@ -793,6 +793,37 @@ namespace LFramework.Editor.Tests.Sound
         }
 
         [Test]
+        public void IdleEviction_RevalidatesEntriesAfterReleaseCallbackReentry()
+        {
+            _manager.SetSoundCacheSettings(30f, 64, 64, 32);
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 1);
+            object firstAsset = new object();
+            object secondAsset = new object();
+
+            _manager.PlaySound("ui/first", "UISound");
+            _resourceManager.CompleteSuccess(0, firstAsset);
+            _agentHelpers[0].Complete();
+            Advance(0.5f);
+            _manager.PlaySound("ui/second", "UISound");
+            _resourceManager.CompleteSuccess(1, secondAsset);
+            _agentHelpers[0].Complete();
+
+            _soundHelper.ReleaseObserver = releasedAsset =>
+            {
+                if (ReferenceEquals(releasedAsset, firstAsset))
+                {
+                    _manager.PlaySound("ui/second", "UISound");
+                }
+            };
+
+            _manager.SetSoundCacheSettings(30f, 0, 64, 32);
+
+            Assert.That(_soundHelper.ReleasedAssets, Is.EqualTo(new[] { firstAsset }));
+            Assert.That(_resourceManager.Loads, Has.Count.EqualTo(2));
+            Assert.That(_agentHelpers[0].SoundAsset, Is.SameAs(secondAsset));
+        }
+
+        [Test]
         public void ActiveAndLoadingEntries_MayExceedIdleMaximumWithoutEviction()
         {
             _manager.SetSoundCacheSettings(0f, 0, 64, 32);
@@ -953,6 +984,26 @@ namespace LFramework.Editor.Tests.Sound
             Assert.That(startedIds, Is.EquivalentTo(serialIds));
             Assert.That(_logHelper.Warnings[0], Does.Contain("UISound"));
             Assert.That(_logHelper.Warnings[0], Does.Contain("QueueNonLooping"));
+        }
+
+        [Test]
+        public void QueueWarning_ReentrantShutdownDoesNotContinueRequestSetup()
+        {
+            _manager.SetSoundCacheSettings(30f, 64, 1, 0);
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 1);
+            _logHelper.LogObserver = (level, _) =>
+            {
+                if (level == GameFrameworkLogLevel.Warning)
+                {
+                    GameFrameworkEntry.Shutdown();
+                }
+            };
+
+            Assert.DoesNotThrow(() => _manager.PlaySound("ui/tick", "UISound"));
+
+            Assert.That(_resourceManager.Loads, Is.Empty);
+            Assert.That(_manager.GetAllLoadingSoundSerialIds(), Is.Empty);
+            AssertNoUsingReferences("SoundPlayRequest", nameof(PlaySoundParams));
         }
 
         private void AddGroup(string name, SoundOverflowPolicy policy, int agentCount)

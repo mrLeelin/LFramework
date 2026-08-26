@@ -167,9 +167,11 @@ namespace LFramework.Editor.Tests.Sound
     internal sealed class FakeLogHelper : GameFrameworkLog.ILogHelper
     {
         internal readonly List<string> Warnings = new List<string>();
+        internal Action<GameFrameworkLogLevel, object> LogObserver;
 
         public void Log(GameFrameworkLogLevel level, object message)
         {
+            LogObserver?.Invoke(level, message);
             if (level == GameFrameworkLogLevel.Warning)
             {
                 Warnings.Add(message?.ToString());
