@@ -23,6 +23,7 @@ namespace GameFramework.Sound
             PlaySoundParams = null;
             ErrorCode = PlaySoundErrorCode.Unknown;
             ErrorMessage = null;
+            IsPrimaryFailure = false;
             UserData = null;
         }
 
@@ -81,6 +82,15 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
+        /// Gets whether this is the primary failure for a shared operation.
+        /// </summary>
+        public bool IsPrimaryFailure
+        {
+            get;
+            private set;
+        }
+
+        /// <summary>
         /// 获取用户自定义数据。
         /// </summary>
         public object UserData
@@ -102,6 +112,23 @@ namespace GameFramework.Sound
         /// <returns>创建的播放声音失败事件。</returns>
         public static PlaySoundFailureEventArgs Create(int serialId, string soundAssetName, string soundGroupName, PlaySoundParams playSoundParams, PlaySoundErrorCode errorCode, string errorMessage, object userData)
         {
+            return Create(serialId, soundAssetName, soundGroupName, playSoundParams, errorCode, errorMessage, true, userData);
+        }
+
+        /// <summary>
+        /// 创建播放声音失败事件。
+        /// </summary>
+        /// <param name="serialId">声音的序列编号。</param>
+        /// <param name="soundAssetName">声音资源名称。</param>
+        /// <param name="soundGroupName">声音组名称。</param>
+        /// <param name="playSoundParams">播放声音参数。</param>
+        /// <param name="errorCode">错误码。</param>
+        /// <param name="errorMessage">错误信息。</param>
+        /// <param name="isPrimaryFailure">Whether this is the primary failure for a shared operation.</param>
+        /// <param name="userData">用户自定义数据。</param>
+        /// <returns>创建的播放声音失败事件。</returns>
+        public static PlaySoundFailureEventArgs Create(int serialId, string soundAssetName, string soundGroupName, PlaySoundParams playSoundParams, PlaySoundErrorCode errorCode, string errorMessage, bool isPrimaryFailure, object userData)
+        {
             PlaySoundFailureEventArgs playSoundFailureEventArgs = ReferencePool.Acquire<PlaySoundFailureEventArgs>();
             playSoundFailureEventArgs.SerialId = serialId;
             playSoundFailureEventArgs.SoundAssetName = soundAssetName;
@@ -109,6 +136,7 @@ namespace GameFramework.Sound
             playSoundFailureEventArgs.PlaySoundParams = playSoundParams;
             playSoundFailureEventArgs.ErrorCode = errorCode;
             playSoundFailureEventArgs.ErrorMessage = errorMessage;
+            playSoundFailureEventArgs.IsPrimaryFailure = isPrimaryFailure;
             playSoundFailureEventArgs.UserData = userData;
             return playSoundFailureEventArgs;
         }
@@ -124,6 +152,7 @@ namespace GameFramework.Sound
             PlaySoundParams = null;
             ErrorCode = PlaySoundErrorCode.Unknown;
             ErrorMessage = null;
+            IsPrimaryFailure = false;
             UserData = null;
         }
     }

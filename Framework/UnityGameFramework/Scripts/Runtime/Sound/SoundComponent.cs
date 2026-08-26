@@ -102,6 +102,7 @@ namespace UnityGameFramework.Runtime
 
             m_SoundManager.PlaySoundSuccess += OnPlaySoundSuccess;
             m_SoundManager.PlaySoundFailure += OnPlaySoundFailure;
+            m_SoundManager.PlaySoundCanceled += OnPlaySoundCanceled;
 
             if (m_EnablePlaySoundUpdateEvent)
             {
@@ -635,17 +636,28 @@ namespace UnityGameFramework.Runtime
 
         private void OnPlaySoundFailure(object sender, GameFramework.Sound.PlaySoundFailureEventArgs e)
         {
-            string logMessage = Utility.Text.Format("Play sound failure, asset name '{0}', sound group name '{1}', error code '{2}', error message '{3}'.", e.SoundAssetName, e.SoundGroupName, e.ErrorCode, e.ErrorMessage);
-            if (e.ErrorCode == PlaySoundErrorCode.IgnoredDueToLowPriority)
+            if (e.IsPrimaryFailure)
             {
-                Log.Info(logMessage);
-            }
-            else
-            {
-                Log.Warning(logMessage);
+                string logMessage = Utility.Text.Format("Play sound failure, asset name '{0}', sound group name '{1}', error code '{2}', error message '{3}'.", e.SoundAssetName, e.SoundGroupName, e.ErrorCode, e.ErrorMessage);
+                if (e.ErrorCode == PlaySoundErrorCode.IgnoredDueToLowPriority)
+                {
+                    Log.Info(logMessage);
+                }
+                else
+                {
+                    Log.Warning(logMessage);
+                }
             }
 
             m_EventComponent.Fire(this, PlaySoundFailureEventArgs.Create(e));
+        }
+
+        private void OnPlaySoundCanceled(object sender, GameFramework.Sound.PlaySoundCanceledEventArgs e)
+        {
+            if (e.UserData is PlaySoundInfo playSoundInfo)
+            {
+                ReferencePool.Release(playSoundInfo);
+            }
         }
 
         private void OnPlaySoundUpdate(object sender, GameFramework.Sound.PlaySoundUpdateEventArgs e)

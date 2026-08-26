@@ -67,6 +67,20 @@ namespace LFramework.Editor.Tests.Sound
 
             Assert.That(error, Is.EqualTo(PlaySoundErrorCode.LoopingSoundNotSupportedByQueue));
             Assert.That(_resourceManager.Loads, Is.Empty);
+            AssertNoUsingReferences("PlaySoundParams");
+        }
+
+        [Test]
+        public void ValidationFailureWithoutListener_ReleasesParametersBeforeThrow()
+        {
+            AddGroup("Reliable", SoundOverflowPolicy.QueueNonLooping, 1);
+            PlaySoundParams parameters = PlaySoundParams.Create();
+            parameters.Loop = true;
+
+            Assert.Throws<GameFrameworkException>(() =>
+                _manager.PlaySound("ui/invalid-loop", "Reliable", parameters));
+
+            AssertNoUsingReferences("PlaySoundParams");
         }
 
         [Test]
@@ -538,6 +552,136 @@ namespace LFramework.Editor.Tests.Sound
             Assert.That(failedIds, Is.Empty);
         }
 
+        [Test]
+        public void CancellingOneSharedWaiter_DoesNotCancelTheOther()
+        {
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 2);
+            var cancelledIds = new List<int>();
+            var startedIds = new List<int>();
+            _manager.PlaySoundCanceled += (_, args) => cancelledIds.Add(args.SerialId);
+            _manager.PlaySoundSuccess += (_, args) => startedIds.Add(args.SerialId);
+            int cancelledId = _manager.PlaySound("ui/tick", "UISound");
+            int survivingId = _manager.PlaySound("ui/tick", "UISound");
+
+            Assert.That(_manager.StopSound(cancelledId), Is.True);
+            _resourceManager.CompleteSuccess(0, new object());
+
+            Assert.That(cancelledIds, Is.EqualTo(new[] { cancelledId }));
+            Assert.That(startedIds, Is.EqualTo(new[] { survivingId }));
+            AssertNoUsingReferences("SoundPlayRequest", "PlaySoundParams");
+        }
+
+        [Test]
+        public void CancellationListenerException_DoesNotBlockCleanupOrOtherListeners()
+        {
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 1);
+            bool secondListenerCalled = false;
+            _manager.PlaySoundCanceled += (_, __) => throw new InvalidOperationException("listener");
+            _manager.PlaySoundCanceled += (_, __) => secondListenerCalled = true;
+            int serialId = _manager.PlaySound("ui/tick", "UISound");
+
+            Assert.DoesNotThrow(() => _manager.StopSound(serialId));
+
+            Assert.That(secondListenerCalled, Is.True);
+            AssertNoUsingReferences("SoundPlayRequest", "PlaySoundParams", "PlaySoundCanceledEventArgs");
+        }
+
+        [Test]
+        public void SharedLoadFailure_FailsEveryWaiterOnce_ThenRetries()
+        {
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 2);
+            var failedIds = new List<int>();
+            var primaryFailureFlags = new List<bool>();
+            _manager.PlaySoundFailure += (_, args) =>
+            {
+                failedIds.Add(args.SerialId);
+                primaryFailureFlags.Add(args.IsPrimaryFailure);
+            };
+            int first = _manager.PlaySound("ui/missing", "UISound");
+            int second = _manager.PlaySound("ui/missing", "UISound");
+
+            _resourceManager.CompleteFailure(0, "missing");
+
+            Assert.That(failedIds, Is.EquivalentTo(new[] { first, second }));
+            Assert.That(primaryFailureFlags.FindAll(value => value), Has.Count.EqualTo(1));
+            _manager.PlaySound("ui/missing", "UISound");
+            Assert.That(_resourceManager.Loads, Has.Count.EqualTo(2));
+        }
+
+        [Test]
+        public void StopAllLoadingSounds_CancelsOnlyWaitingAssetRequests()
+        {
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 2);
+            var cancelledIds = new List<int>();
+            _manager.PlaySoundCanceled += (_, args) => cancelledIds.Add(args.SerialId);
+            int first = _manager.PlaySound("ui/first", "UISound");
+            int second = _manager.PlaySound("ui/second", "UISound");
+
+            Assert.That(_manager.GetAllLoadingSoundSerialIds(), Is.EqualTo(new[] { first, second }));
+            _manager.StopAllLoadingSounds();
+
+            Assert.That(_manager.GetAllLoadingSoundSerialIds(), Is.Empty);
+            Assert.That(cancelledIds, Is.EqualTo(new[] { first, second }));
+            AssertNoUsingReferences("SoundPlayRequest", "PlaySoundParams");
+        }
+
+        [Test]
+        public void StopAllLoadedSounds_CancelsWaitingAgentAndStopsPlayingAgent()
+        {
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 1);
+            var cancelledIds = new List<int>();
+            var startedIds = new List<int>();
+            _manager.PlaySoundCanceled += (_, args) => cancelledIds.Add(args.SerialId);
+            _manager.PlaySoundSuccess += (_, args) => startedIds.Add(args.SerialId);
+            int playingId = _manager.PlaySound("ui/tick", "UISound");
+            int queuedId = _manager.PlaySound("ui/tick", "UISound");
+            _resourceManager.CompleteSuccess(0, new object());
+
+            _manager.StopAllLoadedSounds();
+
+            Assert.That(startedIds, Is.EqualTo(new[] { playingId }));
+            Assert.That(cancelledIds, Is.EqualTo(new[] { queuedId }));
+            Assert.That(_agentHelpers[0].StopCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void AllWaitersCancelled_LateSuccessReleasesOnceWithoutStarting()
+        {
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 2);
+            var cancelledIds = new List<int>();
+            var startedIds = new List<int>();
+            _manager.PlaySoundCanceled += (_, args) => cancelledIds.Add(args.SerialId);
+            _manager.PlaySoundSuccess += (_, args) => startedIds.Add(args.SerialId);
+            int first = _manager.PlaySound("ui/tick", "UISound");
+            int second = _manager.PlaySound("ui/tick", "UISound");
+            object lateAsset = new object();
+
+            _manager.StopAllLoadingSounds();
+            _resourceManager.CompleteSuccess(0, lateAsset);
+
+            Assert.That(cancelledIds, Is.EqualTo(new[] { first, second }));
+            Assert.That(startedIds, Is.Empty);
+            Assert.That(_soundHelper.ReleasedAssets, Is.EqualTo(new[] { lateAsset }));
+        }
+
+        [Test]
+        public void LoadProgressAndDependency_FanOutToEveryLiveWaitingAssetRequest()
+        {
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 2);
+            var updateIds = new List<int>();
+            var dependencyIds = new List<int>();
+            _manager.PlaySoundUpdate += (_, args) => updateIds.Add(args.SerialId);
+            _manager.PlaySoundDependencyAsset += (_, args) => dependencyIds.Add(args.SerialId);
+            int first = _manager.PlaySound("ui/tick", "UISound");
+            int second = _manager.PlaySound("ui/tick", "UISound");
+
+            _resourceManager.ReportProgress(0, 0.5f);
+            _resourceManager.ReportDependency(0, "ui/dependency");
+
+            Assert.That(updateIds, Is.EqualTo(new[] { first, second }));
+            Assert.That(dependencyIds, Is.EqualTo(new[] { first, second }));
+        }
+
         private void AddGroup(string name, SoundOverflowPolicy policy, int agentCount)
         {
             Assert.That(_manager.AddSoundGroup(
@@ -555,6 +699,17 @@ namespace LFramework.Editor.Tests.Sound
         {
             _clock += seconds;
             GameFrameworkEntry.Update(seconds, seconds);
+        }
+
+        private static void AssertNoUsingReferences(params string[] typeNames)
+        {
+            foreach (ReferencePoolInfo info in ReferencePool.GetAllReferencePoolInfos())
+            {
+                if (Array.IndexOf(typeNames, info.Type.Name) >= 0)
+                {
+                    Assert.That(info.UsingReferenceCount, Is.Zero, info.Type.FullName);
+                }
+            }
         }
 
     }

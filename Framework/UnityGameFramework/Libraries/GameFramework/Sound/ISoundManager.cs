@@ -35,6 +35,11 @@ namespace GameFramework.Sound
         event EventHandler<PlaySoundFailureEventArgs> PlaySoundFailure;
 
         /// <summary>
+        /// Play sound canceled event.
+        /// </summary>
+        event EventHandler<PlaySoundCanceledEventArgs> PlaySoundCanceled;
+
+        /// <summary>
         /// 播放声音更新事件。
         /// </summary>
         event EventHandler<PlaySoundUpdateEventArgs> PlaySoundUpdate;
