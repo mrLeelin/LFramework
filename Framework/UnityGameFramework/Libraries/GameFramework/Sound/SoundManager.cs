@@ -84,6 +84,17 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
+        /// Gets whether the sound manager is shutting down and rejects new playback requests.
+        /// </summary>
+        public bool IsShuttingDown
+        {
+            get
+            {
+                return m_IsShuttingDown;
+            }
+        }
+
+        /// <summary>
         /// 鎾斁澹伴煶鎴愬姛浜嬩欢銆?
         /// </summary>
         public event EventHandler<PlaySoundSuccessEventArgs> PlaySoundSuccess
@@ -162,6 +173,14 @@ namespace GameFramework.Sound
             }
 
             EvictIdleSoundAssets();
+        }
+
+        /// <summary>
+        /// Prevents new sound requests while existing playback is drained during shutdown.
+        /// </summary>
+        public void PrepareForShutdown()
+        {
+            m_IsShuttingDown = true;
         }
 
         /// <summary>
@@ -580,16 +599,19 @@ namespace GameFramework.Sound
         {
             if (m_IsShuttingDown)
             {
+                PlaySoundParams.ReleaseIfReferenced(playSoundParams);
                 throw new GameFrameworkException("Sound manager is shutting down.");
             }
 
             if (m_ResourceManager == null)
             {
+                PlaySoundParams.ReleaseIfReferenced(playSoundParams);
                 throw new GameFrameworkException("You must set resource manager first.");
             }
 
             if (m_SoundHelper == null)
             {
+                PlaySoundParams.ReleaseIfReferenced(playSoundParams);
                 throw new GameFrameworkException("You must set sound helper first.");
             }
 

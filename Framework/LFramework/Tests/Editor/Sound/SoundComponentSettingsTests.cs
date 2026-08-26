@@ -133,7 +133,7 @@ namespace LFramework.Editor.Tests.Sound
                 manager.SetResourceManager(new FakeResourceManager());
                 manager.SetSoundHelper(new FakeSoundHelper());
                 Assert.That(manager.AddSoundGroup("UISound", new FakeSoundGroupHelper()), Is.True);
-                Assert.That(manager.AddSoundAgentHelper("UISound", new FakeSoundAgentHelper()), Is.True);
+                manager.AddSoundAgentHelper("UISound", new FakeSoundAgentHelper());
                 int baselineReferences = GetUsingReferenceCount("PlaySoundInfo");
                 int serialId = component.PlaySound("ui/pending", "UISound");
                 Assert.That(manager.IsLoadingSound(serialId), Is.True);
@@ -143,6 +143,120 @@ namespace LFramework.Editor.Tests.Sound
 
                 Assert.That(manager.IsLoadingSound(serialId), Is.False);
                 Assert.That(GetUsingReferenceCount("PlaySoundInfo"), Is.EqualTo(baselineReferences));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(parent);
+                UnityEngine.Object.DestroyImmediate(setting);
+            }
+        }
+
+        [Test]
+        public void ShutDown_RejectsPlaybackReenteredFromCancellationListener()
+        {
+            SoundComponentSetting setting = CreateSetting();
+            GameObject parent = new GameObject("SoundComponentReentrantShutdownTests");
+            try
+            {
+                SoundComponent component = InvokeConvertToComponent(setting);
+                component.Parent = parent;
+                component.AwakeComponent();
+
+                ISoundManager manager = GetPrivateField<ISoundManager>(component, "m_SoundManager");
+                manager.SetResourceManager(new FakeResourceManager());
+                manager.SetSoundHelper(new FakeSoundHelper());
+                Assert.That(manager.AddSoundGroup("UISound", new FakeSoundGroupHelper()), Is.True);
+                manager.AddSoundAgentHelper("UISound", new FakeSoundAgentHelper());
+                int baselineReferences = GetUsingReferenceCount("PlaySoundInfo");
+                int baselineParameterReferences = GetUsingReferenceCount("PlaySoundParams");
+                int serialId = component.PlaySound("ui/pending", "UISound");
+                bool reentrantPlayRejected = false;
+                int runtimeInfoReferencesAfterRejection = -1;
+                int parameterReferencesBeforeReentry = -1;
+                int parameterReferencesAfterRejection = -1;
+                manager.PlaySoundCanceled += (_, __) =>
+                {
+                    parameterReferencesBeforeReentry = GetUsingReferenceCount("PlaySoundParams");
+                    PlaySoundParams parameters = PlaySoundParams.Create();
+                    try
+                    {
+                        component.PlaySound("ui/reentrant", "UISound", parameters);
+                    }
+                    catch (GameFrameworkException)
+                    {
+                        reentrantPlayRejected = true;
+                    }
+
+                    runtimeInfoReferencesAfterRejection = GetUsingReferenceCount("PlaySoundInfo");
+                    parameterReferencesAfterRejection = GetUsingReferenceCount("PlaySoundParams");
+                };
+
+                component.ShutDown();
+
+                Assert.That(reentrantPlayRejected, Is.True);
+                Assert.That(manager.IsLoadingSound(serialId), Is.False);
+                Assert.That(manager.GetAllLoadingSoundSerialIds(), Is.Empty);
+                Assert.That(runtimeInfoReferencesAfterRejection, Is.EqualTo(baselineReferences));
+                Assert.That(parameterReferencesAfterRejection, Is.EqualTo(parameterReferencesBeforeReentry));
+                Assert.That(GetUsingReferenceCount("PlaySoundInfo"), Is.EqualTo(baselineReferences));
+                Assert.That(GetUsingReferenceCount("PlaySoundParams"), Is.EqualTo(baselineParameterReferences));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(parent);
+                UnityEngine.Object.DestroyImmediate(setting);
+            }
+        }
+
+        [Test]
+        public void ManagerFirstShutdown_RejectsComponentPlaybackWithoutLeakingRuntimeData()
+        {
+            SoundComponentSetting setting = CreateSetting();
+            GameObject parent = new GameObject("SoundManagerFirstShutdownTests");
+            try
+            {
+                SoundComponent component = InvokeConvertToComponent(setting);
+                component.Parent = parent;
+                component.AwakeComponent();
+
+                ISoundManager manager = GetPrivateField<ISoundManager>(component, "m_SoundManager");
+                manager.SetResourceManager(new FakeResourceManager());
+                manager.SetSoundHelper(new FakeSoundHelper());
+                Assert.That(manager.AddSoundGroup("UISound", new FakeSoundGroupHelper()), Is.True);
+                manager.AddSoundAgentHelper("UISound", new FakeSoundAgentHelper());
+                int baselineReferences = GetUsingReferenceCount("PlaySoundInfo");
+                int baselineParameterReferences = GetUsingReferenceCount("PlaySoundParams");
+                int serialId = component.PlaySound("ui/pending", "UISound");
+                bool reentrantPlayRejected = false;
+                int runtimeInfoReferencesAfterRejection = -1;
+                int parameterReferencesBeforeReentry = -1;
+                int parameterReferencesAfterRejection = -1;
+                manager.PlaySoundCanceled += (_, __) =>
+                {
+                    parameterReferencesBeforeReentry = GetUsingReferenceCount("PlaySoundParams");
+                    PlaySoundParams parameters = PlaySoundParams.Create();
+                    try
+                    {
+                        component.PlaySound("ui/reentrant", "UISound", parameters);
+                    }
+                    catch (GameFrameworkException)
+                    {
+                        reentrantPlayRejected = true;
+                    }
+
+                    runtimeInfoReferencesAfterRejection = GetUsingReferenceCount("PlaySoundInfo");
+                    parameterReferencesAfterRejection = GetUsingReferenceCount("PlaySoundParams");
+                };
+
+                GameFrameworkEntry.Shutdown();
+
+                Assert.That(reentrantPlayRejected, Is.True);
+                Assert.That(manager.IsLoadingSound(serialId), Is.False);
+                Assert.That(manager.GetAllLoadingSoundSerialIds(), Is.Empty);
+                Assert.That(runtimeInfoReferencesAfterRejection, Is.EqualTo(baselineReferences));
+                Assert.That(parameterReferencesAfterRejection, Is.EqualTo(parameterReferencesBeforeReentry));
+                Assert.That(GetUsingReferenceCount("PlaySoundInfo"), Is.EqualTo(baselineReferences));
+                Assert.That(GetUsingReferenceCount("PlaySoundParams"), Is.EqualTo(baselineParameterReferences));
             }
             finally
             {

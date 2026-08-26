@@ -217,6 +217,14 @@ namespace GameFramework.Sound
             }
         }
 
+        internal static void ReleaseIfReferenced(PlaySoundParams playSoundParams)
+        {
+            if (playSoundParams != null && playSoundParams.m_Referenced)
+            {
+                ReferencePool.Release(playSoundParams);
+            }
+        }
+
         /// <summary>
         /// 创建播放声音参数。
         /// </summary>

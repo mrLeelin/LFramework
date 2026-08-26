@@ -910,9 +910,10 @@ namespace LFramework.Editor.Tests.Sound
             bool rejectedDuringShutdown = false;
             _manager.PlaySoundCanceled += (_, __) =>
             {
+                PlaySoundParams parameters = PlaySoundParams.Create();
                 try
                 {
-                    _manager.PlaySound("ui/reentrant", "UISound");
+                    _manager.PlaySound("ui/reentrant", "UISound", parameters);
                 }
                 catch (GameFrameworkException)
                 {
@@ -926,6 +927,7 @@ namespace LFramework.Editor.Tests.Sound
             Assert.That(rejectedDuringShutdown, Is.True);
             Assert.That(_resourceManager.Loads, Has.Count.EqualTo(1));
             Assert.That(_manager.GetAllLoadingSoundSerialIds(), Is.Empty);
+            AssertNoUsingReferences("PlaySoundParams");
         }
 
         [Test]

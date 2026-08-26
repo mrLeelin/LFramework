@@ -9,6 +9,8 @@ namespace LFramework.Editor.Tests.Sound
     {
         private static readonly MethodInfo UpdateMethod = typeof(DefaultSoundAgentHelper).GetMethod(
             "Update", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo AwakeMethod = typeof(DefaultSoundAgentHelper).GetMethod(
+            "Awake", BindingFlags.Instance | BindingFlags.NonPublic);
 
         [Test]
         public void Update_DoesNotResetPausedAudioSource()
@@ -17,7 +19,7 @@ namespace LFramework.Editor.Tests.Sound
             AudioClip clip = AudioClip.Create("pause-test", 44100, 1, 44100, false);
             try
             {
-                DefaultSoundAgentHelper helper = gameObject.AddComponent<DefaultSoundAgentHelper>();
+                DefaultSoundAgentHelper helper = CreateHelper(gameObject);
                 int resetCount = 0;
                 helper.ResetSoundAgent += (_, __) => resetCount++;
 
@@ -43,7 +45,7 @@ namespace LFramework.Editor.Tests.Sound
             AudioClip clip = AudioClip.Create("resume-test", 44100, 1, 44100, false);
             try
             {
-                DefaultSoundAgentHelper helper = gameObject.AddComponent<DefaultSoundAgentHelper>();
+                DefaultSoundAgentHelper helper = CreateHelper(gameObject);
                 int resetCount = 0;
                 helper.ResetSoundAgent += (_, __) => resetCount++;
                 helper.SetSoundAsset(clip);
@@ -70,7 +72,7 @@ namespace LFramework.Editor.Tests.Sound
             AudioClip clip = AudioClip.Create("reset-test", 44100, 1, 44100, false);
             try
             {
-                DefaultSoundAgentHelper helper = gameObject.AddComponent<DefaultSoundAgentHelper>();
+                DefaultSoundAgentHelper helper = CreateHelper(gameObject);
                 int resetCount = 0;
                 helper.ResetSoundAgent += (_, __) => resetCount++;
                 helper.SetSoundAsset(clip);
@@ -98,13 +100,14 @@ namespace LFramework.Editor.Tests.Sound
             AudioClip clip = AudioClip.Create("time-test", 44100, 1, 44100, false);
             try
             {
-                DefaultSoundAgentHelper helper = gameObject.AddComponent<DefaultSoundAgentHelper>();
+                DefaultSoundAgentHelper helper = CreateHelper(gameObject);
                 helper.SetSoundAsset(clip);
+                AudioSource audioSource = gameObject.GetComponent<AudioSource>();
 
                 helper.Time = 0.25f;
-                Assert.That(helper.Time, Is.EqualTo(0.25f).Within(0.02f));
+                Assert.That(audioSource.timeSamples, Is.EqualTo(11025).Within(1));
                 helper.Time = 2f;
-                Assert.That(helper.Time, Is.EqualTo(1f).Within(0.02f));
+                Assert.That(audioSource.timeSamples, Is.EqualTo(44100).Within(1));
             }
             finally
             {
@@ -117,6 +120,14 @@ namespace LFramework.Editor.Tests.Sound
         {
             Assert.That(UpdateMethod, Is.Not.Null);
             UpdateMethod.Invoke(helper, null);
+        }
+
+        private static DefaultSoundAgentHelper CreateHelper(GameObject gameObject)
+        {
+            DefaultSoundAgentHelper helper = gameObject.AddComponent<DefaultSoundAgentHelper>();
+            Assert.That(AwakeMethod, Is.Not.Null);
+            AwakeMethod.Invoke(helper, null);
+            return helper;
         }
     }
 }

@@ -25,6 +25,14 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
+        /// Gets whether the sound manager is shutting down and rejects new playback requests.
+        /// </summary>
+        bool IsShuttingDown
+        {
+            get;
+        }
+
+        /// <summary>
         /// 播放声音成功事件。
         /// </summary>
         event EventHandler<PlaySoundSuccessEventArgs> PlaySoundSuccess;
@@ -65,6 +73,11 @@ namespace GameFramework.Sound
         /// Sets sound asset retention and queue warning settings.
         /// </summary>
         void SetSoundCacheSettings(float idleReleaseSeconds, int maxIdleEntryCount, int queueWarningThreshold, int queueWarningResetThreshold);
+
+        /// <summary>
+        /// Prevents new sound requests while the runtime component drains existing playback during shutdown.
+        /// </summary>
+        void PrepareForShutdown();
 
         /// <summary>
         /// 是否存在指定声音组。

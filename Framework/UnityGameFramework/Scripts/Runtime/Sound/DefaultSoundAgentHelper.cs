@@ -317,8 +317,16 @@ namespace UnityGameFramework.Runtime
         /// </summary>
         public override void Reset()
         {
-            m_CachedTransform.localPosition = Vector3.zero;
-            m_AudioSource.clip = null;
+            if (m_CachedTransform != null)
+            {
+                m_CachedTransform.localPosition = Vector3.zero;
+            }
+
+            if (m_AudioSource != null)
+            {
+                m_AudioSource.clip = null;
+            }
+
             m_BindingEntityLogic = null;
             m_VolumeWhenPause = 0f;
             m_IsPaused = false;

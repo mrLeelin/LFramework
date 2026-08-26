@@ -30,6 +30,7 @@ namespace UnityGameFramework.Runtime
         private ISoundManager m_SoundManager = null;
         private EventComponent m_EventComponent = null;
         private AudioListener m_AudioListener = null;
+        private bool m_IsShuttingDown = false;
 
         [SerializeField]
         private bool m_EnablePlaySoundUpdateEvent = false;
@@ -104,6 +105,7 @@ namespace UnityGameFramework.Runtime
         public override void AwakeComponent()
         {
             base.AwakeComponent();
+            m_IsShuttingDown = false;
             CreateInstance();
             m_SoundManager = GameFrameworkEntry.GetModule<ISoundManager>();
             if (m_SoundManager == null)
@@ -219,8 +221,10 @@ namespace UnityGameFramework.Runtime
 
         public override void ShutDown()
         {
+            m_IsShuttingDown = true;
             if (m_SoundManager != null)
             {
+                m_SoundManager.PrepareForShutdown();
                 m_SoundManager.StopAllLoadingSounds();
                 m_SoundManager.StopAllLoadedSounds();
                 m_SoundManager.PlaySoundSuccess -= OnPlaySoundSuccess;
@@ -523,6 +527,11 @@ namespace UnityGameFramework.Runtime
         /// <returns>声音的序列编号。</returns>
         public int PlaySound(string soundAssetName, string soundGroupName, int priority, PlaySoundParams playSoundParams, Entity bindingEntity, object userData)
         {
+            if (m_IsShuttingDown || m_SoundManager.IsShuttingDown)
+            {
+                return m_SoundManager.PlaySound(soundAssetName, soundGroupName, priority, playSoundParams, null);
+            }
+
             return m_SoundManager.PlaySound(soundAssetName, soundGroupName, priority, playSoundParams, PlaySoundInfo.Create(bindingEntity, Vector3.zero, userData));
         }
 
@@ -552,6 +561,11 @@ namespace UnityGameFramework.Runtime
         /// <returns>声音的序列编号。</returns>
         public int PlaySound(string soundAssetName, string soundGroupName, int priority, PlaySoundParams playSoundParams, Vector3 worldPosition, object userData)
         {
+            if (m_IsShuttingDown || m_SoundManager.IsShuttingDown)
+            {
+                return m_SoundManager.PlaySound(soundAssetName, soundGroupName, priority, playSoundParams, null);
+            }
+
             return m_SoundManager.PlaySound(soundAssetName, soundGroupName, priority, playSoundParams, PlaySoundInfo.Create(null, worldPosition, userData));
         }
 
