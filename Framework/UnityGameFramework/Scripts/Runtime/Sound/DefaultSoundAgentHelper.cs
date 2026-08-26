@@ -24,6 +24,7 @@ namespace UnityGameFramework.Runtime
         private EntityLogic m_BindingEntityLogic = null;
         private float m_VolumeWhenPause = 0f;
         private bool m_ApplicationPauseFlag = false;
+        private bool m_IsPaused = false;
         private EventHandler<ResetSoundAgentEventArgs> m_ResetSoundAgentEventHandler = null;
 
         /// <summary>
@@ -59,9 +60,12 @@ namespace UnityGameFramework.Runtime
             }
             set
             {
-                /*
-                m_AudioSource.time = value;
-                */
+                if (m_AudioSource.clip == null)
+                {
+                    return;
+                }
+
+                m_AudioSource.time = Mathf.Clamp(value, 0f, m_AudioSource.clip.length);
             }
         }
 
@@ -238,6 +242,7 @@ namespace UnityGameFramework.Runtime
         public override void Play(float fadeInSeconds)
         {
             StopAllCoroutines();
+            m_IsPaused = false;
 
             m_AudioSource.Play();
             if (fadeInSeconds > 0f)
@@ -255,6 +260,7 @@ namespace UnityGameFramework.Runtime
         public override void Stop(float fadeOutSeconds)
         {
             StopAllCoroutines();
+            m_IsPaused = false;
 
             if (fadeOutSeconds > 0f && gameObject.activeInHierarchy)
             {
@@ -273,6 +279,7 @@ namespace UnityGameFramework.Runtime
         public override void Pause(float fadeOutSeconds)
         {
             StopAllCoroutines();
+            m_IsPaused = true;
 
             m_VolumeWhenPause = m_AudioSource.volume;
             if (fadeOutSeconds > 0f && gameObject.activeInHierarchy)
@@ -292,6 +299,7 @@ namespace UnityGameFramework.Runtime
         public override void Resume(float fadeInSeconds)
         {
             StopAllCoroutines();
+            m_IsPaused = false;
 
             m_AudioSource.UnPause();
             if (fadeInSeconds > 0f)
@@ -313,6 +321,7 @@ namespace UnityGameFramework.Runtime
             m_AudioSource.clip = null;
             m_BindingEntityLogic = null;
             m_VolumeWhenPause = 0f;
+            m_IsPaused = false;
         }
 
         /// <summary>
@@ -372,7 +381,7 @@ namespace UnityGameFramework.Runtime
 
         private void Update()
         {
-            if (!m_ApplicationPauseFlag && !IsPlaying && m_AudioSource.clip != null && m_ResetSoundAgentEventHandler != null)
+            if (!m_ApplicationPauseFlag && !m_IsPaused && !IsPlaying && m_AudioSource.clip != null && m_ResetSoundAgentEventHandler != null)
             {
                 ResetSoundAgentEventArgs resetSoundAgentEventArgs = ResetSoundAgentEventArgs.Create();
                 m_ResetSoundAgentEventHandler(this, resetSoundAgentEventArgs);
