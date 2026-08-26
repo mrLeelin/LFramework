@@ -92,6 +92,14 @@ namespace GameFramework.Sound
                 }
             }
 
+            internal bool IsOccupied
+            {
+                get
+                {
+                    return m_SoundAssetEntry != null;
+                }
+            }
+
             /// <summary>
             /// 获取声音长度。
             /// </summary>

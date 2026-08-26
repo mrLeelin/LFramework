@@ -12,6 +12,7 @@ namespace LFramework.Editor.Tests.Sound
         private FakeResourceManager _resourceManager;
         private FakeSoundHelper _soundHelper;
         private List<FakeSoundAgentHelper> _agentHelpers;
+        private double _clock;
 
         [SetUp]
         public void SetUp()
@@ -21,6 +22,7 @@ namespace LFramework.Editor.Tests.Sound
             _resourceManager = new FakeResourceManager();
             _soundHelper = new FakeSoundHelper();
             _agentHelpers = new List<FakeSoundAgentHelper>();
+            _clock = 0d;
             _manager.SetResourceManager(_resourceManager);
             _manager.SetSoundHelper(_soundHelper);
         }
@@ -412,6 +414,130 @@ namespace LFramework.Editor.Tests.Sound
             Assert.That(startedIds, Is.EqualTo(new[] { retryId }));
         }
 
+        [Test]
+        public void ColdRequests_PreserveOriginalIntervalsAfterLoad()
+        {
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 3);
+            var starts = new List<double>();
+            _manager.PlaySoundSuccess += (_, __) => starts.Add(_clock);
+
+            _manager.PlaySound("ui/tick", "UISound");
+            Advance(0.21f);
+            _manager.PlaySound("ui/tick", "UISound");
+            Advance(0.21f);
+            _manager.PlaySound("ui/tick", "UISound");
+            Advance(0.08f);
+            _resourceManager.CompleteSuccess(0, new object());
+
+            Advance(0f);
+            Advance(0.21f);
+            Advance(0.21f);
+
+            Assert.That(starts, Has.Count.EqualTo(3));
+            Assert.That(starts[1] - starts[0], Is.EqualTo(0.21d).Within(0.001d));
+            Assert.That(starts[2] - starts[1], Is.EqualTo(0.21d).Within(0.001d));
+        }
+
+        [Test]
+        public void BusyQueueAgent_DelaysWithoutDroppingOrBurstingLaterRequests()
+        {
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 1);
+            var startedIds = new List<int>();
+            _manager.PlaySoundSuccess += (_, args) => startedIds.Add(args.SerialId);
+            int[] ids =
+            {
+                _manager.PlaySound("ui/tick", "UISound"),
+                _manager.PlaySound("ui/tick", "UISound"),
+                _manager.PlaySound("ui/tick", "UISound")
+            };
+            _resourceManager.CompleteSuccess(0, new object());
+
+            Assert.That(startedIds, Is.EqualTo(new[] { ids[0] }));
+            _agentHelpers[0].Complete();
+            Advance(0f);
+            Assert.That(startedIds, Is.EqualTo(new[] { ids[0], ids[1] }));
+            _agentHelpers[0].Complete();
+            Advance(0f);
+            Assert.That(startedIds, Is.EqualTo(ids));
+        }
+
+        [Test]
+        public void LateAgentAvailability_ShiftsRemainingCadenceWithoutCatchUpBurst()
+        {
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 1);
+            var startTimes = new List<double>();
+            _manager.PlaySoundSuccess += (_, __) => startTimes.Add(_clock);
+
+            _manager.PlaySound("ui/tick", "UISound");
+            Advance(0.21f);
+            _manager.PlaySound("ui/tick", "UISound");
+            Advance(0.21f);
+            _manager.PlaySound("ui/tick", "UISound");
+            Advance(0.08f);
+            _resourceManager.CompleteSuccess(0, new object());
+
+            Advance(0.4f);
+            _agentHelpers[0].Complete();
+            Advance(0f);
+            _agentHelpers[0].Complete();
+            Advance(0.2f);
+
+            Assert.That(startTimes, Has.Count.EqualTo(2));
+            Advance(0.01f);
+            Assert.That(startTimes, Has.Count.EqualTo(3));
+            Assert.That(startTimes[2] - startTimes[1], Is.EqualTo(0.21d).Within(0.001d));
+        }
+
+        [Test]
+        public void PausedQueueAgent_RemainsOccupiedUntilItsSoundCompletes()
+        {
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 1);
+            var startedIds = new List<int>();
+            _manager.PlaySoundSuccess += (_, args) => startedIds.Add(args.SerialId);
+            int pausedId = _manager.PlaySound("ui/tick", "UISound");
+            _resourceManager.CompleteSuccess(0, new object());
+            _manager.PauseSound(pausedId);
+
+            int queuedId = _manager.PlaySound("ui/tick", "UISound");
+
+            Assert.That(startedIds, Is.EqualTo(new[] { pausedId }));
+            _agentHelpers[0].Complete();
+            Advance(0f);
+            Assert.That(startedIds, Is.EqualTo(new[] { pausedId, queuedId }));
+        }
+
+        [Test]
+        public void TenSameFrameQueueRequests_StartInOneManagerTickWhenAgentsAvailable()
+        {
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 16);
+            var startTimes = new List<double>();
+            _manager.PlaySoundSuccess += (_, __) => startTimes.Add(_clock);
+            for (int i = 0; i < 10; i++)
+            {
+                _manager.PlaySound("ui/tick", "UISound");
+            }
+
+            _resourceManager.CompleteSuccess(0, new object());
+
+            Assert.That(startTimes, Has.Count.EqualTo(10));
+            Assert.That(startTimes, Is.All.EqualTo(0d));
+        }
+
+        [Test]
+        public void ReplacementGroup_KeepsSamePriorityReplacementBehavior()
+        {
+            AddGroup("Music", SoundOverflowPolicy.ReplaceByPriority, 1);
+            var failedIds = new List<int>();
+            _manager.PlaySoundFailure += (_, args) => failedIds.Add(args.SerialId);
+            _manager.PlaySound("music/a", "Music");
+            _resourceManager.CompleteSuccess(0, new object());
+            _manager.PlaySound("music/b", "Music");
+            _resourceManager.CompleteSuccess(1, new object());
+
+            Assert.That(_agentHelpers[0].PlayCount, Is.EqualTo(2));
+            Assert.That(failedIds, Is.Empty);
+        }
+
         private void AddGroup(string name, SoundOverflowPolicy policy, int agentCount)
         {
             Assert.That(_manager.AddSoundGroup(
@@ -423,6 +549,12 @@ namespace LFramework.Editor.Tests.Sound
                 _agentHelpers.Add(helper);
                 _manager.AddSoundAgentHelper(name, helper);
             }
+        }
+
+        private void Advance(float seconds)
+        {
+            _clock += seconds;
+            GameFrameworkEntry.Update(seconds, seconds);
         }
 
     }

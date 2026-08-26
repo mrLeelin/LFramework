@@ -21,12 +21,14 @@ namespace GameFramework.Sound
         private readonly Dictionary<string, SoundGroup> m_SoundGroups;
         private readonly Dictionary<int, SoundPlayRequest> m_PendingRequests;
         private readonly Dictionary<string, SoundAssetEntry> m_SoundAssets;
+        private readonly Dictionary<SoundPlaybackLaneKey, SoundPlaybackLane> m_PlaybackLanes;
         private readonly LoadAssetCallbacks m_LoadAssetCallbacks;
         private IResourceManager m_ResourceManager;
         private ISoundHelper m_SoundHelper;
         private int m_Serial;
         private double m_RealTime;
         private bool m_IsShuttingDown;
+        private bool m_IsScheduling;
         private EventHandler<PlaySoundSuccessEventArgs> m_PlaySoundSuccessEventHandler;
         private EventHandler<PlaySoundFailureEventArgs> m_PlaySoundFailureEventHandler;
         private EventHandler<PlaySoundUpdateEventArgs> m_PlaySoundUpdateEventHandler;
@@ -40,12 +42,14 @@ namespace GameFramework.Sound
             m_SoundGroups = new Dictionary<string, SoundGroup>(StringComparer.Ordinal);
             m_PendingRequests = new Dictionary<int, SoundPlayRequest>();
             m_SoundAssets = new Dictionary<string, SoundAssetEntry>(StringComparer.Ordinal);
+            m_PlaybackLanes = new Dictionary<SoundPlaybackLaneKey, SoundPlaybackLane>();
             m_LoadAssetCallbacks = new LoadAssetCallbacks(LoadAssetSuccessCallback, LoadAssetFailureCallback, LoadAssetUpdateCallback, LoadAssetDependencyAssetCallback);
             m_ResourceManager = null;
             m_SoundHelper = null;
             m_Serial = 0;
             m_RealTime = 0d;
             m_IsShuttingDown = false;
+            m_IsScheduling = false;
             m_PlaySoundSuccessEventHandler = null;
             m_PlaySoundFailureEventHandler = null;
             m_PlaySoundUpdateEventHandler = null;
@@ -134,6 +138,12 @@ namespace GameFramework.Sound
             {
                 m_RealTime += realElapseSeconds;
             }
+
+            Exception exception = ScheduleReadyRequests();
+            if (exception != null)
+            {
+                throw exception;
+            }
         }
 
         /// <summary>
@@ -144,6 +154,7 @@ namespace GameFramework.Sound
             m_IsShuttingDown = true;
             StopAllLoadedSounds();
             m_SoundGroups.Clear();
+            m_PlaybackLanes.Clear();
             foreach (KeyValuePair<int, SoundPlayRequest> pair in m_PendingRequests)
             {
                 SoundPlayRequest request = pair.Value;
@@ -563,7 +574,17 @@ namespace GameFramework.Sound
                 else
                 {
                     request.State = SoundPlayRequestState.WaitingAgent;
-                    Exception exception = StartSoundRequest(request, entry, 0f);
+                    Exception exception;
+                    if (soundGroup.OverflowPolicy == SoundOverflowPolicy.QueueNonLooping)
+                    {
+                        EnqueueSoundRequest(request, entry);
+                        exception = ScheduleReadyRequests();
+                    }
+                    else
+                    {
+                        exception = StartSoundRequest(request, entry, 0f);
+                    }
+
                     if (exception != null)
                     {
                         throw exception;
@@ -613,6 +634,8 @@ namespace GameFramework.Sound
                         entry.ReleaseOnLoad = true;
                     }
                 }
+
+                RemoveSoundRequestFromLane(request);
 
                 m_PendingRequests.Remove(serialId);
                 ReleaseRequest(request);
@@ -739,10 +762,123 @@ namespace GameFramework.Sound
             }
         }
 
+        private void EnqueueSoundRequest(SoundPlayRequest request, SoundAssetEntry entry)
+        {
+            SoundPlaybackLaneKey key = new SoundPlaybackLaneKey(request.SoundGroup, request.SoundAssetName);
+            SoundPlaybackLane lane = null;
+            if (!m_PlaybackLanes.TryGetValue(key, out lane))
+            {
+                lane = new SoundPlaybackLane(key, request.SoundGroup, entry);
+                m_PlaybackLanes.Add(key, lane);
+            }
+            else if (!ReferenceEquals(lane.AssetEntry, entry))
+            {
+                throw new GameFrameworkException(Utility.Text.Format("Sound playback lane '{0}' has a different asset entry.", request.SoundAssetName));
+            }
+
+            request.LaneNode = lane.Requests.AddLast(request);
+        }
+
+        private void RemoveSoundRequestFromLane(SoundPlayRequest request)
+        {
+            LinkedListNode<SoundPlayRequest> laneNode = request.LaneNode;
+            if (laneNode == null)
+            {
+                return;
+            }
+
+            request.LaneNode = null;
+            SoundPlaybackLaneKey key = new SoundPlaybackLaneKey(request.SoundGroup, request.SoundAssetName);
+            SoundPlaybackLane lane = null;
+            if (!m_PlaybackLanes.TryGetValue(key, out lane) || !ReferenceEquals(lane.Requests, laneNode.List))
+            {
+                return;
+            }
+
+            lane.Requests.Remove(laneNode);
+            if (lane.Requests.Count == 0)
+            {
+                m_PlaybackLanes.Remove(key);
+            }
+        }
+
+        private Exception ScheduleReadyRequests()
+        {
+            if (m_IsScheduling || m_IsShuttingDown)
+            {
+                return null;
+            }
+
+            m_IsScheduling = true;
+            Exception firstException = null;
+            try
+            {
+                while (true)
+                {
+                    SoundPlaybackLane selectedLane = null;
+                    SoundPlayRequest selectedRequest = null;
+                    double selectedDueTime = 0d;
+                    foreach (KeyValuePair<SoundPlaybackLaneKey, SoundPlaybackLane> pair in m_PlaybackLanes)
+                    {
+                        SoundPlaybackLane lane = pair.Value;
+                        if (lane.Requests.Count == 0 || !lane.SoundGroup.HasIdleSoundAgent)
+                        {
+                            continue;
+                        }
+
+                        SoundPlayRequest request = lane.Requests.First.Value;
+                        double dueTime = lane.GetDueTime(request, GetRealTime());
+                        if (dueTime > GetRealTime())
+                        {
+                            continue;
+                        }
+
+                        if (selectedRequest == null ||
+                            request.PlaySoundParams.Priority > selectedRequest.PlaySoundParams.Priority ||
+                            (request.PlaySoundParams.Priority == selectedRequest.PlaySoundParams.Priority && request.SerialId < selectedRequest.SerialId))
+                        {
+                            selectedLane = lane;
+                            selectedRequest = request;
+                            selectedDueTime = dueTime;
+                        }
+                    }
+
+                    if (selectedRequest == null)
+                    {
+                        break;
+                    }
+
+                    selectedLane.Requests.RemoveFirst();
+                    selectedRequest.LaneNode = null;
+                    if (selectedLane.Requests.Count == 0)
+                    {
+                        m_PlaybackLanes.Remove(selectedLane.Key);
+                    }
+
+                    double actualStartTime = GetRealTime();
+                    Exception exception = StartSoundRequest(
+                        selectedRequest,
+                        selectedLane.AssetEntry,
+                        selectedRequest.WaitedForLoad ? selectedLane.AssetEntry.LoadDuration : 0f);
+                    selectedLane.ShiftAfterLateStart(selectedDueTime, actualStartTime);
+                    if (firstException == null)
+                    {
+                        firstException = exception;
+                    }
+                }
+            }
+            finally
+            {
+                m_IsScheduling = false;
+            }
+
+            return firstException;
+        }
+
         private Exception StartSoundRequest(SoundPlayRequest request, SoundAssetEntry entry, float loadDuration)
         {
             PlaySoundErrorCode? errorCode = null;
-            ISoundAgent soundAgent = request.SoundGroup.PlaySound(request.SerialId, entry, request.PlaySoundParams, GetRealTime(), out errorCode);
+            ISoundAgent soundAgent = request.SoundGroup.TryPlaySound(request.SerialId, entry, request.PlaySoundParams, GetRealTime(), out errorCode);
             if (soundAgent != null)
             {
                 Exception callbackException = null;
@@ -916,11 +1052,26 @@ namespace GameFramework.Sound
                 }
 
                 request.State = SoundPlayRequestState.WaitingAgent;
-                Exception exception = StartSoundRequest(request, entry, request.WaitedForLoad ? duration : 0f);
+                Exception exception = null;
+                if (request.SoundGroup.OverflowPolicy == SoundOverflowPolicy.QueueNonLooping)
+                {
+                    EnqueueSoundRequest(request, entry);
+                }
+                else
+                {
+                    exception = StartSoundRequest(request, entry, request.WaitedForLoad ? duration : 0f);
+                }
+
                 if (firstException == null)
                 {
                     firstException = exception;
                 }
+            }
+
+            Exception schedulingException = ScheduleReadyRequests();
+            if (firstException == null)
+            {
+                firstException = schedulingException;
             }
 
             if (firstException != null)

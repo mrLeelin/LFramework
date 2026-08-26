@@ -164,6 +164,25 @@ namespace GameFramework.Sound
             }
 
             /// <summary>
+            /// 获取是否存在未被声音资源占用的声音代理。
+            /// </summary>
+            public bool HasIdleSoundAgent
+            {
+                get
+                {
+                    foreach (SoundAgent soundAgent in m_SoundAgents)
+                    {
+                        if (!soundAgent.IsOccupied)
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }
+            }
+
+            /// <summary>
             /// 播放声音。
             /// </summary>
             /// <param name="serialId">声音的序列编号。</param>
@@ -172,12 +191,23 @@ namespace GameFramework.Sound
             /// <param name="startedAt">声音请求的实时时间。</param>
             /// <param name="errorCode">错误码。</param>
             /// <returns>用于播放的声音代理。</returns>
-            public ISoundAgent PlaySound(int serialId, SoundAssetEntry soundAssetEntry, PlaySoundParams playSoundParams, double startedAt, out PlaySoundErrorCode? errorCode)
+            public ISoundAgent TryPlaySound(int serialId, SoundAssetEntry soundAssetEntry, PlaySoundParams playSoundParams, double startedAt, out PlaySoundErrorCode? errorCode)
             {
                 errorCode = null;
                 SoundAgent candidateAgent = null;
                 foreach (SoundAgent soundAgent in m_SoundAgents)
                 {
+                    if (m_OverflowPolicy == SoundOverflowPolicy.QueueNonLooping)
+                    {
+                        if (!soundAgent.IsOccupied)
+                        {
+                            candidateAgent = soundAgent;
+                            break;
+                        }
+
+                        continue;
+                    }
+
                     if (!soundAgent.IsPlaying)
                     {
                         candidateAgent = soundAgent;

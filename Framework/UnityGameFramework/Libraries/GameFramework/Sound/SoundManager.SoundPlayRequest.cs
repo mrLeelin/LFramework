@@ -5,6 +5,8 @@
 // Feedback: mailto:ellan@gameframework.cn
 //------------------------------------------------------------
 
+using System.Collections.Generic;
+
 namespace GameFramework.Sound
 {
     internal sealed partial class SoundManager : GameFrameworkModule, ISoundManager
@@ -30,6 +32,7 @@ namespace GameFramework.Sound
             public double RequestedRealTime;
             public bool WaitedForLoad;
             public SoundPlayRequestState State;
+            public LinkedListNode<SoundPlayRequest> LaneNode;
 
             public static SoundPlayRequest Create(int serialId, string soundAssetName, SoundGroup soundGroup, int resourcePriority, PlaySoundParams playSoundParams, object userData, double requestedRealTime)
             {
@@ -43,6 +46,7 @@ namespace GameFramework.Sound
                 request.RequestedRealTime = requestedRealTime;
                 request.WaitedForLoad = false;
                 request.State = SoundPlayRequestState.Created;
+                request.LaneNode = null;
                 return request;
             }
 
@@ -57,6 +61,7 @@ namespace GameFramework.Sound
                 RequestedRealTime = 0d;
                 WaitedForLoad = false;
                 State = SoundPlayRequestState.Created;
+                LaneNode = null;
             }
         }
     }
