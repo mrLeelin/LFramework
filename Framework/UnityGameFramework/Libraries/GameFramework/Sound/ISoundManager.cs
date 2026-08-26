@@ -62,6 +62,11 @@ namespace GameFramework.Sound
         void SetSoundHelper(ISoundHelper soundHelper);
 
         /// <summary>
+        /// Sets sound asset retention and queue warning settings.
+        /// </summary>
+        void SetSoundCacheSettings(float idleReleaseSeconds, int maxIdleEntryCount, int queueWarningThreshold, int queueWarningResetThreshold);
+
+        /// <summary>
         /// 是否存在指定声音组。
         /// </summary>
         /// <param name="soundGroupName">声音组名称。</param>

@@ -164,6 +164,19 @@ namespace LFramework.Editor.Tests.Sound
     {
     }
 
+    internal sealed class FakeLogHelper : GameFrameworkLog.ILogHelper
+    {
+        internal readonly List<string> Warnings = new List<string>();
+
+        public void Log(GameFrameworkLogLevel level, object message)
+        {
+            if (level == GameFrameworkLogLevel.Warning)
+            {
+                Warnings.Add(message?.ToString());
+            }
+        }
+    }
+
     internal sealed class FakeSoundAgentHelper : ISoundAgentHelper
     {
         public bool IsPlaying { get; private set; }
@@ -180,6 +193,7 @@ namespace LFramework.Editor.Tests.Sound
         public float DopplerLevel { get; set; }
         public int PlayCount { get; private set; }
         public int StopCount { get; private set; }
+        public int ResetCount { get; private set; }
         public object SoundAsset { get; private set; }
         internal bool AutoCompleteOnStop { get; set; } = true;
         internal bool RejectSoundAsset { get; set; }
@@ -213,6 +227,7 @@ namespace LFramework.Editor.Tests.Sound
 
         public void Reset()
         {
+            ResetCount++;
             IsPlaying = false;
             SoundAsset = null;
         }

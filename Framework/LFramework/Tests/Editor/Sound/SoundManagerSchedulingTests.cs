@@ -11,6 +11,7 @@ namespace LFramework.Editor.Tests.Sound
         private ISoundManager _manager;
         private FakeResourceManager _resourceManager;
         private FakeSoundHelper _soundHelper;
+        private FakeLogHelper _logHelper;
         private List<FakeSoundAgentHelper> _agentHelpers;
         private double _clock;
 
@@ -21,10 +22,12 @@ namespace LFramework.Editor.Tests.Sound
             _manager = GameFrameworkEntry.GetModule<ISoundManager>();
             _resourceManager = new FakeResourceManager();
             _soundHelper = new FakeSoundHelper();
+            _logHelper = new FakeLogHelper();
             _agentHelpers = new List<FakeSoundAgentHelper>();
             _clock = 0d;
             _manager.SetResourceManager(_resourceManager);
             _manager.SetSoundHelper(_soundHelper);
+            GameFrameworkLog.SetLogHelper(_logHelper);
         }
 
         [TearDown]
@@ -159,7 +162,7 @@ namespace LFramework.Editor.Tests.Sound
         }
 
         [Test]
-        public void Shutdown_WaitsForAgentBorrowToEnd_BeforeReleasingAsset()
+        public void Shutdown_ResetsAgentBeforeReleasingAsset()
         {
             AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 1);
             _agentHelpers[0].AutoCompleteOnStop = false;
@@ -169,9 +172,8 @@ namespace LFramework.Editor.Tests.Sound
 
             GameFrameworkEntry.Shutdown();
 
-            Assert.That(_soundHelper.ReleasedAssets, Is.Empty);
-            _agentHelpers[0].Complete();
             Assert.That(_soundHelper.ReleasedAssets, Is.EqualTo(new[] { soundAsset }));
+            Assert.That(_agentHelpers[0].SoundAsset, Is.Null);
         }
 
         [Test]
@@ -211,6 +213,23 @@ namespace LFramework.Editor.Tests.Sound
         }
 
         [Test]
+        public void CancelledLastWaiter_NewRequestBeforeCallbackJoinsExistingLoad()
+        {
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 1);
+            var startedIds = new List<int>();
+            _manager.PlaySoundSuccess += (_, args) => startedIds.Add(args.SerialId);
+            int cancelledId = _manager.PlaySound("ui/tick", "UISound");
+            Assert.That(_manager.StopSound(cancelledId), Is.True);
+
+            int survivingId = _manager.PlaySound("ui/tick", "UISound");
+            _resourceManager.CompleteSuccess(0, new object());
+
+            Assert.That(_resourceManager.Loads, Has.Count.EqualTo(1));
+            Assert.That(startedIds, Is.EqualTo(new[] { survivingId }));
+            Assert.That(_soundHelper.ReleasedAssets, Is.Empty);
+        }
+
+        [Test]
         public void ProgressAndDependencyCallbacks_TolerateCancellationReentry()
         {
             AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 2);
@@ -229,6 +248,34 @@ namespace LFramework.Editor.Tests.Sound
             Assert.DoesNotThrow(() => _resourceManager.ReportDependency(1, "ui/dependency"));
             Assert.That(_manager.IsLoadingSound(dependencyFirst), Is.False);
             Assert.That(_manager.IsLoadingSound(dependencySecond), Is.False);
+        }
+
+        [Test]
+        public void ProgressAndDependencyParameters_RemainStableAfterCancellationReentry()
+        {
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 1);
+            PlaySoundParams progressParams = PlaySoundParams.Create();
+            progressParams.VolumeInSoundGroup = 0.25f;
+            int progressId = _manager.PlaySound("ui/progress", "UISound", progressParams);
+            float progressVolume = -1f;
+            _manager.PlaySoundUpdate += (_, args) => _manager.StopSound(args.SerialId);
+            _manager.PlaySoundUpdate += (_, args) => progressVolume = args.PlaySoundParams.VolumeInSoundGroup;
+
+            _resourceManager.ReportProgress(0, 0.5f);
+
+            PlaySoundParams dependencyParams = PlaySoundParams.Create();
+            dependencyParams.Pitch = 1.5f;
+            int dependencyId = _manager.PlaySound("ui/dependency", "UISound", dependencyParams);
+            float dependencyPitch = -1f;
+            _manager.PlaySoundDependencyAsset += (_, args) => _manager.StopSound(args.SerialId);
+            _manager.PlaySoundDependencyAsset += (_, args) => dependencyPitch = args.PlaySoundParams.Pitch;
+            _resourceManager.ReportDependency(1, "ui/shared-dependency");
+
+            Assert.That(progressVolume, Is.EqualTo(0.25f));
+            Assert.That(dependencyPitch, Is.EqualTo(1.5f));
+            Assert.That(_manager.IsLoadingSound(progressId), Is.False);
+            Assert.That(_manager.IsLoadingSound(dependencyId), Is.False);
+            AssertNoUsingReferences("PlaySoundParams", "PlaySoundUpdateEventArgs", "PlaySoundDependencyAssetEventArgs");
         }
 
         [Test]
@@ -343,6 +390,7 @@ namespace LFramework.Editor.Tests.Sound
         {
             AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 2);
             var startedIds = new List<int>();
+            var laterSubscriberIds = new List<int>();
             int firstId = _manager.PlaySound("ui/tick", "UISound");
             int secondId = _manager.PlaySound("ui/tick", "UISound");
             _manager.PlaySoundSuccess += (_, args) =>
@@ -353,11 +401,13 @@ namespace LFramework.Editor.Tests.Sound
                     throw new InvalidOperationException("listener failure");
                 }
             };
+            _manager.PlaySoundSuccess += (_, args) => laterSubscriberIds.Add(args.SerialId);
 
             Assert.Throws<InvalidOperationException>(() =>
                 _resourceManager.CompleteSuccess(0, new object()));
 
             Assert.That(startedIds, Is.EqualTo(new[] { firstId, secondId }));
+            Assert.That(laterSubscriberIds, Is.EqualTo(new[] { firstId, secondId }));
             Assert.That(_manager.IsLoadingSound(firstId), Is.False);
             Assert.That(_manager.IsLoadingSound(secondId), Is.False);
         }
@@ -367,6 +417,7 @@ namespace LFramework.Editor.Tests.Sound
         {
             AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 2);
             var failedIds = new List<int>();
+            var laterSubscriberIds = new List<int>();
             int firstId = _manager.PlaySound("ui/missing", "UISound");
             int secondId = _manager.PlaySound("ui/missing", "UISound");
             _manager.PlaySoundFailure += (_, args) =>
@@ -377,11 +428,13 @@ namespace LFramework.Editor.Tests.Sound
                     throw new InvalidOperationException("listener failure");
                 }
             };
+            _manager.PlaySoundFailure += (_, args) => laterSubscriberIds.Add(args.SerialId);
 
             Assert.Throws<InvalidOperationException>(() =>
                 _resourceManager.CompleteFailure(0, "missing"));
 
             Assert.That(failedIds, Is.EqualTo(new[] { firstId, secondId }));
+            Assert.That(laterSubscriberIds, Is.EqualTo(new[] { firstId, secondId }));
             Assert.That(_manager.IsLoadingSound(firstId), Is.False);
             Assert.That(_manager.IsLoadingSound(secondId), Is.False);
         }
@@ -398,7 +451,6 @@ namespace LFramework.Editor.Tests.Sound
             _resourceManager.CompleteSuccess(0, new object());
 
             GameFrameworkEntry.Shutdown();
-            _agentHelpers[0].Complete();
 
             Assert.That(helperWasClearAtRelease, Is.True);
         }
@@ -680,6 +732,227 @@ namespace LFramework.Editor.Tests.Sound
 
             Assert.That(updateIds, Is.EqualTo(new[] { first, second }));
             Assert.That(dependencyIds, Is.EqualTo(new[] { first, second }));
+        }
+
+        [Test]
+        public void SharedAsset_ReleasesOnceAfterLastAgentAndIdleTimeout()
+        {
+            _manager.SetSoundCacheSettings(2f, 64, 64, 32);
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 2);
+            _manager.PlaySound("ui/tick", "UISound");
+            _manager.PlaySound("ui/tick", "UISound");
+            object asset = new object();
+            _resourceManager.CompleteSuccess(0, asset);
+
+            _agentHelpers[0].Complete();
+            _agentHelpers[1].Complete();
+            Advance(1.99f);
+            Assert.That(_soundHelper.ReleasedAssets, Is.Empty);
+            Advance(0.01f);
+
+            Assert.That(_soundHelper.ReleasedAssets, Is.EqualTo(new[] { asset }));
+        }
+
+        [Test]
+        public void RequestBeforeIdleTimeout_ReusesReadyAssetAndCancelsEviction()
+        {
+            _manager.SetSoundCacheSettings(2f, 64, 64, 32);
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 1);
+            object asset = new object();
+            _manager.PlaySound("ui/tick", "UISound");
+            _resourceManager.CompleteSuccess(0, asset);
+            _agentHelpers[0].Complete();
+            Advance(1.5f);
+
+            _manager.PlaySound("ui/tick", "UISound");
+            Advance(1f);
+
+            Assert.That(_resourceManager.Loads, Has.Count.EqualTo(1));
+            Assert.That(_agentHelpers[0].PlayCount, Is.EqualTo(2));
+            Assert.That(_soundHelper.ReleasedAssets, Is.Empty);
+        }
+
+        [Test]
+        public void MaxIdleEntryCount_EvictsOnlyOldestIdleEntry()
+        {
+            _manager.SetSoundCacheSettings(30f, 1, 64, 32);
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 1);
+            object firstAsset = new object();
+            object secondAsset = new object();
+
+            _manager.PlaySound("ui/first", "UISound");
+            _resourceManager.CompleteSuccess(0, firstAsset);
+            _agentHelpers[0].Complete();
+            Advance(0.5f);
+            _manager.PlaySound("ui/second", "UISound");
+            _resourceManager.CompleteSuccess(1, secondAsset);
+            _agentHelpers[0].Complete();
+            Advance(0.01f);
+
+            Assert.That(_soundHelper.ReleasedAssets, Is.EqualTo(new[] { firstAsset }));
+        }
+
+        [Test]
+        public void ActiveAndLoadingEntries_MayExceedIdleMaximumWithoutEviction()
+        {
+            _manager.SetSoundCacheSettings(0f, 0, 64, 32);
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 1);
+            object activeAsset = new object();
+            _manager.PlaySound("ui/active", "UISound");
+            _resourceManager.CompleteSuccess(0, activeAsset);
+            _manager.PlaySound("ui/loading", "UISound");
+
+            Advance(10f);
+
+            Assert.That(_soundHelper.ReleasedAssets, Is.Empty);
+            Assert.That(_manager.GetAllLoadingSoundSerialIds(), Has.Length.EqualTo(1));
+        }
+
+        [Test]
+        public void SamePathInTwoGroups_UsesOneLoadAndIndependentAgents()
+        {
+            AddGroup("UIA", SoundOverflowPolicy.QueueNonLooping, 1);
+            AddGroup("UIB", SoundOverflowPolicy.QueueNonLooping, 1);
+            _manager.PlaySound("ui/shared", "UIA");
+            _manager.PlaySound("ui/shared", "UIB");
+
+            _resourceManager.CompleteSuccess(0, new object());
+
+            Assert.That(_resourceManager.Loads, Has.Count.EqualTo(1));
+            Assert.That(_agentHelpers[0].PlayCount, Is.EqualTo(1));
+            Assert.That(_agentHelpers[1].PlayCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void Shutdown_ResetsEveryActiveAgentAndReleasesReadyEntriesOnce()
+        {
+            AddGroup("UIA", SoundOverflowPolicy.QueueNonLooping, 1);
+            AddGroup("UIB", SoundOverflowPolicy.QueueNonLooping, 1);
+            object firstAsset = new object();
+            object secondAsset = new object();
+            _manager.PlaySound("ui/first", "UIA");
+            _resourceManager.CompleteSuccess(0, firstAsset);
+            _manager.PlaySound("ui/second", "UIB");
+            _resourceManager.CompleteSuccess(1, secondAsset);
+            int firstResetCount = _agentHelpers[0].ResetCount;
+            int secondResetCount = _agentHelpers[1].ResetCount;
+
+            GameFrameworkEntry.Shutdown();
+
+            Assert.That(_agentHelpers[0].ResetCount, Is.EqualTo(firstResetCount + 1));
+            Assert.That(_agentHelpers[1].ResetCount, Is.EqualTo(secondResetCount + 1));
+            Assert.That(_soundHelper.ReleasedAssets, Is.EquivalentTo(new[] { firstAsset, secondAsset }));
+        }
+
+        [Test]
+        public void LateSuccessAfterShutdown_ReleasesReturnedAssetOnce()
+        {
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 1);
+            object asset = new object();
+            _manager.PlaySound("ui/tick", "UISound");
+
+            GameFrameworkEntry.Shutdown();
+            _resourceManager.CompleteSuccess(0, asset);
+
+            Assert.That(_soundHelper.ReleasedAssets, Is.EqualTo(new[] { asset }));
+        }
+
+        [Test]
+        public void LateFailureAfterShutdown_DoesNotEmitFailureOrLeaveLoadingState()
+        {
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 1);
+            int failureCount = 0;
+            _manager.PlaySoundFailure += (_, __) => failureCount++;
+            _manager.PlaySound("ui/tick", "UISound");
+
+            GameFrameworkEntry.Shutdown();
+            _resourceManager.CompleteFailure(0, "late");
+
+            Assert.That(failureCount, Is.Zero);
+            Assert.That(_manager.GetAllLoadingSoundSerialIds(), Is.Empty);
+        }
+
+        [Test]
+        public void ShutdownCancellationListener_CannotCreateAReplacementRequest()
+        {
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 1);
+            bool rejectedDuringShutdown = false;
+            _manager.PlaySoundCanceled += (_, __) =>
+            {
+                try
+                {
+                    _manager.PlaySound("ui/reentrant", "UISound");
+                }
+                catch (GameFrameworkException)
+                {
+                    rejectedDuringShutdown = true;
+                }
+            };
+            _manager.PlaySound("ui/tick", "UISound");
+
+            GameFrameworkEntry.Shutdown();
+
+            Assert.That(rejectedDuringShutdown, Is.True);
+            Assert.That(_resourceManager.Loads, Has.Count.EqualTo(1));
+            Assert.That(_manager.GetAllLoadingSoundSerialIds(), Is.Empty);
+        }
+
+        [Test]
+        public void InvalidSoundCacheSettings_DoNotMutateExistingRetention()
+        {
+            _manager.SetSoundCacheSettings(10f, 64, 64, 32);
+            Assert.Throws<GameFrameworkException>(() => _manager.SetSoundCacheSettings(-1f, 0, 1, 0));
+            Assert.Throws<GameFrameworkException>(() => _manager.SetSoundCacheSettings(0f, -1, 1, 0));
+            Assert.Throws<GameFrameworkException>(() => _manager.SetSoundCacheSettings(0f, 0, 0, 0));
+            Assert.Throws<GameFrameworkException>(() => _manager.SetSoundCacheSettings(0f, 0, 2, 2));
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 1);
+            object asset = new object();
+            _manager.PlaySound("ui/tick", "UISound");
+            _resourceManager.CompleteSuccess(0, asset);
+            _agentHelpers[0].Complete();
+
+            Advance(2f);
+
+            Assert.That(_soundHelper.ReleasedAssets, Is.Empty);
+        }
+
+        [Test]
+        public void QueueWarning_UsesHysteresisWithoutDroppingRequests()
+        {
+            _manager.SetSoundCacheSettings(30f, 64, 3, 1);
+            AddGroup("UISound", SoundOverflowPolicy.QueueNonLooping, 1);
+            var startedIds = new List<int>();
+            _manager.PlaySoundSuccess += (_, args) => startedIds.Add(args.SerialId);
+            var serialIds = new List<int>();
+            serialIds.Add(_manager.PlaySound("ui/tick", "UISound"));
+            _resourceManager.CompleteSuccess(0, new object());
+            for (int i = 0; i < 4; i++)
+            {
+                serialIds.Add(_manager.PlaySound("ui/tick", "UISound"));
+            }
+
+            Assert.That(_logHelper.Warnings, Has.Count.EqualTo(1));
+            for (int i = 0; i < 3; i++)
+            {
+                _agentHelpers[0].Complete();
+                Advance(0f);
+            }
+
+            for (int i = 0; i < 3; i++)
+            {
+                serialIds.Add(_manager.PlaySound("ui/tick", "UISound"));
+            }
+
+            Assert.That(_logHelper.Warnings, Has.Count.EqualTo(2));
+            while (startedIds.Count < serialIds.Count)
+            {
+                _agentHelpers[0].Complete();
+                Advance(0f);
+            }
+
+            Assert.That(startedIds, Is.EquivalentTo(serialIds));
+            Assert.That(_logHelper.Warnings[0], Does.Contain("UISound"));
+            Assert.That(_logHelper.Warnings[0], Does.Contain("QueueNonLooping"));
         }
 
         private void AddGroup(string name, SoundOverflowPolicy policy, int agentCount)

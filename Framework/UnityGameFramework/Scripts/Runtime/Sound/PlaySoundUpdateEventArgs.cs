@@ -121,7 +121,7 @@ namespace UnityGameFramework.Runtime
             playSoundUpdateEventArgs.SerialId = e.SerialId;
             playSoundUpdateEventArgs.SoundAssetName = e.SoundAssetName;
             playSoundUpdateEventArgs.SoundGroupName = e.SoundGroupName;
-            playSoundUpdateEventArgs.PlaySoundParams = e.PlaySoundParams;
+            playSoundUpdateEventArgs.PlaySoundParams = PlaySoundParams.Create(e.PlaySoundParams);
             playSoundUpdateEventArgs.Progress = e.Progress;
             playSoundUpdateEventArgs.BindingEntity = playSoundInfo.BindingEntity;
             playSoundUpdateEventArgs.UserData = playSoundInfo.UserData;
@@ -136,6 +136,11 @@ namespace UnityGameFramework.Runtime
             SerialId = 0;
             SoundAssetName = null;
             SoundGroupName = null;
+            if (PlaySoundParams != null)
+            {
+                ReferencePool.Release(PlaySoundParams);
+            }
+
             PlaySoundParams = null;
             Progress = 0f;
             BindingEntity = null;

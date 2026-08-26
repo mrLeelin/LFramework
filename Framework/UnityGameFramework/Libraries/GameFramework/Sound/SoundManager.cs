@@ -22,6 +22,7 @@ namespace GameFramework.Sound
         private readonly Dictionary<int, SoundPlayRequest> m_PendingRequests;
         private readonly Dictionary<string, SoundAssetEntry> m_SoundAssets;
         private readonly Dictionary<SoundPlaybackLaneKey, SoundPlaybackLane> m_PlaybackLanes;
+        private readonly HashSet<SoundGroup> m_QueueWarningRaisedGroups;
         private readonly LoadAssetCallbacks m_LoadAssetCallbacks;
         private IResourceManager m_ResourceManager;
         private ISoundHelper m_SoundHelper;
@@ -29,6 +30,10 @@ namespace GameFramework.Sound
         private double m_RealTime;
         private bool m_IsShuttingDown;
         private bool m_IsScheduling;
+        private float m_IdleReleaseSeconds;
+        private int m_MaxIdleEntryCount;
+        private int m_QueueWarningThreshold;
+        private int m_QueueWarningResetThreshold;
         private EventHandler<PlaySoundSuccessEventArgs> m_PlaySoundSuccessEventHandler;
         private EventHandler<PlaySoundFailureEventArgs> m_PlaySoundFailureEventHandler;
         private EventHandler<PlaySoundCanceledEventArgs> m_PlaySoundCanceledEventHandler;
@@ -44,6 +49,7 @@ namespace GameFramework.Sound
             m_PendingRequests = new Dictionary<int, SoundPlayRequest>();
             m_SoundAssets = new Dictionary<string, SoundAssetEntry>(StringComparer.Ordinal);
             m_PlaybackLanes = new Dictionary<SoundPlaybackLaneKey, SoundPlaybackLane>();
+            m_QueueWarningRaisedGroups = new HashSet<SoundGroup>();
             m_LoadAssetCallbacks = new LoadAssetCallbacks(LoadAssetSuccessCallback, LoadAssetFailureCallback, LoadAssetUpdateCallback, LoadAssetDependencyAssetCallback);
             m_ResourceManager = null;
             m_SoundHelper = null;
@@ -51,6 +57,10 @@ namespace GameFramework.Sound
             m_RealTime = 0d;
             m_IsShuttingDown = false;
             m_IsScheduling = false;
+            m_IdleReleaseSeconds = 2f;
+            m_MaxIdleEntryCount = 64;
+            m_QueueWarningThreshold = 64;
+            m_QueueWarningResetThreshold = 32;
             m_PlaySoundSuccessEventHandler = null;
             m_PlaySoundFailureEventHandler = null;
             m_PlaySoundCanceledEventHandler = null;
@@ -146,6 +156,8 @@ namespace GameFramework.Sound
             {
                 throw exception;
             }
+
+            EvictIdleSoundAssets();
         }
 
         /// <summary>
@@ -169,7 +181,6 @@ namespace GameFramework.Sound
         internal override void Shutdown()
         {
             m_IsShuttingDown = true;
-            StopAllLoadedSounds();
             int[] pendingSerialIds = new int[m_PendingRequests.Count];
             m_PendingRequests.Keys.CopyTo(pendingSerialIds, 0);
             foreach (int serialId in pendingSerialIds)
@@ -181,22 +192,29 @@ namespace GameFramework.Sound
                 }
             }
 
-            m_SoundGroups.Clear();
-            m_PlaybackLanes.Clear();
-            foreach (KeyValuePair<string, SoundAssetEntry> pair in m_SoundAssets)
+            foreach (KeyValuePair<string, SoundGroup> pair in m_SoundGroups)
             {
-                SoundAssetEntry entry = pair.Value;
+                pair.Value.ResetAllSoundAgents();
+            }
+
+            m_PlaybackLanes.Clear();
+            m_QueueWarningRaisedGroups.Clear();
+            SoundAssetEntry[] entries = new SoundAssetEntry[m_SoundAssets.Count];
+            m_SoundAssets.Values.CopyTo(entries, 0);
+            foreach (SoundAssetEntry entry in entries)
+            {
                 if (entry.IsLoading)
                 {
                     entry.ReleaseOnLoad = true;
                 }
-                else if (entry.AgentBorrowCount == 0)
+                else
                 {
-                    ReleaseSoundAsset(entry);
+                    ReleaseAssetEntry(entry);
                 }
             }
 
             m_SoundAssets.Clear();
+            m_SoundGroups.Clear();
         }
 
         /// <summary>
@@ -225,6 +243,44 @@ namespace GameFramework.Sound
             }
 
             m_SoundHelper = soundHelper;
+        }
+
+        /// <summary>
+        /// Sets sound asset retention and queue warning settings.
+        /// </summary>
+        public void SetSoundCacheSettings(float idleReleaseSeconds, int maxIdleEntryCount, int queueWarningThreshold, int queueWarningResetThreshold)
+        {
+            if (float.IsNaN(idleReleaseSeconds) || idleReleaseSeconds < 0f)
+            {
+                throw new GameFrameworkException("Idle release seconds is invalid.");
+            }
+
+            if (maxIdleEntryCount < 0)
+            {
+                throw new GameFrameworkException("Maximum idle sound entry count is invalid.");
+            }
+
+            if (queueWarningThreshold <= 0)
+            {
+                throw new GameFrameworkException("Queue warning threshold is invalid.");
+            }
+
+            if (queueWarningResetThreshold < 0 || queueWarningResetThreshold >= queueWarningThreshold)
+            {
+                throw new GameFrameworkException("Queue warning reset threshold is invalid.");
+            }
+
+            m_IdleReleaseSeconds = idleReleaseSeconds;
+            m_MaxIdleEntryCount = maxIdleEntryCount;
+            m_QueueWarningThreshold = queueWarningThreshold;
+            m_QueueWarningResetThreshold = queueWarningResetThreshold;
+            m_QueueWarningRaisedGroups.Clear();
+            foreach (KeyValuePair<string, SoundGroup> pair in m_SoundGroups)
+            {
+                OnQueuedRequestCountChanged(pair.Value);
+            }
+
+            EvictIdleSoundAssets();
         }
 
         /// <summary>
@@ -518,6 +574,11 @@ namespace GameFramework.Sound
         /// <returns>澹伴煶鐨勫簭鍒楃紪鍙枫€?/returns>
         public int PlaySound(string soundAssetName, string soundGroupName, int priority, PlaySoundParams playSoundParams, object userData)
         {
+            if (m_IsShuttingDown)
+            {
+                throw new GameFrameworkException("Sound manager is shutting down.");
+            }
+
             if (m_ResourceManager == null)
             {
                 throw new GameFrameworkException("You must set resource manager first.");
@@ -560,13 +621,19 @@ namespace GameFramework.Sound
                     if (m_PlaySoundFailureEventHandler != null)
                     {
                         PlaySoundFailureEventArgs eventArgs = PlaySoundFailureEventArgs.Create(serialId, soundAssetName, soundGroupName, playSoundParams, errorCode.Value, errorMessage, true, userData);
+                        Exception callbackException = null;
                         try
                         {
-                            m_PlaySoundFailureEventHandler(this, eventArgs);
+                            callbackException = InvokePlaySoundFailureHandlers(eventArgs);
                         }
                         finally
                         {
                             ReferencePool.Release(eventArgs);
+                        }
+
+                        if (callbackException != null)
+                        {
+                            throw callbackException;
                         }
 
                         return serialId;
@@ -589,6 +656,7 @@ namespace GameFramework.Sound
             SoundAssetEntry entry = null;
             if (m_SoundAssets.TryGetValue(soundAssetName, out entry))
             {
+                AttachRequestToEntry(request, entry);
                 if (entry.IsLoading)
                 {
                     entry.ReleaseOnLoad = false;
@@ -620,6 +688,7 @@ namespace GameFramework.Sound
             }
 
             entry = new SoundAssetEntry(soundAssetName);
+            AttachRequestToEntry(request, entry);
             request.WaitedForLoad = true;
             request.State = SoundPlayRequestState.WaitingAsset;
             entry.LoadingRequests.Add(request);
@@ -771,6 +840,7 @@ namespace GameFramework.Sound
 
         private void RetainAgentBorrow(SoundAssetEntry entry)
         {
+            entry.IsIdle = false;
             entry.AgentBorrowCount++;
         }
 
@@ -784,11 +854,51 @@ namespace GameFramework.Sound
 
             if (entry.AgentBorrowCount == 0)
             {
-                entry.IdleSince = GetRealTime();
                 if (m_IsShuttingDown || entry.ReleaseWhenIdle)
                 {
-                    ReleaseSoundAsset(entry);
+                    ReleaseAssetEntry(entry);
+                    return;
                 }
+
+                TryMarkEntryIdle(entry);
+            }
+        }
+
+        private void AttachRequestToEntry(SoundPlayRequest request, SoundAssetEntry entry)
+        {
+            request.AssetEntry = entry;
+            entry.PendingRequestCount++;
+            entry.IsIdle = false;
+            if (request.SoundGroup.OverflowPolicy == SoundOverflowPolicy.QueueNonLooping)
+            {
+                request.CountsTowardQueue = true;
+                request.SoundGroup.IncrementQueuedRequestCount();
+            }
+        }
+
+        private void DetachRequestFromEntry(SoundPlayRequest request)
+        {
+            SoundAssetEntry entry = request.AssetEntry;
+            request.AssetEntry = null;
+            if (entry != null)
+            {
+                entry.LoadingRequests.Remove(request);
+                entry.PendingRequestCount--;
+                if (entry.PendingRequestCount < 0)
+                {
+                    throw new GameFrameworkException("Sound asset entry pending request count is invalid.");
+                }
+            }
+
+            if (request.CountsTowardQueue)
+            {
+                request.CountsTowardQueue = false;
+                request.SoundGroup.DecrementQueuedRequestCount();
+            }
+
+            if (entry != null)
+            {
+                TryMarkEntryIdle(entry);
             }
         }
 
@@ -935,6 +1045,7 @@ namespace GameFramework.Sound
             request.State = SoundPlayRequestState.Started;
             RemoveSoundRequestFromLane(request);
             m_PendingRequests.Remove(request.SerialId);
+            DetachRequestFromEntry(request);
             try
             {
                 if (m_PlaySoundSuccessEventHandler != null)
@@ -942,11 +1053,21 @@ namespace GameFramework.Sound
                     PlaySoundSuccessEventArgs eventArgs = PlaySoundSuccessEventArgs.Create(request.SerialId, request.SoundAssetName, soundAgent, loadDuration, request.UserData);
                     try
                     {
-                        m_PlaySoundSuccessEventHandler(this, eventArgs);
-                    }
-                    catch (Exception exception)
-                    {
-                        callbackException = exception;
+                        Delegate[] handlers = m_PlaySoundSuccessEventHandler.GetInvocationList();
+                        foreach (EventHandler<PlaySoundSuccessEventArgs> handler in handlers)
+                        {
+                            try
+                            {
+                                handler(this, eventArgs);
+                            }
+                            catch (Exception exception)
+                            {
+                                if (callbackException == null)
+                                {
+                                    callbackException = exception;
+                                }
+                            }
+                        }
                     }
                     finally
                     {
@@ -973,14 +1094,9 @@ namespace GameFramework.Sound
             bool hasFailureHandler = m_PlaySoundFailureEventHandler != null;
             Exception callbackException = null;
             request.State = SoundPlayRequestState.Failed;
-            SoundAssetEntry entry = null;
-            if (m_SoundAssets.TryGetValue(request.SoundAssetName, out entry))
-            {
-                entry.LoadingRequests.Remove(request);
-            }
-
             RemoveSoundRequestFromLane(request);
             m_PendingRequests.Remove(request.SerialId);
+            DetachRequestFromEntry(request);
             try
             {
                 if (hasFailureHandler)
@@ -988,11 +1104,7 @@ namespace GameFramework.Sound
                     PlaySoundFailureEventArgs eventArgs = PlaySoundFailureEventArgs.Create(request.SerialId, request.SoundAssetName, request.SoundGroup.Name, request.PlaySoundParams, errorCode, errorMessage, isPrimaryFailure, request.UserData);
                     try
                     {
-                        m_PlaySoundFailureEventHandler(this, eventArgs);
-                    }
-                    catch (Exception exception)
-                    {
-                        callbackException = exception;
+                        callbackException = InvokePlaySoundFailureHandlers(eventArgs);
                     }
                     finally
                     {
@@ -1008,6 +1120,28 @@ namespace GameFramework.Sound
             return callbackException ?? (hasFailureHandler ? null : new GameFrameworkException(errorMessage));
         }
 
+        private Exception InvokePlaySoundFailureHandlers(PlaySoundFailureEventArgs eventArgs)
+        {
+            Exception firstException = null;
+            Delegate[] handlers = m_PlaySoundFailureEventHandler.GetInvocationList();
+            foreach (EventHandler<PlaySoundFailureEventArgs> handler in handlers)
+            {
+                try
+                {
+                    handler(this, eventArgs);
+                }
+                catch (Exception exception)
+                {
+                    if (firstException == null)
+                    {
+                        firstException = exception;
+                    }
+                }
+            }
+
+            return firstException;
+        }
+
         private void CancelRequest(SoundPlayRequest request)
         {
             SoundPlayRequest pendingRequest = null;
@@ -1017,8 +1151,8 @@ namespace GameFramework.Sound
             }
 
             request.State = SoundPlayRequestState.Cancelled;
-            SoundAssetEntry entry = null;
-            if (m_SoundAssets.TryGetValue(request.SoundAssetName, out entry))
+            SoundAssetEntry entry = request.AssetEntry;
+            if (entry != null)
             {
                 entry.LoadingRequests.Remove(request);
                 if (entry.IsLoading && entry.LoadingRequests.Count == 0)
@@ -1029,6 +1163,7 @@ namespace GameFramework.Sound
 
             RemoveSoundRequestFromLane(request);
             m_PendingRequests.Remove(request.SerialId);
+            DetachRequestFromEntry(request);
             try
             {
                 if (m_PlaySoundCanceledEventHandler != null)
@@ -1070,7 +1205,75 @@ namespace GameFramework.Sound
             ReferencePool.Release(request);
         }
 
-        private void ReleaseSoundAsset(SoundAssetEntry entry)
+        private void TryMarkEntryIdle(SoundAssetEntry entry)
+        {
+            if (entry.Released || entry.IsLoading || entry.Asset == null || entry.PendingRequestCount != 0 || entry.AgentBorrowCount != 0)
+            {
+                return;
+            }
+
+            if (!entry.IsIdle)
+            {
+                entry.IsIdle = true;
+                entry.IdleSince = GetRealTime();
+            }
+        }
+
+        private void EvictIdleSoundAssets()
+        {
+            if (m_IsShuttingDown || m_SoundAssets.Count == 0)
+            {
+                return;
+            }
+
+            List<SoundAssetEntry> idleEntries = new List<SoundAssetEntry>();
+            foreach (KeyValuePair<string, SoundAssetEntry> pair in m_SoundAssets)
+            {
+                SoundAssetEntry entry = pair.Value;
+                if (entry.IsIdle && !entry.Released)
+                {
+                    idleEntries.Add(entry);
+                }
+            }
+
+            idleEntries.Sort((left, right) =>
+            {
+                int timeComparison = left.IdleSince.CompareTo(right.IdleSince);
+                return timeComparison != 0 ? timeComparison : string.CompareOrdinal(left.SoundAssetName, right.SoundAssetName);
+            });
+
+            int retainedIdleCount = idleEntries.Count;
+            foreach (SoundAssetEntry entry in idleEntries)
+            {
+                if (GetRealTime() - entry.IdleSince + 0.0001d >= m_IdleReleaseSeconds)
+                {
+                    ReleaseAssetEntry(entry);
+                    retainedIdleCount--;
+                }
+            }
+
+            int excessIdleCount = retainedIdleCount - m_MaxIdleEntryCount;
+            if (excessIdleCount <= 0)
+            {
+                return;
+            }
+
+            foreach (SoundAssetEntry entry in idleEntries)
+            {
+                if (excessIdleCount <= 0)
+                {
+                    break;
+                }
+
+                if (!entry.Released)
+                {
+                    ReleaseAssetEntry(entry);
+                    excessIdleCount--;
+                }
+            }
+        }
+
+        private void ReleaseAssetEntry(SoundAssetEntry entry)
         {
             if (entry.Released)
             {
@@ -1078,16 +1281,18 @@ namespace GameFramework.Sound
             }
 
             entry.Released = true;
+            entry.IsIdle = false;
             SoundAssetEntry cachedEntry = null;
-            if (!m_IsShuttingDown && m_SoundAssets.TryGetValue(entry.SoundAssetName, out cachedEntry) && ReferenceEquals(cachedEntry, entry))
+            if (m_SoundAssets.TryGetValue(entry.SoundAssetName, out cachedEntry) && ReferenceEquals(cachedEntry, entry))
             {
                 m_SoundAssets.Remove(entry.SoundAssetName);
             }
 
-            if (entry.Asset != null)
+            object asset = entry.Asset;
+            entry.Asset = null;
+            if (asset != null)
             {
-                m_SoundHelper.ReleaseSoundAsset(entry.Asset);
-                entry.Asset = null;
+                m_SoundHelper.ReleaseSoundAsset(asset);
             }
         }
 
@@ -1102,8 +1307,27 @@ namespace GameFramework.Sound
             entry.ReleaseWhenIdle = true;
             if (entry.AgentBorrowCount == 0)
             {
-                ReleaseSoundAsset(entry);
+                ReleaseAssetEntry(entry);
             }
+        }
+
+        private void OnQueuedRequestCountChanged(SoundGroup soundGroup)
+        {
+            int queuedRequestCount = soundGroup.QueuedRequestCount;
+            if (queuedRequestCount <= m_QueueWarningResetThreshold)
+            {
+                m_QueueWarningRaisedGroups.Remove(soundGroup);
+                return;
+            }
+
+            if (m_IsShuttingDown || queuedRequestCount < m_QueueWarningThreshold || !m_QueueWarningRaisedGroups.Add(soundGroup))
+            {
+                return;
+            }
+
+            GameFrameworkLog.Warning(Utility.Text.Format(
+                "Sound group '{0}' queued request count reached {1}, agent count is {2}, overflow policy is '{3}'.",
+                soundGroup.Name, queuedRequestCount, soundGroup.SoundAgentCount, soundGroup.OverflowPolicy));
         }
 
         private int[] GetLoadingRequestSerialIds(SoundAssetEntry entry)
@@ -1122,7 +1346,7 @@ namespace GameFramework.Sound
         {
             return m_PendingRequests.TryGetValue(serialId, out request) &&
                    request.State == SoundPlayRequestState.WaitingAsset &&
-                   string.Equals(request.SoundAssetName, entry.SoundAssetName, StringComparison.Ordinal);
+                   ReferenceEquals(request.AssetEntry, entry);
         }
 
         private double GetRealTime()
@@ -1139,11 +1363,21 @@ namespace GameFramework.Sound
             }
 
             entry.IsLoading = false;
+            if (entry.Released)
+            {
+                if (soundAsset != null)
+                {
+                    m_SoundHelper.ReleaseSoundAsset(soundAsset);
+                }
+
+                return;
+            }
+
             entry.Asset = soundAsset;
             entry.LoadDuration = duration;
-            if (entry.ReleaseOnLoad)
+            if (m_IsShuttingDown || entry.ReleaseOnLoad)
             {
-                ReleaseSoundAsset(entry);
+                ReleaseAssetEntry(entry);
                 return;
             }
 
@@ -1196,8 +1430,17 @@ namespace GameFramework.Sound
             }
 
             entry.IsLoading = false;
+            if (entry.Released)
+            {
+                return;
+            }
+
             entry.Released = true;
-            m_SoundAssets.Remove(soundAssetName);
+            SoundAssetEntry cachedEntry = null;
+            if (m_SoundAssets.TryGetValue(soundAssetName, out cachedEntry) && ReferenceEquals(cachedEntry, entry))
+            {
+                m_SoundAssets.Remove(soundAssetName);
+            }
             int[] serialIds = GetLoadingRequestSerialIds(entry);
             entry.LoadingRequests.Clear();
             string appendErrorMessage = Utility.Text.Format("Load sound failure, asset name '{0}', status '{1}', error message '{2}'.", soundAssetName, status, errorMessage);
@@ -1252,13 +1495,20 @@ namespace GameFramework.Sound
                 PlaySoundUpdateEventArgs eventArgs = PlaySoundUpdateEventArgs.Create(request.SerialId, soundAssetName, request.SoundGroup.Name, request.PlaySoundParams, progress, request.UserData);
                 try
                 {
-                    m_PlaySoundUpdateEventHandler(this, eventArgs);
-                }
-                catch (Exception exception)
-                {
-                    if (firstException == null)
+                    Delegate[] handlers = m_PlaySoundUpdateEventHandler.GetInvocationList();
+                    foreach (EventHandler<PlaySoundUpdateEventArgs> handler in handlers)
                     {
-                        firstException = exception;
+                        try
+                        {
+                            handler(this, eventArgs);
+                        }
+                        catch (Exception exception)
+                        {
+                            if (firstException == null)
+                            {
+                                firstException = exception;
+                            }
+                        }
                     }
                 }
                 finally
@@ -1299,13 +1549,20 @@ namespace GameFramework.Sound
                 PlaySoundDependencyAssetEventArgs eventArgs = PlaySoundDependencyAssetEventArgs.Create(request.SerialId, soundAssetName, request.SoundGroup.Name, request.PlaySoundParams, dependencyAssetName, loadedCount, totalCount, request.UserData);
                 try
                 {
-                    m_PlaySoundDependencyAssetEventHandler(this, eventArgs);
-                }
-                catch (Exception exception)
-                {
-                    if (firstException == null)
+                    Delegate[] handlers = m_PlaySoundDependencyAssetEventHandler.GetInvocationList();
+                    foreach (EventHandler<PlaySoundDependencyAssetEventArgs> handler in handlers)
                     {
-                        firstException = exception;
+                        try
+                        {
+                            handler(this, eventArgs);
+                        }
+                        catch (Exception exception)
+                        {
+                            if (firstException == null)
+                            {
+                                firstException = exception;
+                            }
+                        }
                     }
                 }
                 finally

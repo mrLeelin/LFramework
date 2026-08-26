@@ -131,7 +131,7 @@ namespace UnityGameFramework.Runtime
             playSoundFailureEventArgs.SerialId = e.SerialId;
             playSoundFailureEventArgs.SoundAssetName = e.SoundAssetName;
             playSoundFailureEventArgs.SoundGroupName = e.SoundGroupName;
-            playSoundFailureEventArgs.PlaySoundParams = e.PlaySoundParams;
+            playSoundFailureEventArgs.PlaySoundParams = PlaySoundParams.Create(e.PlaySoundParams);
             playSoundFailureEventArgs.BindingEntity = playSoundInfo.BindingEntity;
             playSoundFailureEventArgs.ErrorCode = e.ErrorCode;
             playSoundFailureEventArgs.ErrorMessage = e.ErrorMessage;
@@ -148,6 +148,11 @@ namespace UnityGameFramework.Runtime
             SerialId = 0;
             SoundAssetName = null;
             SoundGroupName = null;
+            if (PlaySoundParams != null)
+            {
+                ReferencePool.Release(PlaySoundParams);
+            }
+
             PlaySoundParams = null;
             BindingEntity = null;
             ErrorCode = 0;

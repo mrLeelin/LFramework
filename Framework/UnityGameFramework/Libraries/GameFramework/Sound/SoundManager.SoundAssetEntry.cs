@@ -17,8 +17,10 @@ namespace GameFramework.Sound
             public readonly List<SoundPlayRequest> LoadingRequests = new List<SoundPlayRequest>();
             public object Asset;
             public float LoadDuration;
+            public int PendingRequestCount;
             public int AgentBorrowCount;
             public double IdleSince;
+            public bool IsIdle;
             public bool IsLoading;
             public bool ReleaseOnLoad;
             public bool ReleaseWhenIdle;
@@ -29,8 +31,10 @@ namespace GameFramework.Sound
                 SoundAssetName = soundAssetName;
                 Asset = null;
                 LoadDuration = 0f;
+                PendingRequestCount = 0;
                 AgentBorrowCount = 0;
                 IdleSince = 0d;
+                IsIdle = false;
                 IsLoading = true;
                 ReleaseOnLoad = false;
                 ReleaseWhenIdle = false;

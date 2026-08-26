@@ -141,7 +141,7 @@ namespace UnityGameFramework.Runtime
             playSoundDependencyAssetEventArgs.SerialId = e.SerialId;
             playSoundDependencyAssetEventArgs.SoundAssetName = e.SoundAssetName;
             playSoundDependencyAssetEventArgs.SoundGroupName = e.SoundGroupName;
-            playSoundDependencyAssetEventArgs.PlaySoundParams = e.PlaySoundParams;
+            playSoundDependencyAssetEventArgs.PlaySoundParams = PlaySoundParams.Create(e.PlaySoundParams);
             playSoundDependencyAssetEventArgs.DependencyAssetName = e.DependencyAssetName;
             playSoundDependencyAssetEventArgs.LoadedCount = e.LoadedCount;
             playSoundDependencyAssetEventArgs.TotalCount = e.TotalCount;
@@ -158,6 +158,11 @@ namespace UnityGameFramework.Runtime
             SerialId = 0;
             SoundAssetName = null;
             SoundGroupName = null;
+            if (PlaySoundParams != null)
+            {
+                ReferencePool.Release(PlaySoundParams);
+            }
+
             PlaySoundParams = null;
             DependencyAssetName = null;
             LoadedCount = 0;

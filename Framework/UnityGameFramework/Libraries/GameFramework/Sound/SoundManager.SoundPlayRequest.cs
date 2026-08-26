@@ -26,11 +26,13 @@ namespace GameFramework.Sound
             public int SerialId;
             public string SoundAssetName;
             public SoundGroup SoundGroup;
+            public SoundAssetEntry AssetEntry;
             public int ResourcePriority;
             public PlaySoundParams PlaySoundParams;
             public object UserData;
             public double RequestedRealTime;
             public bool WaitedForLoad;
+            public bool CountsTowardQueue;
             public SoundPlayRequestState State;
             public LinkedListNode<SoundPlayRequest> LaneNode;
 
@@ -40,11 +42,13 @@ namespace GameFramework.Sound
                 request.SerialId = serialId;
                 request.SoundAssetName = soundAssetName;
                 request.SoundGroup = soundGroup;
+                request.AssetEntry = null;
                 request.ResourcePriority = resourcePriority;
                 request.PlaySoundParams = playSoundParams;
                 request.UserData = userData;
                 request.RequestedRealTime = requestedRealTime;
                 request.WaitedForLoad = false;
+                request.CountsTowardQueue = false;
                 request.State = SoundPlayRequestState.Created;
                 request.LaneNode = null;
                 return request;
@@ -55,11 +59,13 @@ namespace GameFramework.Sound
                 SerialId = 0;
                 SoundAssetName = null;
                 SoundGroup = null;
+                AssetEntry = null;
                 ResourcePriority = 0;
                 PlaySoundParams = null;
                 UserData = null;
                 RequestedRealTime = 0d;
                 WaitedForLoad = false;
+                CountsTowardQueue = false;
                 State = SoundPlayRequestState.Created;
                 LaneNode = null;
             }

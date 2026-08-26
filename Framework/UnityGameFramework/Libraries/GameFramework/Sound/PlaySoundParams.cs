@@ -229,6 +229,31 @@ namespace GameFramework.Sound
         }
 
         /// <summary>
+        /// Creates a referenced copy of the specified play sound parameters.
+        /// </summary>
+        public static PlaySoundParams Create(PlaySoundParams source)
+        {
+            if (source == null)
+            {
+                return null;
+            }
+
+            PlaySoundParams playSoundParams = Create();
+            playSoundParams.m_Time = source.m_Time;
+            playSoundParams.m_MuteInSoundGroup = source.m_MuteInSoundGroup;
+            playSoundParams.m_Loop = source.m_Loop;
+            playSoundParams.m_Priority = source.m_Priority;
+            playSoundParams.m_VolumeInSoundGroup = source.m_VolumeInSoundGroup;
+            playSoundParams.m_FadeInSeconds = source.m_FadeInSeconds;
+            playSoundParams.m_Pitch = source.m_Pitch;
+            playSoundParams.m_PanStereo = source.m_PanStereo;
+            playSoundParams.m_SpatialBlend = source.m_SpatialBlend;
+            playSoundParams.m_MaxDistance = source.m_MaxDistance;
+            playSoundParams.m_DopplerLevel = source.m_DopplerLevel;
+            return playSoundParams;
+        }
+
+        /// <summary>
         /// 清理播放声音参数。
         /// </summary>
         public void Clear()

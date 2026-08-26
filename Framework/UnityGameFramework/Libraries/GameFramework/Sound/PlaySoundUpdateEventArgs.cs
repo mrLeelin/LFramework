@@ -95,7 +95,7 @@ namespace GameFramework.Sound
             playSoundUpdateEventArgs.SerialId = serialId;
             playSoundUpdateEventArgs.SoundAssetName = soundAssetName;
             playSoundUpdateEventArgs.SoundGroupName = soundGroupName;
-            playSoundUpdateEventArgs.PlaySoundParams = playSoundParams;
+            playSoundUpdateEventArgs.PlaySoundParams = PlaySoundParams.Create(playSoundParams);
             playSoundUpdateEventArgs.Progress = progress;
             playSoundUpdateEventArgs.UserData = userData;
             return playSoundUpdateEventArgs;
@@ -109,6 +109,11 @@ namespace GameFramework.Sound
             SerialId = 0;
             SoundAssetName = null;
             SoundGroupName = null;
+            if (PlaySoundParams != null && PlaySoundParams.Referenced)
+            {
+                ReferencePool.Release(PlaySoundParams);
+            }
+
             PlaySoundParams = null;
             Progress = 0f;
             UserData = null;

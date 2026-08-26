@@ -24,6 +24,7 @@ namespace GameFramework.Sound
             private SoundOverflowPolicy m_OverflowPolicy;
             private bool m_Mute;
             private float m_Volume;
+            private int m_QueuedRequestCount;
 
             /// <summary>
             /// 初始化声音组的新实例。
@@ -51,6 +52,7 @@ namespace GameFramework.Sound
                 m_SoundManager = soundManager;
                 m_SoundGroupHelper = soundGroupHelper;
                 m_SoundAgents = new List<SoundAgent>();
+                m_QueuedRequestCount = 0;
             }
 
             /// <summary>
@@ -180,6 +182,31 @@ namespace GameFramework.Sound
 
                     return false;
                 }
+            }
+
+            internal int QueuedRequestCount
+            {
+                get
+                {
+                    return m_QueuedRequestCount;
+                }
+            }
+
+            internal void IncrementQueuedRequestCount()
+            {
+                m_QueuedRequestCount++;
+                m_SoundManager.OnQueuedRequestCountChanged(this);
+            }
+
+            internal void DecrementQueuedRequestCount()
+            {
+                m_QueuedRequestCount--;
+                if (m_QueuedRequestCount < 0)
+                {
+                    throw new GameFrameworkException("Queued sound request count is invalid.");
+                }
+
+                m_SoundManager.OnQueuedRequestCountChanged(this);
             }
 
             /// <summary>
@@ -349,6 +376,14 @@ namespace GameFramework.Sound
                     {
                         soundAgent.Stop(fadeOutSeconds);
                     }
+                }
+            }
+
+            internal void ResetAllSoundAgents()
+            {
+                foreach (SoundAgent soundAgent in m_SoundAgents)
+                {
+                    soundAgent.Reset();
                 }
             }
         }
