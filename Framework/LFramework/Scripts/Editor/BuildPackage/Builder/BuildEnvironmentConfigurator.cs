@@ -9,6 +9,7 @@ using HybridCLR.Editor.Settings;
 #endif
 
 using LFramework.Editor.Builder.Pipeline;
+using LFramework.Editor.Builder.HybridCLR;
 using LFramework.Runtime.Settings;
 using UnityEditor;
 using UnityEditorInternal;
@@ -33,6 +34,10 @@ namespace LFramework.Editor.Builder
         {
             EnsureProjectSettingsSynchronized();
 
+#if HybridCLR_SUPPORT
+            ValidateDheBuildConfiguration(context);
+#endif
+
             if (context?.BuildTarget == BuildTarget.Android)
             {
                 EnsurePreferredAndroidToolRoots();
@@ -49,9 +54,9 @@ namespace LFramework.Editor.Builder
                 return;
             }
 
-            var hotUpdateAssemblyNames = ResolveHotUpdateAssemblyNames(runtimeSetting);
-            SyncRuntimeSetting(runtimeSetting, hotUpdateAssemblyNames);
-            SyncHybridClrSettingsAsset(hotUpdateAssemblyNames);
+            var assemblyNames = ResolveConfiguredAssemblyNames(runtimeSetting);
+            SyncRuntimeSetting(runtimeSetting, assemblyNames);
+            SyncHybridClrSettingsAsset(runtimeSetting.loadMode, assemblyNames);
 #endif
 
 #if ADDRESSABLE_SUPPORT
@@ -74,17 +79,40 @@ namespace LFramework.Editor.Builder
         }
 
 #if HybridCLR_SUPPORT
-        private static string[] ResolveHotUpdateAssemblyNames(HybridCLRSetting runtimeSetting)
+        private static void ValidateDheBuildConfiguration(BuildPipelineContext context)
         {
-            var sourceAssemblies = runtimeSetting.hotfixAssembliesSort ?? new List<string>();
-            var results = new List<string>();
+            if (context?.BuildSetting == null || context.BuildSetting.buildType != BuildType.App)
+            {
+                return;
+            }
 
-            if (!string.IsNullOrWhiteSpace(runtimeSetting.logicMainDllName))
+            var runtimeSetting = SettingManager.GetSetting<HybridCLRSetting>();
+            if (runtimeSetting == null ||
+                runtimeSetting.loadMode != HybridCLRLoadMode.DifferentialHybridMetaVersion)
+            {
+                return;
+            }
+
+            HybridCLRBuildWorkflow.EnsureDheAvailable();
+            if (!context.BuildSetting.isbuildDll || !context.BuildSetting.isBuildResources)
+            {
+                throw new InvalidOperationException(
+                    "A DHE App build must enable both DLL and resource builds so the Player contains " +
+                    "fresh placeholder artifacts and produces a matching baseline snapshot.");
+            }
+        }
+
+        private static string[] ResolveConfiguredAssemblyNames(HybridCLRSetting runtimeSetting)
+        {
+            var sourceAssemblies = runtimeSetting.loadMode == HybridCLRLoadMode.DifferentialHybridMetaVersion
+                ? runtimeSetting.differentialHybridAssembliesSort ?? new List<string>()
+                : runtimeSetting.hotfixAssembliesSort ?? new List<string>();
+            var results = new List<string>(sourceAssemblies);
+            if (!string.IsNullOrWhiteSpace(runtimeSetting.logicMainDllName) &&
+                !results.Contains(runtimeSetting.logicMainDllName, StringComparer.Ordinal))
             {
                 results.Add(runtimeSetting.logicMainDllName);
             }
-
-            results.AddRange(sourceAssemblies);
 
             return results
                 .Where(name => !string.IsNullOrWhiteSpace(name))
@@ -93,25 +121,34 @@ namespace LFramework.Editor.Builder
                 .ToArray();
         }
 
-        private static void SyncRuntimeSetting(HybridCLRSetting runtimeSetting, string[] hotUpdateAssemblyNames)
+        private static void SyncRuntimeSetting(HybridCLRSetting runtimeSetting, string[] assemblyNames)
         {
-            var current = runtimeSetting.hotfixAssembliesSort ?? new List<string>();
-            if (current.SequenceEqual(hotUpdateAssemblyNames, StringComparer.Ordinal))
+            var current = runtimeSetting.loadMode == HybridCLRLoadMode.DifferentialHybridMetaVersion
+                ? runtimeSetting.differentialHybridAssembliesSort ?? new List<string>()
+                : runtimeSetting.hotfixAssembliesSort ?? new List<string>();
+            if (current.SequenceEqual(assemblyNames, StringComparer.Ordinal))
             {
                 return;
             }
 
-            runtimeSetting.hotfixAssembliesSort = hotUpdateAssemblyNames.ToList();
+            if (runtimeSetting.loadMode == HybridCLRLoadMode.DifferentialHybridMetaVersion)
+            {
+                runtimeSetting.differentialHybridAssembliesSort = assemblyNames.ToList();
+            }
+            else
+            {
+                runtimeSetting.hotfixAssembliesSort = assemblyNames.ToList();
+            }
             EditorUtility.SetDirty(runtimeSetting);
             AssetDatabase.SaveAssets();
 
             Debug.Log(
-                $"[BuildEnvironmentConfigurator] Updated runtime HybridCLR setting assemblies: {string.Join(", ", hotUpdateAssemblyNames)}");
+                $"[BuildEnvironmentConfigurator] Updated runtime HybridCLR setting assemblies: {string.Join(", ", assemblyNames)}");
         }
 
-        private static void SyncHybridClrSettingsAsset(string[] hotUpdateAssemblyNames)
+        private static void SyncHybridClrSettingsAsset(HybridCLRLoadMode loadMode, string[] assemblyNames)
         {
-            var asmdefAssets = hotUpdateAssemblyNames
+            var asmdefAssets = assemblyNames
                 .Select(FindAssemblyDefinitionAsset)
                 .Where(asset => asset != null)
                 .ToArray();
@@ -119,8 +156,42 @@ namespace LFramework.Editor.Builder
             var settings = HybridCLRSettings.Instance;
             bool changed = false;
 
-            changed |= UpdateStringArray(ref settings.hotUpdateAssemblies, Array.Empty<string>());
-            changed |= UpdateAsmdefArray(ref settings.hotUpdateAssemblyDefinitions, asmdefAssets);
+            if (loadMode == HybridCLRLoadMode.DifferentialHybridMetaVersion)
+            {
+                if (!HybridCLRBuildWorkflow.IsDheAvailable)
+                {
+                    Debug.LogError(
+                        "[BuildEnvironmentConfigurator] DHE mode requires a HybridCLR flagship package exposing the 8.11.1 MetaVersion APIs.");
+                    return;
+                }
+
+                changed |= UpdateStringArray(ref settings.hotUpdateAssemblies, Array.Empty<string>());
+                changed |= UpdateAsmdefArray(ref settings.hotUpdateAssemblyDefinitions,
+                    Array.Empty<AssemblyDefinitionAsset>());
+                if (!HybridCLRBuildWorkflow.TryUpdateDifferentialHybridAssemblies(
+                        settings,
+                        assemblyNames,
+                        out bool differentialChanged))
+                {
+                    Debug.LogError(
+                        "[BuildEnvironmentConfigurator] The installed HybridCLR package has no DHE assembly setting.");
+                    return;
+                }
+
+                changed |= differentialChanged;
+            }
+            else
+            {
+                changed |= UpdateStringArray(ref settings.hotUpdateAssemblies, Array.Empty<string>());
+                changed |= UpdateAsmdefArray(ref settings.hotUpdateAssemblyDefinitions, asmdefAssets);
+                if (HybridCLRBuildWorkflow.TryUpdateDifferentialHybridAssemblies(
+                        settings,
+                        Array.Empty<string>(),
+                        out bool differentialChanged))
+                {
+                    changed |= differentialChanged;
+                }
+            }
 
             if (!changed)
             {
@@ -129,7 +200,7 @@ namespace LFramework.Editor.Builder
 
             HybridCLRSettings.Save();
             Debug.Log(
-                $"[BuildEnvironmentConfigurator] Synchronized ProjectSettings/HybridCLRSettings.asset with assemblies: {string.Join(", ", hotUpdateAssemblyNames)}");
+                $"[BuildEnvironmentConfigurator] Synchronized ProjectSettings/HybridCLRSettings.asset for {loadMode}: {string.Join(", ", assemblyNames)}");
         }
 
         private static bool AssemblyDefinitionExists(string assemblyName)

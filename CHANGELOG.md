@@ -2,6 +2,23 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.3.7]
+
+### Added
+
+- Embedded the licensed HybridCLR 8.11.1 Editor, Runtime, plugin, and installer data inside `com.lframework.core`.
+- Added the Unity 6000.3.6f1 modified `Unity.IL2CPP.dll` and automatic SHA-256-verified installation for DHE builds.
+
+### Changed
+
+- Consumers now install HybridCLR through `com.lframework.core` without a separate `com.code-philosophy.hybridclr` package reference.
+
+## [0.3.6]
+
+### Changed
+
+- Updated the commercial HybridCLR DHE integration contract and validation baseline from flagship 8.3.0 to flagship 8.11.1.
+
 ## [0.3.5]
 - 增加 EntityComponent 和 UiComponent  的语法糖更容易获取到 EntityLogic 或者 Window
 

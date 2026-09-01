@@ -1,3 +1,7 @@
+using LFramework.Editor.Builder.HybridCLR;
+using LFramework.Runtime;
+using LFramework.Runtime.Settings;
+using UnityEditor;
 using UnityEngine;
 
 namespace LFramework.Editor.Builder.Pipeline.Tasks
@@ -46,6 +50,23 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
         {
             try
             {
+#if HybridCLR_SUPPORT
+                var hybridClrSetting = SettingManager.GetSetting<HybridCLRSetting>();
+                if (context.BuildSetting.isbuildDll && hybridClrSetting != null &&
+                    hybridClrSetting.loadMode == HybridCLRLoadMode.DifferentialHybridMetaVersion)
+                {
+                    HybridCLRBuildWorkflow.EnsureDheAvailable();
+                    BuildTarget target = context.PlatformConfig.GetBuildTarget();
+                    string backupPath = BuildingResource.BuildResourcePathHelper.GetBackupPath(
+                        context.BuildSetting);
+                    string snapshotDirectory = BuildDllsHelper.GetDheSnapshotDirectory(
+                        backupPath,
+                        target);
+                    HybridCLRBuildWorkflow.CreateAotSnapshot(target, snapshotDirectory);
+                    Debug.Log($"[PostprocessBuildTask] Created DHE AOT snapshot: {snapshotDirectory}");
+                }
+#endif
+
                 var handlers = context.EventHandlers;
                 if (handlers == null || handlers.Count == 0)
                 {

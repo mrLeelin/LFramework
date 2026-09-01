@@ -81,6 +81,12 @@ namespace LFramework.Runtime
 #if UNITY_EDITOR
                 result = LoadEditorHotfixAssemblies();
 #elif HybridCLR_SUPPORT
+                if (HybridClrSetting.loadMode == HybridCLRLoadMode.DifferentialHybridMetaVersion)
+                {
+                    bool loadPatchAssets = !GameSetting.isResourcesBuildIn && GameSetting.cdnType != CdnType.Local;
+                    result = await LoadDifferentialHybridAssemblies(loadPatchAssets);
+                }
+                else
                 if (GameSetting.isResourcesBuildIn || GameSetting.cdnType == CdnType.Local)
                 {
                     result = LoadEditorHotfixAssemblies();
@@ -187,6 +193,7 @@ namespace LFramework.Runtime
         private HotfixCodeResult LoadEditorHotfixAssemblies()
         {
             Assembly mainLogicAssembly = null;
+            var configuredAssemblies = GetConfiguredAssemblyNames();
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
             {
                 if (string.Compare(HybridClrSetting.logicMainDllName, asm.GetName().Name,
@@ -195,8 +202,7 @@ namespace LFramework.Runtime
                     mainLogicAssembly = asm;
                 }
 
-                foreach (var hotUpdateDllName in
-                         HybridClrSetting.hotfixAssembliesSort.Where(hotUpdateDllName =>
+                foreach (var hotUpdateDllName in configuredAssemblies.Where(hotUpdateDllName =>
                              hotUpdateDllName == asm.GetName().Name))
                 {
                     _hotfixAssemblies.Add(asm);
@@ -209,6 +215,25 @@ namespace LFramework.Runtime
             {
                 ResultType = LoadAssemblyResultType.Successful
             };
+        }
+
+        private IReadOnlyList<string> GetConfiguredAssemblyNames()
+        {
+            var configuredAssemblies = HybridClrSetting.loadMode == HybridCLRLoadMode.DifferentialHybridMetaVersion
+                ? HybridClrSetting.differentialHybridAssembliesSort
+                : HybridClrSetting.hotfixAssembliesSort;
+            var result = configuredAssemblies?
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Distinct(StringComparer.Ordinal)
+                .ToList() ?? new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(HybridClrSetting.logicMainDllName) &&
+                !result.Contains(HybridClrSetting.logicMainDllName, StringComparer.Ordinal))
+            {
+                result.Add(HybridClrSetting.logicMainDllName);
+            }
+
+            return result;
         }
 
 #if HybridCLR_SUPPORT
@@ -281,6 +306,218 @@ namespace LFramework.Runtime
 
 #if HybridCLR_SUPPORT
 
+        private async UniTask<HotfixCodeResult> LoadDifferentialHybridAssemblies(bool loadPatchAssets)
+        {
+            try
+            {
+                if (!TryResolveDheRuntimeMethods(
+                        out MethodInfo loadOriginalMethod,
+                        out MethodInfo loadPatchedMethod))
+                {
+                    return CreateDheError(
+                        "DHE mode requires a HybridCLR flagship runtime exposing the 8.11.1 MetaVersion APIs.");
+                }
+
+                var dllByAssembly = loadPatchAssets
+                    ? await LoadOptionalTaggedArtifactBytes(HybridClrSetting.defaultCodeDllLabel)
+                    : new Dictionary<string, byte[]>(StringComparer.Ordinal);
+                foreach (string placeholderName in dllByAssembly
+                             .Where(pair => pair.Value == null || pair.Value.Length <= 1)
+                             .Select(pair => pair.Key)
+                             .ToArray())
+                {
+                    dllByAssembly.Remove(placeholderName);
+                }
+
+                Dictionary<string, byte[]> currentMetaByAssembly = null;
+                Dictionary<string, byte[]> originalMetaByAssembly = null;
+                if (dllByAssembly.Count > 0)
+                {
+                    currentMetaByAssembly = await LoadTaggedArtifactBytes(
+                        HybridClrSetting.dheCurrentMetaLabel);
+                    originalMetaByAssembly = await LoadTaggedArtifactBytes(
+                        HybridClrSetting.dheOriginalMetaLabel);
+                }
+
+                foreach (string assemblyName in GetConfiguredAssemblyNames())
+                {
+                    LoadImageErrorCode errorCode;
+                    if (!dllByAssembly.TryGetValue(assemblyName, out byte[] dllBytes))
+                    {
+                        Log.Info($"Loading original DHE assembly '{assemblyName}'.");
+                        errorCode = InvokeDheRuntimeMethod(loadOriginalMethod, assemblyName);
+                    }
+                    else
+                    {
+                        if (!currentMetaByAssembly.TryGetValue(assemblyName, out byte[] currentMeta) ||
+                            currentMeta == null || currentMeta.Length <= 1 ||
+                            !originalMetaByAssembly.TryGetValue(assemblyName, out byte[] originalMeta) ||
+                            originalMeta == null || originalMeta.Length <= 1)
+                        {
+                            return CreateDheError(
+                                $"DHE patch metadata is incomplete for assembly '{assemblyName}'.");
+                        }
+
+                        Log.Info($"Loading patched DHE assembly '{assemblyName}'.");
+                        errorCode = InvokeDheRuntimeMethod(
+                            loadPatchedMethod,
+                            AESUtility.Decrypt(dllBytes),
+                            null,
+                            originalMeta,
+                            currentMeta);
+                    }
+
+                    if (errorCode != LoadImageErrorCode.OK)
+                    {
+                        return CreateDheError(
+                            $"Loading DHE assembly '{assemblyName}' failed with '{errorCode}'.");
+                    }
+
+                    Assembly loadedAssembly = AppDomain.CurrentDomain.GetAssemblies()
+                        .FirstOrDefault(assembly => string.Equals(
+                            assembly.GetName().Name,
+                            assemblyName,
+                            StringComparison.Ordinal));
+                    if (loadedAssembly == null)
+                    {
+                        return CreateDheError(
+                            $"DHE assembly '{assemblyName}' was loaded but is missing from the AppDomain.");
+                    }
+
+                    if (!_hotfixAssemblies.Contains(loadedAssembly))
+                    {
+                        _hotfixAssemblies.Add(loadedAssembly);
+                    }
+
+                    if (string.Equals(HybridClrSetting.logicMainDllName, assemblyName,
+                            StringComparison.Ordinal))
+                    {
+                        _mainLogicAssembly = loadedAssembly;
+                    }
+                }
+
+                return new HotfixCodeResult { ResultType = LoadAssemblyResultType.Successful };
+            }
+            catch (Exception exception)
+            {
+                return CreateDheError($"Loading DHE assemblies failed. {exception.Message}");
+            }
+        }
+
+        private async UniTask<Dictionary<string, byte[]>> LoadTaggedArtifactBytes(string label)
+        {
+            ResourceBatchHandle<TextAsset> handle = null;
+            try
+            {
+                handle = ResourceComponent.LoadAssetsByTagHandle<TextAsset>(label);
+                List<TextAsset> assets = await handle ?? new List<TextAsset>();
+                return IndexArtifactBytes(assets);
+            }
+            finally
+            {
+                handle?.Release();
+            }
+        }
+
+        private async UniTask<Dictionary<string, byte[]>> LoadOptionalTaggedArtifactBytes(string label)
+        {
+            try
+            {
+                return await LoadTaggedArtifactBytes(label);
+            }
+            catch (Exception exception)
+            {
+                Log.Warning(
+                    "Optional DHE patch label '{0}' is unavailable. Loading the original Player assemblies instead. {1}",
+                    label,
+                    exception.Message);
+                return new Dictionary<string, byte[]>(StringComparer.Ordinal);
+            }
+        }
+
+        private static Dictionary<string, byte[]> IndexArtifactBytes(IEnumerable<TextAsset> assets)
+        {
+            var result = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+            foreach (TextAsset asset in assets ?? Enumerable.Empty<TextAsset>())
+            {
+                if (asset == null)
+                {
+                    continue;
+                }
+
+                string assemblyName = NormalizeArtifactName(asset.name);
+                if (!string.IsNullOrWhiteSpace(assemblyName))
+                {
+                    byte[] bytes = asset.bytes;
+                    result[assemblyName] = bytes == null ? null : bytes.ToArray();
+                }
+            }
+
+            return result;
+        }
+
+        private static bool TryResolveDheRuntimeMethods(
+            out MethodInfo loadOriginalMethod,
+            out MethodInfo loadPatchedMethod)
+        {
+            Type runtimeApiType = typeof(HybridCLR.RuntimeApi);
+            loadOriginalMethod = runtimeApiType.GetMethod(
+                "LoadOriginalDifferentialHybridAssembly",
+                BindingFlags.Public | BindingFlags.Static,
+                null,
+                new[] { typeof(string) },
+                null);
+            loadPatchedMethod = runtimeApiType.GetMethod(
+                "LoadDifferentialHybridAssemblyWithMetaVersion",
+                BindingFlags.Public | BindingFlags.Static,
+                null,
+                new[] { typeof(byte[]), typeof(byte[]), typeof(byte[]), typeof(byte[]) },
+                null);
+            return loadOriginalMethod != null && loadPatchedMethod != null;
+        }
+
+        private static LoadImageErrorCode InvokeDheRuntimeMethod(MethodInfo method, params object[] arguments)
+        {
+            try
+            {
+                return (LoadImageErrorCode)method.Invoke(null, arguments);
+            }
+            catch (TargetInvocationException exception) when (exception.InnerException != null)
+            {
+                throw new InvalidOperationException(exception.InnerException.Message, exception.InnerException);
+            }
+        }
+
+        private static string NormalizeArtifactName(string assetName)
+        {
+            string result = assetName;
+            string[] suffixes = { ".bytes", ".dll", ".pdb", ".mv" };
+            bool removedSuffix;
+            do
+            {
+                removedSuffix = false;
+                foreach (string suffix in suffixes)
+                {
+                    if (result.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+                    {
+                        result = result.Substring(0, result.Length - suffix.Length);
+                        removedSuffix = true;
+                    }
+                }
+            } while (removedSuffix);
+
+            return result;
+        }
+
+        private static HotfixCodeResult CreateDheError(string message)
+        {
+            Log.Error(message);
+            return new HotfixCodeResult
+            {
+                ResultType = LoadAssemblyResultType.HotfixError,
+                Message = message
+            };
+        }
         /// <summary>
         /// 加载热更代码
         /// </summary>

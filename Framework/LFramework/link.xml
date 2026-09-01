@@ -2,4 +2,7 @@
   <assembly fullname="UnityGameFramework.Runtime" preserve="all"/>
   <assembly fullname="LFramework.Runtime" preserve="all"/>
   <assembly fullname="LFramework.Hotfix" preserve="all"/>
+  <assembly fullname="HybridCLR.Runtime" ignoreIfMissing="1">
+    <type fullname="HybridCLR.RuntimeApi" preserve="all"/>
+  </assembly>
 </linker>

@@ -1,6 +1,7 @@
 
 #if ADDRESSABLE_SUPPORT
 using System.Collections.Generic;
+using System.IO;
 using LFramework.Editor.Builder;
 using LFramework.Runtime.Settings;
 using UnityEditor;
@@ -82,6 +83,59 @@ namespace LFramework.Editor.Builder.BuildingResource
             return true;
         }
 
+        public bool RegisterDheArtifacts(
+            List<string> dllPaths,
+            List<string> currentMetaVersionPaths,
+            List<string> originalMetaVersionPaths,
+            HybridCLRSetting setting,
+            BuildType buildType)
+        {
+            if (!EnsureGroupExists(setting.codeAddressableGroupName, buildType))
+            {
+                return false;
+            }
+
+            var group = _settings.FindGroup(setting.codeAddressableGroupName);
+            if (!RegisterPaths(group, dllPaths, setting.defaultInitLabel,
+                    setting.defaultCodeDllLabel) ||
+                !RegisterPaths(group, currentMetaVersionPaths, setting.defaultInitLabel,
+                    setting.dheCurrentMetaLabel) ||
+                !RegisterPaths(group, originalMetaVersionPaths, setting.defaultInitLabel,
+                    setting.dheOriginalMetaLabel))
+            {
+                return false;
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            return true;
+        }
+
+        private bool RegisterPaths(AddressableAssetGroup group, IEnumerable<string> paths,
+            params string[] labels)
+        {
+            foreach (string path in paths ?? System.Linq.Enumerable.Empty<string>())
+            {
+                string assetPath = FullPathToUnityPath(path);
+                string guid = AssetDatabase.AssetPathToGUID(assetPath);
+                if (string.IsNullOrWhiteSpace(guid))
+                {
+                    Debug.LogError($"Unable to register DHE artifact because its asset GUID is missing: {path}");
+                    return false;
+                }
+
+                var entry = _settings.CreateOrMoveEntry(guid, group);
+                foreach (string label in labels)
+                {
+                    entry.SetLabel(label, true, true);
+                }
+
+                _settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryMoved, entry, true);
+            }
+
+            return true;
+        }
+
         public bool EnsureGroupExists(string groupName)
         {
             return EnsureGroupExists(groupName, BuildType.App);
@@ -120,7 +174,14 @@ namespace LFramework.Editor.Builder.BuildingResource
 
         private static string FullPathToUnityPath(string fullFilePath)
         {
-            return "Assets/" + fullFilePath.Replace(Application.dataPath + "/", "");
+            string normalizedPath = Path.GetFullPath(fullFilePath).Replace('\\', '/');
+            string dataPath = Path.GetFullPath(Application.dataPath).Replace('\\', '/');
+            if (!normalizedPath.StartsWith(dataPath + "/", System.StringComparison.OrdinalIgnoreCase))
+            {
+                return string.Empty;
+            }
+
+            return "Assets" + normalizedPath.Substring(dataPath.Length);
         }
     }
 }

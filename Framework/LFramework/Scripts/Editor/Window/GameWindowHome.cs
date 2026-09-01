@@ -711,7 +711,7 @@ namespace LFramework.Editor
         private static readonly string[][] KeyPackages = new string[][]
         {
             new[] { "com.tuyoogame.yooasset", "YooAsset", "资源管理" },
-            new[] { "com.code-philosophy.hybridclr", "HybridCLR", "热更新" },
+            new[] { "com.lframework.core", "HybridCLR", "热更新" },
             new[] { "com.cysharp.unitask", "UniTask", "异步框架" },
             new[] { "com.unity.render-pipelines.universal", "URP", "渲染管线" },
             new[] { "com.unity.addressables", "Addressables", "可寻址资源" },
