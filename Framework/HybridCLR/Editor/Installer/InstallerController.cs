@@ -388,6 +388,7 @@ namespace HybridCLR.Editor.Installer
                 }
             }
             InstallModifiedUnityIl2CppDll(version);
+            InstallBundledDheUnityIl2CppDll();
 #if UNITY_2023_1_OR_NEWER
             string deployDir = $"{SettingsUtil.LocalIl2CppDir}/build/deploy";
             string originalIl2CppExePath = GetExePath($"{deployDir}/il2cpp");
@@ -417,6 +418,26 @@ namespace HybridCLR.Editor.Installer
             {
                 Debug.LogError("Installation failed!");
             }
+        }
+
+        private static void InstallBundledDheUnityIl2CppDll()
+        {
+#if UNITY_2023_1_OR_NEWER
+            string sourceDll = Path.Combine(SettingsUtil.HybridCLRDataPathInPackage,
+                "ModifiedDlls", ModifiedDllVersion, "Unity.IL2CPP.dll");
+            if (!File.Exists(sourceDll))
+            {
+                throw new FileNotFoundException("The bundled DHE Unity.IL2CPP.dll was not found.", sourceDll);
+            }
+
+            ValidateModifiedDll(sourceDll);
+            string deploy2022Dir = Path.Combine(SettingsUtil.LocalIl2CppDir, "build", "deploy", "deploy-2022");
+            Directory.CreateDirectory(deploy2022Dir);
+            string destinationDll = Path.Combine(deploy2022Dir, "Unity.IL2CPP.dll");
+            File.Copy(sourceDll, destinationDll, true);
+            ValidateModifiedDll(destinationDll);
+            Debug.Log($"copy and verify bundled DHE Unity.IL2CPP.dll {sourceDll} => {destinationDll}");
+#endif
         }
 
         private void InstallModifiedUnityIl2CppDll(UnityVersion version)
