@@ -1,14 +1,196 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using HybridCLR.Editor.Settings;
+using HybridCLR.Editor.Installer;
 using LFramework.Editor.Builder;
+using LFramework.Editor.Builder.BuildingResource;
 using LFramework.Editor.Builder.HybridCLR;
+using LFramework.Editor.Builder.Pipeline.Pipelines;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace LFramework.Editor.Tests.BuildPackage
 {
     public class BuildDllsHelperTests
     {
+        [Test]
+        public void YooAssetDllRegistrar_JoinsTagsWithYooAssetDelimiter()
+        {
+            Type registrarType = Type.GetType(
+                "LFramework.Editor.Builder.BuildingResource.YooAssetDllRegistrar, LFramework.Editor");
+            Assert.That(registrarType, Is.Not.Null);
+
+            MethodInfo method = registrarType.GetMethod(
+                "JoinAssetTags",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null,
+                "Expected YooAssetDllRegistrar.JoinAssetTags to own YooAsset tag serialization.");
+
+            string result = (string)method.Invoke(null, new object[]
+            {
+                new[] { "init_assets", "code_dll", "init_assets", " " }
+            });
+
+            Assert.That(result, Is.EqualTo("init_assets;code_dll"));
+        }
+
+        [Test]
+        public void ResourceBuildPipeline_PreparesEnvironmentBeforeBuildingDlls()
+        {
+            var taskNames = new ResourceBuildPipeline().GetTasks()
+                .Select(task => task.GetType().Name)
+                .ToArray();
+
+            Assert.That(taskNames, Is.EqualTo(new[]
+            {
+                "PrepareBuildEnvironmentTask",
+                "BuildDllTask",
+                "BuildResourcesTask"
+            }));
+        }
+
+        [Test]
+        public void BuildResourcesService_RejectsMissingBuildSettings()
+        {
+            Assert.Throws<ArgumentNullException>(() => BuildResourcesService.Build(null));
+        }
+
+        [Test]
+        public void BuildEnvironmentConfigurator_RejectsMissingProjectHybridClrSetting()
+        {
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                BuildEnvironmentConfigurator.ValidateRuntimeSettingForBuild(null));
+
+            Assert.That(exception.Message, Does.Contain("ProjectSettingSelector"));
+        }
+
+        [Test]
+        public void AddressableDllRegistrar_ReusesExistingGroupIdentity()
+        {
+            Type settingsType = Type.GetType(
+                "UnityEditor.AddressableAssets.Settings.AddressableAssetSettings, Unity.Addressables.Editor");
+            Assert.That(settingsType, Is.Not.Null);
+
+            MethodInfo createSettings = settingsType.GetMethod(
+                "Create",
+                BindingFlags.Static | BindingFlags.Public,
+                null,
+                new[] { typeof(string), typeof(string), typeof(bool), typeof(bool) },
+                null);
+            Assert.That(createSettings, Is.Not.Null);
+
+            object settings = createSettings.Invoke(null, new object[]
+            {
+                "Assets",
+                $"LFrameworkAddressableRegistrarTests_{Guid.NewGuid():N}",
+                false,
+                false
+            });
+            try
+            {
+                Type registrarType = Type.GetType(
+                    "LFramework.Editor.Builder.BuildingResource.AddressableDllRegistrar, LFramework.Editor");
+                Assert.That(registrarType, Is.Not.Null);
+
+                ConstructorInfo constructor = registrarType.GetConstructor(
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                    null,
+                    new[] { settingsType },
+                    null);
+                Assert.That(constructor, Is.Not.Null,
+                    "Expected an injectable AddressableDllRegistrar constructor for deterministic group updates.");
+
+                object registrar = constructor.Invoke(new object[] { settings });
+                MethodInfo ensureGroup = registrarType.GetMethod(
+                    "EnsureGroupExists",
+                    BindingFlags.Instance | BindingFlags.Public);
+                Assert.That(ensureGroup, Is.Not.Null);
+
+                Assert.That(ensureGroup.Invoke(registrar, new object[] { "Update_Code" }), Is.True);
+                MethodInfo findGroup = settingsType.GetMethod(
+                    "FindGroup",
+                    BindingFlags.Instance | BindingFlags.Public,
+                    null,
+                    new[] { typeof(string) },
+                    null);
+                Assert.That(findGroup, Is.Not.Null);
+
+                object firstGroup = findGroup.Invoke(settings, new object[] { "Update_Code" });
+                Assert.That(firstGroup, Is.Not.Null);
+                string firstGuid = (string)firstGroup.GetType().GetProperty("Guid")?.GetValue(firstGroup);
+                Assert.That(firstGuid, Is.Not.Empty);
+
+                Assert.That(ensureGroup.Invoke(registrar, new object[] { "Update_Code" }), Is.True);
+                object secondGroup = findGroup.Invoke(settings, new object[] { "Update_Code" });
+                string secondGuid = (string)secondGroup?.GetType().GetProperty("Guid")?.GetValue(secondGroup);
+
+                Assert.That(secondGroup, Is.SameAs(firstGroup));
+                Assert.That(secondGuid, Is.EqualTo(firstGuid));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate((UnityEngine.Object)settings);
+            }
+        }
+
+        [Test]
+        public void AddressableBuildSystem_RejectsReportedBuildErrors()
+        {
+            Type buildSystemType = Type.GetType(
+                "LFramework.Editor.Builder.BuildingResource.AddressableBuildSystem, LFramework.Editor");
+            Assert.That(buildSystemType, Is.Not.Null);
+
+            MethodInfo method = buildSystemType.GetMethod(
+                "ThrowIfBuildFailed",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null,
+                "Expected AddressableBuildSystem.ThrowIfBuildFailed to centralize error propagation.");
+
+            var exception = Assert.Throws<TargetInvocationException>(() =>
+                method.Invoke(null, new object[] { "catalog failed" }));
+            Assert.That(exception.InnerException, Is.TypeOf<InvalidOperationException>());
+            Assert.That(exception.InnerException.Message, Does.Contain("catalog failed"));
+
+            Assert.DoesNotThrow(() => method.Invoke(null, new object[] { string.Empty }));
+        }
+
+#if LFRAMEWORK_HYBRIDCLR_DHE
+        [Test]
+        public void ValidateDhePatchSet_RejectsPartialAssemblySets()
+        {
+            Type hotfixType = Type.GetType(
+                "LFramework.Runtime.HotfixComponent, LFramework.Runtime");
+            Assert.That(hotfixType, Is.Not.Null);
+
+            MethodInfo method = hotfixType.GetMethod(
+                "ValidateDhePatchSet",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null,
+                "Expected HotfixComponent.ValidateDhePatchSet to enforce atomic DHE patches.");
+
+            var configured = new[] { "Foundation.Hotfix", "Game.Hotfix" };
+            var noPatch = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+            var partialPatch = new Dictionary<string, byte[]>(StringComparer.Ordinal)
+            {
+                ["Game.Hotfix"] = new byte[] { 1, 2 }
+            };
+            var completePatch = new Dictionary<string, byte[]>(StringComparer.Ordinal)
+            {
+                ["Foundation.Hotfix"] = new byte[] { 1, 2 },
+                ["Game.Hotfix"] = new byte[] { 3, 4 }
+            };
+
+            Assert.That(method.Invoke(null, new object[] { configured, noPatch }), Is.Null);
+            Assert.That(
+                method.Invoke(null, new object[] { configured, partialPatch }),
+                Does.Contain("Foundation.Hotfix"));
+            Assert.That(method.Invoke(null, new object[] { configured, completePatch }), Is.Null);
+        }
+#endif
+
         [TestCase(BuildType.App, true)]
         [TestCase(BuildType.ResourcesUpdate, true)]
         public void ShouldCopyAotDlls_MatchesBuildType(BuildType buildType, bool expected)
@@ -47,33 +229,116 @@ namespace LFramework.Editor.Tests.BuildPackage
             Assert.That(HybridCLRBuildWorkflow.IsRequiredVersion(version), Is.EqualTo(expected));
         }
 
+        [TestCase(true, "8.11.1", "8.11.1", true, true)]
+        [TestCase(false, "8.11.1", "8.11.1", true, false)]
+        [TestCase(true, "8.11.0", "8.11.1", true, false)]
+        [TestCase(true, "8.11.1", "8.11.0", true, false)]
+        [TestCase(true, "8.11.1", "8.11.1", false, false)]
+        public void IsDheEnvironmentAvailable_RequiresAllRuntimeAndEditorPrerequisites(
+            bool hasRequiredApis,
+            string packageVersion,
+            string libil2cppVersion,
+            bool hasDheNativeFiles,
+            bool expected)
+        {
+            Assert.That(
+                HybridCLRBuildWorkflow.IsDheEnvironmentAvailable(
+                    hasRequiredApis,
+                    packageVersion,
+                    libil2cppVersion,
+                    hasDheNativeFiles),
+                Is.EqualTo(expected));
+        }
+
+        [TestCase("6000", 6000, false, true)]
+        [TestCase("6000.3.x", 6000, false, true)]
+        [TestCase("6000.2.x", 6000, false, false)]
+        [TestCase("2022", 2022, false, true)]
+        [TestCase("2022", 6000, false, false)]
+        public void InstallerManifestVersionMatchesUnityMajorLine(
+            string manifestVersion,
+            int unityMajor,
+            bool isTuanjie,
+            bool expected)
+        {
+            MethodInfo method = typeof(InstallerController).GetMethod(
+                "IsManifestVersionCompatible",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+
+            Assert.That(
+                method.Invoke(null, new object[] { manifestVersion, unityMajor, isTuanjie }),
+                Is.EqualTo(expected));
+        }
+
+#if LFRAMEWORK_HYBRIDCLR_DHE
         [Test]
         public void TryUpdateDifferentialHybridAssemblies_UpdatesCompatibleSettingsField()
         {
-            var settings = new CompatibleHybridClrSettings
+            var settings = ScriptableObject.CreateInstance<HybridCLRSettings>();
+            try
             {
-                differentialHybridAssemblies = new[] { "Old.Hotfix" }
-            };
+                settings.differentialHybridAssemblies = new[] { "Old.Hotfix" };
 
-            bool supported = HybridCLRBuildWorkflow.TryUpdateDifferentialHybridAssemblies(
-                settings,
-                new[] { "Foundation.Hotfix", "Game.Hotfix" },
-                out bool changed);
+                bool supported = HybridCLRBuildWorkflow.TryUpdateDifferentialHybridAssemblies(
+                    settings,
+                    new[] { "Foundation.Hotfix", "Game.Hotfix" },
+                    out bool changed);
 
-            Assert.That(supported, Is.True);
-            Assert.That(changed, Is.True);
-            Assert.That(settings.differentialHybridAssemblies,
-                Is.EqualTo(new[] { "Foundation.Hotfix", "Game.Hotfix" }));
+                Assert.That(supported, Is.True);
+                Assert.That(changed, Is.True);
+                Assert.That(settings.differentialHybridAssemblies,
+                    Is.EqualTo(new[] { "Foundation.Hotfix", "Game.Hotfix" }));
 
-            supported = HybridCLRBuildWorkflow.TryUpdateDifferentialHybridAssemblies(
-                settings,
-                new[] { "Foundation.Hotfix", "Game.Hotfix" },
-                out changed);
+                supported = HybridCLRBuildWorkflow.TryUpdateDifferentialHybridAssemblies(
+                    settings,
+                    new[] { "Foundation.Hotfix", "Game.Hotfix" },
+                    out changed);
 
-            Assert.That(supported, Is.True);
-            Assert.That(changed, Is.False);
+                Assert.That(supported, Is.True);
+                Assert.That(changed, Is.False);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(settings);
+            }
         }
+#endif
 
+#if LFRAMEWORK_HYBRIDCLR_DHE
+        [Test]
+        public void HasArtifactContent_RejectsPlaceholdersAndAcceptsGeneratedData()
+        {
+            string directory = Path.Combine(
+                Path.GetTempPath(),
+                $"LFrameworkHybridClrArtifact_{Guid.NewGuid():N}");
+            Directory.CreateDirectory(directory);
+            string placeholder = Path.Combine(directory, "placeholder.bytes");
+            string generated = Path.Combine(directory, "generated.bytes");
+            File.WriteAllBytes(placeholder, new byte[] { 1 });
+            File.WriteAllBytes(generated, new byte[] { 1, 2 });
+
+            try
+            {
+                Type helperType = Type.GetType("LFramework.Editor.BuildDllsHelper, LFramework.Editor");
+                MethodInfo method = helperType?.GetMethod(
+                    "HasArtifactContent",
+                    BindingFlags.Static | BindingFlags.NonPublic);
+                Assert.That(method, Is.Not.Null);
+
+                Assert.That(method.Invoke(null, new object[] { placeholder }), Is.False);
+                Assert.That(method.Invoke(null, new object[] { generated }), Is.True);
+                Assert.That(method.Invoke(null, new object[] { Path.Combine(directory, "missing.bytes") }),
+                    Is.False);
+            }
+            finally
+            {
+                Directory.Delete(directory, true);
+            }
+        }
+#endif
+
+#if LFRAMEWORK_HYBRIDCLR_DHE
         [Test]
         public void PrepareDheOutputDirectories_PreservesExpectedMetaAndRemovesStaleArtifacts()
         {
@@ -121,10 +386,30 @@ namespace LFramework.Editor.Tests.BuildPackage
                 }
             }
         }
+#endif
 
-        private sealed class CompatibleHybridClrSettings
+#if LFRAMEWORK_HYBRIDCLR_DHE
+        [Test]
+        public void ClearDifferentialHybridAssemblies_RemovesStaleDheConfiguration()
         {
-            public string[] differentialHybridAssemblies;
+            var settings = ScriptableObject.CreateInstance<HybridCLRSettings>();
+            try
+            {
+                settings.differentialHybridAssemblies = new[] { "Old.Hotfix" };
+
+                bool changed = BuildEnvironmentConfigurator.ClearDifferentialHybridAssemblies(settings);
+
+                Assert.That(changed, Is.True);
+                Assert.That(settings.differentialHybridAssemblies, Is.Empty);
+                Assert.That(
+                    BuildEnvironmentConfigurator.ClearDifferentialHybridAssemblies(settings),
+                    Is.False);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(settings);
+            }
         }
+#endif
     }
 }

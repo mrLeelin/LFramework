@@ -12,7 +12,8 @@
         "GameFramework",
         "GUID:975699c84dc47754e9dd12710e4bdb50",
         "Luban.Runtime",
-        "Luban.Editor"
+        "Luban.Editor",
+        "HybridCLR.Editor"
     ],
     "includePlatforms": [
         "Editor"

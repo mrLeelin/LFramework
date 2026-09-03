@@ -9,6 +9,37 @@ namespace LFramework.Editor.Builder.Pipeline.Pipelines
     /// </summary>
     public class ResourceBuildPipeline : IBuildPipeline
     {
+        private sealed class PrepareBuildEnvironmentTask : IBuildTask
+        {
+            public string TaskName => "Prepare Build Environment";
+            public string Description => "Synchronize and validate HybridCLR settings before resource generation";
+
+            public bool CanExecute(BuildPipelineContext context)
+            {
+                return context?.BuildSetting != null;
+            }
+
+            public BuildTaskResult Execute(BuildPipelineContext context)
+            {
+                if (context?.BuildSetting == null)
+                {
+                    return BuildTaskResult.CreateFailed(TaskName, "BuildSetting is null.");
+                }
+
+                try
+                {
+                    BuildEnvironmentConfigurator.Prepare(context);
+                    return BuildTaskResult.CreateSuccess(TaskName);
+                }
+                catch (System.Exception exception)
+                {
+                    return BuildTaskResult.CreateFailed(
+                        TaskName,
+                        $"Failed to prepare the build environment: {exception.Message}");
+                }
+            }
+        }
+
         /// <summary>
         /// 管线名称
         /// </summary>
@@ -27,10 +58,13 @@ namespace LFramework.Editor.Builder.Pipeline.Pipelines
         {
             return new List<IBuildTask>
             {
-                // 1. 构建 DLL（如果需要）
+                // 1. 同步并校验 HybridCLR 构建环境
+                new PrepareBuildEnvironmentTask(),
+
+                // 2. 构建 DLL（如果需要）
                 new BuildDllTask(),
 
-                // 2. 构建资源
+                // 3. 构建资源
                 new BuildResourcesTask()
             };
         }

@@ -50,10 +50,12 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
         {
             try
             {
-#if HybridCLR_SUPPORT
+#if HybridCLR_SUPPORT || LFRAMEWORK_HYBRIDCLR_DHE
                 var hybridClrSetting = SettingManager.GetSetting<HybridCLRSetting>();
+               
+#if LFRAMEWORK_HYBRIDCLR_DHE
                 if (context.BuildSetting.isbuildDll && hybridClrSetting != null &&
-                    hybridClrSetting.loadMode == HybridCLRLoadMode.DifferentialHybridMetaVersion)
+                    HybridCLRBuildWorkflow.IsDheEdition)
                 {
                     HybridCLRBuildWorkflow.EnsureDheAvailable();
                     BuildTarget target = context.PlatformConfig.GetBuildTarget();
@@ -65,6 +67,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                     HybridCLRBuildWorkflow.CreateAotSnapshot(target, snapshotDirectory);
                     Debug.Log($"[PostprocessBuildTask] Created DHE AOT snapshot: {snapshotDirectory}");
                 }
+#endif
 #endif
 
                 var handlers = context.EventHandlers;

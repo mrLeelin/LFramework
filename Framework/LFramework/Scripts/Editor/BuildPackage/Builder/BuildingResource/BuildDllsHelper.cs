@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-#if HybridCLR_SUPPORT
+#if HybridCLR_SUPPORT || LFRAMEWORK_HYBRIDCLR_DHE
 using HybridCLR.Editor;
 using HybridCLR.Editor.AOT;
 using HybridCLR.Editor.Commands;
@@ -31,41 +31,51 @@ namespace LFramework.Editor
 {
     public static class BuildDllsHelper
     {
-        public static bool CopyDll(BuildSetting buildSetting, HybridCLRSetting hybridClrSetting, string backAotFolder)
+        public static bool CopyDll(BuildSetting buildSetting, HybridCLRSetting hybridClrSetting,
+            string backAotFolder, BuildTarget target)
         {
-#if HybridCLR_SUPPORT
+#if HybridCLR_SUPPORT || LFRAMEWORK_HYBRIDCLR_DHE
+            if (buildSetting == null || hybridClrSetting == null)
+            {
+                Log.Error("HybridCLR build settings are missing.");
+                return false;
+            }
+
             var registrar = CreateRegistrar(buildSetting.ResourceSystem);
             if (registrar == null)
             {
                 return false;
             }
 
-            bool useDhe = IsDheEnabled(hybridClrSetting);
-            if (!useDhe && ShouldCopyAotDlls(buildSetting.buildType) &&
-                !CopyAotDllToProject(buildSetting, registrar, hybridClrSetting, backAotFolder))
+#if LFRAMEWORK_HYBRIDCLR_DHE
+            HybridCLRBuildWorkflow.EnsureDheAvailable();
+            var copied = buildSetting.buildType == BuildType.App
+                ? CopyDhePlaceholdersToProject(buildSetting, registrar, hybridClrSetting)
+                : CopyDheArtifactsToProject(
+                    buildSetting,
+                    registrar,
+                    hybridClrSetting,
+                    backAotFolder,
+                    target);
+            if (!copied)
             {
                 return false;
             }
-
-            if (useDhe)
+#else
             {
-                HybridCLRBuildWorkflow.EnsureDheAvailable();
-                bool copied = buildSetting.buildType == BuildType.App
-                    ? CopyDhePlaceholdersToProject(buildSetting, registrar, hybridClrSetting)
-                    : CopyDheArtifactsToProject(
-                        buildSetting,
-                        registrar,
-                        hybridClrSetting,
-                        backAotFolder);
-                if (!copied)
+                if (ShouldCopyAotDlls(buildSetting.buildType) &&
+                    !CopyAotDllToProject(buildSetting, registrar, hybridClrSetting, backAotFolder))
+                {
+                    return false;
+                }
+
+                if (!CopyHotfixDllToProject(buildSetting, registrar, hybridClrSetting, target))
                 {
                     return false;
                 }
             }
-            else if (!CopyHotfixDllToProject(buildSetting, registrar, hybridClrSetting))
-            {
-                return false;
-            }
+#endif
+
 #endif
 
             return true;
@@ -76,40 +86,44 @@ namespace LFramework.Editor
             return buildType == BuildType.App || buildType == BuildType.ResourcesUpdate;
         }
 
-        public static bool BuildDll(bool isBuildApp, string backAotFolder)
+        private static bool HasArtifactContent(string filePath)
         {
-#if HybridCLR_SUPPORT
-            CheckInstallHybridClr();
-            var hybridClrSetting = SettingManager.GetSetting<HybridCLRSetting>();
-            bool useDhe = IsDheEnabled(hybridClrSetting);
-            if (useDhe)
-            {
-                HybridCLRBuildWorkflow.EnsureDheAvailable();
-            }
+            return File.Exists(filePath) && new FileInfo(filePath).Length > 1;
+        }
 
+        public static bool BuildDll(bool isBuildApp, string backAotFolder, BuildTarget target)
+        {
+#if HybridCLR_SUPPORT || LFRAMEWORK_HYBRIDCLR_DHE
+            CheckInstallHybridClr();
+#if LFRAMEWORK_HYBRIDCLR_DHE
+            HybridCLRBuildWorkflow.EnsureDheAvailable();
+#endif
             if (isBuildApp)
             {
+                if (EditorUserBuildSettings.activeBuildTarget != target)
+                {
+                    throw new InvalidOperationException(
+                        $"HybridCLR App generation uses the active build target. " +
+                        $"Active='{EditorUserBuildSettings.activeBuildTarget}', requested='{target}'.");
+                }
+
                 PrebuildCommand.GenerateAll();
                 //构建整包
                 //Copy 裁剪aot 到 备份目录
-                BuildTarget target = EditorUserBuildSettings.activeBuildTarget;
-                if (!useDhe)
-                {
+#if !LFRAMEWORK_HYBRIDCLR_DHE
                     StripAOTAssembly(backAotFolder);
                     GenerateAOTGenericReference(target, backAotFolder);
-                }
+#endif
             }
             else
             {
                 //编译Dll
-                BuildTarget target = EditorUserBuildSettings.activeBuildTarget;
                 CompileDllCommand.CompileDll(target, EditorUserBuildSettings.development);
-                if (useDhe)
-                {
+#if LFRAMEWORK_HYBRIDCLR_DHE
                     HybridCLRBuildWorkflow.GenerateHotUpdateMetaVersionFiles(
                         GetDheSnapshotDirectory(backAotFolder, target),
                         target);
-                }
+#endif
             }
 
 #endif
@@ -117,13 +131,8 @@ namespace LFramework.Editor
             return true;
         }
 
-#if HybridCLR_SUPPORT
-        private static bool IsDheEnabled(HybridCLRSetting setting)
-        {
-            return setting != null &&
-                   setting.loadMode == HybridCLRLoadMode.DifferentialHybridMetaVersion;
-        }
-
+#if HybridCLR_SUPPORT || LFRAMEWORK_HYBRIDCLR_DHE
+#if LFRAMEWORK_HYBRIDCLR_DHE
         internal static string GetDheSnapshotDirectory(string backupPath, BuildTarget target)
         {
             return Path.GetFullPath(Path.Combine(
@@ -132,6 +141,7 @@ namespace LFramework.Editor
                 target.ToString(),
                 "AotSnapshot"));
         }
+#endif
 
         /// <summary>
         /// 根据 ResourceMode 创建对应的 DLL 资源注册器
@@ -142,13 +152,13 @@ namespace LFramework.Editor
             {
                 case ResourceMode.Addressable:
 #if ADDRESSABLE_SUPPORT
-                     return new AddressableDllRegistrar();
+                    return new AddressableDllRegistrar();
 #else
                     Log.Error("Addressable is not enabled. Define ADDRESSABLE_SUPPORT in Player Settings.");
                     return null;
 #endif
 
-                   
+
                 case ResourceMode.YooAsset:
 #if YOOASSET_SUPPORT
                     return new YooAssetDllRegistrar();
@@ -232,8 +242,14 @@ namespace LFramework.Editor
                 return;
             }
 
+            throw new InvalidOperationException(
+                $"HybridCLR is not installed or its package/native versions do not match. " +
+                $"Package='{hybridClrInstaller.PackageVersion}', " +
+                $"libil2cpp='{hybridClrInstaller.InstalledLibil2cppVersion}'.");
+            /*
             Debug.Log($"开始安装HybridClr, version={hybridClrInstaller.PackageVersion}");
             hybridClrInstaller.InstallDefaultHybridCLR();
+            */
         }
 
         private static bool CopyAotDllToProject(BuildSetting buildSetting, IDllResourceRegistrar registrar,
@@ -274,10 +290,10 @@ namespace LFramework.Editor
 
                 Debug.Log("AOT dll name : " + aotName);
                 var filePath = folder + "/" + aotName;
-                if (!File.Exists(filePath))
+                if (!HasArtifactContent(filePath))
                 {
-                    Debug.LogError("The AOT dll is not exist! " + filePath);
-                    continue;
+                    Debug.LogError("The AOT dll is missing or empty! " + filePath);
+                    return false;
                 }
 
                 var targetFilPath = aotInProjectFolder + "/" + aotName + ".bytes";
@@ -305,7 +321,8 @@ namespace LFramework.Editor
         }
 
         private static bool CopyHotfixDllToProject(BuildSetting buildSetting,
-            IDllResourceRegistrar registrar, HybridCLRSetting firstHybridClrSetting)
+            IDllResourceRegistrar registrar, HybridCLRSetting firstHybridClrSetting,
+            BuildTarget target)
         {
             var hotfixInProjectFolder = GetHotfixPathInProject(firstHybridClrSetting);
             if (Directory.Exists(hotfixInProjectFolder))
@@ -314,7 +331,7 @@ namespace LFramework.Editor
             }
 
             Directory.CreateDirectory(hotfixInProjectFolder);
-            var folder = GetHybridClrDataHOtUpdateDllsFolder(buildSetting);
+            var folder = GetHybridClrDataHOtUpdateDllsFolder(target);
             if (!Directory.Exists(folder))
             {
                 Debug.LogError($"The hotfix dlls folder is not exist! '{folder}'");
@@ -325,10 +342,10 @@ namespace LFramework.Editor
             foreach (var aotName in SettingsUtil.HotUpdateAssemblyFilesExcludePreserved)
             {
                 var filePath = folder + "/" + aotName;
-                if (!File.Exists(filePath))
+                if (!HasArtifactContent(filePath))
                 {
-                    Debug.LogError("The Hotfix dll is not exist! " + filePath);
-                    continue;
+                    Debug.LogError("The Hotfix dll is missing or empty! " + filePath);
+                    return false;
                 }
 
                 var targetFilPath = hotfixInProjectFolder + "/" + aotName + ".bytes";
@@ -355,6 +372,7 @@ namespace LFramework.Editor
             return true;
         }
 
+#if LFRAMEWORK_HYBRIDCLR_DHE
         private static bool CopyDhePlaceholdersToProject(
             BuildSetting buildSetting,
             IDllResourceRegistrar registrar,
@@ -401,12 +419,12 @@ namespace LFramework.Editor
             BuildSetting buildSetting,
             IDllResourceRegistrar registrar,
             HybridCLRSetting setting,
-            string backupPath)
+            string backupPath,
+            BuildTarget target)
         {
             string outputRoot = GetHotfixPathInProject(setting);
             IReadOnlyList<string> assemblyNames = GetConfiguredDheAssemblyNames(setting);
 
-            BuildTarget target = EditorUserBuildSettings.activeBuildTarget;
             string hotUpdateDirectory = SettingsUtil.GetHotUpdateDllsOutputDirByTarget(target);
             string currentMetaDirectory = HybridCLRBuildWorkflow.GetMetaVersionDirectory(
                 hotUpdateDirectory);
@@ -423,13 +441,14 @@ namespace LFramework.Editor
             }).ToList();
             foreach (var artifact in sourceArtifacts)
             {
-                if (!File.Exists(artifact.Dll) || !File.Exists(artifact.CurrentMeta) ||
-                    !File.Exists(artifact.OriginalMeta))
+                if (!HasArtifactContent(artifact.Dll) || !HasArtifactContent(artifact.CurrentMeta) ||
+                    !HasArtifactContent(artifact.OriginalMeta))
                 {
                     Debug.LogError(
                         $"DHE artifacts are incomplete for '{artifact.AssemblyName}'. " +
-                        $"DLL={File.Exists(artifact.Dll)}, currentMeta={File.Exists(artifact.CurrentMeta)}, " +
-                        $"originalMeta={File.Exists(artifact.OriginalMeta)}");
+                        $"DLL={DescribeArtifact(artifact.Dll)}, " +
+                        $"currentMeta={DescribeArtifact(artifact.CurrentMeta)}, " +
+                        $"originalMeta={DescribeArtifact(artifact.OriginalMeta)}");
                     return false;
                 }
             }
@@ -467,6 +486,11 @@ namespace LFramework.Editor
                 originalMetaPaths,
                 setting,
                 buildSetting.buildType);
+        }
+
+        private static string DescribeArtifact(string filePath)
+        {
+            return File.Exists(filePath) ? $"{new FileInfo(filePath).Length} bytes" : "missing";
         }
 
         private static void PrepareDheOutputDirectories(
@@ -523,7 +547,7 @@ namespace LFramework.Editor
 
         private static IReadOnlyList<string> GetConfiguredDheAssemblyNames(HybridCLRSetting setting)
         {
-            var assemblyNames = setting?.differentialHybridAssembliesSort?
+            var assemblyNames = setting?.hotfixAssembliesSort?
                 .Where(name => !string.IsNullOrWhiteSpace(name))
                 .Distinct(StringComparer.Ordinal)
                 .ToList() ?? new List<string>();
@@ -545,6 +569,7 @@ namespace LFramework.Editor
 
             return assemblyNames;
         }
+#endif
 
         [MenuItem("HybridCLR/Check Access Missing Metadata")]
         private static void CheckAccessMissingMetadata()
@@ -558,7 +583,8 @@ namespace LFramework.Editor
 
             // 第2个参数hotUpdateAssNames为热更新程序集列表。对于旗舰版本，该列表需要包含DHE程序集，即SettingsUtil.HotUpdateAndDHEAssemblyNamesIncludePreserved。
             var hybridClrSetting = SettingManager.GetSetting<HybridCLRSetting>();
-            if (IsDheEnabled(hybridClrSetting))
+#if LFRAMEWORK_HYBRIDCLR_DHE
+            if (HybridCLRBuildWorkflow.IsDheEdition)
             {
                 var hotUpdateAndDheAssemblies = SettingsUtil.HotUpdateAssemblyNamesIncludePreserved
                     .Concat(GetConfiguredDheAssemblyNames(hybridClrSetting))
@@ -567,6 +593,7 @@ namespace LFramework.Editor
                 CheckHotUpdateAssemblies(checker, target, hotUpdateAndDheAssemblies);
                 return;
             }
+#endif
 
             {
                 var checker = new MissingMetadataChecker(aotDir,
@@ -617,14 +644,12 @@ namespace LFramework.Editor
             return Application.dataPath + "/" + firstHybridClrSetting.aotDllFolderPath;
         }
 
-        private static string GetHybridClrDataHOtUpdateDllsFolder(BuildSetting buildSetting)
+        private static string GetHybridClrDataHOtUpdateDllsFolder(BuildTarget target)
         {
-            return GetHybridClrDataRoot() + "/" + "HotUpdateDlls" + "/" + buildSetting.builderTarget.ToString();
-        }
-
-        private static string GetHybridClrDataRoot()
-        {
-            return Application.dataPath + "/../" + "HybridCLRData";
+            string outputDirectory = SettingsUtil.GetHotUpdateDllsOutputDirByTarget(target);
+            return Path.IsPathRooted(outputDirectory)
+                ? outputDirectory
+                : Path.GetFullPath(Path.Combine(Application.dataPath, "..", outputDirectory));
         }
 
         private static string GetHybridClrBackUpFolder(string backUpPath)

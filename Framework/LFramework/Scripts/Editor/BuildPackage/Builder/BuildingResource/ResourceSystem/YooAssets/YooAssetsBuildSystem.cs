@@ -32,8 +32,8 @@ namespace LFramework.Editor.Builder.BuildingResource
             ResourceComponentSetting resourceComponentSetting = LoadResourceComponentSetting();
             if (resourceComponentSetting == null)
             {
-                Debug.LogError("ResourceComponent is null in Build.");
-                return;
+                throw new InvalidOperationException(
+                    "[YooAssets] ResourceComponentSetting not found in project.");
             }
 
             GenerateRouteIndexIfEnabled(resourceComponentSetting);
@@ -68,8 +68,14 @@ namespace LFramework.Editor.Builder.BuildingResource
 
             bool buildAllResources = buildResourcesData.buildType != BuildType.ResourcesUpdate;
             bool clearBuildCacheFiles = buildAllResources;
+            HybridCLRSetting hybridClrSetting = SettingManager.GetSetting<HybridCLRSetting>();
+            if (hybridClrSetting == null)
+            {
+                throw new InvalidOperationException("[YooAssets] HybridCLRSetting not found in project.");
+            }
+
             string buildinCopyTag = buildAllResources
-                ? SettingManager.GetSetting<HybridCLRSetting>().defaultInitLabel
+                ? hybridClrSetting.defaultInitLabel
                 : string.Empty;
             EBuildinFileCopyOption buildinCopyOption = buildAllResources
                 ? (string.IsNullOrEmpty(buildinCopyTag)
@@ -312,7 +318,8 @@ namespace LFramework.Editor.Builder.BuildingResource
                 }
                 else
                 {
-                    Debug.LogWarning($"[YooAssets] Build output directory does not exist: {outputDirectory}");
+                    throw new DirectoryNotFoundException(
+                        $"[YooAssets] Build output directory does not exist: {outputDirectory}");
                 }
             }
         }
@@ -470,13 +477,13 @@ namespace LFramework.Editor.Builder.BuildingResource
     {
         public void Build(BuildSetting buildResourcesData)
         {
-            Debug.LogWarning(
+            throw new System.NotSupportedException(
                 "[YooAssets] YOOASSET_SUPPORT is not defined. Add it in Player Settings -> Scripting Define Symbols.");
         }
 
         public void BuildInPackage()
         {
-            Debug.LogWarning(
+            throw new System.NotSupportedException(
                 "[YooAssets] YOOASSET_SUPPORT is not defined. Built-in resource build is unavailable.");
         }
 

@@ -33,9 +33,9 @@ This means consumers should treat the package as shipping with opinions about th
 
 Before adoption, verify:
 
-1. your Unity version matches package expectations (`6000.3.0f1`)
+1. your Unity version matches the package line (`6000.3`); the bundled DHE-modified `Unity.IL2CPP.dll` requires exactly `6000.3.6f1`
 2. your project can resolve YooAsset through a registry
-3. your project has the expected Sirenix setup and uses Unity `6000.3.6f1` for the bundled DHE-modified `Unity.IL2CPP.dll`
+3. your project has the expected Sirenix setup
 4. your own copies of embedded third-party code will not conflict with this package layout
 
 ## Recommended compatibility policy

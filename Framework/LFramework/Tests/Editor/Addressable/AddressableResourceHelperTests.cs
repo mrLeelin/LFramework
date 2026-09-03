@@ -4,9 +4,39 @@ using System.Reflection;
 using GameFramework.Resource;
 using NUnit.Framework;
 using UnityEngine;
+using YooAsset;
 
 namespace LFramework.Editor.Tests.ResourceComponent
 {
+    public class YooAssetResourceHelperTests
+    {
+        [Test]
+        public void ResolveTaggedAssetInfos_UsesTagLookupAndNormalizesNullResults()
+        {
+            Type helperType = Type.GetType(
+                "LFramework.Runtime.YooAssetResourceHelper, LFramework.Runtime");
+            Assert.That(helperType, Is.Not.Null);
+
+            MethodInfo method = helperType.GetMethod(
+                "ResolveTaggedAssetInfos",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null,
+                "Expected YooAssetResourceHelper.ResolveTaggedAssetInfos to own tag lookup.");
+
+            string resolvedTag = null;
+            Func<string, AssetInfo[]> resolver = tag =>
+            {
+                resolvedTag = tag;
+                return null;
+            };
+
+            var result = (AssetInfo[])method.Invoke(null, new object[] { "code_dll", resolver });
+
+            Assert.That(resolvedTag, Is.EqualTo("code_dll"));
+            Assert.That(result, Is.Empty);
+        }
+    }
+
     public class AddressableResourceHelperTests
     {
         [Test]

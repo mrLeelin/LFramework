@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Cysharp.Threading.Tasks;
 using GameFramework;
 using GameFramework.Resource;
@@ -1011,6 +1012,8 @@ namespace LFramework.Runtime
         private async void LoadAssetsByTagHandleAsync<T>(ResourceBatchHandle<T> handle, string tag)
             where T : UnityEngine.Object
         {
+            List<AssetHandle> operations = null;
+            bool releaseOnExit = true;
             try
             {
                 PackageInitializationResult ready = await EnsurePackageReadyAsync(null, null);
@@ -1027,28 +1030,82 @@ namespace LFramework.Runtime
                     return;
                 }
 
-                var op = package.LoadAllAssetsAsync<T>(tag);
-                while (!op.IsDone)
+                AssetInfo[] assetInfos = ResolveTaggedAssetInfos(tag, package.GetAssetInfos);
+                if (assetInfos.Length == 0)
                 {
-                    handle.SetProgress(op.Progress);
+                    handle.SetProgress(1f);
+                    handle.SetResult(new List<T>());
+                    return;
+                }
+
+                operations = assetInfos
+                    .Select(assetInfo => package.LoadAssetAsync(assetInfo))
+                    .ToList();
+                while (operations.Any(operation => !operation.IsDone))
+                {
+                    handle.SetProgress(operations.Sum(operation => operation.Progress) / operations.Count);
                     await UniTask.Yield();
                 }
-                if (op.Status == EOperationStatus.Succeed)
+
+                AssetHandle failedOperation = operations.FirstOrDefault(operation =>
+                    operation.Status != EOperationStatus.Succeed);
+                if (failedOperation != null)
                 {
-                    var result = new List<T>();
-                    foreach (var obj in op.AllAssetObjects)
-                    {
-                        if (obj is T typedObj) result.Add(typedObj);
-                    }
-                    handle.RegisterReleaseAction(() => op.Release());
-                    handle.SetResult(result);
+                    handle.SetError(failedOperation.LastError ?? $"Load assets by tag '{tag}' failed.");
+                    return;
                 }
-                else
+
+                var result = new List<T>(operations.Count);
+                foreach (AssetHandle operation in operations)
                 {
-                    handle.SetError(op.LastError ?? $"Load assets by tag '{tag}' failed.");
+                    if (operation.AssetObject is T typedObject)
+                    {
+                        result.Add(typedObject);
+                    }
+                }
+
+                AssetHandle[] retainedOperations = operations.ToArray();
+                handle.RegisterReleaseAction(() => ReleaseAssetHandles(retainedOperations));
+                releaseOnExit = false;
+                handle.SetProgress(1f);
+                handle.SetResult(result);
+            }
+            catch (Exception ex)
+            {
+                handle.SetError(ex.Message);
+            }
+            finally
+            {
+                if (releaseOnExit)
+                {
+                    ReleaseAssetHandles(operations);
                 }
             }
-            catch (Exception ex) { handle.SetError(ex.Message); }
+        }
+
+        private static AssetInfo[] ResolveTaggedAssetInfos(
+            string tag,
+            Func<string, AssetInfo[]> resolver)
+        {
+            if (string.IsNullOrWhiteSpace(tag))
+            {
+                throw new ArgumentException("Asset tag cannot be empty.", nameof(tag));
+            }
+
+            if (resolver == null)
+            {
+                throw new ArgumentNullException(nameof(resolver));
+            }
+
+            return resolver(tag) ?? Array.Empty<AssetInfo>();
+        }
+
+        private static void ReleaseAssetHandles(IEnumerable<AssetHandle> operations)
+        {
+            foreach (AssetHandle operation in operations ?? Enumerable.Empty<AssetHandle>())
+            {
+                operation?.Release();
+            }
         }
 
         /// <summary>

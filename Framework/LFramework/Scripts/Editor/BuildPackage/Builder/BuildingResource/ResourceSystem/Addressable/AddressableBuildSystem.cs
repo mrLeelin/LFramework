@@ -29,8 +29,8 @@ namespace LFramework.Editor.Builder.BuildingResource
                 AssetUtilities.GetAllAssetsOfType<ResourceComponentSetting>().FirstOrDefault();
             if (resourceComponentSetting == null)
             {
-                Debug.LogError("ResourceComponent is null in Build.");
-                return;
+                throw new InvalidOperationException(
+                    "[AddressableBuildSystem] ResourceComponentSetting not found in project.");
             }
 
             var settings = AddressableAssetSettingsDefaultObject.Settings;
@@ -122,12 +122,7 @@ namespace LFramework.Editor.Builder.BuildingResource
                 string assetContentPath = ContentUpdateScript.GetContentStateDataPath(false);
                 Debug.Log($"use bin file : {assetContentPath}");
                 var result = ContentUpdateScript.BuildContentUpdate(settings, assetContentPath);
-                if (!string.IsNullOrEmpty(result.Error))
-                {
-                    Debug.LogError("Addressables build error encountered: " + result.Error);
-                    Debug.LogError("Build Failed");
-                    return;
-                }
+                ThrowIfBuildFailed(result.Error);
 
                 AddressableBuildHelper.CopyReportToBackUp(buildResourcesData);
             }
@@ -135,13 +130,7 @@ namespace LFramework.Editor.Builder.BuildingResource
             {
                 Debug.Log("build all resources");
                 AddressableAssetSettings.BuildPlayerContent(out AddressablesPlayerBuildResult result);
-                bool success = string.IsNullOrEmpty(result.Error);
-                if (!success)
-                {
-                    Debug.LogError("Addressables build error encountered: " + result.Error);
-                    Debug.LogError("Build Failed");
-                    return;
-                }
+                ThrowIfBuildFailed(result.Error);
 
                 AddressableBuildHelper.CopyReportToBackUp(buildResourcesData);
                 if (buildResourcesData.buildType == BuildType.App)
@@ -188,13 +177,7 @@ namespace LFramework.Editor.Builder.BuildingResource
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             AddressableAssetSettings.BuildPlayerContent(out AddressablesPlayerBuildResult result);
-            bool success = string.IsNullOrEmpty(result.Error);
-            if (!success)
-            {
-                Debug.LogError("Addressables build error encountered: " + result.Error);
-                Debug.LogError("Build Failed");
-                return;
-            }
+            ThrowIfBuildFailed(result.Error);
 
             AssetDatabase.Refresh();
             Debug.Log("Build Over");
@@ -242,6 +225,14 @@ namespace LFramework.Editor.Builder.BuildingResource
         private string GetAssetAdsBinFilePath(BuildSetting data)
         {
             return GetAssetAdsBinPath(data) + "/addressables_content_state.bin";
+        }
+
+        private static void ThrowIfBuildFailed(string error)
+        {
+            if (!string.IsNullOrWhiteSpace(error))
+            {
+                throw new InvalidOperationException($"[Addressables] Resource build failed: {error}");
+            }
         }
     }
 }

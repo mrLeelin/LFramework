@@ -93,7 +93,7 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                 ApplyPlatformSettings(buildSetting);
                 // 标记为脏并保存
                 EditorUtility.SetDirty(setting);
-                
+
                 AssetDatabase.SaveAssets();
 
                 Debug.Log($"[BuildGameSettingTask] GameSetting updated successfully.");

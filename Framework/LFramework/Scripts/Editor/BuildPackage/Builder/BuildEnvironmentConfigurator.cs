@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 
-#if HybridCLR_SUPPORT
+#if HybridCLR_SUPPORT || LFRAMEWORK_HYBRIDCLR_DHE
 using HybridCLR.Editor.Settings;
 #endif
 
@@ -34,8 +34,10 @@ namespace LFramework.Editor.Builder
         {
             EnsureProjectSettingsSynchronized();
 
-#if HybridCLR_SUPPORT
-            ValidateDheBuildConfiguration(context);
+#if HybridCLR_SUPPORT || LFRAMEWORK_HYBRIDCLR_DHE
+            var runtimeSetting = SettingManager.GetSetting<HybridCLRSetting>();
+            ValidateRuntimeSettingForBuild(runtimeSetting);
+            ValidateDheBuildConfiguration(context, runtimeSetting);
 #endif
 
             if (context?.BuildTarget == BuildTarget.Android)
@@ -47,7 +49,7 @@ namespace LFramework.Editor.Builder
 
         private static void EnsureProjectSettingsSynchronized()
         {
-#if HybridCLR_SUPPORT
+#if HybridCLR_SUPPORT || LFRAMEWORK_HYBRIDCLR_DHE
             var runtimeSetting = SettingManager.GetSetting<HybridCLRSetting>();
             if (runtimeSetting == null)
             {
@@ -56,7 +58,8 @@ namespace LFramework.Editor.Builder
 
             var assemblyNames = ResolveConfiguredAssemblyNames(runtimeSetting);
             SyncRuntimeSetting(runtimeSetting, assemblyNames);
-            SyncHybridClrSettingsAsset(runtimeSetting.loadMode, assemblyNames);
+            bool useDhe = HybridCLRBuildWorkflow.IsDheEdition;
+            SyncHybridClrSettingsAsset(assemblyNames, useDhe);
 #endif
 
 #if ADDRESSABLE_SUPPORT
@@ -78,17 +81,27 @@ namespace LFramework.Editor.Builder
             }
         }
 
-#if HybridCLR_SUPPORT
-        private static void ValidateDheBuildConfiguration(BuildPipelineContext context)
+#if HybridCLR_SUPPORT || LFRAMEWORK_HYBRIDCLR_DHE
+        internal static void ValidateRuntimeSettingForBuild(HybridCLRSetting runtimeSetting)
+        {
+            if (runtimeSetting == null)
+            {
+                throw new InvalidOperationException(
+                    "HybridCLRSetting is missing from ProjectSettingSelector. " +
+                    "Initialize the project settings before building.");
+            }
+        }
+
+        private static void ValidateDheBuildConfiguration(
+            BuildPipelineContext context,
+            HybridCLRSetting runtimeSetting)
         {
             if (context?.BuildSetting == null || context.BuildSetting.buildType != BuildType.App)
             {
                 return;
             }
 
-            var runtimeSetting = SettingManager.GetSetting<HybridCLRSetting>();
-            if (runtimeSetting == null ||
-                runtimeSetting.loadMode != HybridCLRLoadMode.DifferentialHybridMetaVersion)
+            if (!HybridCLRBuildWorkflow.IsDheEdition)
             {
                 return;
             }
@@ -104,9 +117,7 @@ namespace LFramework.Editor.Builder
 
         private static string[] ResolveConfiguredAssemblyNames(HybridCLRSetting runtimeSetting)
         {
-            var sourceAssemblies = runtimeSetting.loadMode == HybridCLRLoadMode.DifferentialHybridMetaVersion
-                ? runtimeSetting.differentialHybridAssembliesSort ?? new List<string>()
-                : runtimeSetting.hotfixAssembliesSort ?? new List<string>();
+            var sourceAssemblies = runtimeSetting.hotfixAssembliesSort ?? new List<string>();
             var results = new List<string>(sourceAssemblies);
             if (!string.IsNullOrWhiteSpace(runtimeSetting.logicMainDllName) &&
                 !results.Contains(runtimeSetting.logicMainDllName, StringComparer.Ordinal))
@@ -114,31 +125,33 @@ namespace LFramework.Editor.Builder
                 results.Add(runtimeSetting.logicMainDllName);
             }
 
-            return results
+            string[] assemblyNames = results
                 .Where(name => !string.IsNullOrWhiteSpace(name))
                 .Distinct(StringComparer.Ordinal)
-                .Where(AssemblyDefinitionExists)
                 .ToArray();
+
+            string[] missing = assemblyNames
+                .Where(name => FindAssemblyDefinitionAsset(name) == null)
+                .ToArray();
+            if (missing.Length > 0)
+            {
+                throw new InvalidOperationException(
+                    $"HybridCLR hot-update assembly definitions are missing: {string.Join(", ", missing)}");
+            }
+
+            return assemblyNames;
         }
 
         private static void SyncRuntimeSetting(HybridCLRSetting runtimeSetting, string[] assemblyNames)
         {
-            var current = runtimeSetting.loadMode == HybridCLRLoadMode.DifferentialHybridMetaVersion
-                ? runtimeSetting.differentialHybridAssembliesSort ?? new List<string>()
-                : runtimeSetting.hotfixAssembliesSort ?? new List<string>();
+            var current = runtimeSetting.hotfixAssembliesSort ?? new List<string>();
             if (current.SequenceEqual(assemblyNames, StringComparer.Ordinal))
             {
                 return;
             }
 
-            if (runtimeSetting.loadMode == HybridCLRLoadMode.DifferentialHybridMetaVersion)
-            {
-                runtimeSetting.differentialHybridAssembliesSort = assemblyNames.ToList();
-            }
-            else
-            {
-                runtimeSetting.hotfixAssembliesSort = assemblyNames.ToList();
-            }
+            runtimeSetting.hotfixAssembliesSort = assemblyNames.ToList();
+
             EditorUtility.SetDirty(runtimeSetting);
             AssetDatabase.SaveAssets();
 
@@ -146,7 +159,7 @@ namespace LFramework.Editor.Builder
                 $"[BuildEnvironmentConfigurator] Updated runtime HybridCLR setting assemblies: {string.Join(", ", assemblyNames)}");
         }
 
-        private static void SyncHybridClrSettingsAsset(HybridCLRLoadMode loadMode, string[] assemblyNames)
+        private static void SyncHybridClrSettingsAsset(string[] assemblyNames, bool useDhe)
         {
             var asmdefAssets = assemblyNames
                 .Select(FindAssemblyDefinitionAsset)
@@ -156,41 +169,31 @@ namespace LFramework.Editor.Builder
             var settings = HybridCLRSettings.Instance;
             bool changed = false;
 
-            if (loadMode == HybridCLRLoadMode.DifferentialHybridMetaVersion)
+            if (useDhe)
             {
-                if (!HybridCLRBuildWorkflow.IsDheAvailable)
-                {
-                    Debug.LogError(
-                        "[BuildEnvironmentConfigurator] DHE mode requires a HybridCLR flagship package exposing the 8.11.1 MetaVersion APIs.");
-                    return;
-                }
-
                 changed |= UpdateStringArray(ref settings.hotUpdateAssemblies, Array.Empty<string>());
                 changed |= UpdateAsmdefArray(ref settings.hotUpdateAssemblyDefinitions,
                     Array.Empty<AssemblyDefinitionAsset>());
+#if LFRAMEWORK_HYBRIDCLR_DHE
                 if (!HybridCLRBuildWorkflow.TryUpdateDifferentialHybridAssemblies(
                         settings,
                         assemblyNames,
                         out bool differentialChanged))
                 {
-                    Debug.LogError(
-                        "[BuildEnvironmentConfigurator] The installed HybridCLR package has no DHE assembly setting.");
-                    return;
+                    throw new InvalidOperationException(
+                        "DHE mode requires HybridCLRSettings.differentialHybridAssemblies.");
                 }
 
                 changed |= differentialChanged;
+#endif
             }
             else
             {
+                // HybridCLR treats assembly names and asmdef references as alternative sources;
+                // keeping both populated would make SettingsUtil enumerate every assembly twice.
                 changed |= UpdateStringArray(ref settings.hotUpdateAssemblies, Array.Empty<string>());
                 changed |= UpdateAsmdefArray(ref settings.hotUpdateAssemblyDefinitions, asmdefAssets);
-                if (HybridCLRBuildWorkflow.TryUpdateDifferentialHybridAssemblies(
-                        settings,
-                        Array.Empty<string>(),
-                        out bool differentialChanged))
-                {
-                    changed |= differentialChanged;
-                }
+                changed |= ClearDifferentialHybridAssemblies(settings);
             }
 
             if (!changed)
@@ -200,12 +203,29 @@ namespace LFramework.Editor.Builder
 
             HybridCLRSettings.Save();
             Debug.Log(
-                $"[BuildEnvironmentConfigurator] Synchronized ProjectSettings/HybridCLRSettings.asset for {loadMode}: {string.Join(", ", assemblyNames)}");
+                $"[BuildEnvironmentConfigurator] Synchronized ProjectSettings/HybridCLRSettings.asset in " +
+                $"{(useDhe ? "DHE" : "standard HybridCLR")} mode: {string.Join(", ", assemblyNames)}");
         }
 
-        private static bool AssemblyDefinitionExists(string assemblyName)
+        internal static bool ClearDifferentialHybridAssemblies(HybridCLRSettings settings)
         {
-            return FindAssemblyDefinitionAsset(assemblyName) != null;
+            if (settings == null)
+            {
+                return false;
+            }
+
+            var serializedSettings = new SerializedObject(settings);
+            SerializedProperty differentialAssemblies = serializedSettings.FindProperty(
+                "differentialHybridAssemblies");
+            if (differentialAssemblies == null || !differentialAssemblies.isArray ||
+                differentialAssemblies.arraySize == 0)
+            {
+                return false;
+            }
+
+            differentialAssemblies.arraySize = 0;
+            serializedSettings.ApplyModifiedPropertiesWithoutUndo();
+            return true;
         }
 
         private static AssemblyDefinitionAsset FindAssemblyDefinitionAsset(string assemblyName)
@@ -259,7 +279,7 @@ namespace LFramework.Editor.Builder
             if (!installedApiLevel.HasValue)
             {
                 Debug.LogWarning(
-                "[BuildEnvironmentConfigurator] No stable Android SDK platform was found. Keeping the current target SDK.");
+                    "[BuildEnvironmentConfigurator] No stable Android SDK platform was found. Keeping the current target SDK.");
                 return;
             }
 
@@ -345,7 +365,8 @@ namespace LFramework.Editor.Builder
             {
                 Environment.GetEnvironmentVariable("ANDROID_SDK_ROOT"),
                 Environment.GetEnvironmentVariable("ANDROID_HOME"),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Android", "Sdk")
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Android",
+                    "Sdk")
             };
 
             return candidates.FirstOrDefault(path => !string.IsNullOrWhiteSpace(path) && Directory.Exists(path));
@@ -436,7 +457,8 @@ namespace LFramework.Editor.Builder
             {
                 Environment.GetEnvironmentVariable("ANDROID_SDK_ROOT"),
                 Environment.GetEnvironmentVariable("ANDROID_HOME"),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Android", "Sdk"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Android",
+                    "Sdk"),
                 Path.Combine(GetUnity2022AndroidPlayerRoot(), "SDK"),
                 Path.Combine(EditorApplication.applicationContentsPath, "PlaybackEngines", "AndroidPlayer", "SDK")
             };
@@ -478,8 +500,10 @@ namespace LFramework.Editor.Builder
             {
                 Environment.GetEnvironmentVariable("JAVA_HOME"),
                 Path.Combine(GetUnity2022AndroidPlayerRoot(), "OpenJDK"),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Android", "Android Studio", "jbr"),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Android", "Android Studio", "jre"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Android",
+                    "Android Studio", "jbr"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Android",
+                    "Android Studio", "jre"),
                 Path.Combine(EditorApplication.applicationContentsPath, "PlaybackEngines", "AndroidPlayer", "OpenJDK")
             };
 
@@ -511,7 +535,8 @@ namespace LFramework.Editor.Builder
 
         private static int GetJavaHomeScore(string jdkRoot)
         {
-            string javaExe = Path.Combine(jdkRoot, "bin", Application.platform == RuntimePlatform.WindowsEditor ? "java.exe" : "java");
+            string javaExe = Path.Combine(jdkRoot, "bin",
+                Application.platform == RuntimePlatform.WindowsEditor ? "java.exe" : "java");
             return File.Exists(javaExe) ? 1 : 0;
         }
 

@@ -1,5 +1,6 @@
 
 #if ADDRESSABLE_SUPPORT
+using System;
 using System.Collections.Generic;
 using System.IO;
 using LFramework.Editor.Builder;
@@ -20,13 +21,22 @@ namespace LFramework.Editor.Builder.BuildingResource
     {
         private readonly AddressableAssetSettings _settings;
 
-        public AddressableDllRegistrar()
+        public AddressableDllRegistrar() : this(AddressableAssetSettingsDefaultObject.Settings)
         {
-            _settings = AddressableAssetSettingsDefaultObject.Settings;
+        }
+
+        internal AddressableDllRegistrar(AddressableAssetSettings settings)
+        {
+            _settings = settings;
         }
 
         public bool RegisterAotDlls(List<string> dllPaths, HybridCLRSetting setting, BuildType buildType)
         {
+            if (!CanRegister(setting))
+            {
+                return false;
+            }
+
             if (!EnsureGroupExists(setting.aotAddressableGroupName, buildType))
             {
                 return false;
@@ -56,6 +66,11 @@ namespace LFramework.Editor.Builder.BuildingResource
 
         public bool RegisterHotfixDlls(List<string> dllPaths, HybridCLRSetting setting, BuildType buildType)
         {
+            if (!CanRegister(setting))
+            {
+                return false;
+            }
+
             if (!EnsureGroupExists(setting.codeAddressableGroupName, buildType))
             {
                 return false;
@@ -90,6 +105,11 @@ namespace LFramework.Editor.Builder.BuildingResource
             HybridCLRSetting setting,
             BuildType buildType)
         {
+            if (!CanRegister(setting))
+            {
+                return false;
+            }
+
             if (!EnsureGroupExists(setting.codeAddressableGroupName, buildType))
             {
                 return false;
@@ -143,14 +163,31 @@ namespace LFramework.Editor.Builder.BuildingResource
 
         private bool EnsureGroupExists(string groupName, BuildType buildType)
         {
-            var group = _settings.FindGroup(groupName);
-            if (group != null)
+            if (_settings == null)
             {
-                _settings.RemoveGroup(group);
+                Debug.LogError("AddressableAssetSettings is missing.");
+                return false;
             }
 
-            AddressableHelper.GenerateDefaultGroup(groupName, _settings, null, out group,
-                out var groupSchema);
+            if (string.IsNullOrWhiteSpace(groupName))
+            {
+                Debug.LogError("Addressables group name is empty.");
+                return false;
+            }
+
+            var group = _settings.FindGroup(groupName);
+            BundledAssetGroupSchema groupSchema;
+            if (group == null)
+            {
+                AddressableHelper.GenerateDefaultGroup(groupName, _settings, null, out group,
+                    out groupSchema);
+            }
+            else
+            {
+                groupSchema = group.GetSchema<BundledAssetGroupSchema>() ??
+                              group.AddSchema<BundledAssetGroupSchema>();
+            }
+
             if (buildType == BuildType.ResourcesUpdate)
             {
                 groupSchema.BuildPath.SetVariableByName(_settings, AddressableAssetSettings.kRemoteBuildPath);
@@ -163,10 +200,31 @@ namespace LFramework.Editor.Builder.BuildingResource
             }
 
             groupSchema.BundleMode = BundledAssetGroupSchema.BundlePackingMode.PackSeparately;
-            var contentUpdateSchema = group.GetSchema<ContentUpdateGroupSchema>();
-            if (contentUpdateSchema != null)
+            groupSchema.BundleNaming = BundledAssetGroupSchema.BundleNamingStyle.NoHash;
+            groupSchema.InternalIdNamingMode = BundledAssetGroupSchema.AssetNamingMode.GUID;
+            var contentUpdateSchema = group.GetSchema<ContentUpdateGroupSchema>() ??
+                                      group.AddSchema<ContentUpdateGroupSchema>();
+            contentUpdateSchema.StaticContent = false;
+
+            EditorUtility.SetDirty(groupSchema);
+            EditorUtility.SetDirty(contentUpdateSchema);
+            EditorUtility.SetDirty(_settings);
+
+            return true;
+        }
+
+        private bool CanRegister(HybridCLRSetting setting)
+        {
+            if (_settings == null)
             {
-                contentUpdateSchema.StaticContent = false;
+                Debug.LogError("AddressableAssetSettings is missing.");
+                return false;
+            }
+
+            if (setting == null)
+            {
+                Debug.LogError("HybridCLRSetting is missing.");
+                return false;
             }
 
             return true;

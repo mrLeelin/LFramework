@@ -117,8 +117,7 @@ namespace LFramework.Editor.Builder.BuildingResource
             }
 
             group.ActiveRuleName = nameof(EnableGroup);
-            var assetTags = string.Join(",",
-                labels.Where(label => !string.IsNullOrWhiteSpace(label)).Distinct(StringComparer.Ordinal));
+            string assetTags = JoinAssetTags(labels);
             group.AssetTags = assetTags;
 
             if (dllPaths == null || dllPaths.Count == 0)
@@ -160,6 +159,14 @@ namespace LFramework.Editor.Builder.BuildingResource
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             return true;
+        }
+
+        private static string JoinAssetTags(IEnumerable<string> labels)
+        {
+            return string.Join(";", (labels ?? Enumerable.Empty<string>())
+                .Where(label => !string.IsNullOrWhiteSpace(label))
+                .Select(label => label.Trim())
+                .Distinct(StringComparer.Ordinal));
         }
 
         private static bool RecreateGroup(string groupName)

@@ -44,28 +44,62 @@ namespace HybridCLR.Editor.Installer
         {
             _curVersion = ParseUnityVersion(Application.unityVersion);
             _versionManifest = GetHybridCLRVersionManifest();
-            _curDefaultVersion = _versionManifest.versions.FirstOrDefault(v => {
-                return _curVersion.isTuanjieEngine? v.unity_version == $"{_curVersion.major}-tuanjie"
-#if UNITY_6000_3_OR_NEWER
-                    : v.unity_version == "6000.3.x"
-#else
-                    : v.unity_version == _curVersion.major.ToString()
-#endif
-                    ;
-            });
+            _curDefaultVersion = _versionManifest.versions.FirstOrDefault(v =>
+                IsManifestVersionCompatible(
+                    v.unity_version,
+                    _curVersion.major,
+                    _curVersion.isTuanjieEngine));
+            if (_curDefaultVersion == null)
+            {
+                throw new InvalidOperationException(
+                    $"No HybridCLR version mapping exists for Unity {Application.unityVersion}.");
+            }
             PackageVersion = LoadPackageInfo().version;
             InstalledLibil2cppVersion = ReadLocalVersion();
         }
 
+        internal static bool IsManifestVersionCompatible(
+            string manifestVersion,
+            int unityMajor,
+            bool isTuanjieEngine)
+        {
+            if (string.IsNullOrWhiteSpace(manifestVersion))
+            {
+                return false;
+            }
+
+            if (isTuanjieEngine)
+            {
+                return string.Equals(
+                    manifestVersion,
+                    $"{unityMajor}-tuanjie",
+                    StringComparison.Ordinal);
+            }
+
+#if UNITY_6000_3_OR_NEWER
+            if (unityMajor == 6000)
+            {
+                // Existing manifests use the major-line key; retain the older
+                // wildcard spelling for forward compatibility with external packages.
+                return string.Equals(manifestVersion, "6000", StringComparison.Ordinal) ||
+                       string.Equals(manifestVersion, "6000.3.x", StringComparison.Ordinal);
+            }
+#endif
+            return string.Equals(
+                manifestVersion,
+                unityMajor.ToString(),
+                StringComparison.Ordinal);
+        }
+
         private HybridclrVersionManifest GetHybridCLRVersionManifest()
         {
-            string versionFile = $"{SettingsUtil.ProjectDir}/{SettingsUtil.HybridCLRDataPathInPackage}/hybridclr_version.json";
+            string versionFile = Path.Combine(SettingsUtil.HybridCLRDataPathInPackage, "hybridclr_version.json");
             return JsonUtility.FromJson<HybridclrVersionManifest>(File.ReadAllText(versionFile, Encoding.UTF8));
         }
 
         private PackageInfo LoadPackageInfo()
         {
-            string packageJson = $"{SettingsUtil.ProjectDir}/{SettingsUtil.HybridCLRDataPathInPackage}/hybridclr_package.json";
+            string packageJson = Path.Combine(SettingsUtil.HybridCLRDataPathInPackage, "hybridclr_package.json");
             return JsonUtility.FromJson<PackageInfo>(File.ReadAllText(packageJson, Encoding.UTF8));
         }
 
@@ -243,9 +277,11 @@ namespace HybridCLR.Editor.Installer
         private string GetUnityIl2CppDllModifiedPath(string curVersionStr)
         {
 #if UNITY_EDITOR_WIN
-            return $"{SettingsUtil.ProjectDir}/{SettingsUtil.HybridCLRDataPathInPackage}/ModifiedUnityAssemblies/{curVersionStr}/Unity.IL2CPP-Win.dll";
+            return Path.Combine(SettingsUtil.HybridCLRDataPathInPackage,
+                "ModifiedUnityAssemblies", curVersionStr, "Unity.IL2CPP-Win.dll");
 #else
-            return $"{SettingsUtil.ProjectDir}/{SettingsUtil.HybridCLRDataPathInPackage}/ModifiedUnityAssemblies/{curVersionStr}/Unity.IL2CPP-Mac.dll";
+            return Path.Combine(SettingsUtil.HybridCLRDataPathInPackage,
+                "ModifiedUnityAssemblies", curVersionStr, "Unity.IL2CPP-Mac.dll");
 #endif
         }
 
@@ -359,11 +395,15 @@ namespace HybridCLR.Editor.Installer
             File.Move(originalIl2CppExePath, newIl2CppExePath);
             Debug.Log($"move {originalIl2CppExePath} => {newIl2CppExePath}");
 #if UNITY_EDITOR_WIN
-            string il2cppWrapper = $"{SettingsUtil.ProjectDir}/{SettingsUtil.HybridCLRDataPathInPackage}/Il2CppWrapper/Windows/il2cpp.exe";
+            string il2cppWrapper = Path.Combine(
+                SettingsUtil.HybridCLRDataPathInPackage,
+                "Il2CppWrapper", "Windows", "il2cpp.exe");
 #else
             var architecture = RuntimeInformation.ProcessArchitecture;
             string arch = architecture == Architecture.Arm64 ? "arm64" : "x64";
-            string il2cppWrapper = $"{SettingsUtil.ProjectDir}/{SettingsUtil.HybridCLRDataPathInPackage}/Il2CppWrapper/MacOS-{arch}/il2cpp";
+            string il2cppWrapper = Path.Combine(
+                SettingsUtil.HybridCLRDataPathInPackage,
+                $"Il2CppWrapper/MacOS-{arch}", "il2cpp");
 #endif
             File.Copy(il2cppWrapper, originalIl2CppExePath);
             Debug.Log($"copy {il2cppWrapper} => {originalIl2CppExePath}");
@@ -391,7 +431,8 @@ namespace HybridCLR.Editor.Installer
                 throw new Exception($"The bundled modified Unity.IL2CPP.dll only supports Unity {SupportedModifiedDllUnityVersion}, current version is {Application.unityVersion}.");
             }
 
-            string sourceDll = $"{SettingsUtil.ProjectDir}/{SettingsUtil.HybridCLRDataPathInPackage}/ModifiedDlls/{ModifiedDllVersion}/Unity.IL2CPP.dll";
+            string sourceDll = Path.Combine(SettingsUtil.HybridCLRDataPathInPackage,
+                "ModifiedDlls", ModifiedDllVersion, "Unity.IL2CPP.dll");
             if (!File.Exists(sourceDll))
             {
                 throw new FileNotFoundException("The bundled modified Unity.IL2CPP.dll was not found.", sourceDll);

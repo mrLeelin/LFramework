@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using LFramework.Editor.Builder.HybridCLR;
 using LFramework.Editor.Builder.BuildingResource;
 using LFramework.Runtime;
 using LFramework.Runtime.Settings;
@@ -26,7 +27,14 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                 return false;
             }
 
-            // 仅在需要构建 DLL 时执行
+            // 旗舰版资源更新需要校验 DHE 资源与包的模式一致性，即使本次不重新编译 DLL。
+#if LFRAMEWORK_HYBRIDCLR_DHE
+            if (HybridCLRBuildWorkflow.IsDheEdition)
+            {
+                return context.BuildSetting.buildType == BuildType.ResourcesUpdate ||
+                       context.BuildSetting.isbuildDll;
+            }
+#endif
             return context.BuildSetting.isbuildDll;
         }
 
@@ -38,16 +46,48 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
 
                 var buildSetting = context.BuildSetting;
 
+#if HybridCLR_SUPPORT || LFRAMEWORK_HYBRIDCLR_DHE
+                var hybridClrSetting = SettingManager.GetSetting<HybridCLRSetting>();
+#if LFRAMEWORK_HYBRIDCLR_DHE
+                const bool useDhe = true;
+                HybridCLRBuildWorkflow.EnsureDheAvailable();
+#else
+                const bool useDhe = false;
+#endif
+                if (buildSetting.buildType == BuildType.ResourcesUpdate)
+                {
+                    if (hybridClrSetting == null)
+                    {
+                        return BuildTaskResult.CreateFailed(
+                            TaskName, "HybridCLRSetting asset is missing for resource update.");
+                    }
+
+                    if (!buildSetting.isBuildResources)
+                    {
+                        return BuildTaskResult.CreateFailed(
+                            TaskName, "A resource update must enable resource building.");
+                    }
+
+                    if (useDhe && !buildSetting.isbuildDll)
+                    {
+                        return BuildTaskResult.CreateFailed(
+                            TaskName,
+                            "A DHE resource update must rebuild DLLs and MetaVersion artifacts.");
+                    }
+                }
+
                 if (!buildSetting.isbuildDll)
                 {
                     Debug.Log($"[BuildDllTask] Hot-fix DLL files successfully.");
                     return BuildTaskResult.CreateSuccess(TaskName);
                 }
+
                 // 获取备份路径
                 string backupPath = GetBackupPath(buildSetting);
+                BuildTarget target = context.PlatformConfig.GetBuildTarget();
 
                 // 构建 DLL
-                if (!BuildDllsHelper.BuildDll(buildSetting.buildType == BuildType.App, backupPath))
+                if (!BuildDllsHelper.BuildDll(buildSetting.buildType == BuildType.App, backupPath, target))
                 {
                     return BuildTaskResult.CreateFailed(TaskName, "Build DLL failed.");
                 }
@@ -56,10 +96,16 @@ namespace LFramework.Editor.Builder.Pipeline.Tasks
                 AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
 
                 // 复制 DLL
-                if (!BuildDllsHelper.CopyDll(buildSetting,SettingManager.GetSetting<HybridCLRSetting>(), backupPath))
+                if (!BuildDllsHelper.CopyDll(
+                        buildSetting,
+                        SettingManager.GetSetting<HybridCLRSetting>(),
+                        backupPath,
+                        target))
                 {
                     return BuildTaskResult.CreateFailed(TaskName, "Copy DLL failed.");
                 }
+#endif
+
 
                 Debug.Log($"[BuildDllTask] Hot-fix DLL files built and copied successfully.");
                 return BuildTaskResult.CreateSuccess(TaskName);

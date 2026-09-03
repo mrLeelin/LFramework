@@ -24,7 +24,13 @@ namespace HybridCLR.Editor.BuildProcessors
         
         private static bool ContainsByteSeq(byte[] bytes, byte[] searchBytes)
         {
-            for (int i = 0, end = bytes.Length - searchBytes.Length; i < end; i++)
+            if (bytes == null || searchBytes == null || searchBytes.Length == 0 ||
+                bytes.Length < searchBytes.Length)
+            {
+                return false;
+            }
+
+            for (int i = 0, end = bytes.Length - searchBytes.Length; i <= end; i++)
             {
                 bool match = true;
                 for (int j = 0; j < searchBytes.Length; j++)
@@ -135,6 +141,8 @@ namespace HybridCLR.Editor.BuildProcessors
                 Debug.LogWarning("[CheckSettings] No hot update modules configured in HybridCLRSettings");
             }
 
+            bool useDhe = (gs.differentialHybridAssemblies?.Length ?? 0) > 0;
+
             if (!DisableMethodBridgeDevelopmentFlagChecking)
             {
                 string methodBridgeFile = $"{SettingsUtil.GeneratedCppDir}/MethodBridge.cpp";
@@ -154,29 +162,40 @@ namespace HybridCLR.Editor.BuildProcessors
                 }
             }
 #if UNITY_2023_1_OR_NEWER
-            string deploy2022Dir = $"{SettingsUtil.LocalIl2CppDir}/build/deploy/deploy-2022";
-            if (!Directory.Exists(deploy2022Dir))
+            if (useDhe)
             {
-                throw new BuildFailedException($"{deploy2022Dir} 不存在，请复制Unity 2022.3.54+ Editor安装目录下的`il2cpp/build/deploy`到`{deploy2022Dir}`");
+                string deploy2022Dir = $"{SettingsUtil.LocalIl2CppDir}/build/deploy/deploy-2022";
+                if (!Directory.Exists(deploy2022Dir))
+                {
+                    throw new BuildFailedException($"{deploy2022Dir} 不存在，请复制Unity 2022.3.54+ Editor安装目录下的`il2cpp/build/deploy`到`{deploy2022Dir}`");
+                }
             }
 #endif
-            if (!HasReplacedUnityIl2CppDllWithDHEEdition())
+            if (useDhe && !HasReplacedUnityIl2CppDllWithDHEEdition())
             {
                 throw new BuildFailedException($"{SettingsUtil.UnityIl2CppDllPath} 是原始版本，请替换为DHE版本");
             }
-            if (!DoesUnityIl2CppDllSupportInjectRules())
+            if (useDhe && !DoesUnityIl2CppDllSupportInjectRules())
             {
                 throw new BuildFailedException($"{SettingsUtil.UnityIl2CppDllPath} 不支持InjectRules，请替换为支持InjectRules的DHE版本");
             }
 
-            string dheAssemblyEnvStr = string.Join(",", gs.differentialHybridAssemblies ?? Array.Empty<string>());
-            Debug.Log($"[CheckSettings] DHE_ASSEMBLIES:{dheAssemblyEnvStr}");
-            Environment.SetEnvironmentVariable("DHE_ASSEMBLIES", dheAssemblyEnvStr);
+            if (useDhe)
+            {
+                string dheAssemblyEnvStr = string.Join(",", gs.differentialHybridAssemblies);
+                Debug.Log($"[CheckSettings] DHE_ASSEMBLIES:{dheAssemblyEnvStr}");
+                Environment.SetEnvironmentVariable("DHE_ASSEMBLIES", dheAssemblyEnvStr);
 
-            string injectRuleFilesEnvKey = "INJECT_RULE_FILES";
-            string injectRuleFilesEnvStr = string.Join(",", gs.injectRuleFiles?.Select(f => Path.GetFullPath(f)) ?? Array.Empty<string>());
-            Debug.Log($"[CheckSettings] {injectRuleFilesEnvKey}:{injectRuleFilesEnvStr}");
-            Environment.SetEnvironmentVariable(injectRuleFilesEnvKey, injectRuleFilesEnvStr);
+                string injectRuleFilesEnvKey = "INJECT_RULE_FILES";
+                string injectRuleFilesEnvStr = string.Join(",", gs.injectRuleFiles?.Select(f => Path.GetFullPath(f)) ?? Array.Empty<string>());
+                Debug.Log($"[CheckSettings] {injectRuleFilesEnvKey}:{injectRuleFilesEnvStr}");
+                Environment.SetEnvironmentVariable(injectRuleFilesEnvKey, injectRuleFilesEnvStr);
+            }
+            else
+            {
+                Environment.SetEnvironmentVariable("DHE_ASSEMBLIES", null);
+                Environment.SetEnvironmentVariable("INJECT_RULE_FILES", null);
+            }
         }
     }
 }

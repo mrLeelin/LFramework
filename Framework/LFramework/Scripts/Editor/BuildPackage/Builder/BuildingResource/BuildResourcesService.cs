@@ -20,20 +20,19 @@ namespace LFramework.Editor.Builder
         /// <param name="buildSetting">构建设置</param>
         public static void Build(BuildSetting buildSetting)
         {
-            Debug.Log($"[BuildResourcesService] Starting resource build...");
-            Debug.Log($"[BuildResourcesService] Active build target: '{EditorUserBuildSettings.activeBuildTarget}'");
-
             if (buildSetting == null)
             {
-                Debug.LogError("[BuildResourcesService] BuildSetting is null.");
-                return;
+                throw new ArgumentNullException(nameof(buildSetting));
             }
+
+            Debug.Log($"[BuildResourcesService] Starting resource build...");
+            Debug.Log($"[BuildResourcesService] Active build target: '{EditorUserBuildSettings.activeBuildTarget}'");
 
             // 检查资源系统是否受支持
             if (!ResourceBuildSystemFactory.IsSupported(buildSetting.ResourceSystem))
             {
-                Debug.LogError($"[BuildResourcesService] Resource system '{buildSetting.ResourceSystem}' is not supported. Please check your configuration.");
-                return;
+                throw new NotSupportedException(
+                    $"[BuildResourcesService] Resource system '{buildSetting.ResourceSystem}' is not supported. Please check your configuration.");
             }
 
             Debug.Log($"[BuildResourcesService] Using resource system: {ResourceBuildSystemFactory.GetDisplayName(buildSetting.ResourceSystem)}");

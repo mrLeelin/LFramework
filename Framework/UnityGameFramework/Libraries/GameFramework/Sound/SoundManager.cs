@@ -955,7 +955,7 @@ namespace GameFramework.Sound
             }
         }
 
-        private void EnqueueSoundRequest(SoundPlayRequest request, SoundAssetEntry entry)
+        private void  EnqueueSoundRequest(SoundPlayRequest request, SoundAssetEntry entry)
         {
             SoundPlaybackLaneKey key = new SoundPlaybackLaneKey(request.SoundGroup, request.SoundAssetName);
             SoundPlaybackLane lane = null;
