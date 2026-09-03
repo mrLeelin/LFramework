@@ -407,6 +407,7 @@ namespace HybridCLR.Editor.Installer
                 $"Il2CppWrapper/MacOS-{arch}", "il2cpp");
 #endif
             File.Copy(il2cppWrapper, originalIl2CppExePath);
+            EnsureExecutableOnMac(originalIl2CppExePath);
             Debug.Log($"copy {il2cppWrapper} => {originalIl2CppExePath}");
 #endif
             if (HasInstalledHybridCLR())
@@ -437,6 +438,21 @@ namespace HybridCLR.Editor.Installer
             File.Copy(sourceDll, destinationDll, true);
             ValidateModifiedDll(destinationDll);
             Debug.Log($"copy and verify bundled DHE Unity.IL2CPP.dll {sourceDll} => {destinationDll}");
+#endif
+        }
+
+        private static void EnsureExecutableOnMac(string filePath)
+        {
+#if UNITY_EDITOR_OSX
+            int exitCode = BashUtil.RunCommand(
+                Path.GetDirectoryName(filePath),
+                "/bin/chmod",
+                new[] { "+x", filePath });
+            if (exitCode != 0)
+            {
+                throw new InvalidOperationException(
+                    $"Failed to mark HybridCLR il2cpp wrapper executable (chmod exit code {exitCode}): {filePath}");
+            }
 #endif
         }
 
