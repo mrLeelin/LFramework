@@ -271,6 +271,33 @@ namespace LFramework.Editor.Tests.BuildPackage
                 Is.EqualTo(expected));
         }
 
+        [Test]
+        public void GenerateStripedAOTDllsFailureMessageContainsBuildReportErrors()
+        {
+            MethodInfo method = typeof(HybridCLR.Editor.Commands.StripAOTDllCommand).GetMethod(
+                "FormatBuildFailureMessage",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null,
+                "Build failures must retain the detailed BuildReport errors.");
+
+            string result = (string)method.Invoke(null, new object[]
+            {
+                "Android",
+                "Failed",
+                2,
+                3,
+                "/tmp/StrippedAOTDlls",
+                new[] { "il2cpp exited with code 1", "missing libil2cpp" },
+            });
+
+            Assert.That(result, Does.Contain("target=Android"));
+            Assert.That(result, Does.Contain("errors=2"));
+            Assert.That(result, Does.Contain("warnings=3"));
+            Assert.That(result, Does.Contain("/tmp/StrippedAOTDlls"));
+            Assert.That(result, Does.Contain("il2cpp exited with code 1"));
+            Assert.That(result, Does.Contain("missing libil2cpp"));
+        }
+
 #if LFRAMEWORK_HYBRIDCLR_DHE
         [Test]
         public void TryUpdateDifferentialHybridAssemblies_UpdatesCompatibleSettingsField()

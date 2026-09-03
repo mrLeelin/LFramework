@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEditor;
+using UnityEditor.Build.Reporting;
 using UnityEngine;
 
 namespace HybridCLR.Editor.Commands
@@ -140,7 +141,7 @@ namespace HybridCLR.Editor.Commands
 
                 if (report.summary.result != UnityEditor.Build.Reporting.BuildResult.Succeeded)
                 {
-                    throw new Exception("GenerateStripedAOTDlls failed");
+                    throw CreateBuildFailureException(target, report);
                 }
             }
             finally
@@ -184,6 +185,59 @@ namespace HybridCLR.Editor.Commands
                 }
             }
             Debug.Log($"GenerateStripedAOTDlls target:{target} path:{outputPath}");
+        }
+
+        private static Exception CreateBuildFailureException(BuildTarget target, BuildReport report)
+        {
+            IEnumerable<string> errorMessages = report.steps
+                .SelectMany(step => step.messages)
+                .Where(message => message.type == LogType.Error
+                    || message.type == LogType.Exception
+                    || message.type == LogType.Assert)
+                .Select(message => message.content);
+
+            return new Exception(FormatBuildFailureMessage(
+                target.ToString(),
+                report.summary.result.ToString(),
+                report.summary.totalErrors,
+                report.summary.totalWarnings,
+                report.summary.outputPath,
+                errorMessages));
+        }
+
+        // Keep the BuildPlayer diagnostic when HybridCLR's temporary stripping build fails.
+        private static string FormatBuildFailureMessage(
+            string target,
+            string result,
+            int totalErrors,
+            int totalWarnings,
+            string outputPath,
+            IEnumerable<string> errorMessages)
+        {
+            const int MaxReportedErrors = 20;
+            string[] reportedErrors = errorMessages?
+                .Where(message => !string.IsNullOrWhiteSpace(message))
+                .Distinct()
+                .Take(MaxReportedErrors)
+                .ToArray() ?? Array.Empty<string>();
+
+            var builder = new StringBuilder();
+            builder.Append("GenerateStripedAOTDlls failed: ")
+                .Append($"target={target}, result={result}, errors={totalErrors}, ")
+                .Append($"warnings={totalWarnings}, output={outputPath}.");
+
+            if (reportedErrors.Length == 0)
+            {
+                builder.Append(" BuildReport did not retain an error message.");
+                return builder.ToString();
+            }
+
+            builder.AppendLine().Append("BuildReport errors:");
+            foreach (string error in reportedErrors)
+            {
+                builder.AppendLine(error);
+            }
+            return builder.ToString();
         }
     }
 }
