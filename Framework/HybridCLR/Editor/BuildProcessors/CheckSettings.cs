@@ -1,4 +1,5 @@
 ﻿using HybridCLR.Editor.Settings;
+using HybridCLR.Editor.Installer;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -72,6 +73,36 @@ namespace HybridCLR.Editor.BuildProcessors
             {
                 Debug.LogError(e);
                 return false;
+            }
+        }
+
+        private static bool HasExecutablePermission(string path)
+        {
+#if UNITY_EDITOR_OSX || UNITY_EDITOR_LINUX
+            try
+            {
+                return BashUtil.RunCommand("/", "/bin/test", new[] { "-x", path }, false) == 0;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[CheckSettings] failed to check executable permission for '{path}': {e}");
+                return false;
+            }
+#else
+            return true;
+#endif
+        }
+
+        private static void EnsureIl2CppExecutable(string path, string description)
+        {
+            if (!File.Exists(path))
+            {
+                throw new BuildFailedException($"{description} 不存在: {path}");
+            }
+
+            if (!HasExecutablePermission(path))
+            {
+                throw new BuildFailedException($"{description} 没有可执行权限: {path}，请执行 chmod +x");
             }
         }
 
@@ -154,11 +185,14 @@ namespace HybridCLR.Editor.BuildProcessors
                 }
             }
 #if UNITY_2023_1_OR_NEWER
-            string deploy2022Dir = $"{SettingsUtil.LocalIl2CppDir}/build/deploy/deploy-2022";
+            string deploy2022Dir = SettingsUtil.Il2CppDeploy2022Dir;
             if (!Directory.Exists(deploy2022Dir))
             {
                 throw new BuildFailedException($"{deploy2022Dir} 不存在，请复制Unity 2022.3.54+ Editor安装目录下的`il2cpp/build/deploy`到`{deploy2022Dir}`");
             }
+            EnsureIl2CppExecutable(SettingsUtil.Il2Cpp2022ExecutablePath, "Unity 2022 deploy-2022/il2cpp");
+            EnsureIl2CppExecutable(SettingsUtil.Il2CppExecutablePath, "当前 Unity 的 deploy/il2cpp");
+            EnsureIl2CppExecutable(SettingsUtil.Il2CppOriginExecutablePath, "当前 Unity 的 deploy/il2cpp-origin");
 #endif
             if (!HasReplacedUnityIl2CppDllWithDHEEdition())
             {

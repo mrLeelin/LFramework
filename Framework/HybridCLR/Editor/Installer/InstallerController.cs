@@ -249,15 +249,6 @@ namespace HybridCLR.Editor.Installer
 #endif
         }
 
-        private string GetExePath(string exePath)
-        {
-#if UNITY_EDITOR_WIN
-            return $"{exePath}.exe";
-#else
-            return exePath;
-#endif
-        }
-
         void CloneBranch(string workDir, string repoUrl, string branch, string repoDir)
         {
             BashUtil.RemoveDir(repoDir);
@@ -353,9 +344,16 @@ namespace HybridCLR.Editor.Installer
             }
             InstallModifiedUnityIl2CppDll(version);
 #if UNITY_2023_1_OR_NEWER
-            string deployDir = $"{SettingsUtil.LocalIl2CppDir}/build/deploy";
-            string originalIl2CppExePath = GetExePath($"{deployDir}/il2cpp");
-            string newIl2CppExePath = GetExePath($"{deployDir}/il2cpp-origin");
+            string originalIl2CppExePath = SettingsUtil.Il2CppExecutablePath;
+            string newIl2CppExePath = SettingsUtil.Il2CppOriginExecutablePath;
+            if (!File.Exists(originalIl2CppExePath))
+            {
+                throw new FileNotFoundException("The Unity il2cpp executable was not found.", originalIl2CppExePath);
+            }
+            if (File.Exists(newIl2CppExePath))
+            {
+                File.Delete(newIl2CppExePath);
+            }
             File.Move(originalIl2CppExePath, newIl2CppExePath);
             Debug.Log($"move {originalIl2CppExePath} => {newIl2CppExePath}");
 #if UNITY_EDITOR_WIN
@@ -365,7 +363,14 @@ namespace HybridCLR.Editor.Installer
             string arch = architecture == Architecture.Arm64 ? "arm64" : "x64";
             string il2cppWrapper = $"{SettingsUtil.ProjectDir}/{SettingsUtil.HybridCLRDataPathInPackage}/Il2CppWrapper/MacOS-{arch}/il2cpp";
 #endif
+            if (!File.Exists(il2cppWrapper))
+            {
+                throw new FileNotFoundException("The HybridCLR il2cpp wrapper was not found.", il2cppWrapper);
+            }
             File.Copy(il2cppWrapper, originalIl2CppExePath);
+#if UNITY_EDITOR_OSX
+            EnsureExecutable(originalIl2CppExePath);
+#endif
             Debug.Log($"copy {il2cppWrapper} => {originalIl2CppExePath}");
 #endif
             if (HasInstalledHybridCLR())
@@ -381,7 +386,7 @@ namespace HybridCLR.Editor.Installer
 
         private void InstallModifiedUnityIl2CppDll(UnityVersion version)
         {
-#if UNITY_EDITOR_WIN
+#if UNITY_2023_1_OR_NEWER
             if (version.major != 6000)
             {
                 return;
@@ -399,11 +404,27 @@ namespace HybridCLR.Editor.Installer
             ValidateModifiedDll(sourceDll);
 
             string destinationDll = SettingsUtil.UnityIl2CppDllPath;
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationDll));
             File.Copy(sourceDll, destinationDll, true);
             ValidateModifiedDll(destinationDll);
             Debug.Log($"copy and verify modified Unity.IL2CPP.dll {sourceDll} => {destinationDll}");
 #endif
         }
+
+#if UNITY_EDITOR_OSX
+        private static void EnsureExecutable(string filePath)
+        {
+            int exitCode = BashUtil.RunCommand(
+                "/",
+                "/bin/chmod",
+                new[] { "u+x", filePath },
+                false);
+            if (exitCode != 0)
+            {
+                throw new IOException($"Failed to set executable permission on '{filePath}'.");
+            }
+        }
+#endif
 
         private static void ValidateModifiedDll(string dllPath)
         {

@@ -42,6 +42,30 @@ namespace HybridCLR.Editor
             }
         }
 
+        public static string Il2CppDeployDir => $"{LocalIl2CppDir}/build/deploy";
+
+        public static string Il2CppDeploy2022Dir => $"{Il2CppDeployDir}/deploy-2022";
+
+        public static string Il2CppExecutableFileName
+        {
+            get
+            {
+#if UNITY_EDITOR_WIN
+                return "il2cpp.exe";
+#else
+                return "il2cpp";
+#endif
+            }
+        }
+
+        public static string Il2CppExecutablePath => $"{Il2CppDeployDir}/{Il2CppExecutableFileName}";
+
+        public static string Il2CppOriginExecutablePath =>
+            $"{Il2CppDeployDir}/il2cpp-origin{(Application.platform == RuntimePlatform.WindowsEditor ? ".exe" : string.Empty)}";
+
+        public static string Il2Cpp2022ExecutablePath =>
+            $"{Il2CppDeploy2022Dir}/{Il2CppExecutableFileName}";
+
         public static string PackageName { get; } = "com.lframework.core";
 
         public static string HybridCLRPackagePath => $"Packages/{PackageName}/Framework/HybridCLR";
