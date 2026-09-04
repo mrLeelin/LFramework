@@ -2,6 +2,10 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.3.10]
+
+- Mac 使用 DHE 打包热更测试成功。
+
 ## [0.3.7]
 
 ### Added

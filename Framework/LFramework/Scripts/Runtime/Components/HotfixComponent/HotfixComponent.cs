@@ -89,25 +89,25 @@ namespace LFramework.Runtime
                     };
                 }
 
-#if LFRAMEWORK_HYBRIDCLR_DHE
-                // The paid edition owns the runtime loading contract. Built-in/local resources
-                // still use original Player images; remote resources may provide DHE patches.
-                bool loadPatchAssets = !GameSetting.isResourcesBuildIn && GameSetting.cdnType != CdnType.Local;
-                result = await LoadDifferentialHybridAssemblies(loadPatchAssets);
-#else
                 if (GameSetting.isResourcesBuildIn || GameSetting.cdnType == CdnType.Local)
                 {
                     result = LoadEditorHotfixAssemblies();
                 }
                 else
                 {
+#if LFRAMEWORK_HYBRIDCLR_DHE
+                    // The paid edition owns the runtime loading contract. Built-in/local resources
+                    // still use original Player images; remote resources may provide DHE patches.
+                    result = await LoadDifferentialHybridAssemblies();
+#else
                     result = await LoadAotAssemblies();
                     if (result.ResultType == LoadAssemblyResultType.Successful)
                     {
                         result = await LoadHotfixAssembliesInternal();
                     }
-                }
 #endif
+                }
+
 #endif
                 if (result.ResultType != LoadAssemblyResultType.Successful)
                 {
@@ -312,16 +312,14 @@ namespace LFramework.Runtime
 
 #if LFRAMEWORK_HYBRIDCLR_DHE
 
-        private async UniTask<HotfixCodeResult> LoadDifferentialHybridAssemblies(bool loadPatchAssets)
+        private async UniTask<HotfixCodeResult> LoadDifferentialHybridAssemblies()
         {
             try
             {
                 IReadOnlyList<string> configuredAssemblies = GetConfiguredAssemblyNames();
-                var dllByAssembly = loadPatchAssets
-                    ? await LoadTaggedArtifactBytes(HybridClrSetting.defaultCodeDllLabel)
-                    : new Dictionary<string, byte[]>(StringComparer.Ordinal);
+                var dllByAssembly = await LoadTaggedArtifactBytes(HybridClrSetting.defaultCodeDllLabel);
                 foreach (string placeholderName in dllByAssembly
-                             .Where(pair => pair.Value == null || pair.Value.Length <= 1)
+                             .Where(pair => pair.Value is not { Length: > 1 })
                              .Select(pair => pair.Key)
                              .ToArray())
                 {
@@ -342,6 +340,16 @@ namespace LFramework.Runtime
                         HybridClrSetting.dheCurrentMetaLabel);
                     originalMetaByAssembly = await LoadTaggedArtifactBytes(
                         HybridClrSetting.dheOriginalMetaLabel);
+
+                    if (currentMetaByAssembly == null)
+                    {
+                        return CreateDheError("The metaAssembly is  null.");
+                    }
+
+                    if (originalMetaByAssembly == null)
+                    {
+                        return CreateDheError("The  original mataAssembly is null.");
+                    }
 
                     string currentMetaError = ValidateRequiredDheArtifactSet(
                         configuredAssemblies,
@@ -372,14 +380,21 @@ namespace LFramework.Runtime
                     }
                     else
                     {
-                        if (!currentMetaByAssembly.TryGetValue(assemblyName, out byte[] currentMeta) ||
-                            currentMeta == null || currentMeta.Length <= 1 ||
-                            !originalMetaByAssembly.TryGetValue(assemblyName, out byte[] originalMeta) ||
-                            originalMeta == null || originalMeta.Length <= 1)
+                        if (currentMetaByAssembly == null ||
+                            !currentMetaByAssembly.TryGetValue(assemblyName, out var currentMeta) ||
+                            currentMeta is not { Length: > 1 })
                         {
                             return CreateDheError(
                                 $"DHE patch metadata is incomplete for assembly '{assemblyName}'.");
                         }
+
+                        if (!originalMetaByAssembly.TryGetValue(assemblyName, out var originalMeta) ||
+                            originalMeta is not { Length: > 1 })
+                        {
+                            return CreateDheError(
+                                $"DHE patch origin metadata is incomplete for assembly '{assemblyName}'.");
+                        }
+
 
                         Log.Info($"Loading patched DHE assembly '{assemblyName}'.");
                         errorCode = HybridCLR.RuntimeApi.LoadDifferentialHybridAssemblyWithMetaVersion(
@@ -531,7 +546,7 @@ namespace LFramework.Runtime
 
         private static HotfixCodeResult CreateDheError(string message)
         {
-            Log.Error(message);
+            Log.Error("[HotfixComponent] " + message);
             return new HotfixCodeResult
             {
                 ResultType = LoadAssemblyResultType.HotfixError,

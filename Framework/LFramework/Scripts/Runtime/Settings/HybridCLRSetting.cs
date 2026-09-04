@@ -50,17 +50,15 @@ namespace LFramework.Runtime.Settings
         [FoldoutGroup("DHE Labels")]
         [Tooltip("Label for the original MetaVersion files generated from the player baseline.")]
         public string dheOriginalMetaLabel = "dhe_original_meta";
-
+        
+        [FoldoutGroup("Default Labels")]
+        [Tooltip("Download code assembly label, this is the label used to mark the code assemblies for download.")]
+        public string defaultCodeDllLabel = "code_dll";
 
         [ShowIf("@!LFramework.Editor.Builder.HybridCLR.HybridCLRBuildWorkflow.IsDheEdition")]
         [FoldoutGroup("Default Labels")]
         [Tooltip("Download aot assembly label, this is the label used to mark the AOT assemblies for download.")]
         public string defaultAotDllLabel = "aot_dll";
-
-        [ShowIf("@!LFramework.Editor.Builder.HybridCLR.HybridCLRBuildWorkflow.IsDheEdition")]
-        [FoldoutGroup("Default Labels")]
-        [Tooltip("Download code assembly label, this is the label used to mark the code assemblies for download.")]
-        public string defaultCodeDllLabel = "code_dll";
 
 
         [Tooltip("Sort order of AOT assemblies, this is the order in which the AOT assemblies will be loaded.")]
