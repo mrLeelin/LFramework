@@ -16,7 +16,6 @@ using System.Security.Cryptography;
 
 namespace HybridCLR.Editor.Installer
 {
-
     public class InstallerController
     {
         private const string hybridclr_repo_path = "hybridclr_repo";
@@ -54,6 +53,7 @@ namespace HybridCLR.Editor.Installer
                 throw new InvalidOperationException(
                     $"No HybridCLR version mapping exists for Unity {Application.unityVersion}.");
             }
+
             PackageVersion = LoadPackageInfo().version;
             InstalledLibil2cppVersion = ReadLocalVersion();
         }
@@ -158,12 +158,14 @@ namespace HybridCLR.Editor.Installer
             {
                 return null;
             }
+
             Match match = matches[matches.Count - 1];
             int major = int.Parse(match.Groups[1].Value);
             int minor1 = int.Parse(match.Groups[2].Value);
             int minor2 = int.Parse(match.Groups[3].Value);
             bool isTuanjieEngine = versionStr.Contains("t");
-            return new UnityVersion { major = major, minor1 = minor1, minor2 = minor2, isTuanjieEngine = isTuanjieEngine };
+            return new UnityVersion
+                { major = major, minor1 = minor1, minor2 = minor2, isTuanjieEngine = isTuanjieEngine };
         }
 
         public string GetCurrentUnityVersionMinCompatibleVersionStr()
@@ -173,18 +175,18 @@ namespace HybridCLR.Editor.Installer
 
         public string GetMinCompatibleVersion(int majorVersion)
         {
-            switch(majorVersion)
+            switch (majorVersion)
             {
                 case 2019: return "2019.4.0";
                 case 2020: return "2020.3.0";
                 case 2021: return "2021.3.0";
                 case 2022: return "2022.3.0";
                 case 2023: return "2023.2.0";
-                #if UNITY_6000_3_OR_NEWER
+#if UNITY_6000_3_OR_NEWER
                 case 6000: return "6000.3.0";
-                #else
+#else
                 case 6000: return "6000.0.0";
-                #endif
+#endif
                 default: return $"2020.3.0";
             }
         }
@@ -203,11 +205,13 @@ namespace HybridCLR.Editor.Installer
             {
                 return CompatibleType.Incompatible;
             }
+
             if ((version.major == 2019 && version.minor1 < 4)
-                || (version.major >= 2020 &&  version.major <= 2022 && version.minor1 < 3))
+                || (version.major >= 2020 && version.major <= 2022 && version.minor1 < 3))
             {
                 return CompatibleType.MaybeIncompatible;
             }
+
             return CompatibleType.Compatible;
         }
 
@@ -219,7 +223,8 @@ namespace HybridCLR.Editor.Installer
         {
             get
             {
-                Debug.Log($"application path:{EditorApplication.applicationPath} {EditorApplication.applicationContentsPath}");
+                Debug.Log(
+                    $"application path:{EditorApplication.applicationPath} {EditorApplication.applicationContentsPath}");
 #if NEW_IL2CPP_PATH
 #if UNITY_IOS
                 string platformDirName = "iOSSupport";
@@ -233,11 +238,12 @@ namespace HybridCLR.Editor.Installer
                 return $"{EditorApplication.applicationContentsPath}/../../PlaybackEngines/{platformDirName}/il2cpp";
 #else
                 return $"{EditorApplication.applicationContentsPath}/il2cpp";
-  #endif
+#endif
             }
         }
 
-        public string LocalVersionFile => $"{SettingsUtil.LocalIl2CppDir}/libil2cpp/hybridclr/generated/libil2cpp-version.txt";
+        public string LocalVersionFile =>
+            $"{SettingsUtil.LocalIl2CppDir}/libil2cpp/hybridclr/generated/libil2cpp-version.txt";
 
         private string ReadLocalVersion()
         {
@@ -245,6 +251,7 @@ namespace HybridCLR.Editor.Installer
             {
                 return null;
             }
+
             return File.ReadAllText(LocalVersionFile, Encoding.UTF8);
         }
 
@@ -297,7 +304,8 @@ namespace HybridCLR.Editor.Installer
         void CloneBranch(string workDir, string repoUrl, string branch, string repoDir)
         {
             BashUtil.RemoveDir(repoDir);
-            BashUtil.RunCommand(workDir, "git", new string[] {"clone", "-b", branch, "--depth", "1", repoUrl, repoDir});
+            BashUtil.RunCommand(workDir, "git",
+                new string[] { "clone", "-b", branch, "--depth", "1", repoUrl, repoDir });
         }
 
         private string PrepareLibil2cppWithHybridclrFromGitRepo()
@@ -335,13 +343,16 @@ namespace HybridCLR.Editor.Installer
             RunInitLocalIl2CppData(ApplicationIl2cppPath, libil2cppWithHybridclrSourceDir, _curVersion);
         }
 
-        private void RunInitLocalIl2CppData(string editorIl2cppPath, string libil2cppWithHybridclrSourceDir, UnityVersion version)
+        private void RunInitLocalIl2CppData(string editorIl2cppPath, string libil2cppWithHybridclrSourceDir,
+            UnityVersion version)
         {
             if (GetCompatibleType() == CompatibleType.Incompatible)
             {
-                Debug.LogError($"Incompatible with current version, minimum compatible version: {GetCurrentUnityVersionMinCompatibleVersionStr()}");
+                Debug.LogError(
+                    $"Incompatible with current version, minimum compatible version: {GetCurrentUnityVersionMinCompatibleVersionStr()}");
                 return;
             }
+
             string workDir = SettingsUtil.HybridCLRDataDir;
             Directory.CreateDirectory(workDir);
 
@@ -350,7 +361,8 @@ namespace HybridCLR.Editor.Installer
             BashUtil.RecreateDir(localUnityDataDir);
 #if !NEW_IL2CPP_PATH
             // copy MonoBleedingEdge
-            BashUtil.CopyDir($"{Directory.GetParent(editorIl2cppPath)}/MonoBleedingEdge", $"{localUnityDataDir}/MonoBleedingEdge", true);
+            BashUtil.CopyDir($"{Directory.GetParent(editorIl2cppPath)}/MonoBleedingEdge",
+                $"{localUnityDataDir}/MonoBleedingEdge", true);
 #endif
             // copy il2cpp
             BashUtil.CopyDir(editorIl2cppPath, SettingsUtil.LocalIl2CppDir, true);
@@ -384,11 +396,13 @@ namespace HybridCLR.Editor.Installer
                 }
                 else
                 {
-                    throw new Exception($"the modified Unity.IL2CPP.dll of {curVersionStr} isn't found. please install hybridclr in 2019.4.40 first, then switch to your unity version");
+                    throw new Exception(
+                        $"the modified Unity.IL2CPP.dll of {curVersionStr} isn't found. please install hybridclr in 2019.4.40 first, then switch to your unity version");
                 }
             }
-            InstallModifiedUnityIl2CppDll(version);
-            InstallBundledDheUnityIl2CppDll();
+
+            InstallBundledDheUnityIl2CppDll(version);
+
 #if UNITY_2023_1_OR_NEWER
             string deployDir = $"{SettingsUtil.LocalIl2CppDir}/build/deploy";
             string originalIl2CppExePath = GetExePath($"{deployDir}/il2cpp");
@@ -421,9 +435,32 @@ namespace HybridCLR.Editor.Installer
             }
         }
 
-        private static void InstallBundledDheUnityIl2CppDll()
+        private static void InstallBundledDheUnityIl2CppDll(UnityVersion version)
         {
 #if UNITY_2023_1_OR_NEWER
+#if UNITY_EDITOR_WIN
+            if (version.major == 6000 && !string.Equals(Application.unityVersion, SupportedModifiedDllUnityVersion, StringComparison.Ordinal))
+            {
+                throw new Exception(
+                    $"The bundled modified Unity.IL2CPP.dll only supports Unity {SupportedModifiedDllUnityVersion}, current version is {Application.unityVersion}.");
+            }
+#endif
+
+            string deploy2022Dir = Path.Combine(SettingsUtil.LocalIl2CppDir, "build", "deploy", "deploy-2022");
+#if UNITY_EDITOR_OSX
+            string sourceDeploy2022Dir = Path.Combine(SettingsUtil.HybridCLRDataPathInPackage,
+                "deploy", "OSXEditor", "deploy-2022");
+            if (!Directory.Exists(sourceDeploy2022Dir))
+            {
+                throw new DirectoryNotFoundException($"The bundled OSXEditor deploy-2022 directory was not found: {sourceDeploy2022Dir}");
+            }
+
+            BashUtil.CopyDir(sourceDeploy2022Dir, deploy2022Dir, true);
+            Debug.Log($"copy bundled OSXEditor deploy-2022 {sourceDeploy2022Dir} => {deploy2022Dir}");
+#else
+            Directory.CreateDirectory(deploy2022Dir);
+#endif
+
             string sourceDll = Path.Combine(SettingsUtil.HybridCLRDataPathInPackage,
                 "ModifiedDlls", ModifiedDllVersion, "Unity.IL2CPP.dll");
             if (!File.Exists(sourceDll))
@@ -432,8 +469,6 @@ namespace HybridCLR.Editor.Installer
             }
 
             ValidateModifiedDll(sourceDll);
-            string deploy2022Dir = Path.Combine(SettingsUtil.LocalIl2CppDir, "build", "deploy", "deploy-2022");
-            Directory.CreateDirectory(deploy2022Dir);
             string destinationDll = Path.Combine(deploy2022Dir, "Unity.IL2CPP.dll");
             File.Copy(sourceDll, destinationDll, true);
             ValidateModifiedDll(destinationDll);
@@ -456,33 +491,6 @@ namespace HybridCLR.Editor.Installer
 #endif
         }
 
-        private void InstallModifiedUnityIl2CppDll(UnityVersion version)
-        {
-#if UNITY_EDITOR_WIN
-            if (version.major != 6000)
-            {
-                return;
-            }
-            if (!string.Equals(Application.unityVersion, SupportedModifiedDllUnityVersion, StringComparison.Ordinal))
-            {
-                throw new Exception($"The bundled modified Unity.IL2CPP.dll only supports Unity {SupportedModifiedDllUnityVersion}, current version is {Application.unityVersion}.");
-            }
-
-            string sourceDll = Path.Combine(SettingsUtil.HybridCLRDataPathInPackage,
-                "ModifiedDlls", ModifiedDllVersion, "Unity.IL2CPP.dll");
-            if (!File.Exists(sourceDll))
-            {
-                throw new FileNotFoundException("The bundled modified Unity.IL2CPP.dll was not found.", sourceDll);
-            }
-            ValidateModifiedDll(sourceDll);
-
-            string destinationDll = SettingsUtil.UnityIl2CppDllPath;
-            File.Copy(sourceDll, destinationDll, true);
-            ValidateModifiedDll(destinationDll);
-            Debug.Log($"copy and verify modified Unity.IL2CPP.dll {sourceDll} => {destinationDll}");
-#endif
-        }
-
         private static void ValidateModifiedDll(string dllPath)
         {
             string actualHash;
@@ -491,9 +499,11 @@ namespace HybridCLR.Editor.Installer
             {
                 actualHash = BitConverter.ToString(sha256.ComputeHash(stream)).Replace("-", string.Empty);
             }
+
             if (!string.Equals(actualHash, ModifiedDllSha256, StringComparison.OrdinalIgnoreCase))
             {
-                throw new InvalidDataException($"The modified Unity.IL2CPP.dll hash is invalid. Expected {ModifiedDllSha256}, actual {actualHash}, path: {dllPath}");
+                throw new InvalidDataException(
+                    $"The modified Unity.IL2CPP.dll hash is invalid. Expected {ModifiedDllSha256}, actual {actualHash}, path: {dllPath}");
             }
         }
     }
