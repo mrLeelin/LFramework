@@ -456,6 +456,7 @@ namespace HybridCLR.Editor.Installer
             }
 
             BashUtil.CopyDir(sourceDeploy2022Dir, deploy2022Dir, true);
+            EnsureBundledDeploy2022ExecutablesOnMac(deploy2022Dir);
             Debug.Log($"copy bundled OSXEditor deploy-2022 {sourceDeploy2022Dir} => {deploy2022Dir}");
 #else
             Directory.CreateDirectory(deploy2022Dir);
@@ -486,7 +487,25 @@ namespace HybridCLR.Editor.Installer
             if (exitCode != 0)
             {
                 throw new InvalidOperationException(
-                    $"Failed to mark HybridCLR il2cpp wrapper executable (chmod exit code {exitCode}): {filePath}");
+                    $"Failed to mark HybridCLR executable (chmod exit code {exitCode}): {filePath}");
+            }
+#endif
+        }
+
+        private static void EnsureBundledDeploy2022ExecutablesOnMac(string deploy2022Dir)
+        {
+#if UNITY_EDITOR_OSX
+            EnsureExecutableOnMac(Path.Combine(deploy2022Dir, "il2cpp"));
+            EnsureExecutableOnMac(Path.Combine(deploy2022Dir, "UnityLinker"));
+            EnsureExecutableOnMac(Path.Combine(deploy2022Dir, "createdump"));
+
+            string beeBackendDir = Path.Combine(deploy2022Dir, "bee_backend");
+            if (Directory.Exists(beeBackendDir))
+            {
+                foreach (string executablePath in Directory.GetFiles(beeBackendDir, "*", SearchOption.AllDirectories))
+                {
+                    EnsureExecutableOnMac(executablePath);
+                }
             }
 #endif
         }
