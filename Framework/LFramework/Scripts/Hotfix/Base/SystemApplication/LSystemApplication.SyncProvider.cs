@@ -33,7 +33,6 @@ namespace LFramework.Hotfix
             TypeInterfacesCache.Clear();
         }
 
-        private readonly Dictionary<Type, List<ISyncServerData>> _syncServerDates = new();
         private readonly Dictionary<ISyncServerData, Type> _linkSyncServerDates = new();
 
         
@@ -52,21 +51,24 @@ namespace LFramework.Hotfix
 
         private void TrySync(object data, bool isLogin)
         {
-            foreach (var kPair in _syncServerDates)
+            var valuesByType = new Dictionary<Type, object>();
+            foreach (var registration in _orderedSystemProviders)
             {
-                var property = GetPropertyInfo(data, kPair.Key);
-                if (property == null) continue;
+                if (registration.Provider is not ISyncServerData serverData) continue;
+                if (!_linkSyncServerDates.TryGetValue(serverData, out var dataType)) continue;
 
-                var value = property.GetValue(data);
+                if (!valuesByType.TryGetValue(dataType, out var value))
+                {
+                    var property = GetPropertyInfo(data, dataType);
+                    value = property?.GetValue(data);
+                    valuesByType.Add(dataType, value);
+                }
                 if (value == null) continue;
                 
                 // 如果value是list并且Count == 0那么Return
                 if (value is System.Collections.ICollection { Count: 0 }) continue;
 
-                foreach (var serverData in kPair.Value)
-                {
-                    serverData.SyncServer(value, isLogin);
-                }
+                serverData.SyncServer(value, isLogin);
             }
         }
 
@@ -92,15 +94,6 @@ namespace LFramework.Hotfix
                 if (genericArgs.Length == 0) continue;
                 
                 var actualType = genericArgs[0];
-                if (_syncServerDates.TryGetValue(actualType, out var list))
-                {
-                    list.Add(syncServerData);
-                }
-                else
-                {
-                    _syncServerDates.Add(actualType, new List<ISyncServerData> { syncServerData });
-                }
-
                 _linkSyncServerDates.Add(syncServerData, actualType);
             }
         }
@@ -109,21 +102,7 @@ namespace LFramework.Hotfix
         {
             if (systemProviderBase is not ISyncServerData syncServerData) return;
 
-            if (!_linkSyncServerDates.Remove(syncServerData, out var type)) return;
-
-            if (!_syncServerDates.TryGetValue(type, out var list)) return;
-
-            if (!list.Remove(syncServerData))
-            {
-                return;
-            }
-
-            if (list.Count > 0)
-            {
-                return;
-            }
-
-            _syncServerDates.Remove(type);
+            _linkSyncServerDates.Remove(syncServerData);
         }
 
 

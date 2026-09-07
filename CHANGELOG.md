@@ -2,6 +2,28 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.3.11]
+
+### Added
+
+- 新增 11 项 Provider 排序与生命周期 EditMode 回归测试，覆盖同值稳定排序、跨数据类型同步、跨流程注册、重复进入、注销、回滚及释放失败重试。
+
+### Changed
+
+- 统一 Provider 初始化各阶段、每帧 `UpdateComponent`、`ISyncServerData` 同步及正常注销、释放的排序规则：`BelongTo.Sort` 越大越先执行，相同优先级按注册先后稳定执行。
+- 更新和同步共用全局有序 Provider 注册表；同步不再按数据类型分组，单对象和列表接收者可以按优先级交错执行，同类型数据在单次同步中仍只读取一次。
+- 跨流程保留的 `Forever` Provider 与新注册 Provider 使用同一全局执行顺序；初始化仍只处理本批新增 Provider，不重复初始化已有实例。
+
+### Fixed
+
+- 正常清理成功后立即同步移除 Provider 查询索引和有序执行记录，避免后续对象清理失败导致已释放实例残留。
+- 正常清理抛异常时保留失败 Provider 的重试入口；注册失败仍逆序回滚，并在清理前移除本批执行记录，避免残留更新或同步回调。
+
+### Upgrade Notes
+
+- 无需修改现有 Provider 接口或同步回调签名，但已有 `BelongTo.Sort` 现在也会影响更新、同步和正常清理顺序。有先后依赖的 Provider 应配置不同优先级，不要依赖同值时的发现顺序或旧的数据类型分组顺序。
+- 本次不改变网络登录事件时序、登录标记透传、空数据跳过规则或账号状态重置逻辑。
+
 ## [0.3.10]
 
 - Mac 使用 DHE 打包热更测试成功。

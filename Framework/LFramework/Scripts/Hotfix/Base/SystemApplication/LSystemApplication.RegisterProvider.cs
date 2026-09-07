@@ -9,8 +9,7 @@ namespace LFramework.Hotfix
     public partial class LSystemApplication
     {
         private readonly Dictionary<Type, ISystemProvider> _systemProviders = new();
-        private readonly List<Type> _tempRemoveKeys = new();
-        private readonly List<TempSystemProviderContainer> _tempSystemProviders = new();
+        private readonly List<SystemProviderRegistration> _tempSystemProviders = new();
 
         public void TryRegisterProvider(int procedureState)
         {
@@ -78,12 +77,14 @@ namespace LFramework.Hotfix
                         attribute.ProviderLifeCycle,
                         attribute.Sort);
 #endif
-                    _tempSystemProviders.Add(new TempSystemProviderContainer
+                    var registration = new SystemProviderRegistration
                     {
                         Provider = systemProvider,
                         ProviderType = providerType,
-                        Sort = attribute.Sort
-                    });
+                        Sort = attribute.Sort,
+                        RegistrationOrder = _providerRegistrationOrder++
+                    };
+                    _tempSystemProviders.Add(registration);
 
                     registerStage = "Register";
                     RegisterCommonDataSync(systemProvider);
@@ -98,12 +99,14 @@ namespace LFramework.Hotfix
 
                     LServices.Register(providerType, systemProvider);
                     _systemProviders.Add(providerType, systemProvider);
+                    _orderedSystemProviders.Add(registration);
+                    _orderedSystemProviders.Sort(CompareSystemProviders);
 #if UNITY_EDITOR
                     systemProvider.SetDiagnosticsStage(ProviderDiagnosticsStage.Registered);
 #endif
                 }
 
-                _tempSystemProviders.Sort((x, y) => y.Sort.CompareTo(x.Sort));
+                _tempSystemProviders.Sort(CompareSystemProviders);
 
                 foreach (var provider in _tempSystemProviders)
                 {
@@ -178,13 +181,12 @@ namespace LFramework.Hotfix
 
         public void TryUnRegisterProvider(int procedureState)
         {
-            _tempRemoveKeys.Clear();
-            foreach (var kPair in _systemProviders)
+            foreach (var registration in _orderedSystemProviders.ToArray())
             {
-                var attribute = kPair.Key.GetCustomAttribute<BelongToAttribute>();
+                var attribute = registration.ProviderType.GetCustomAttribute<BelongToAttribute>();
                 if (attribute == null)
                 {
-                    Log.Fatal($"None BelongToAttribute in '{kPair.Key.FullName}' Provider");
+                    Log.Fatal($"None BelongToAttribute in '{registration.ProviderType.FullName}' Provider");
                     continue;
                 }
 
@@ -198,22 +200,16 @@ namespace LFramework.Hotfix
                     continue;
                 }
 
-                kPair.Value.UnSubscribeEvent();
-                UnRegisterProvider(kPair.Key, kPair.Value);
-                _tempRemoveKeys.Add(kPair.Key);
-            }
-
-            foreach (var key in _tempRemoveKeys)
-            {
-                _systemProviders.Remove(key);
+                registration.Provider.UnSubscribeEvent();
+                UnRegisterProvider(registration.ProviderType, registration.Provider);
             }
         }
 
-        private void UnRegisterProvider(Type t, ISystemProvider v)
+        private void UnRegisterProvider(Type providerType, ISystemProvider provider)
         {
-            UnRegisterCommonDataSync(v as SystemProviderBase);
-            UnRegisterProviderService(t);
-            var interfaceType = t.GetDerivedInterfaces(
+            UnRegisterCommonDataSync(provider as SystemProviderBase);
+            UnRegisterProviderService(providerType);
+            var interfaceType = providerType.GetDerivedInterfaces(
                 typeof(ISystemProvider),
                 typeof(IReference),
                 typeof(IDisposable));
@@ -222,18 +218,30 @@ namespace LFramework.Hotfix
                 LServices.Unregister(interfaceType);
             }
 
-            Injection.ClearReflectionCache(t);
-            ReferencePool.Release(v);
+            Injection.ClearReflectionCache(providerType);
+            ReferencePool.Release(provider);
+            RemoveProviderRegistration(providerType, provider);
+        }
+
+        private void RemoveProviderRegistration(Type providerType, ISystemProvider provider)
+        {
+            if (_systemProviders.TryGetValue(providerType, out var registeredProvider) &&
+                ReferenceEquals(registeredProvider, provider))
+            {
+                _systemProviders.Remove(providerType);
+            }
+
+            _orderedSystemProviders.RemoveAll(registration => ReferenceEquals(registration.Provider, provider));
         }
 
         private void RollbackCurrentProviderRegistration()
         {
-            for (int i = _tempSystemProviders.Count - 1; i >= 0; i--)
+            for (var providerIndex = _tempSystemProviders.Count - 1; providerIndex >= 0; providerIndex--)
             {
-                var registeredProvider = _tempSystemProviders[i];
+                var registeredProvider = _tempSystemProviders[providerIndex];
                 try
                 {
-                    _systemProviders.Remove(registeredProvider.ProviderType);
+                    RemoveProviderRegistration(registeredProvider.ProviderType, registeredProvider.Provider);
                     UnRegisterProvider(registeredProvider.ProviderType, registeredProvider.Provider);
                 }
                 catch (Exception rollbackException)

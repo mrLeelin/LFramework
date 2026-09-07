@@ -18,17 +18,28 @@ namespace LFramework.Hotfix
         ISingletonUpdate,
         ISingletonLateUpdate
     {
-        private struct TempSystemProviderContainer
+        private struct SystemProviderRegistration
         {
             public ISystemProvider Provider;
             public Type ProviderType;
             public int Sort;
+            public long RegistrationOrder;
         }
 
         [Inject] private HotfixComponent HotfixComponent { get; set; }
 
         private readonly GameFrameworkLinkedList<GameFrameworkComponent> _hotfixComponents = new();
         private readonly List<Type> _hotfixComponentServiceTypes = new();
+        private readonly List<SystemProviderRegistration> _orderedSystemProviders = new();
+        private long _providerRegistrationOrder;
+
+        private static int CompareSystemProviders(SystemProviderRegistration left, SystemProviderRegistration right)
+        {
+            var sortComparison = right.Sort.CompareTo(left.Sort);
+            return sortComparison != 0
+                ? sortComparison
+                : left.RegistrationOrder.CompareTo(right.RegistrationOrder);
+        }
 
         public LSystemApplication()
         {
@@ -45,9 +56,9 @@ namespace LFramework.Hotfix
                 component.UpdateComponent(elapseSeconds, realElapseSeconds);
             }
 
-            foreach (var systemProvider in _systemProviders)
+            foreach (var systemProvider in _orderedSystemProviders)
             {
-                systemProvider.Value.UpdateComponent(elapseSeconds, realElapseSeconds);
+                systemProvider.Provider.UpdateComponent(elapseSeconds, realElapseSeconds);
             }
 
             _worldBase?.Update(elapseSeconds, realElapseSeconds);
@@ -101,12 +112,13 @@ namespace LFramework.Hotfix
 
         public void DisposeAllActiveProviders()
         {
-            foreach (var provider in _systemProviders)
+            foreach (var provider in _orderedSystemProviders.ToArray())
             {
-                UnRegisterProvider(provider.Key, provider.Value);
+                UnRegisterProvider(provider.ProviderType, provider.Provider);
             }
 
             _systemProviders.Clear();
+            _orderedSystemProviders.Clear();
         }
 
         public void RegisterHotfixComponents(HotfixComponent hotfixComponent)

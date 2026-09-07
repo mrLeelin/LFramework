@@ -39,6 +39,26 @@ Hotfix procedures automatically participate in provider/world registration for t
    - `UnSubscribe(...)`
    - `OnStop()`
 
+Provider execution uses `BelongTo.Sort` descending (larger values first). Equal
+priorities retain registration order, including across procedure entries. Set
+different priorities when one provider depends on another; discovery order is
+not a dependency declaration.
+
+- Each new registration batch uses this order separately for injection,
+  `AwakeComponent`, event subscription, and `SetUp`. Existing `Forever` providers
+  are not initialized again when another procedure starts.
+- `UpdateComponent` and server-data synchronization use the same global active
+  provider order. Synchronization can interleave different payload types; null
+  properties and empty lists still do not invoke synchronization callbacks.
+- Normal procedure exit and application disposal use the same priority order.
+  Failed registration rolls back the current batch in reverse initialization
+  order. Unregistered providers no longer receive update or synchronization calls.
+  If normal cleanup throws, the failed provider remains tracked so cleanup can be retried;
+  successfully released providers are removed immediately.
+
+These rules do not change hotfix-component or world scheduling, network login
+event timing, or account-state reset behavior.
+
 Use providers for:
 
 - procedure-scoped services
