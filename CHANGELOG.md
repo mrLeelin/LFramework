@@ -2,6 +2,23 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.3.12]
+
+### Added
+
+- 为 Debug、Info、Warning、Error、Fatal 增加对应的 Tag 日志入口，支持字符串标签、泛型类型名和实例类型名，并自动记录调用方法、文件路径及行号。
+
+### Changed
+
+- 普通 string/object 日志入口使用 CallerMemberName、CallerFilePath、CallerLineNumber 自动附加调用位置；Assert 显式透传业务调用位置。
+- 日志入口增加 DebuggerHidden 和 DebuggerStepThrough，单步调试时跳过日志实现。
+- 保留默认无 Tag 调用、日志级别条件编译和原有格式化重载。带标签使用 DebugTag、InfoTag、WarningTag、ErrorTag、FatalTag，避免与格式化参数发生重载冲突。
+
+### Upgrade Notes
+
+- 现有格式化重载保持原有行为，不自动追加调用位置；需要 Tag 和调用位置时，可将插值字符串传入对应的 Tag 入口。
+- 普通日志与 Assert 的方法签名新增可选参数；升级框架后需要重新编译调用程序集，包括 Hotfix 程序集。
+
 ## [0.3.11]
 
 ### Added

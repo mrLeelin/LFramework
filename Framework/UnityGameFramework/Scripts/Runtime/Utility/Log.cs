@@ -7,6 +7,7 @@
 
 using GameFramework;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace UnityGameFramework.Runtime
 {
@@ -15,17 +16,176 @@ namespace UnityGameFramework.Runtime
     /// </summary>
     public static class Log
     {
-        /// <summary>
-        /// 打印调试级别日志，用于记录调试类日志信息。
-        /// </summary>
-        /// <param name="message">日志内容。</param>
-        /// <remarks>仅在带有 ENABLE_LOG、ENABLE_DEBUG_LOG 或 ENABLE_DEBUG_AND_ABOVE_LOG 预编译选项时生效。</remarks>
+        /// <summary>Writes a debug message with a string tag and caller location.</summary>
         [Conditional("ENABLE_LOG")]
         [Conditional("ENABLE_DEBUG_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
-        public static void Debug(object message)
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void DebugTag(string tag, object message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
+            => GameFrameworkLog.Debug(AppendCallerInfo($"[{tag}] {message}", memberName, filePath, lineNumber));
+
+        /// <summary>Writes a debug message with a type tag and caller location.</summary>
+        [Conditional("ENABLE_LOG")]
+        [Conditional("ENABLE_DEBUG_LOG")]
+        [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void DebugTag<T>(object message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
+            => GameFrameworkLog.Debug(AppendCallerInfo($"[{typeof(T).Name}] {message}", memberName, filePath, lineNumber));
+
+        /// <summary>Writes a debug message with a instance tag and caller location.</summary>
+        [Conditional("ENABLE_LOG")]
+        [Conditional("ENABLE_DEBUG_LOG")]
+        [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void DebugTag(object context, object message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
+            => GameFrameworkLog.Debug(AppendCallerInfo($"[{context?.GetType().Name}] {message}", memberName, filePath, lineNumber));
+
+        /// <summary>Writes a info message with a string tag and caller location.</summary>
+        [Conditional("ENABLE_LOG")]
+        [Conditional("ENABLE_INFO_LOG")]
+        [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void InfoTag(string tag, object message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
+            => GameFrameworkLog.Info(AppendCallerInfo($"<color=#00E8EB>[{tag}] {message}</color>", memberName, filePath, lineNumber));
+
+        /// <summary>Writes a info message with a type tag and caller location.</summary>
+        [Conditional("ENABLE_LOG")]
+        [Conditional("ENABLE_INFO_LOG")]
+        [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void InfoTag<T>(object message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
+            => GameFrameworkLog.Info(AppendCallerInfo($"<color=#00E8EB>[{typeof(T).Name}] {message}</color>", memberName, filePath, lineNumber));
+
+        /// <summary>Writes a info message with a instance tag and caller location.</summary>
+        [Conditional("ENABLE_LOG")]
+        [Conditional("ENABLE_INFO_LOG")]
+        [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void InfoTag(object context, object message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
+            => GameFrameworkLog.Info(AppendCallerInfo($"<color=#00E8EB>[{context?.GetType().Name}] {message}</color>", memberName, filePath, lineNumber));
+
+        /// <summary>Writes a warning message with a string tag and caller location.</summary>
+        [Conditional("ENABLE_LOG")]
+        [Conditional("ENABLE_WARNING_LOG")]
+        [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void WarningTag(string tag, object message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
+            => GameFrameworkLog.Warning(AppendCallerInfo($"[{tag}] {message}", memberName, filePath, lineNumber));
+
+        /// <summary>Writes a warning message with a type tag and caller location.</summary>
+        [Conditional("ENABLE_LOG")]
+        [Conditional("ENABLE_WARNING_LOG")]
+        [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void WarningTag<T>(object message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
+            => GameFrameworkLog.Warning(AppendCallerInfo($"[{typeof(T).Name}] {message}", memberName, filePath, lineNumber));
+
+        /// <summary>Writes a warning message with a instance tag and caller location.</summary>
+        [Conditional("ENABLE_LOG")]
+        [Conditional("ENABLE_WARNING_LOG")]
+        [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void WarningTag(object context, object message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
+            => GameFrameworkLog.Warning(AppendCallerInfo($"[{context?.GetType().Name}] {message}", memberName, filePath, lineNumber));
+
+        /// <summary>Writes a error message with a string tag and caller location.</summary>
+        [Conditional("ENABLE_LOG")]
+        [Conditional("ENABLE_ERROR_LOG")]
+        [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void ErrorTag(string tag, object message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
+            => GameFrameworkLog.Error(AppendCallerInfo($"[{tag}] {message}", memberName, filePath, lineNumber));
+
+        /// <summary>Writes a error message with a type tag and caller location.</summary>
+        [Conditional("ENABLE_LOG")]
+        [Conditional("ENABLE_ERROR_LOG")]
+        [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void ErrorTag<T>(object message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
+            => GameFrameworkLog.Error(AppendCallerInfo($"[{typeof(T).Name}] {message}", memberName, filePath, lineNumber));
+
+        /// <summary>Writes a error message with a instance tag and caller location.</summary>
+        [Conditional("ENABLE_LOG")]
+        [Conditional("ENABLE_ERROR_LOG")]
+        [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void ErrorTag(object context, object message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
+            => GameFrameworkLog.Error(AppendCallerInfo($"[{context?.GetType().Name}] {message}", memberName, filePath, lineNumber));
+
+        /// <summary>Writes a fatal message with a string tag and caller location.</summary>
+        [Conditional("ENABLE_LOG")]
+        [Conditional("ENABLE_FATAL_LOG")]
+        [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void FatalTag(string tag, object message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
+            => GameFrameworkLog.Fatal(AppendCallerInfo($"[{tag}] {message}", memberName, filePath, lineNumber));
+
+        /// <summary>Writes a fatal message with a type tag and caller location.</summary>
+        [Conditional("ENABLE_LOG")]
+        [Conditional("ENABLE_FATAL_LOG")]
+        [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void FatalTag<T>(object message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
+            => GameFrameworkLog.Fatal(AppendCallerInfo($"[{typeof(T).Name}] {message}", memberName, filePath, lineNumber));
+
+        /// <summary>Writes a fatal message with a instance tag and caller location.</summary>
+        [Conditional("ENABLE_LOG")]
+        [Conditional("ENABLE_FATAL_LOG")]
+        [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void FatalTag(object context, object message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
+            => GameFrameworkLog.Fatal(AppendCallerInfo($"[{context?.GetType().Name}] {message}", memberName, filePath, lineNumber));
+
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        private static object AppendCallerInfo(object message, string memberName, string filePath, int lineNumber)
         {
-            GameFrameworkLog.Debug(message);
+            return $"{message}\n{memberName} (at {filePath}:{lineNumber})";
         }
 
         /// <summary>
@@ -36,9 +196,26 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_LOG")]
         [Conditional("ENABLE_DEBUG_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
-        public static void Debug(string message)
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void Debug(object message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
         {
-            GameFrameworkLog.Debug(message);
+            GameFrameworkLog.Debug(AppendCallerInfo(message, memberName, filePath, lineNumber));
+        }
+
+        /// <summary>
+        /// 打印调试级别日志，用于记录调试类日志信息。
+        /// </summary>
+        /// <param name="message">日志内容。</param>
+        /// <remarks>仅在带有 ENABLE_LOG、ENABLE_DEBUG_LOG 或 ENABLE_DEBUG_AND_ABOVE_LOG 预编译选项时生效。</remarks>
+        [Conditional("ENABLE_LOG")]
+        [Conditional("ENABLE_DEBUG_LOG")]
+        [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void Debug(string message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
+        {
+            GameFrameworkLog.Debug(AppendCallerInfo(message, memberName, filePath, lineNumber));
         }
 
         /// <summary>
@@ -51,6 +228,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_LOG")]
         [Conditional("ENABLE_DEBUG_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Debug<T>(string format, T arg)
         {
             GameFrameworkLog.Debug(format, arg);
@@ -68,6 +247,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_LOG")]
         [Conditional("ENABLE_DEBUG_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Debug<T1, T2>(string format, T1 arg1, T2 arg2)
         {
             GameFrameworkLog.Debug(format, arg1, arg2);
@@ -87,6 +268,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_LOG")]
         [Conditional("ENABLE_DEBUG_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Debug<T1, T2, T3>(string format, T1 arg1, T2 arg2, T3 arg3)
         {
             GameFrameworkLog.Debug(format, arg1, arg2, arg3);
@@ -108,6 +291,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_LOG")]
         [Conditional("ENABLE_DEBUG_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Debug<T1, T2, T3, T4>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
         {
             GameFrameworkLog.Debug(format, arg1, arg2, arg3, arg4);
@@ -131,6 +316,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_LOG")]
         [Conditional("ENABLE_DEBUG_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Debug<T1, T2, T3, T4, T5>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5)
         {
             GameFrameworkLog.Debug(format, arg1, arg2, arg3, arg4, arg5);
@@ -156,6 +343,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_LOG")]
         [Conditional("ENABLE_DEBUG_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Debug<T1, T2, T3, T4, T5, T6>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6)
         {
             GameFrameworkLog.Debug(format, arg1, arg2, arg3, arg4, arg5, arg6);
@@ -183,6 +372,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_LOG")]
         [Conditional("ENABLE_DEBUG_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Debug<T1, T2, T3, T4, T5, T6, T7>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7)
         {
             GameFrameworkLog.Debug(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
@@ -212,6 +403,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_LOG")]
         [Conditional("ENABLE_DEBUG_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Debug<T1, T2, T3, T4, T5, T6, T7, T8>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8)
         {
             GameFrameworkLog.Debug(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
@@ -243,6 +436,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_LOG")]
         [Conditional("ENABLE_DEBUG_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Debug<T1, T2, T3, T4, T5, T6, T7, T8, T9>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9)
         {
             GameFrameworkLog.Debug(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
@@ -276,6 +471,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_LOG")]
         [Conditional("ENABLE_DEBUG_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Debug<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10)
         {
             GameFrameworkLog.Debug(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
@@ -311,6 +508,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_LOG")]
         [Conditional("ENABLE_DEBUG_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Debug<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11)
         {
             GameFrameworkLog.Debug(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
@@ -348,6 +547,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_LOG")]
         [Conditional("ENABLE_DEBUG_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Debug<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12)
         {
             GameFrameworkLog.Debug(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
@@ -387,6 +588,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_LOG")]
         [Conditional("ENABLE_DEBUG_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Debug<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13)
         {
             GameFrameworkLog.Debug(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
@@ -428,6 +631,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_LOG")]
         [Conditional("ENABLE_DEBUG_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Debug<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13, T14 arg14)
         {
             GameFrameworkLog.Debug(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14);
@@ -471,6 +676,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_LOG")]
         [Conditional("ENABLE_DEBUG_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Debug<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13, T14 arg14, T15 arg15)
         {
             GameFrameworkLog.Debug(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15);
@@ -516,6 +723,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_LOG")]
         [Conditional("ENABLE_DEBUG_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Debug<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13, T14 arg14, T15 arg15, T16 arg16)
         {
             GameFrameworkLog.Debug(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16);
@@ -530,9 +739,11 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
-        public static void Info(object message)
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void Info(object message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
         {
-            GameFrameworkLog.Info(message);
+            GameFrameworkLog.Info(AppendCallerInfo(message, memberName, filePath, lineNumber));
         }
 
         /// <summary>
@@ -544,9 +755,11 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
-        public static void Info(string message)
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void Info(string message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
         {
-            GameFrameworkLog.Info($"<color=#00E8EB>{message}</color>");
+            GameFrameworkLog.Info(AppendCallerInfo($"<color=#00E8EB>{message}</color>", memberName, filePath, lineNumber));
         }
         
 
@@ -561,6 +774,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Info<T>(string format, T arg)
         {
             GameFrameworkLog.Info(format, arg);
@@ -579,6 +794,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Info<T1, T2>(string format, T1 arg1, T2 arg2)
         {
             GameFrameworkLog.Info(format, arg1, arg2);
@@ -599,6 +816,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Info<T1, T2, T3>(string format, T1 arg1, T2 arg2, T3 arg3)
         {
             GameFrameworkLog.Info(format, arg1, arg2, arg3);
@@ -621,6 +840,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Info<T1, T2, T3, T4>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
         {
             GameFrameworkLog.Info(format, arg1, arg2, arg3, arg4);
@@ -645,6 +866,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Info<T1, T2, T3, T4, T5>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5)
         {
             GameFrameworkLog.Info(format, arg1, arg2, arg3, arg4, arg5);
@@ -671,6 +894,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Info<T1, T2, T3, T4, T5, T6>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6)
         {
             GameFrameworkLog.Info(format, arg1, arg2, arg3, arg4, arg5, arg6);
@@ -699,6 +924,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Info<T1, T2, T3, T4, T5, T6, T7>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7)
         {
             GameFrameworkLog.Info(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
@@ -729,6 +956,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Info<T1, T2, T3, T4, T5, T6, T7, T8>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8)
         {
             GameFrameworkLog.Info(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
@@ -761,6 +990,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Info<T1, T2, T3, T4, T5, T6, T7, T8, T9>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9)
         {
             GameFrameworkLog.Info(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
@@ -795,6 +1026,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Info<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10)
         {
             GameFrameworkLog.Info(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
@@ -831,6 +1064,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Info<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11)
         {
             GameFrameworkLog.Info(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
@@ -869,6 +1104,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Info<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12)
         {
             GameFrameworkLog.Info(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
@@ -909,6 +1146,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Info<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13)
         {
             GameFrameworkLog.Info(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
@@ -951,6 +1190,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Info<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13, T14 arg14)
         {
             GameFrameworkLog.Info(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14);
@@ -995,6 +1236,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Info<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13, T14 arg14, T15 arg15)
         {
             GameFrameworkLog.Info(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15);
@@ -1041,6 +1284,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_LOG")]
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Info<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13, T14 arg14, T15 arg15, T16 arg16)
         {
             GameFrameworkLog.Info(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16);
@@ -1056,9 +1301,11 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
-        public static void Warning(object message)
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void Warning(object message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
         {
-            GameFrameworkLog.Warning(message);
+            GameFrameworkLog.Warning(AppendCallerInfo(message, memberName, filePath, lineNumber));
         }
 
         /// <summary>
@@ -1071,9 +1318,11 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
-        public static void Warning(string message)
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void Warning(string message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
         {
-            GameFrameworkLog.Warning(message);
+            GameFrameworkLog.Warning(AppendCallerInfo(message, memberName, filePath, lineNumber));
         }
 
         /// <summary>
@@ -1088,6 +1337,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Warning<T>(string format, T arg)
         {
             GameFrameworkLog.Warning(format, arg);
@@ -1107,6 +1358,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Warning<T1, T2>(string format, T1 arg1, T2 arg2)
         {
             GameFrameworkLog.Warning(format, arg1, arg2);
@@ -1128,6 +1381,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Warning<T1, T2, T3>(string format, T1 arg1, T2 arg2, T3 arg3)
         {
             GameFrameworkLog.Warning(format, arg1, arg2, arg3);
@@ -1151,6 +1406,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Warning<T1, T2, T3, T4>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
         {
             GameFrameworkLog.Warning(format, arg1, arg2, arg3, arg4);
@@ -1176,6 +1433,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Warning<T1, T2, T3, T4, T5>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5)
         {
             GameFrameworkLog.Warning(format, arg1, arg2, arg3, arg4, arg5);
@@ -1203,6 +1462,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Warning<T1, T2, T3, T4, T5, T6>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6)
         {
             GameFrameworkLog.Warning(format, arg1, arg2, arg3, arg4, arg5, arg6);
@@ -1232,6 +1493,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Warning<T1, T2, T3, T4, T5, T6, T7>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7)
         {
             GameFrameworkLog.Warning(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
@@ -1263,6 +1526,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Warning<T1, T2, T3, T4, T5, T6, T7, T8>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8)
         {
             GameFrameworkLog.Warning(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
@@ -1296,6 +1561,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Warning<T1, T2, T3, T4, T5, T6, T7, T8, T9>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9)
         {
             GameFrameworkLog.Warning(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
@@ -1331,6 +1598,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Warning<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10)
         {
             GameFrameworkLog.Warning(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
@@ -1368,6 +1637,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Warning<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11)
         {
             GameFrameworkLog.Warning(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
@@ -1407,6 +1678,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Warning<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12)
         {
             GameFrameworkLog.Warning(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
@@ -1448,6 +1721,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Warning<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13)
         {
             GameFrameworkLog.Warning(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
@@ -1491,6 +1766,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Warning<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13, T14 arg14)
         {
             GameFrameworkLog.Warning(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14);
@@ -1536,6 +1813,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Warning<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13, T14 arg14, T15 arg15)
         {
             GameFrameworkLog.Warning(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15);
@@ -1583,6 +1862,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_DEBUG_AND_ABOVE_LOG")]
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Warning<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13, T14 arg14, T15 arg15, T16 arg16)
         {
             GameFrameworkLog.Warning(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16);
@@ -1599,9 +1880,11 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
-        public static void Error(object message)
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void Error(object message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
         {
-            GameFrameworkLog.Error(message);
+            GameFrameworkLog.Error(AppendCallerInfo(message, memberName, filePath, lineNumber));
         }
 
         /// <summary>
@@ -1615,9 +1898,11 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
-        public static void Error(string message)
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void Error(string message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
         {
-            GameFrameworkLog.Error(message);
+            GameFrameworkLog.Error(AppendCallerInfo(message, memberName, filePath, lineNumber));
         }
 
         /// <summary>
@@ -1633,6 +1918,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Error<T>(string format, T arg)
         {
             GameFrameworkLog.Error(format, arg);
@@ -1653,6 +1940,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Error<T1, T2>(string format, T1 arg1, T2 arg2)
         {
             GameFrameworkLog.Error(format, arg1, arg2);
@@ -1675,6 +1964,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Error<T1, T2, T3>(string format, T1 arg1, T2 arg2, T3 arg3)
         {
             GameFrameworkLog.Error(format, arg1, arg2, arg3);
@@ -1699,6 +1990,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Error<T1, T2, T3, T4>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
         {
             GameFrameworkLog.Error(format, arg1, arg2, arg3, arg4);
@@ -1725,6 +2018,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Error<T1, T2, T3, T4, T5>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5)
         {
             GameFrameworkLog.Error(format, arg1, arg2, arg3, arg4, arg5);
@@ -1753,6 +2048,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Error<T1, T2, T3, T4, T5, T6>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6)
         {
             GameFrameworkLog.Error(format, arg1, arg2, arg3, arg4, arg5, arg6);
@@ -1783,6 +2080,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Error<T1, T2, T3, T4, T5, T6, T7>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7)
         {
             GameFrameworkLog.Error(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
@@ -1815,6 +2114,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Error<T1, T2, T3, T4, T5, T6, T7, T8>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8)
         {
             GameFrameworkLog.Error(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
@@ -1849,6 +2150,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Error<T1, T2, T3, T4, T5, T6, T7, T8, T9>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9)
         {
             GameFrameworkLog.Error(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
@@ -1885,6 +2188,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Error<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10)
         {
             GameFrameworkLog.Error(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
@@ -1923,6 +2228,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Error<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11)
         {
             GameFrameworkLog.Error(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
@@ -1963,6 +2270,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Error<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12)
         {
             GameFrameworkLog.Error(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
@@ -2005,6 +2314,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Error<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13)
         {
             GameFrameworkLog.Error(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
@@ -2049,6 +2360,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Error<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13, T14 arg14)
         {
             GameFrameworkLog.Error(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14);
@@ -2095,6 +2408,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Error<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13, T14 arg14, T15 arg15)
         {
             GameFrameworkLog.Error(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15);
@@ -2143,6 +2458,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_INFO_AND_ABOVE_LOG")]
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Error<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13, T14 arg14, T15 arg15, T16 arg16)
         {
             GameFrameworkLog.Error(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16);
@@ -2160,9 +2477,11 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
         [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
-        public static void Fatal(object message)
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void Fatal(object message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
         {
-            GameFrameworkLog.Fatal(message);
+            GameFrameworkLog.Fatal(AppendCallerInfo(message, memberName, filePath, lineNumber));
         }
 
         [Conditional("ENABLE_LOG")]
@@ -2172,13 +2491,15 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
         [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
-        public static void Assert(bool condition, string message)
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void Assert(bool condition, string message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
         {
             if (condition)
             {
                 return;
             }
-            Log.Fatal(message);
+            Log.Fatal(message, memberName: memberName, filePath: filePath, lineNumber: lineNumber);
         }
 
         /// <summary>
@@ -2193,9 +2514,11 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
         [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
-        public static void Fatal(string message)
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        public static void Fatal(string message, [CallerMemberName] string memberName = "", [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
         {
-            GameFrameworkLog.Fatal(message);
+            GameFrameworkLog.Fatal(AppendCallerInfo(message, memberName, filePath, lineNumber));
         }
 
         /// <summary>
@@ -2212,6 +2535,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
         [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Fatal<T>(string format, T arg)
         {
             GameFrameworkLog.Fatal(format, arg);
@@ -2233,6 +2558,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
         [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Fatal<T1, T2>(string format, T1 arg1, T2 arg2)
         {
             GameFrameworkLog.Fatal(format, arg1, arg2);
@@ -2256,6 +2583,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
         [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Fatal<T1, T2, T3>(string format, T1 arg1, T2 arg2, T3 arg3)
         {
             GameFrameworkLog.Fatal(format, arg1, arg2, arg3);
@@ -2281,6 +2610,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
         [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Fatal<T1, T2, T3, T4>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
         {
             GameFrameworkLog.Fatal(format, arg1, arg2, arg3, arg4);
@@ -2308,6 +2639,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
         [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Fatal<T1, T2, T3, T4, T5>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5)
         {
             GameFrameworkLog.Fatal(format, arg1, arg2, arg3, arg4, arg5);
@@ -2337,6 +2670,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
         [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Fatal<T1, T2, T3, T4, T5, T6>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6)
         {
             GameFrameworkLog.Fatal(format, arg1, arg2, arg3, arg4, arg5, arg6);
@@ -2368,6 +2703,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
         [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Fatal<T1, T2, T3, T4, T5, T6, T7>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7)
         {
             GameFrameworkLog.Fatal(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
@@ -2401,6 +2738,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
         [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Fatal<T1, T2, T3, T4, T5, T6, T7, T8>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8)
         {
             GameFrameworkLog.Fatal(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
@@ -2436,6 +2775,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
         [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Fatal<T1, T2, T3, T4, T5, T6, T7, T8, T9>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9)
         {
             GameFrameworkLog.Fatal(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
@@ -2473,6 +2814,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
         [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Fatal<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10)
         {
             GameFrameworkLog.Fatal(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
@@ -2512,6 +2855,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
         [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Fatal<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11)
         {
             GameFrameworkLog.Fatal(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
@@ -2553,6 +2898,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
         [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Fatal<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12)
         {
             GameFrameworkLog.Fatal(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
@@ -2596,6 +2943,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
         [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Fatal<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13)
         {
             GameFrameworkLog.Fatal(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
@@ -2641,6 +2990,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
         [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Fatal<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13, T14 arg14)
         {
             GameFrameworkLog.Fatal(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14);
@@ -2688,6 +3039,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
         [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Fatal<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13, T14 arg14, T15 arg15)
         {
             GameFrameworkLog.Fatal(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15);
@@ -2737,6 +3090,8 @@ namespace UnityGameFramework.Runtime
         [Conditional("ENABLE_WARNING_AND_ABOVE_LOG")]
         [Conditional("ENABLE_ERROR_AND_ABOVE_LOG")]
         [Conditional("ENABLE_FATAL_AND_ABOVE_LOG")]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
         public static void Fatal<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>(string format, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10, T11 arg11, T12 arg12, T13 arg13, T14 arg14, T15 arg15, T16 arg16)
         {
             GameFrameworkLog.Fatal(format, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16);
