@@ -2,6 +2,17 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.3.13]
+
+### Changed
+
+- 为 `Debug`、`Info`、`Warning`、`Error` 和 `Fatal` 的泛型格式化日志重载补充调用位置：在保留原有方法签名与复合格式化行为的前提下，日志会附带调用方法、文件路径和行号。
+- 日志辅助器未注册时，格式化日志入口会直接返回，避免为不会输出的日志创建调用栈与格式化缓存。
+
+### Added
+
+- `GameFrameworkLog.HasLogHelper` 用于查询当前是否已注册日志辅助器，供日志入口在写入前快速判断。
+
 ## [0.3.12]
 
 ### Added

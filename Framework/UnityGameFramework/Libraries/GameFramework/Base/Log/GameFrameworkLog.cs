@@ -15,6 +15,11 @@ namespace GameFramework
         private static ILogHelper s_LogHelper = null;
 
         /// <summary>
+        /// Gets whether a log helper is registered to receive log messages.
+        /// </summary>
+        public static bool HasLogHelper => s_LogHelper != null;
+
+        /// <summary>
         /// 设置游戏框架日志辅助器。
         /// </summary>
         /// <param name="logHelper">要设置的游戏框架日志辅助器。</param>
