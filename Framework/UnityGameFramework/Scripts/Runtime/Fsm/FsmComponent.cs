@@ -205,7 +205,8 @@ namespace UnityGameFramework.Runtime
         /// <returns>是否销毁有限状态机成功。</returns>
         public bool DestroyFsm<T>() where T : class
         {
-            return m_FsmManager.DestroyFsm<T>();
+            // 启动失败时也会走统一关闭，组件可能尚未初始化。
+            return m_FsmManager != null && m_FsmManager.DestroyFsm<T>();
         }
 
         /// <summary>

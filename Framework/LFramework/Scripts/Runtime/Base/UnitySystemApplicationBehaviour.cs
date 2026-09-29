@@ -17,6 +17,7 @@ namespace LFramework.Runtime
 
 
         private readonly GameFrameworkLinkedList<GameFrameworkComponent> _gameFrameworkComponents = new();
+        private bool _stoppingApplication;
 
         /// <summary>
         /// The game framework components that are registered in the game framework.
@@ -202,37 +203,94 @@ namespace LFramework.Runtime
 
         public virtual void StopApplication(ShutdownType shutdownType)
         {
-            foreach (var component in _gameFrameworkComponents)
-            {
-                component.ShutDown();
-            }
-
-            Log.Info("Shutdown Game Framework ({0})...", shutdownType);
-            _gameFrameworkComponents.Clear();
-            SingletonManager.Close();
-            if (shutdownType == ShutdownType.None)
+            if (_stoppingApplication)
             {
                 return;
             }
 
-            if (shutdownType == ShutdownType.Restart)
+            if (LServices.TryGet<WorldResidentHost>(out var host)) host.EnsureLifecycleIdle();
+            _stoppingApplication = true;
+            try
             {
-                SceneManager.LoadScene(GameFrameworkSceneId);
-                return;
-            }
+                // 业务清理依赖 Entity/Resource/Event 等组件，必须先于组件关闭。
+                var errors = new List<Exception>();
+                if (LServices.TryGet<FsmComponent>(out var fsm))
+                {
+                    TryShutdown(() => fsm.DestroyFsm<GameFramework.Procedure.IProcedureManager>(), errors);
+                }
 
-            if (shutdownType == ShutdownType.Quit)
-            {
-                Application.Quit();
+                if (errors.Count == 0 && LServices.TryGet<IApplicationShutdown>(out var applicationShutdown))
+                {
+                    TryShutdown(applicationShutdown.ShutdownApplication, errors);
+                }
+
+                if (errors.Count > 0)
+                {
+                    // 保留底层依赖和关闭入口，供调用方再次 StopApplication 时重试。
+                    throw new AggregateException("Business cleanup failed before runtime shutdown.", errors);
+                }
+
+                if (LServices.TryGet<WorldResidentHost>(out var residentHost))
+                {
+                    TryShutdown(residentHost.ShutDown, errors);
+                }
+
+                foreach (var component in _gameFrameworkComponents)
+                {
+                    if (component is not WorldResidentHost)
+                    {
+                        TryShutdown(component.ShutDown, errors);
+                    }
+                }
+
+                if (errors.Count > 0)
+                {
+                    // Keep failed components and SingletonManager alive so a later call can retry cleanup.
+                    throw new AggregateException("Runtime component shutdown failed.", errors);
+                }
+
+                Log.Info("Shutdown Game Framework ({0})...", shutdownType);
+                _gameFrameworkComponents.Clear();
+                SingletonManager.Close();
+                if (shutdownType == ShutdownType.None)
+                {
+                    return;
+                }
+
+                if (shutdownType == ShutdownType.Restart)
+                {
+                    SceneManager.LoadScene(GameFrameworkSceneId);
+                    return;
+                }
+
+                if (shutdownType == ShutdownType.Quit)
+                {
+                    Application.Quit();
 #if UNITY_EDITOR
-                UnityEditor.EditorApplication.isPlaying = false;
+                    UnityEditor.EditorApplication.isPlaying = false;
 #endif
-                return;
+                    return;
+                }
+            }
+            finally
+            {
+                _stoppingApplication = false;
             }
         }
 
         protected virtual void RegisterComponents()
         {
+            var hasResidentHost = false;
+            foreach (var component in _gameFrameworkComponents)
+            {
+                hasResidentHost |= component is WorldResidentHost;
+            }
+
+            if (!hasResidentHost)
+            {
+                RegisterComponent(new WorldResidentHost());
+            }
+
             foreach (var gameFrameworkComponent in _gameFrameworkComponents)
             {
                 //符合原来的架构
@@ -284,6 +342,18 @@ namespace LFramework.Runtime
         }
 
         protected abstract void ApplicationStarted();
+
+        private static void TryShutdown(Action action, List<Exception> errors)
+        {
+            try
+            {
+                action();
+            }
+            catch (Exception exception)
+            {
+                errors.Add(exception);
+            }
+        }
 
 
         protected void RegisterComponent(GameFrameworkComponent gameFrameworkComponent)

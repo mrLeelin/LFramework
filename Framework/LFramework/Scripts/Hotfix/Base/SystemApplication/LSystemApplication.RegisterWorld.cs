@@ -8,6 +8,7 @@ namespace LFramework.Hotfix
     public partial class LSystemApplication
     {
         private WorldBase _worldBase;
+        private bool _unregisteringWorld;
 
         /// <summary>
         /// 注册世界基类
@@ -15,112 +16,105 @@ namespace LFramework.Hotfix
         /// <param name="procedureState"></param>
         public IWorld TryRegisterWorld(int procedureState)
         {
-            var allBelongToProcedureProviders = HotfixComponent.GetTypesFromAttribute<BelongToAttribute>();
-            if (allBelongToProcedureProviders is not { Count: > 0 })
+            if (_worldBase != null)
             {
+                throw new InvalidOperationException("Unregister the current World before entering another World.");
+            }
+
+            var ownsTransition = !_residentTransitionPrepared;
+            PrepareWorldResidents(procedureState);
+            var worldType = _residentWorldType;
+            if (worldType == null)
+            {
+                if (ownsTransition)
+                {
+                    CompleteWorldResidentTransition();
+                }
+
                 return null;
             }
 
-            foreach (var providerType in allBelongToProcedureProviders.Value)
+            WorldBase world = null;
+            try
             {
-                if (!typeof(WorldBase).IsAssignableFrom(providerType))
+                world = (WorldBase)ReferencePool.Acquire(worldType);
+                Injection.Inject((object)world);
+                var interfaceType =
+                    worldType.GetDerivedInterfaces(typeof(IWorld), typeof(IReference), typeof(IDisposable), typeof(IInjectable));
+                if (interfaceType != null)
                 {
-                    continue;
+                    LServices.Register(interfaceType, world);
                 }
 
-                var attribute = providerType.GetCustomAttribute<BelongToAttribute>();
-                if (attribute == null)
+                LServices.Register(worldType, world);
+                world.Initialized();
+                _worldBase = world;
+                if (ownsTransition)
                 {
-                    Log.Fatal($"None BelongToAttribute in '{providerType.FullName}' Provider");
-                    continue;
+                    CompleteWorldResidentTransition();
                 }
-
-                if (attribute.ProcedureState != procedureState)
-                {
-                    continue;
-                }
-
-
-                var instance = ReferencePool.Acquire(providerType);
-                if (instance == null)
-                {
-                    continue;
-                }
-
-
-                if (!(instance is WorldBase world))
-                {
-                    Log.Fatal($"BelongToAttribute '{providerType.FullName}' does not implement IWorld");
-                    if (instance is IReference reference)
-                    {
-                        ReferencePool.Release(reference);
-                    }
-
-                    continue;
-                }
-
+            }
+            catch (Exception registrationException)
+            {
+                var errors = new System.Collections.Generic.List<Exception> { registrationException };
+                var worldCleanupSucceeded = true;
                 try
                 {
-                    Injection.Inject(world);
-                    var interfaceType =
-                        providerType.GetDerivedInterfaces(typeof(IWorld), typeof(IReference), typeof(IDisposable));
-                    if (interfaceType != null)
+                    if (world != null)
                     {
-                        LServices.Register(interfaceType, world);
+                        _worldBase = world;
+                        TryUnRegisterWorld();
                     }
-
-                    LServices.Register(providerType, world);
-                    world.Initialized();
-                    _worldBase = world;
-                    return world;
                 }
-                catch (Exception registrationException)
+                catch (Exception rollbackException)
+                {
+                    worldCleanupSucceeded = false;
+                    errors.Add(rollbackException);
+                }
+
+                if (ownsTransition && worldCleanupSucceeded)
                 {
                     try
                     {
-                        UnRegisterWorldService(world);
-                        Injection.ClearReflectionCache(providerType);
-                        ReferencePool.Release(world);
+                        CancelWorldResidentTransition();
                     }
                     catch (Exception rollbackException)
                     {
-                        Log.Error(
-                            "[LSystemApplication.RegisterWorld] Failed to roll back world '{0}'. {1}",
-                            providerType.FullName,
-                            rollbackException);
+                        errors.Add(rollbackException);
                     }
-
-                    Log.Error(
-                        "[LSystemApplication.RegisterWorld] Failed to register world '{0}' for procedure '{1}'. {2}",
-                        providerType.FullName,
-                        procedureState,
-                        registrationException);
-                    throw;
                 }
+
+                if (errors.Count > 1) throw new AggregateException("World entry and cleanup failed.", errors);
+                throw;
             }
 
-            return null;
+            return world;
         }
 
         public void TryUnRegisterWorld()
         {
-            if (_worldBase == null)
+            _residentHost?.EnsureLifecycleIdle();
+            if (_worldBase == null || _unregisteringWorld)
             {
                 return;
             }
 
-            // 先获取类型信息并解绑 DI，再释放回对象池
-            var interfaceType = _worldBase.GetType()
-                .GetDerivedInterfaces(typeof(IWorld), typeof(IReference), typeof(IDisposable));
-            UnRegisterWorldService(_worldBase);
-            if (interfaceType != null)
+            var world = _worldBase;
+            _unregisteringWorld = true;
+            try
             {
-                LServices.Unregister(interfaceType);
+                ExitWorldResidents();
+                UnRegisterWorldService(world);
+                Injection.ClearReflectionCache(world.GetType());
+                ReferencePool.Release(world);
+                _worldBase = null;
             }
-
-            Injection.ClearReflectionCache(_worldBase.GetType());
-            ReferencePool.Release(_worldBase);
-            _worldBase = null;
+            finally
+            {
+                _unregisteringWorld = false;
+                // 失败时保留尚需重试的实例及服务；驻留实例在下一目标提交时才决定去留。
+                if (_worldBase == null) UnRegisterWorldService(world);
+            }
         }
 
         private static void UnRegisterWorldService(WorldBase world)
@@ -131,12 +125,20 @@ namespace LFramework.Hotfix
             }
 
             var worldType = world.GetType();
-            LServices.Unregister(worldType);
+            UnregisterWorldAlias(worldType, world);
             var interfaceType =
-                worldType.GetDerivedInterfaces(typeof(IWorld), typeof(IReference), typeof(IDisposable));
+                worldType.GetDerivedInterfaces(typeof(IWorld), typeof(IReference), typeof(IDisposable), typeof(IInjectable));
             if (interfaceType != null)
             {
-                LServices.Unregister(interfaceType);
+                UnregisterWorldAlias(interfaceType, world);
+            }
+        }
+
+        private static void UnregisterWorldAlias(Type type, WorldBase world)
+        {
+            if (LServices.TryGet(type, null, out var current) && ReferenceEquals(current, world))
+            {
+                LServices.Unregister(type);
             }
         }
     }

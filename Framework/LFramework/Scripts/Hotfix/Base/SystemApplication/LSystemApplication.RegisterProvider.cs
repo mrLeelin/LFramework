@@ -181,6 +181,7 @@ namespace LFramework.Hotfix
 
         public void TryUnRegisterProvider(int procedureState)
         {
+            _residentHost?.EnsureLifecycleIdle();
             foreach (var registration in _orderedSystemProviders.ToArray())
             {
                 var attribute = registration.ProviderType.GetCustomAttribute<BelongToAttribute>();

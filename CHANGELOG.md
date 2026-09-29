@@ -2,6 +2,19 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.3.14]
+
+### Added
+
+- 新增 World Resident 生命周期，支持跨指定 World 保留业务对象、服务注入、更新回调和安全释放。
+- 新增应用关闭接口与关闭重试路径，确保 Hotfix 业务清理先于底层 Runtime 组件关闭。
+- 增加 World Resident、Hotfix 流程切换、Provider 清理和应用关闭的 EditMode 回归测试。
+
+### Fixed
+
+- 修复 Provider 关闭时未完整取消事件订阅的问题。
+- 修复 World Resident 转换在验证或进入阶段失败后残留未完成事务的问题。
+- 修复 Runtime 组件关闭失败后无法保留依赖并重试清理的问题。
 ## [0.3.13]
 
 ### Changed

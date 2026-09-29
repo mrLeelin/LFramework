@@ -24,6 +24,12 @@ Consumer projects should prefer depending on these concepts:
 - `LFramework.Runtime.IWorldHelper`
 - `LFramework.Runtime.IWorldUpdate`
 - `LFramework.Runtime.IWorldLateUpdate`
+- `LFramework.Runtime.WorldResidentBase`
+- `LFramework.Runtime.WorldResidentAttribute`
+- `LFramework.Runtime.IWorldResidentUpdate`
+- `LFramework.Runtime.IWorldResidentLateUpdate`
+
+See [WorldResident usage and lifecycle](WorldResidents.md) for objects that persist across a declared set of Worlds.
 
 ### Settings and component configuration
 

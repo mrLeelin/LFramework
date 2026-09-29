@@ -14,7 +14,9 @@ namespace LFramework.Hotfix
         Singleton<LSystemApplication>,
         ISystemProviderRegister,
         IWorldRegister,
+        IWorldResidentRegister,
         IApplicationLifecycle,
+        IApplicationShutdown,
         ISingletonUpdate,
         ISingletonLateUpdate
     {
@@ -32,6 +34,9 @@ namespace LFramework.Hotfix
         private readonly List<Type> _hotfixComponentServiceTypes = new();
         private readonly List<SystemProviderRegistration> _orderedSystemProviders = new();
         private long _providerRegistrationOrder;
+        private bool _applicationDisposed;
+        private bool _applicationStopping;
+        private bool _applicationDisposing;
 
         private static int CompareSystemProviders(SystemProviderRegistration left, SystemProviderRegistration right)
         {
@@ -47,10 +52,16 @@ namespace LFramework.Hotfix
             LServices.Register<ISystemProviderRegister>(this);
             LServices.Register<IWorldRegister>(this);
             LServices.Register<IApplicationLifecycle>(this);
+            LServices.Register<IApplicationShutdown>(this);
         }
 
         public void Update(float elapseSeconds, float realElapseSeconds)
         {
+            if (_applicationStopping)
+            {
+                return;
+            }
+
             foreach (var component in _hotfixComponents)
             {
                 component.UpdateComponent(elapseSeconds, realElapseSeconds);
@@ -66,7 +77,10 @@ namespace LFramework.Hotfix
 
         public void LateUpdate()
         {
-            _worldBase?.LateUpdate();
+            if (!_applicationStopping)
+            {
+                _worldBase?.LateUpdate();
+            }
         }
 
         public void OnApplicationFocus(bool hasFocus)
@@ -95,30 +109,124 @@ namespace LFramework.Hotfix
 
         public override void Dispose()
         {
-            base.Dispose();
-            foreach (var component in _hotfixComponents)
+            if (_applicationDisposed || _applicationDisposing)
             {
-                component.ShutDown();
+                return;
             }
 
-            _hotfixComponents.Clear();
-            UnregisterHotfixComponentServices();
-            DisposeAllActiveProviders();
-            TryUnRegisterWorld();
-            LServices.Unregister<ISystemProviderRegister>();
-            LServices.Unregister<IWorldRegister>();
-            LServices.Unregister<IApplicationLifecycle>();
+            _residentHost?.EnsureLifecycleIdle();
+            _applicationStopping = true;
+            _applicationDisposing = true;
+            try
+            {
+                var errors = new List<Exception>();
+                TryCleanup(ExitWorldResidents, errors);
+                if (errors.Count == 0)
+                {
+                    TryCleanup(DisposeAllActiveProviders, errors);
+                }
+                if (errors.Count == 0)
+                {
+                    TryCleanup(TryUnRegisterWorld, errors);
+                }
+
+                if (errors.Count == 0)
+                {
+                    TryCleanup(CancelWorldResidentTransition, errors);
+                }
+
+                // 失败的 Provider/World 尚需依赖，重试成功后再关闭 Resident 和组件。
+                if (errors.Count > 0)
+                {
+                    throw new AggregateException("Application cleanup failed.", errors);
+                }
+
+                if (_residentHost != null)
+                {
+                    TryCleanup(_residentHost.ClearResidents, errors);
+                }
+
+                var current = _hotfixComponents.First;
+                while (current != null)
+                {
+                    var next = current.Next;
+                    if (TryCleanup(current.Value.ShutDown, errors))
+                    {
+                        _hotfixComponents.Remove(current);
+                    }
+                    current = next;
+                }
+
+                if (errors.Count > 0)
+                {
+                    throw new AggregateException("Application cleanup failed.", errors);
+                }
+
+                _hotfixComponents.Clear();
+                UnregisterHotfixComponentServices();
+                LServices.Unregister<ISystemProviderRegister>();
+                LServices.Unregister<IWorldRegister>();
+                LServices.Unregister<IApplicationLifecycle>();
+                LServices.Unregister<IApplicationShutdown>();
+                _residentHost = null;
+                _residentTypesDiscovered = false;
+                base.Dispose();
+                _applicationDisposed = true;
+            }
+            finally
+            {
+                _applicationDisposing = false;
+            }
+        }
+
+        /// <summary>在 Runtime 基础组件关闭前执行应用清理。</summary>
+        public void ShutdownApplication()
+        {
+            if (_applicationDisposing)
+            {
+                throw new InvalidOperationException("Application cleanup is already in progress.");
+            }
+
+            Dispose();
+        }
+
+        private static bool TryCleanup(Action action, List<Exception> errors)
+        {
+            try
+            {
+                action();
+                return true;
+            }
+            catch (Exception exception)
+            {
+                errors.Add(exception);
+                return false;
+            }
         }
 
         public void DisposeAllActiveProviders()
         {
+            _residentHost?.EnsureLifecycleIdle();
+            var errors = new List<Exception>();
             foreach (var provider in _orderedSystemProviders.ToArray())
             {
-                UnRegisterProvider(provider.ProviderType, provider.Provider);
+                TryCleanup(() =>
+                {
+                    // Make the shutdown contract explicit before removing the service and releasing the reference.
+                    provider.Provider.UnSubscribeEvent();
+                    UnRegisterProvider(provider.ProviderType, provider.Provider);
+                }, errors);
             }
 
-            _systemProviders.Clear();
-            _orderedSystemProviders.Clear();
+            if (errors.Count == 1)
+            {
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(errors[0]).Throw();
+            }
+
+            if (errors.Count > 0)
+            {
+                throw new AggregateException("Provider cleanup failed.", errors);
+            }
         }
 
         public void RegisterHotfixComponents(HotfixComponent hotfixComponent)
