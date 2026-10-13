@@ -243,6 +243,7 @@ namespace LFramework.Editor.Tests.UI
             public string Name => "TestGroup";
             public int Depth { get; set; }
             public bool Pause { get; set; }
+            public bool DisableInstancePool => false;
             public int UIFormCount => 0;
             public IUIForm CurrentUIForm => null;
             public IUIGroupHelper Helper { get; }

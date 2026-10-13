@@ -15,6 +15,11 @@ namespace GameFramework.UI
     public interface IUIGroup
     {
         /// <summary>
+        /// Whether this group creates and releases UI instances without caching them in the instance pool.
+        /// </summary>
+        bool DisableInstancePool { get; }
+
+        /// <summary>
         /// 获取界面组名称。
         /// </summary>
         string Name

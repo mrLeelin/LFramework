@@ -148,6 +148,11 @@ namespace GameFramework.UI
         bool AddUIGroup(string uiGroupName, int uiGroupDepth, IUIGroupHelper uiGroupHelper);
 
         /// <summary>
+        /// Adds a UI group with a fixed instance pooling policy.
+        /// </summary>
+        bool AddUIGroup(string uiGroupName, int uiGroupDepth, bool disableInstancePool, IUIGroupHelper uiGroupHelper);
+
+        /// <summary>
         /// 是否存在界面。
         /// </summary>
         /// <param name="serialId">界面序列编号。</param>

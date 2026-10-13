@@ -2,6 +2,26 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.3.15]
+
+### Added
+
+- 为 UI Groups 新增“不使用对象池”开关（`DisableInstancePool`），默认关闭；开启后，组内界面每次打开均创建新实例，关闭后执行回收生命周期并直接释放资源和销毁实例。
+- 为 `UIComponent.AddUIGroup` 和 `IUIManager.AddUIGroup` 增加带对象池开关的重载，并通过 `IUIGroup.DisableInstancePool` 提供只读查询。
+- 增加 UI 实例对象池回归测试，覆盖配置序列化、重新打开、加载取消、打开失败、跨组隔离、重复关闭、退出异常及重入清理。
+
+### Fixed
+
+- 修复加载中关闭界面时，加载完成的实例未正确传入释放辅助器的问题，并确保加载请求记录在成功、失败和取消路径中释放。
+- 退出时清理待回收和未入池实例；单个界面的关闭或回收回调抛出异常时，仍继续清理其他实例，并在完成清理后汇总异常。
+- 对象池实例回收回调失败后直接释放，避免后续打开复用未完成清理的实例。
+- 默认 UI 释放辅助器保留原资源辅助器的释放入口，以支持资源组件关闭后晚到的实例释放。
+
+### Upgrade Notes
+
+- 已有 UI Groups 配置和原 `AddUIGroup` 调用继续使用对象池；组级开关在创建组时确定，不支持运行中切换。
+- 自定义 `IUIGroup` 实现需补充 `DisableInstancePool` 只读属性；自定义 `IUIManager` 实现需补充新增的 `AddUIGroup` 重载。升级后需重新编译相关调用程序集，包括 Hotfix 程序集。
+
 ## [0.3.14]
 
 ### Added

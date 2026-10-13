@@ -6,6 +6,7 @@
 //------------------------------------------------------------
 
 using GameFramework.UI;
+using GameFramework.Resource;
 using UnityEngine;
 
 namespace UnityGameFramework.Runtime
@@ -16,6 +17,7 @@ namespace UnityGameFramework.Runtime
     public class DefaultUIFormHelper : UIFormHelperBase
     {
         private ResourceComponent m_ResourceComponent = null;
+        private IResourceHelper m_ResourceHelper = null;
 
         /// <summary>
         /// 实例化界面。
@@ -37,6 +39,11 @@ namespace UnityGameFramework.Runtime
         /// <returns>界面。</returns>
         public override IUIForm CreateUIForm(object uiFormInstance, IUIGroup uiGroup, bool isNewInstance, object userData)
         {
+            if (m_ResourceHelper == null && m_ResourceComponent != null)
+            {
+                m_ResourceHelper = m_ResourceComponent.ResourceHelper;
+            }
+
             GameObject gameObject = uiFormInstance as GameObject;
             if (gameObject == null)
             {
@@ -58,13 +65,21 @@ namespace UnityGameFramework.Runtime
         /// <param name="uiFormInstance">要释放的界面实例。</param>
         public override void ReleaseUIForm(object uiFormAsset, object uiFormInstance)
         {
-            m_ResourceComponent.UnloadAsset(uiFormAsset);
+            if (m_ResourceHelper != null)
+            {
+                m_ResourceHelper.Release(uiFormAsset);
+            }
+            else
+            {
+                m_ResourceComponent.UnloadAsset(uiFormAsset);
+            }
             Destroy((Object)uiFormInstance);
         }
 
         private void Start()
         {
             m_ResourceComponent = GameEntry.GetComponent<ResourceComponent>();
+            m_ResourceHelper = m_ResourceComponent?.ResourceHelper;
             if (m_ResourceComponent == null)
             {
                 Log.Fatal("Resource component is invalid.");

@@ -276,7 +276,7 @@ namespace UnityGameFramework.Runtime
             CanvasRootSizeDelta = CanvasRoot.GetComponent<RectTransform>();
             for (int i = 0; i < m_UIGroups.Length; i++)
             {
-                if (!AddUIGroup(m_UIGroups[i].Name, m_UIGroups[i].Depth))
+                if (!AddUIGroup(m_UIGroups[i].Name, m_UIGroups[i].Depth, m_UIGroups[i].DisableInstancePool))
                 {
                     Log.Warning("Add UI group '{0}' failure.", m_UIGroups[i].Name);
                     continue;
@@ -348,6 +348,14 @@ namespace UnityGameFramework.Runtime
         /// <returns>是否增加界面组成功。</returns>
         public bool AddUIGroup(string uiGroupName, int depth)
         {
+            return AddUIGroup(uiGroupName, depth, false);
+        }
+
+        /// <summary>
+        /// 增加界面组，并指定是否禁用界面实例对象池。
+        /// </summary>
+        public bool AddUIGroup(string uiGroupName, int depth, bool disableInstancePool)
+        {
             if (m_UIManager.HasUIGroup(uiGroupName))
             {
                 return false;
@@ -366,7 +374,7 @@ namespace UnityGameFramework.Runtime
             transform.SetParent(CanvasRoot);
             transform.localScale = Vector3.one;
             transform.localPosition = Vector3.zero;
-            return m_UIManager.AddUIGroup(uiGroupName, depth, uiGroupHelper);
+            return m_UIManager.AddUIGroup(uiGroupName, depth, disableInstancePool, uiGroupHelper);
         }
 
         /// <summary>

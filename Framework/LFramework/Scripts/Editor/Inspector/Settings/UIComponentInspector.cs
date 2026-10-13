@@ -117,7 +117,7 @@ namespace LFramework.Editor.Inspector
 
         private void DrawPoolSection(UIComponent component)
         {
-            BeginSection("Instance Pool", "These cache settings update live in Play Mode and control UI form instance recycling.");
+            BeginSection("Instance Pool", "These cache settings apply to groups that use the UI instance pool and update live in Play Mode.");
 
             float instanceAutoReleaseInterval = EditorGUILayout.DelayedFloatField(
                 "Instance Auto Release Interval",
@@ -204,7 +204,7 @@ namespace LFramework.Editor.Inspector
 
         private void DrawGroupSection()
         {
-            BeginSection("UI Groups", "Configure UI group names and depths in the same order they should be created.");
+            BeginSection("UI Groups", "Configure names and depths. 不使用对象池: create a new instance on every open and release it on close.");
             EditorGUILayout.PropertyField(m_UIGroups, true);
             EndSection();
         }

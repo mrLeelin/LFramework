@@ -29,7 +29,7 @@ namespace GameFramework.UI
             /// <param name="name">界面组名称。</param>
             /// <param name="depth">界面组深度。</param>
             /// <param name="uiGroupHelper">界面组辅助器。</param>
-            public UIGroup(string name, int depth, IUIGroupHelper uiGroupHelper)
+            public UIGroup(string name, int depth, bool disableInstancePool, IUIGroupHelper uiGroupHelper)
             {
                 if (string.IsNullOrEmpty(name))
                 {
@@ -42,12 +42,18 @@ namespace GameFramework.UI
                 }
 
                 m_Name = name;
+                DisableInstancePool = disableInstancePool;
                 m_Pause = false;
                 m_UIGroupHelper = uiGroupHelper;
                 m_UIFormInfos = new GameFrameworkLinkedList<UIFormInfo>();
                 m_CachedNode = null;
                 Depth = depth;
             }
+
+            /// <summary>
+            /// Whether this group bypasses the UI instance pool.
+            /// </summary>
+            public bool DisableInstancePool { get; }
 
             /// <summary>
             /// 获取界面组名称。
