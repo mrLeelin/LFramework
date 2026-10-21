@@ -2,6 +2,17 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.3.16]
+
+### Fixed
+
+- 修复组件设置转换时将 `ComponentSetting` 基类的 `settingId` 等元数据误当作组件参数，导致 Editor 启动时输出字段缺失错误的问题。
+- 在参数映射前统一排除基类元数据，保留派生设置类的组件参数赋值、字段存在性和类型检查。
+
+### Added
+
+- 增加组件设置转换回归测试，覆盖空标识、自定义标识以及真实组件参数的正常赋值。
+
 ## [0.3.15]
 
 ### Added

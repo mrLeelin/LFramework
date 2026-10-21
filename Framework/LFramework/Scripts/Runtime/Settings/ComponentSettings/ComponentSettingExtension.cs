@@ -57,14 +57,16 @@ namespace LFramework.Runtime.Settings
 
             foreach (var field in fields)
             {
+                // 基类字段是设置元数据，不参与运行时组件参数映射。
+                if (field.DeclaringType == typeof(ComponentSetting))
+                {
+                    continue;
+                }
+
                 var componentFiled = componentType.GetField(field.Name,BindingFlags.Instance | BindingFlags.NonPublic);
                 if (componentFiled == null)
                 {
 #if UNITY_EDITOR
-                    if (field.Name.Equals("bindTypeName"))
-                    {
-                        continue;
-                    }
                     Log.Error($"Type '{componentType.FullName}'  Field '{field.Name}'  is not in setting or component .");
 #endif
                     continue;
