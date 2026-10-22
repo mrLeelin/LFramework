@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using GameFramework;
 using GameFramework.Event;
@@ -10,25 +11,16 @@ namespace LFramework.Runtime
 {
     public static class AwaitableExtensions
     {
-        private static readonly Dictionary<int, UniTaskCompletionSource<int?>>
+        private static readonly HashSet<UniTaskCompletionSource<int?>>
             SuiFormTcs = new();
 
-        private static readonly Dictionary<int, UniTaskCompletionSource<int>> SEntityTcs = new();
-        private static readonly Dictionary<int, UniTaskCompletionSource> SEntityHideTcs = new();
+        private static readonly Dictionary<EntityComponent, int> EntityWaitCounts = new();
 
 
         private static readonly Dictionary<string, UniTaskCompletionSource<bool>> SSceneTcs = new();
 
         public static void SubscribeEvent(EventComponent eventComponent)
         {
-            eventComponent.Subscribe(OpenUIFormSuccessEventArgs.EventId, OnOpenUIFormSuccess);
-            eventComponent.Subscribe(OpenUIFormFailureEventArgs.EventId, OnOpenUIFormFailure);
-
-            eventComponent.Subscribe(ShowEntitySuccessEventArgs.EventId, OnShowEntitySuccess);
-            eventComponent.Subscribe(ShowEntityFailureEventArgs.EventId, OnShowEntityFailure);
-            eventComponent.Subscribe(HideEntityCompleteEventArgs.EventId, OnHideEntitySuccess);
-
-
             eventComponent.Subscribe(LoadSceneSuccessEventArgs.EventId, OnLoadSceneSuccess);
             eventComponent.Subscribe(LoadSceneFailureEventArgs.EventId, OnLoadSceneFailure);
         }
@@ -39,33 +31,16 @@ namespace LFramework.Runtime
         /// </summary>
         public static void ClearAll()
         {
-            foreach (var tcs in SuiFormTcs.Values)
-            {
-                tcs.TrySetCanceled();
-            }
-
+            var uiWaiters = new List<UniTaskCompletionSource<int?>>(SuiFormTcs);
             SuiFormTcs.Clear();
-
-            foreach (var tcs in SEntityTcs.Values)
-            {
-                tcs.TrySetCanceled();
-            }
-
-            SEntityTcs.Clear();
-
-            foreach (var tcs in SEntityHideTcs.Values)
-            {
-                tcs.TrySetCanceled();
-            }
-
-            SEntityHideTcs.Clear();
-
-            foreach (var tcs in SSceneTcs.Values)
-            {
-                tcs.TrySetCanceled();
-            }
-
+            var sceneWaiters = new List<UniTaskCompletionSource<bool>>(SSceneTcs.Values);
             SSceneTcs.Clear();
+
+            var entityComponents = new List<EntityComponent>(EntityWaitCounts.Keys);
+            foreach (var component in entityComponents) component.CancelPendingEntityTasks();
+
+            foreach (var tcs in uiWaiters) tcs.TrySetCanceled();
+            foreach (var tcs in sceneWaiters) tcs.TrySetCanceled();
         }
 
         #region Ui form
@@ -73,39 +48,55 @@ namespace LFramework.Runtime
         /// <summary>
         /// 打开界面（可等待）
         /// </summary>
-        public static UniTask<int?> OpenUIFormAsync(this UIComponent uiComponent,
+        public static async UniTask<int?> OpenUIFormAsync(this UIComponent uiComponent,
             string uiFormAssetName, string uiGroupName, int priority, bool pauseCoveredUIForm, object userData)
         {
-            int serialId = uiComponent.OpenUIForm(uiFormAssetName, uiGroupName, priority, pauseCoveredUIForm, userData);
+            if (uiComponent == null) throw new ArgumentNullException(nameof(uiComponent));
             var tcs = new UniTaskCompletionSource<int?>();
-            SuiFormTcs.Add(serialId, tcs);
-            return tcs.Task;
-        }
+            int serialId = 0;
+            bool serialAssigned = false;
+            Dictionary<int, (bool canceled, string error)> earlyResults = null;
 
-        private static void OnOpenUIFormSuccess(object sender, GameEventArgs e)
-        {
-            OpenUIFormSuccessEventArgs ne = (OpenUIFormSuccessEventArgs)e;
-            SuiFormTcs.TryGetValue(ne.UIForm.SerialId, out UniTaskCompletionSource<int?> tcs);
-            if (tcs == null)
+            void Complete(int completedSerialId, bool canceled, string error)
             {
-                return;
+                if (!serialAssigned)
+                {
+                    earlyResults ??= new Dictionary<int, (bool, string)>();
+                    if (!earlyResults.ContainsKey(completedSerialId))
+                        earlyResults.Add(completedSerialId, (canceled, error));
+                    return;
+                }
+
+                if (completedSerialId != serialId || !SuiFormTcs.Remove(tcs)) return;
+                if (canceled) tcs.TrySetCanceled();
+                else if (error != null) tcs.TrySetException(new GameFrameworkException(error));
+                else tcs.TrySetResult(serialId);
             }
 
-            tcs.TrySetResult(ne.UIForm.SerialId);
-            SuiFormTcs.Remove(ne.UIForm.SerialId);
-        }
+            void OnSuccess(int id) => Complete(id, false, null);
+            void OnFailure(int id, string error) => Complete(id, false, error ?? "UI form open failed.");
+            void OnCanceled(int id) => Complete(id, true, null);
 
-        private static void OnOpenUIFormFailure(object sender, GameEventArgs e)
-        {
-            OpenUIFormFailureEventArgs ne = (OpenUIFormFailureEventArgs)e;
-            SuiFormTcs.TryGetValue(ne.SerialId, out UniTaskCompletionSource<int?> tcs);
-            if (tcs == null)
+            // Register before opening: pooled forms and custom resource managers can finish synchronously.
+            SuiFormTcs.Add(tcs);
+            uiComponent.OpenUIFormSucceeded += OnSuccess;
+            uiComponent.OpenUIFormFailed += OnFailure;
+            uiComponent.OpenUIFormCanceled += OnCanceled;
+            try
             {
-                return;
+                serialId = uiComponent.OpenUIForm(uiFormAssetName, uiGroupName, priority, pauseCoveredUIForm, userData);
+                serialAssigned = true;
+                if (earlyResults != null && earlyResults.TryGetValue(serialId, out var result))
+                    Complete(serialId, result.canceled, result.error);
+                return await tcs.Task;
             }
-
-            tcs.TrySetException(new GameFrameworkException(ne.ErrorMessage));
-            SuiFormTcs.Remove(ne.SerialId);
+            finally
+            {
+                SuiFormTcs.Remove(tcs);
+                uiComponent.OpenUIFormSucceeded -= OnSuccess;
+                uiComponent.OpenUIFormFailed -= OnFailure;
+                uiComponent.OpenUIFormCanceled -= OnCanceled;
+            }
         }
 
         #endregion
@@ -127,8 +118,17 @@ namespace LFramework.Runtime
             string entityAssetName, string entityGroupName, int priority, object userData)
             where TLogic : EntityLogic
         {
+            return ShowEntityAsync<TLogic>(entityComponent, entityId, entityAssetName, entityGroupName,
+                priority, userData, CancellationToken.None);
+        }
+
+        /// <summary>Show an entity with cancellation support.</summary>
+        public static UniTask<int> ShowEntityAsync<TLogic>(this EntityComponent entityComponent, int entityId,
+            string entityAssetName, string entityGroupName, int priority, object userData, CancellationToken cancellationToken)
+            where TLogic : EntityLogic
+        {
             return ShowEntityAsync(entityComponent, entityId, typeof(TLogic), entityAssetName, entityGroupName,
-                priority, userData);
+                priority, userData, cancellationToken);
         }
 
         /// <summary>
@@ -137,38 +137,37 @@ namespace LFramework.Runtime
         public static UniTask<int> ShowEntityAsync(this EntityComponent entityComponent, int entityId,
             Type entityLogicType, string entityAssetName, string entityGroupName, int priority, object userData)
         {
-            var tcs = new UniTaskCompletionSource<int>();
-            SEntityTcs.Add(entityId, tcs);
-            entityComponent.ShowEntity(entityId, entityLogicType, entityAssetName, entityGroupName, priority, userData);
-            return tcs.Task;
+            return ShowEntityAsync(entityComponent, entityId, entityLogicType, entityAssetName, entityGroupName,
+                priority, userData, CancellationToken.None);
         }
 
-
-        private static void OnShowEntitySuccess(object sender, GameEventArgs e)
+        /// <summary>Show an entity with cancellation support.</summary>
+        public static UniTask<int> ShowEntityAsync(this EntityComponent entityComponent, int entityId,
+            Type entityLogicType, string entityAssetName, string entityGroupName, int priority, object userData, CancellationToken cancellationToken)
         {
-            var ne = (ShowEntitySuccessEventArgs)e;
-            var data = (EntityData)ne.UserData;
-            SEntityTcs.TryGetValue(data.Id, out var tcs);
-            if (tcs == null)
-            {
-                return;
-            }
-
-            tcs.TrySetResult(data.Id);
-            SEntityTcs.Remove(data.Id);
+            TrackEntityWait(entityComponent);
+            return TrackShowAsync(entityComponent, entityId, entityLogicType, entityAssetName, entityGroupName, priority, userData, cancellationToken);
         }
 
-        private static void OnShowEntityFailure(object sender, GameEventArgs e)
+        private static async UniTask<int> TrackShowAsync(EntityComponent component, int entityId, Type logicType,
+            string assetName, string groupName, int priority, object userData, CancellationToken cancellationToken)
         {
-            var ne = (ShowEntityFailureEventArgs)e;
-            SEntityTcs.TryGetValue(ne.EntityId, out var tcs);
-            if (tcs == null)
-            {
-                return;
-            }
+            try { return await component.ShowEntityAwaitable(entityId, logicType, assetName, groupName, priority, userData, cancellationToken); }
+            finally { UntrackEntityWait(component); }
+        }
 
-            tcs.TrySetException(new GameFrameworkException(ne.ErrorMessage));
-            SEntityTcs.Remove(ne.EntityId);
+        private static void TrackEntityWait(EntityComponent component)
+        {
+            if (component == null) throw new ArgumentNullException(nameof(component));
+            EntityWaitCounts.TryGetValue(component, out int count);
+            EntityWaitCounts[component] = count + 1;
+        }
+
+        private static void UntrackEntityWait(EntityComponent component)
+        {
+            if (!EntityWaitCounts.TryGetValue(component, out int count)) return;
+            if (count <= 1) EntityWaitCounts.Remove(component);
+            else EntityWaitCounts[component] = count - 1;
         }
 
         /// <summary>
@@ -176,28 +175,15 @@ namespace LFramework.Runtime
         /// </summary>
         public static UniTask HideEntityAsync(this EntityComponent entityComponent, int entityID)
         {
-            var tcs = new UniTaskCompletionSource();
-            SEntityHideTcs.Add(entityID, tcs);
-            entityComponent.HideEntity(entityID);
-            return tcs.Task;
+            return HideEntityAsync(entityComponent, entityID, CancellationToken.None);
         }
 
-        private static void OnHideEntitySuccess(object sender, GameEventArgs e)
+        /// <summary>Hide an entity with cancellation support.</summary>
+        public static async UniTask HideEntityAsync(this EntityComponent entityComponent, int entityID, CancellationToken cancellationToken)
         {
-            var arg = e as HideEntityCompleteEventArgs;
-            if (arg == null)
-            {
-                return;
-            }
-
-            SEntityHideTcs.TryGetValue(arg.EntityId, out var tcs);
-            if (tcs == null)
-            {
-                return;
-            }
-
-            tcs.TrySetResult();
-            SEntityHideTcs.Remove(arg.EntityId);
+            TrackEntityWait(entityComponent);
+            try { await entityComponent.HideEntityAwaitable(entityID, cancellationToken); }
+            finally { UntrackEntityWait(entityComponent); }
         }
 
         #endregion

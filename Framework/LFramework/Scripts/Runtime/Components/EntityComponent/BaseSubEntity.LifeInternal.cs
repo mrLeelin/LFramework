@@ -18,6 +18,7 @@ namespace LFramework.Runtime
         protected  virtual void OnInternalAttachChild(EntityLogic childEntity, Transform parentTransform, object userData){}
         protected  virtual void OnInternalDetachChild(EntityLogic childEntity, object userData){}
         protected virtual void OnInternalSetVisible(bool visible){}
+        protected virtual void OnInternalUpdate(float elapseSeconds, float realElapseSeconds){}
 
 
         protected virtual void OnInternalSubscribe(EventComponent eventComponent)

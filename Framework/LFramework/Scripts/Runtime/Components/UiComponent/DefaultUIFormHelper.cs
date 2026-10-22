@@ -1,5 +1,6 @@
 
 using System;
+using System.Runtime.ExceptionServices;
 using GameFramework.UI;
 using GameFramework.Resource;
 using UnityEngine;
@@ -46,6 +47,7 @@ namespace LFramework.Runtime
             
             if (isNewInstance)
             {
+                gameObject.SetActive(false);
                 InjectUnity.InjectGameObjectNotCheck(gameObject);
             }
             
@@ -56,27 +58,56 @@ namespace LFramework.Runtime
         {
             var go = uiFormInstance as GameObject;
             var uiForm = go != null ? go.GetComponent<UIForm>() : null;
-            if (uiForm != null)
+            Exception releaseException = null;
+            try
             {
-                uiForm.OnRelease();
+                uiForm?.OnRelease();
+            }
+            catch (Exception exception)
+            {
+                releaseException = exception;
             }
 
-            if (m_ResourceHelper != null)
+            try
             {
-                m_ResourceHelper.Release(uiFormAsset);
+                if (m_ResourceHelper != null)
+                {
+                    m_ResourceHelper.Release(uiFormAsset);
+                }
+                else if (m_ResourceComponent == null)
+                {
+                    Log.Error("Resource component is invalid, cannot unload UI form asset.");
+                }
+                else
+                {
+                    m_ResourceComponent.UnloadAsset(uiFormAsset);
+                }
             }
-            else if (m_ResourceComponent == null)
+            catch (Exception exception)
             {
-                Log.Error("Resource component is invalid, cannot unload UI form asset.");
+                releaseException = releaseException == null
+                    ? exception
+                    : new AggregateException("UI form lifecycle and resource release both failed.",
+                        releaseException, exception);
             }
-            else
+            finally
             {
-                m_ResourceComponent.UnloadAsset(uiFormAsset);
+                if (go != null)
+                {
+                    if (Application.isPlaying)
+                    {
+                        Destroy(go);
+                    }
+                    else
+                    {
+                        DestroyImmediate(go);
+                    }
+                }
             }
 
-            if (go != null)
+            if (releaseException != null)
             {
-                Destroy(go);
+                ExceptionDispatchInfo.Capture(releaseException).Throw();
             }
         }
 

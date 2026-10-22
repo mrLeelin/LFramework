@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.ExceptionServices;
 using GameFramework.UI;
 using Sirenix.OdinInspector;
 using Unity.Collections;
@@ -12,6 +13,7 @@ namespace LFramework.Runtime
     public class UIForm : UnityEngine.MonoBehaviour, IUIForm
     {
         private IUILifecycle _uiBehaviour;
+        private bool _viewCreated;
 
         [SerializeField] [Sirenix.OdinInspector.ReadOnly]
         private int serialID;
@@ -33,33 +35,32 @@ namespace LFramework.Runtime
         {
             SerialId = serialId;
             serialID = serialId;
-            if (!isNewInstance)
-            {
-                return;
-            }
-
             UIFormAssetName = uiFormAssetName;
             UIGroup = uiGroup;
             DepthInUIGroup = 0;
             PauseCoveredUIForm = pauseCoveredUIForm;
+            _viewCreated = false;
+            if (!isNewInstance)
+            {
+                if (!IsUIBehaviourAlive())
+                {
+                    throw new GameFramework.GameFrameworkException(
+                        $"Reused UI form '{uiFormAssetName}' has no live UI behaviour.");
+                }
+
+                return;
+            }
+
             var uiBehaviour = this.GetComponent<IUILifecycle>();
 
             if (uiBehaviour == null)
             {
-                Log.Fatal($"UI form '{uiFormAssetName}' can not get Ui Behaviour.");
-                return;
-            }
-
-            try
-            {
-                uiBehaviour.OnInterInit(userData);
-            }
-            catch (Exception e)
-            {
-                Log.Error($"UI form '[{serialId}{uiFormAssetName}]' OnInit with exception '{e}'");
+                throw new GameFramework.GameFrameworkException(
+                    $"UI form '{uiFormAssetName}' can not get UI behaviour.");
             }
 
             _uiBehaviour = uiBehaviour;
+            uiBehaviour.OnInterInit(userData);
         }
 
         public void OnRecycle()
@@ -67,57 +68,48 @@ namespace LFramework.Runtime
             if (!IsUIBehaviourAlive())
             {
                 SerialId = 0;
+                serialID = 0;
                 DepthInUIGroup = 0;
-                return;
+                _viewCreated = false;
+                throw new GameFramework.GameFrameworkException(
+                    $"UI form '{UIFormAssetName}' can not recycle without a live UI behaviour.");
             }
 
             try
             {
                 _uiBehaviour.OnInterRecycle();
             }
-            catch (Exception e)
+            finally
             {
-                Log.Error($"UI form '[{SerialId}{UIFormAssetName}]' OnRecycle with exception '{e}'");
+                SerialId = 0;
+                serialID = 0;
+                DepthInUIGroup = 0;
+                _viewCreated = false;
             }
-
-            SerialId = 0;
-            DepthInUIGroup = 0;
-            //PauseCoveredUIForm = true;
         }
 
         public void OnRelease()
         {
             if (!IsUIBehaviourAlive())
             {
-                return;
+                throw new GameFramework.GameFrameworkException(
+                    $"UI form '{UIFormAssetName}' can not release without a live UI behaviour.");
             }
 
-            try
-            {
-                _uiBehaviour.OnInterRelease();
-            }
-            catch (Exception e)
-            {
-                Log.Error($"UI form '[{SerialId}{UIFormAssetName}]' OnRelease with exception '{e}'");
-            }
+            _uiBehaviour.OnInterRelease();
         }
 
         public void OnOpen(object userData)
         {
             if (!IsUIBehaviourAlive())
             {
-                return;
+                throw new GameFramework.GameFrameworkException(
+                    $"UI form '{UIFormAssetName}' can not open without a live UI behaviour.");
             }
 
-            try
-            {
-                LFrameworkAspect.Instance.Get<ViewComponent>().ViewCreated(_uiBehaviour as IView);
-                _uiBehaviour.OnInterOpen(userData);
-            }
-            catch (Exception e)
-            {
-                Log.Error($"UI form '[{SerialId}{UIFormAssetName}]' OnOpen with exception '{e}'");
-            }
+            _viewCreated = true;
+            LFrameworkAspect.Instance.Get<ViewComponent>().ViewCreated(_uiBehaviour as IView);
+            _uiBehaviour.OnInterOpen(userData);
         }
 
         public void OnClose(bool isShutdown, object userData)
@@ -127,18 +119,44 @@ namespace LFramework.Runtime
                 return;
             }
 
+            Exception closeException = null;
             try
             {
-                if (!isShutdown)
-                {
-                    _uiBehaviour.OnInterClose(isShutdown, userData);
-                }
-
-                LFrameworkAspect.Instance.Get<ViewComponent>().ViewDestroyed(_uiBehaviour as IView);
+                _uiBehaviour.OnInterClose(isShutdown, userData);
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                Log.Error($"UI form '[{SerialId}{UIFormAssetName}]' OnClose with exception '{e}'");
+                closeException = exception;
+            }
+
+            Exception destroyException = null;
+            if (_viewCreated)
+            {
+                _viewCreated = false;
+                try
+                {
+                    LFrameworkAspect.Instance.Get<ViewComponent>().ViewDestroyed(_uiBehaviour as IView);
+                }
+                catch (Exception exception)
+                {
+                    destroyException = exception;
+                }
+            }
+
+            if (closeException != null && destroyException != null)
+            {
+                throw new AggregateException("UI form close and view destruction both failed.",
+                    closeException, destroyException);
+            }
+
+            if (closeException != null)
+            {
+                ExceptionDispatchInfo.Capture(closeException).Throw();
+            }
+
+            if (destroyException != null)
+            {
+                ExceptionDispatchInfo.Capture(destroyException).Throw();
             }
         }
 

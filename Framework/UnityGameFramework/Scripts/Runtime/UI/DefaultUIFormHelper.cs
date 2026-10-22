@@ -73,7 +73,14 @@ namespace UnityGameFramework.Runtime
             {
                 m_ResourceComponent.UnloadAsset(uiFormAsset);
             }
-            Destroy((Object)uiFormInstance);
+            if (Application.isPlaying)
+            {
+                Destroy((Object)uiFormInstance);
+            }
+            else
+            {
+                DestroyImmediate((Object)uiFormInstance);
+            }
         }
 
         private void Start()

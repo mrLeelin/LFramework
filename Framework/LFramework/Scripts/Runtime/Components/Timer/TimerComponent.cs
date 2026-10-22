@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using GameFramework;
 using UnityEngine;
 using UnityGameFramework.Runtime;
@@ -9,6 +8,19 @@ namespace LFramework.Runtime
 {
     public sealed class TimerComponent : GameFrameworkComponent
     {
+        private readonly struct LoopCallbackEntry
+        {
+            public LoopCallbackEntry(int timerId, TimerData data)
+            {
+                TimerId = timerId;
+                Data = data;
+            }
+
+            public int TimerId { get; }
+
+            public TimerData Data { get; }
+        }
+
         private int _onlyId = 0;
 
         private readonly Dictionary<int, TimerData> _timerDic = new Dictionary<int, TimerData>();
@@ -17,10 +29,20 @@ namespace LFramework.Runtime
 
         private readonly HashSet<int> _deleteListNoCallBack = new HashSet<int>();
 
+        private readonly List<int> _callbackBatch = new List<int>();
+
+        private readonly List<LoopCallbackEntry> _loopCallbackBatch = new List<LoopCallbackEntry>();
+
+        private bool _isUpdating;
+
+        private bool _updateRequested;
+
 
         private long _serverTimeStamp;
 
         public long ServerTimeStamp => _serverTimeStamp;
+
+        internal bool IsUpdating => _isUpdating;
         
         
         #region Public Method
@@ -36,7 +58,6 @@ namespace LFramework.Runtime
                 return;
             }
 
-            _onlyId = 0;
             foreach (var key in _timerDic.Keys)
             {
                 JoinDeleteList(key, isTrigger);
@@ -143,11 +164,6 @@ namespace LFramework.Runtime
                 return;
             }
 
-            if (!data.Running)
-            {
-                return;
-            }
-
             JoinDeleteList(onlyId, isTrigger);
         }
         /// <summary>
@@ -157,22 +173,22 @@ namespace LFramework.Runtime
         /// <param name="isTrigger"></param>
         public void CloseOneTimerImmediately(int onlyId, bool isTrigger = false)
         {
-            if (!_timerDic.TryGetValue(onlyId, out var data))
+            if (!DetachTimer(onlyId, out var data))
             {
                 return;
             }
 
-            if (!data.Running)
+            try
             {
-                return;
+                if (isTrigger)
+                {
+                    data.TriggerCallBack();
+                }
             }
-
-            if (isTrigger)
+            finally
             {
-                data.TriggerCallBack();
+                ReferencePool.Release(data);
             }
-
-            JoinDeleteList(onlyId, false);
         }
         /// <summary>
         /// 开启一个计时器
@@ -185,21 +201,12 @@ namespace LFramework.Runtime
         public int OpenOneTimerWithSecond(float totalTime, OnTimerCallBack callBack, object userData = null,
             bool loop = false)
         {
-            if (totalTime <= 0)
+            if (!TimerExtension.TryGetPositiveTicks(totalTime, out var ticks))
             {
                 return 0;
             }
-            
-            _onlyId++;
-            if (!_timerDic.TryGetValue(_onlyId, out var data))
-            {
-                data = ReferencePool.Acquire<TimerData>();
-                data.SetComponent(this);
-                _timerDic.Add(_onlyId, data);
-            }
 
-            data.InitWithSecond(_onlyId, totalTime, callBack, loop, userData);
-            return _onlyId;
+            return OpenOneTimerWithMillisecond(ticks, callBack, userData, loop);
         }
         /// <summary>
         /// 开启一个计时器
@@ -212,27 +219,50 @@ namespace LFramework.Runtime
         public int OpenOneTimerWithMillisecond(long totalTime, OnTimerCallBack callBack, object userData = null,
             bool loop = false)
         {
-            if (totalTime <= 0)
+            if (totalTime <= 0 || _serverTimeStamp > long.MaxValue - totalTime)
             {
                 return 0;
             }
             
-            _onlyId++;
-            if (!_timerDic.TryGetValue(_onlyId, out var data))
+            int onlyId = AllocateTimerId();
+            var data = ReferencePool.Acquire<TimerData>();
+            data.SetComponent(this);
+            try
             {
-                data = ReferencePool.Acquire<TimerData>();
-                data.SetComponent(this);
-                _timerDic.Add(_onlyId, data);
+                data.InitializeWithMillisecond(onlyId, totalTime, callBack, loop, userData);
+            }
+            catch
+            {
+                ReferencePool.Release(data);
+                throw;
             }
 
-            data.InitializeWithMillisecond(_onlyId, totalTime, callBack, loop, userData);
-            return _onlyId;
+            _timerDic.Add(onlyId, data);
+            return onlyId;
         }
         
         #endregion
 
 
         #region Private Mathod
+
+        /// <summary>
+        /// 分配计时器 ID：到达 int.MaxValue 后回绕到 1，跳过 0（无效 ID）和仍存活的计时器 ID。
+        /// </summary>
+        private int AllocateTimerId()
+        {
+            // 最多尝试 _timerDic.Count + 1 次即可找到空闲 ID（鸽巢原理）
+            for (int attempt = 0; attempt <= _timerDic.Count; attempt++)
+            {
+                _onlyId = _onlyId == int.MaxValue ? 1 : _onlyId + 1;
+                if (!_timerDic.ContainsKey(_onlyId))
+                {
+                    return _onlyId;
+                }
+            }
+
+            throw new InvalidOperationException("No timer id is available.");
+        }
 
         internal void JoinDeleteList(int onlyId, bool trigger)
         {
@@ -264,6 +294,11 @@ namespace LFramework.Runtime
             }
         }
 
+        internal void RequestUpdate()
+        {
+            UpdateAllTimer();
+        }
+
         public override void AwakeComponent()
         {
             base.AwakeComponent();
@@ -277,51 +312,137 @@ namespace LFramework.Runtime
             UpdateAllTimer();
         }
 
-        private void RecycleTimer(int onlyID)
+        private bool DetachTimer(int onlyId, out TimerData data)
         {
-            if (!_timerDic.TryGetValue(onlyID, out var data))
+            if (!_timerDic.TryGetValue(onlyId, out data))
             {
-                return;
+                return false;
             }
 
             data.Close();
-            _timerDic.Remove(onlyID);
-            ReferencePool.Release(data);
+            _timerDic.Remove(onlyId);
+            _deleteListWithCallBack.Remove(onlyId);
+            _deleteListNoCallBack.Remove(onlyId);
+            return true;
         }
 
         private void ProcessDeleteListWithCallback()
         {
-            if (_deleteListWithCallBack == null)
+            if (_deleteListWithCallBack.Count == 0)
             {
                 return;
             }
 
-            foreach (int item in _deleteListWithCallBack)
+            _callbackBatch.Clear();
+            foreach (var onlyId in _deleteListWithCallBack)
             {
-                var timerData = _timerDic[item];
-                timerData?.TriggerCallBack();
-                RecycleTimer(item);
+                _callbackBatch.Add(onlyId);
             }
 
             _deleteListWithCallBack.Clear();
+            foreach (var onlyId in _callbackBatch)
+            {
+                // 待派发计时器仍可取消；使用原始 ID，避免回池复用后误派发。
+                var trigger = !_deleteListNoCallBack.Contains(onlyId);
+                if (!DetachTimer(onlyId, out var data))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    if (trigger)
+                    {
+                        data.TriggerCallBack();
+                    }
+                }
+                finally
+                {
+                    ReferencePool.Release(data);
+                }
+            }
+
+            _callbackBatch.Clear();
         }
 
         private void ProcessDeleteListNoCallback()
         {
-            foreach (int item in _deleteListNoCallBack)
+            foreach (var onlyId in _deleteListNoCallBack)
             {
-                RecycleTimer(item);
+                if (_timerDic.TryGetValue(onlyId, out var data))
+                {
+                    data.Close();
+                    _timerDic.Remove(onlyId);
+                    ReferencePool.Release(data);
+                }
             }
 
             _deleteListNoCallBack.Clear();
         }
 
+        private void ProcessLoopCallbacks()
+        {
+            foreach (var entry in _loopCallbackBatch)
+            {
+                if (!_timerDic.TryGetValue(entry.TimerId, out var current) ||
+                    !ReferenceEquals(current, entry.Data) ||
+                    !entry.Data.Running ||
+                    !entry.Data.CheckExpiration())
+                {
+                    continue;
+                }
+
+                entry.Data.RearmLoop();
+                entry.Data.TriggerCallBack();
+            }
+
+            _loopCallbackBatch.Clear();
+        }
+
 
         private void UpdateAllTimer()
         {
+            if (_isUpdating)
+            {
+                _updateRequested = true;
+                return;
+            }
+
+            _isUpdating = true;
+            try
+            {
+                // A callback can request another update by changing an already due timer.
+                // Bound synchronous draining so a loop callback cannot keep this frame busy forever.
+                for (var pass = 0; pass < 2; pass++)
+                {
+                    _updateRequested = false;
+                    UpdateAllTimerCore();
+                    if (!_updateRequested)
+                    {
+                        break;
+                    }
+                }
+            }
+            finally
+            {
+                _isUpdating = false;
+            }
+        }
+
+        private void UpdateAllTimerCore()
+        {
+            _loopCallbackBatch.Clear();
             foreach (var value in _timerDic.Values)
             {
-                value.OnUpdate();
+                if (value.CheckExpiration())
+                {
+                    _loopCallbackBatch.Add(new LoopCallbackEntry(value.OnlyId, value));
+                }
+            }
+
+            if (_loopCallbackBatch.Count > 0)
+            {
+                ProcessLoopCallbacks();
             }
 
             if (_deleteListNoCallBack.Count > 0)

@@ -170,8 +170,15 @@ namespace LFramework.Hotfix
                     providerTypeName,
                     providerInstanceState);
                 Log.Fatal(e);
-                RollbackCurrentProviderRegistration();
-                throw;
+                var rollbackErrors = RollbackCurrentProviderRegistration();
+                if (rollbackErrors.Count == 0)
+                {
+                    throw;
+                }
+
+                var errors = new List<Exception>(rollbackErrors.Count + 1) { e };
+                errors.AddRange(rollbackErrors);
+                throw new AggregateException("Provider registration and rollback failed.", errors);
             }
             finally
             {
@@ -235,24 +242,27 @@ namespace LFramework.Hotfix
             _orderedSystemProviders.RemoveAll(registration => ReferenceEquals(registration.Provider, provider));
         }
 
-        private void RollbackCurrentProviderRegistration()
+        private List<Exception> RollbackCurrentProviderRegistration()
         {
+            var rollbackErrors = new List<Exception>();
             for (var providerIndex = _tempSystemProviders.Count - 1; providerIndex >= 0; providerIndex--)
             {
                 var registeredProvider = _tempSystemProviders[providerIndex];
                 try
                 {
-                    RemoveProviderRegistration(registeredProvider.ProviderType, registeredProvider.Provider);
                     UnRegisterProvider(registeredProvider.ProviderType, registeredProvider.Provider);
                 }
                 catch (Exception rollbackException)
                 {
+                    rollbackErrors.Add(rollbackException);
                     Log.Error(
                         "[LSystemApplication.RegisterProvider] Failed to roll back provider '{0}'. {1}",
                         registeredProvider.ProviderType.FullName,
                         rollbackException);
                 }
             }
+
+            return rollbackErrors;
         }
 
         private static void UnRegisterProviderService(Type providerType)

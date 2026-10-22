@@ -70,9 +70,7 @@ namespace LFramework.Runtime
 
             if (!HasCatalogLocation(assetName))
             {
-                return HasAnyResourceLocator()
-                    ? HasAssetResult.NotExist
-                    : HasAssetResult.NotReady;
+                return ResolveCatalogAssetResult(false, HasAnyResourceLocator());
             }
 
             AsyncOperationHandle<long> downloadSizeHandle = default;
@@ -141,6 +139,18 @@ namespace LFramework.Runtime
             }
 
             return false;
+        }
+
+        private static HasAssetResult ResolveCatalogAssetResult(bool hasCatalogLocation, bool hasAnyResourceLocator)
+        {
+            if (hasCatalogLocation)
+            {
+                return HasAssetResult.Exist;
+            }
+
+            return hasAnyResourceLocator
+                ? HasAssetResult.NotExist
+                : HasAssetResult.NotReady;
         }
 
         private static bool HasAnyResourceLocator()
@@ -295,9 +305,14 @@ namespace LFramework.Runtime
         private async void LoadAssetHandleAsync<T>(ResourceAssetHandle<T> handle, string assetName)
             where T : UnityEngine.Object
         {
+            AsyncOperationHandle<T> typedOp = default;
+            AsyncOperationHandle<object> fallbackOp = default;
+            bool ownsTypedOp = false;
+            bool ownsFallbackOp = false;
             try
             {
-                var typedOp = Addressables.LoadAssetAsync<T>(assetName);
+                typedOp = Addressables.LoadAssetAsync<T>(assetName);
+                ownsTypedOp = true;
                 while (!typedOp.IsDone)
                 {
                     handle.SetProgress(typedOp.PercentComplete);
@@ -307,6 +322,7 @@ namespace LFramework.Runtime
                 if (typedOp.Status == AsyncOperationStatus.Succeeded)
                 {
                     handle.RegisterReleaseAction(() => SafeRelease(typedOp));
+                    ownsTypedOp = false;
                     handle.SetProgress(1f);
                     handle.SetResult(typedOp.Result);
                     return;
@@ -317,9 +333,11 @@ namespace LFramework.Runtime
                     typeof(T),
                     typedOp.OperationException?.Message ?? $"Load asset '{assetName}' failed.");
 
+                ownsTypedOp = false;
                 SafeRelease(typedOp);
 
-                var fallbackOp = Addressables.LoadAssetAsync<object>(assetName);
+                fallbackOp = Addressables.LoadAssetAsync<object>(assetName);
+                ownsFallbackOp = true;
                 while (!fallbackOp.IsDone)
                 {
                     handle.SetProgress(fallbackOp.PercentComplete);
@@ -341,13 +359,15 @@ namespace LFramework.Runtime
                             assetName,
                             accumulatedError);
                         handle.RegisterReleaseAction(() => SafeRelease(fallbackOp));
+                        ownsFallbackOp = false;
                         handle.SetProgress(1f);
                         handle.SetResult((T)typedAsset);
                     }
                     else
                     {
-                        handle.SetError(errorMessage);
+                        ownsFallbackOp = false;
                         SafeRelease(fallbackOp);
+                        handle.SetError(errorMessage);
                     }
 
                     return;
@@ -358,10 +378,26 @@ namespace LFramework.Runtime
                     typeof(T),
                     fallbackOp.OperationException?.Message ?? $"Load asset '{assetName}' failed.");
                 
+                ownsFallbackOp = false;
                 SafeRelease(fallbackOp);
                 handle.SetError(accumulatedError);
             }
-            catch (Exception ex) { handle.SetError(ex.Message); }
+            catch (Exception ex)
+            {
+                if (ownsFallbackOp)
+                {
+                    ownsFallbackOp = false;
+                    SafeRelease(fallbackOp);
+                }
+
+                if (ownsTypedOp)
+                {
+                    ownsTypedOp = false;
+                    SafeRelease(typedOp);
+                }
+
+                handle.SetError(ex.Message);
+            }
         }
 
         /// <summary>
@@ -377,9 +413,12 @@ namespace LFramework.Runtime
 
         private async void InstantiateAssetHandleAsync(ResourceAssetHandle<GameObject> handle, string assetName)
         {
+            AsyncOperationHandle<GameObject> op = default;
+            bool ownsOp = false;
             try
             {
-                var op = Addressables.InstantiateAsync(assetName);
+                op = Addressables.InstantiateAsync(assetName);
+                ownsOp = true;
                 while (!op.IsDone)
                 {
                     handle.SetProgress(op.PercentComplete);
@@ -388,14 +427,27 @@ namespace LFramework.Runtime
                 if (op.Status == AsyncOperationStatus.Succeeded)
                 {
                     handle.RegisterReleaseAction(() => Addressables.ReleaseInstance(op.Result));
+                    ownsOp = false;
                     handle.SetResult(op.Result);
                 }
                 else
                 {
-                    handle.SetError(op.OperationException?.Message ?? $"Instantiate asset '{assetName}' failed.");
+                    string errorMessage = op.OperationException?.Message ?? $"Instantiate asset '{assetName}' failed.";
+                    ownsOp = false;
+                    SafeRelease(op);
+                    handle.SetError(errorMessage);
                 }
             }
-            catch (Exception ex) { handle.SetError(ex.Message); }
+            catch (Exception ex)
+            {
+                if (ownsOp)
+                {
+                    ownsOp = false;
+                    SafeRelease(op);
+                }
+
+                handle.SetError(ex.Message);
+            }
         }
 
         private static void SafeRelease<T>(AsyncOperationHandle<T> handle)
@@ -416,6 +468,10 @@ namespace LFramework.Runtime
             catch (Exception ex) when (IsInvalidHandleException(ex))
             {
                 Log.Warning("Addressables release skipped because the handle is invalid: {0}", ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Addressables release failed: {0}", ex);
             }
         }
 
@@ -439,6 +495,10 @@ namespace LFramework.Runtime
             {
                 Log.Warning("Addressables scene unload skipped because the handle is invalid: {0}", ex.Message);
             }
+            catch (Exception ex)
+            {
+                Log.Error("Addressables scene unload failed: {0}", ex);
+            }
         }
 
         /// <summary>
@@ -455,9 +515,12 @@ namespace LFramework.Runtime
 
         private async void LoadSceneHandleAsync(ResourceSceneHandle handle, string sceneAssetName)
         {
+            AsyncOperationHandle<SceneInstance> op = default;
+            bool ownsOp = false;
             try
             {
-                var op = Addressables.LoadSceneAsync(sceneAssetName,LoadSceneMode.Additive);
+                op = Addressables.LoadSceneAsync(sceneAssetName,LoadSceneMode.Additive);
+                ownsOp = true;
                 while (!op.IsDone)
                 {
                     handle.SetProgress(op.PercentComplete);
@@ -466,15 +529,27 @@ namespace LFramework.Runtime
                 if (op.Status == AsyncOperationStatus.Succeeded)
                 {
                     handle.RegisterReleaseAction(() => SafeUnloadScene(op));
+                    ownsOp = false;
                     handle.SetCompleted();
                 }
                 else
                 {
-                    handle.SetError(op.OperationException?.Message ?? $"Load scene '{sceneAssetName}' failed.");
+                    string errorMessage = op.OperationException?.Message ?? $"Load scene '{sceneAssetName}' failed.";
+                    ownsOp = false;
                     SafeRelease(op);
+                    handle.SetError(errorMessage);
                 }
             }
-            catch (Exception ex) { handle.SetError(ex.Message); }
+            catch (Exception ex)
+            {
+                if (ownsOp)
+                {
+                    ownsOp = false;
+                    SafeRelease(op);
+                }
+
+                handle.SetError(ex.Message);
+            }
         }
 
         /// <summary>
@@ -490,9 +565,12 @@ namespace LFramework.Runtime
 
         private async void LoadRawFileHandleAsync(ResourceRawFileHandle handle, string binaryAssetName)
         {
+            AsyncOperationHandle<TextAsset> op = default;
+            bool ownsOp = false;
             try
             {
-                var op = Addressables.LoadAssetAsync<TextAsset>(binaryAssetName);
+                op = Addressables.LoadAssetAsync<TextAsset>(binaryAssetName);
+                ownsOp = true;
                 while (!op.IsDone)
                 {
                     handle.SetProgress(op.PercentComplete);
@@ -500,16 +578,28 @@ namespace LFramework.Runtime
                 }
                 if (op.Status == AsyncOperationStatus.Succeeded)
                 {
-                    handle.RegisterReleaseAction(() => Addressables.Release(op));
+                    handle.RegisterReleaseAction(() => SafeRelease(op));
+                    ownsOp = false;
                     handle.SetResult(op.Result.bytes);
                 }
                 else
                 {
-                    handle.SetError(op.OperationException?.Message ?? $"Load binary '{binaryAssetName}' failed.");
-                    Addressables.Release(op);
+                    string errorMessage = op.OperationException?.Message ?? $"Load binary '{binaryAssetName}' failed.";
+                    ownsOp = false;
+                    SafeRelease(op);
+                    handle.SetError(errorMessage);
                 }
             }
-            catch (Exception ex) { handle.SetError(ex.Message); }
+            catch (Exception ex)
+            {
+                if (ownsOp)
+                {
+                    ownsOp = false;
+                    SafeRelease(op);
+                }
+
+                handle.SetError(ex.Message);
+            }
         }
 
         /// <summary>
@@ -526,9 +616,12 @@ namespace LFramework.Runtime
         private async void LoadAssetsByTagHandleAsync<T>(ResourceBatchHandle<T> handle, string tag)
             where T : UnityEngine.Object
         {
+            AsyncOperationHandle<IList<T>> op = default;
+            bool ownsOp = false;
             try
             {
-                var op = Addressables.LoadAssetsAsync<T>(tag, null);
+                op = Addressables.LoadAssetsAsync<T>(tag, null);
+                ownsOp = true;
                 while (!op.IsDone)
                 {
                     handle.SetProgress(op.PercentComplete);
@@ -536,16 +629,28 @@ namespace LFramework.Runtime
                 }
                 if (op.Status == AsyncOperationStatus.Succeeded)
                 {
-                    handle.RegisterReleaseAction(() => Addressables.Release(op));
+                    handle.RegisterReleaseAction(() => SafeRelease(op));
+                    ownsOp = false;
                     handle.SetResult(new List<T>(op.Result));
                 }
                 else
                 {
-                    handle.SetError(op.OperationException?.Message ?? $"Load assets by tag '{tag}' failed.");
-                    Addressables.Release(op);
+                    string errorMessage = op.OperationException?.Message ?? $"Load assets by tag '{tag}' failed.";
+                    ownsOp = false;
+                    SafeRelease(op);
+                    handle.SetError(errorMessage);
                 }
             }
-            catch (Exception ex) { handle.SetError(ex.Message); }
+            catch (Exception ex)
+            {
+                if (ownsOp)
+                {
+                    ownsOp = false;
+                    SafeRelease(op);
+                }
+
+                handle.SetError(ex.Message);
+            }
         }
 
         private string OnInternalIdTransformFunc(IResourceLocation location)

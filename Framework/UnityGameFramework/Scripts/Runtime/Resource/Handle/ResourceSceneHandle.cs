@@ -50,9 +50,20 @@ namespace UnityGameFramework.Runtime
         /// </summary>
         public void SetCompleted()
         {
-            _isDone = true;
+            if (!TryBeginCompletion())
+            {
+                return;
+            }
+
             _progress = 1f;
-            _tcs.TrySetResult();
+            try
+            {
+                _tcs.TrySetResult();
+            }
+            finally
+            {
+                EndCompletion();
+            }
         }
 
         /// <summary>
@@ -62,6 +73,14 @@ namespace UnityGameFramework.Runtime
         {
             _tcs.TrySetException(
                 new GameFramework.GameFrameworkException(errorMessage));
+        }
+
+        /// <summary>
+        /// 取消尚未完成的等待者
+        /// </summary>
+        protected override void CancelWaiterInternal()
+        {
+            _tcs.TrySetCanceled();
         }
 
         /// <summary>

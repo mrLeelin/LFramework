@@ -6,7 +6,7 @@ namespace LFramework.Hotfix
         /// <summary>在 Provider 和 World 注入前准备目标流程的驻留对象。</summary>
         void PrepareWorldResidents(int procedureState);
 
-        /// <summary>新流程进入成功后提交，释放不再适用的驻留对象。</summary>
+        /// <summary>新流程进入成功后提交，释放不再适用的驻留对象；提交前失败时事务保留，由调用方调用 CancelWorldResidentTransition 回滚。</summary>
         void CompleteWorldResidentTransition();
 
         /// <summary>旧 World 和 Provider 清理前通知驻留对象退出；失败时可重试。</summary>

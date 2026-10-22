@@ -9,9 +9,11 @@ using GameFramework;
 using GameFramework.ObjectPool;
 using GameFramework.Resource;
 using GameFramework.UI;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using Object = UnityEngine.Object;
 
 namespace UnityGameFramework.Runtime
 {
@@ -26,6 +28,17 @@ namespace UnityGameFramework.Runtime
 
         private IUIManager m_UIManager = null;
         private EventComponent m_EventComponent = null;
+
+        /// <summary>
+        /// Raised synchronously when an unfinished UI open is canceled, including during shutdown.
+        /// </summary>
+        public event Action<int> OpenUIFormCanceled;
+
+        /// <summary>Raised synchronously after a UI form has opened successfully.</summary>
+        public event Action<int> OpenUIFormSucceeded;
+
+        /// <summary>Raised synchronously when a UI form fails to open.</summary>
+        public event Action<int, string> OpenUIFormFailed;
 
         private readonly List<IUIForm> m_InternalUIFormResults = new List<IUIForm>();
 
@@ -186,12 +199,13 @@ namespace UnityGameFramework.Runtime
                 return;
             }
 
-            if (m_EnableOpenUIFormSuccessEvent)
-            {
-                m_UIManager.OpenUIFormSuccess += OnOpenUIFormSuccess;
-            }
+            m_UIManager.OpenUIFormSuccess += OnOpenUIFormSuccess;
 
             m_UIManager.OpenUIFormFailure += OnOpenUIFormFailure;
+            if (m_UIManager is IUIFormCancellationSource cancellationSource)
+            {
+                cancellationSource.OpenUIFormCanceled += OnOpenUIFormCanceled;
+            }
 
             if (m_EnableOpenUIFormUpdateEvent)
             {
@@ -753,9 +767,19 @@ namespace UnityGameFramework.Runtime
             m_UIManager.SetUIFormInstancePriority(uiForm.gameObject, priority);
         }
 
+        private void OnOpenUIFormCanceled(int serialId)
+        {
+            OpenUIFormCanceled?.Invoke(serialId);
+        }
+
         private void OnOpenUIFormSuccess(object sender, GameFramework.UI.OpenUIFormSuccessEventArgs e)
         {
-            m_EventComponent.Fire(this, OpenUIFormSuccessEventArgs.Create(e));
+            int serialId = e.UIForm.SerialId;
+            if (m_EnableOpenUIFormSuccessEvent)
+            {
+                m_EventComponent.Fire(this, OpenUIFormSuccessEventArgs.Create(e));
+            }
+            OpenUIFormSucceeded?.Invoke(serialId);
         }
 
         private void OnOpenUIFormFailure(object sender, GameFramework.UI.OpenUIFormFailureEventArgs e)
@@ -765,6 +789,7 @@ namespace UnityGameFramework.Runtime
             {
                 m_EventComponent.Fire(this, OpenUIFormFailureEventArgs.Create(e));
             }
+            OpenUIFormFailed?.Invoke(e.SerialId, e.ErrorMessage);
         }
 
         private void OnOpenUIFormUpdate(object sender, GameFramework.UI.OpenUIFormUpdateEventArgs e)

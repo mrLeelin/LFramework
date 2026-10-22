@@ -23,10 +23,20 @@ namespace LFramework.Runtime
 
             public int QueueVersion;
 
+            public int TimerId;
+
+            public RequestMsg TakeMsg()
+            {
+                var msg = Msg;
+                Msg = null;
+                return msg;
+            }
+
             public void Clear()
             {
                 Msg = null;
                 QueueVersion = 0;
+                TimerId = 0;
             }
         }
 
@@ -34,8 +44,11 @@ namespace LFramework.Runtime
         private readonly Queue<ResponseMsg> _responseQueue = new Queue<ResponseMsg>();
         private readonly Queue<ThrowFailMsg> _throwFailQueue = new Queue<ThrowFailMsg>();
         private readonly Dictionary<ulong, RequestMsg> _sendingRequestDict = new Dictionary<ulong, RequestMsg>();
+        private readonly Dictionary<int, RetryRequestMsg> _pendingRetryDict = new Dictionary<int, RetryRequestMsg>();
+        private readonly List<RetryRequestMsg> _retryClearBatch = new List<RetryRequestMsg>();
         private readonly INetworkChannel _networkChannel;
         private readonly NetworkRequestErrorCallBack _requestErrorCallBack;
+        private TimerComponent _timerComponent;
         private int _queueVersion;
         private bool _disposed;
 
@@ -89,6 +102,27 @@ namespace LFramework.Runtime
         public void Clear()
         {
             _queueVersion++;
+
+            _retryClearBatch.Clear();
+            foreach (var retryMsg in _pendingRetryDict.Values)
+            {
+                _retryClearBatch.Add(retryMsg);
+            }
+
+            _pendingRetryDict.Clear();
+            foreach (var retryMsg in _retryClearBatch)
+            {
+                var requestMsg = retryMsg.TakeMsg();
+                if (requestMsg != null)
+                {
+                    ReferencePool.Release(requestMsg);
+                }
+
+                _timerComponent?.CloseOneTimerImmediately(retryMsg.TimerId);
+                ReferencePool.Release(retryMsg);
+            }
+
+            _retryClearBatch.Clear();
 
             foreach (var requestMsg in _requestQueue)
             {
@@ -190,8 +224,25 @@ namespace LFramework.Runtime
             }
 
             var retryMsg = RetryRequestMsg.Create(msg, _queueVersion);
-            LFrameworkAspect.Instance.Get<TimerComponent>()
-                .OpenOneTimerWithSecond(ReissueTime, OnTimerCallBack, retryMsg);
+            try
+            {
+                _timerComponent ??= LFrameworkAspect.Instance.Get<TimerComponent>();
+                retryMsg.TimerId = _timerComponent
+                    .OpenOneTimerWithSecond(ReissueTime, OnTimerCallBack, retryMsg);
+                _pendingRetryDict.Add(retryMsg.TimerId, retryMsg);
+            }
+            catch
+            {
+                if (retryMsg.TimerId != 0)
+                {
+                    _timerComponent?.CloseOneTimerImmediately(retryMsg.TimerId);
+                }
+
+                ReferencePool.Release(retryMsg.TakeMsg());
+                ReferencePool.Release(retryMsg);
+                throw;
+            }
+
             return true;
         }
 
@@ -201,13 +252,21 @@ namespace LFramework.Runtime
             NetworkMessageCallBack callBack,
             NetworkMessageErrorCallBack msgErrorCallBack)
         {
-            if (!_sendingRequestDict.Remove(serialID))
+            if (!_sendingRequestDict.TryGetValue(serialID, out var requestMsg))
             {
                 return;
             }
 
-            var throwFailMsg = ThrowFailMsg.Create(serialID, messageID, callBack, msgErrorCallBack);
-            _throwFailQueue.Enqueue(throwFailMsg);
+            _sendingRequestDict.Remove(serialID);
+            try
+            {
+                var throwFailMsg = ThrowFailMsg.Create(serialID, messageID, callBack, msgErrorCallBack);
+                _throwFailQueue.Enqueue(throwFailMsg);
+            }
+            finally
+            {
+                ReferencePool.Release(requestMsg);
+            }
         }
 
         private void OnTimerCallBack(object obj)
@@ -219,14 +278,27 @@ namespace LFramework.Runtime
 
             try
             {
-                if (_disposed || retryMsg.QueueVersion != _queueVersion)
+                var ownsRetry = _pendingRetryDict.TryGetValue(retryMsg.TimerId, out var pendingRetry) &&
+                                ReferenceEquals(pendingRetry, retryMsg);
+                if (ownsRetry)
                 {
+                    _pendingRetryDict.Remove(retryMsg.TimerId);
+                }
+
+                var requestMsg = retryMsg.TakeMsg();
+                if (!ownsRetry || _disposed || retryMsg.QueueVersion != _queueVersion)
+                {
+                    if (requestMsg != null)
+                    {
+                        ReferencePool.Release(requestMsg);
+                    }
+
                     return;
                 }
 
-                if (retryMsg.Msg != null)
+                if (requestMsg != null)
                 {
-                    _requestQueue.Enqueue(retryMsg.Msg);
+                    _requestQueue.Enqueue(requestMsg);
                 }
             }
             finally
@@ -237,7 +309,7 @@ namespace LFramework.Runtime
 
         private bool CheckRepeat(RequestMsg requestMsg)
         {
-            if (_sendingRequestDict.Count == 0 && _requestQueue.Count == 0)
+            if (_sendingRequestDict.Count == 0 && _requestQueue.Count == 0 && _pendingRetryDict.Count == 0)
             {
                 return false;
             }
@@ -253,6 +325,14 @@ namespace LFramework.Runtime
             foreach (var queuedMsg in _requestQueue)
             {
                 if (queuedMsg.RequestParam.SerialID == requestMsg.RequestParam.SerialID)
+                {
+                    return true;
+                }
+            }
+
+            foreach (var retryMsg in _pendingRetryDict.Values)
+            {
+                if (retryMsg.Msg?.RequestParam.SerialID == requestMsg.RequestParam.SerialID)
                 {
                     return true;
                 }
@@ -292,8 +372,14 @@ namespace LFramework.Runtime
                 return;
             }
 
-            msg.Callback(msg.SerialID, msg.MessageID, null, null, msg.ErrorCallBack);
-            ReferencePool.Release(msg);
+            try
+            {
+                msg.Callback(msg.SerialID, msg.MessageID, null, null, msg.ErrorCallBack);
+            }
+            finally
+            {
+                ReferencePool.Release(msg);
+            }
         }
 
         private void ThreadResponseMsg()
@@ -309,13 +395,19 @@ namespace LFramework.Runtime
                 return;
             }
 
-            msg.Callback(
-                msg.SerialID,
-                msg.MessageID,
-                msg.Bytes,
-                msg.SuccessfulCallBack,
-                msg.ErrorCallBack);
-            ReferencePool.Release(msg);
+            try
+            {
+                msg.Callback(
+                    msg.SerialID,
+                    msg.MessageID,
+                    msg.Bytes,
+                    msg.SuccessfulCallBack,
+                    msg.ErrorCallBack);
+            }
+            finally
+            {
+                ReferencePool.Release(msg);
+            }
         }
 
         private void SendRequestMsg(RequestMsg requestMsg)

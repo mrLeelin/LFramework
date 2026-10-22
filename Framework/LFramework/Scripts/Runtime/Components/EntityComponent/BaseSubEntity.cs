@@ -1,4 +1,8 @@
 using Sirenix.OdinInspector;
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Runtime.ExceptionServices;
 using UniRx;
 using UnityEngine;
 using UnityGameFramework.Runtime;
@@ -7,6 +11,9 @@ namespace LFramework.Runtime
 {
     public abstract partial class BaseSubEntity : UnityEngine.MonoBehaviour
     {
+        private static readonly Dictionary<Type, bool> LegacyUpdateOverrides = new();
+        private static readonly object LegacyUpdateOverridesLock = new();
+
         [BoxGroup("Sub Entity Key")] [SerializeField]
         private string key;
 
@@ -22,6 +29,30 @@ namespace LFramework.Runtime
         /// 子模块启用状态
         /// </summary>
         public bool IsEnabled { get; private set; } = true;
+
+        /// <summary>
+        /// 是否已实际执行事件订阅，保证取消订阅与订阅成对出现
+        /// </summary>
+        private bool _isSubscribed;
+        private bool _isSubscriptionTransition;
+        private bool _unsubscribeRequested;
+
+        internal bool RequiresUpdate => this is ISubModuleUpdate || HasLegacyUpdateOverride(GetType());
+
+        private static bool HasLegacyUpdateOverride(Type type)
+        {
+            lock (LegacyUpdateOverridesLock)
+            {
+                if (!LegacyUpdateOverrides.TryGetValue(type, out bool requiresUpdate))
+                {
+                    requiresUpdate = type.GetMethod(nameof(OnInternalUpdate),
+                        BindingFlags.Instance | BindingFlags.NonPublic)?.DeclaringType != typeof(BaseSubEntity);
+                    LegacyUpdateOverrides.Add(type, requiresUpdate);
+                }
+
+                return requiresUpdate;
+            }
+        }
 
         public string GetKey() => key;
 
@@ -46,20 +77,68 @@ namespace LFramework.Runtime
 
         public void OnHide(bool isShutdown, object userData)
         {
-            if (!IsEnabled) return;
             OnInternalHide(isShutdown, userData);
         }
 
         public void Subscribe(EventComponent eventComponent)
         {
-            if (!IsEnabled) return;
-            OnInternalSubscribe(eventComponent);
+            if (!IsEnabled || _isSubscribed || _isSubscriptionTransition) return;
+            _isSubscribed = true;
+            _isSubscriptionTransition = true;
+            Exception subscribeError = null;
+            try
+            {
+                OnInternalSubscribe(eventComponent);
+            }
+            catch (Exception exception)
+            {
+                subscribeError = exception;
+            }
+            finally
+            {
+                _isSubscriptionTransition = false;
+            }
+
+            if (subscribeError == null && !_unsubscribeRequested) return;
+
+            _unsubscribeRequested = false;
+            Exception cleanupError = null;
+            try
+            {
+                UnSubscribe(eventComponent);
+            }
+            catch (Exception exception)
+            {
+                cleanupError = exception;
+            }
+
+            if (subscribeError != null && cleanupError != null)
+                throw new AggregateException("Sub-entity subscription and cleanup both failed.", subscribeError, cleanupError);
+            if (subscribeError != null) ExceptionDispatchInfo.Capture(subscribeError).Throw();
+            if (cleanupError != null) ExceptionDispatchInfo.Capture(cleanupError).Throw();
         }
 
         public void UnSubscribe(EventComponent eventComponent)
         {
-            if (!IsEnabled) return;
-            OnInternalUnSubscribe(eventComponent);
+            // Undo an attempted subscription, including a partially failed one.
+            if (!_isSubscribed) return;
+            if (_isSubscriptionTransition)
+            {
+                _unsubscribeRequested = true;
+                return;
+            }
+
+            _isSubscriptionTransition = true;
+            try
+            {
+                OnInternalUnSubscribe(eventComponent);
+                _isSubscribed = false;
+                _unsubscribeRequested = false;
+            }
+            finally
+            {
+                _isSubscriptionTransition = false;
+            }
         }
 
         public void OnAttached(EntityLogic childEntity, Transform parentTransform, object userData)
@@ -82,13 +161,11 @@ namespace LFramework.Runtime
 
         public void OnDetached(EntityLogic childEntity, object userData)
         {
-            if (!IsEnabled) return;
             OnInternalDetachChild(childEntity, userData);
         }
 
         public void OnDetachFrom(EntityLogic parentEntity, object userData)
         {
-            if (!IsEnabled) return;
             OnInternalDetachFrom(parentEntity, userData);
         }
 
@@ -102,6 +179,22 @@ namespace LFramework.Runtime
             Disposables?.Dispose();
             Disposables = null;
             OnInternalRelease();
+        }
+
+        internal void DispatchUpdate(float elapseSeconds, float realElapseSeconds)
+        {
+            if (!IsEnabled)
+            {
+                return;
+            }
+
+            if (this is ISubModuleUpdate update)
+            {
+                update.OnSubModuleUpdate(elapseSeconds, realElapseSeconds);
+                return;
+            }
+
+            OnInternalUpdate(elapseSeconds, realElapseSeconds);
         }
 
         #endregion

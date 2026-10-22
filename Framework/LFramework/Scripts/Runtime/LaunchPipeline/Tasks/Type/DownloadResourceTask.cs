@@ -22,7 +22,7 @@ namespace LFramework.Runtime.LaunchPipeline
 
         private int _handlerSerialId;
         private UniTaskCompletionSource<bool> _tcs;
-        private string _errorMessage;
+        private DownloadFailureSnapshot _downloadFailure;
         private LaunchContext _context;
         private int _currentPlanIndex;
         private int _currentPlanCount = 1;
@@ -46,6 +46,7 @@ namespace LFramework.Runtime.LaunchPipeline
         {
             try
             {
+                _downloadFailure = null;
                 _context = context;
                 _currentPlanIndex = 0;
                 _currentPlanCount = 1;
@@ -138,13 +139,13 @@ namespace LFramework.Runtime.LaunchPipeline
                 }
 
                 bool succeeded = await RunHandlerAsync(handler);
+                LaunchTaskResult result = succeeded
+                    ? null
+                    : CreateDownloadFailureResult($"Resource download failed for package '{plan.PackageId}'.");
                 CleanupHandler(handler);
                 if (!succeeded)
                 {
-                    string errorMessage = string.IsNullOrWhiteSpace(_errorMessage)
-                        ? $"Resource download failed for package '{plan.PackageId}'."
-                        : _errorMessage;
-                    return LaunchTaskResult.CreateFailed(TaskName, errorMessage);
+                    return result;
                 }
             }
 
@@ -185,10 +186,11 @@ namespace LFramework.Runtime.LaunchPipeline
             }
 
             bool succeeded = await RunHandlerAsync(handler);
-            CleanupHandler(handler);
-            return succeeded
+            LaunchTaskResult result = succeeded
                 ? LaunchTaskResult.CreateSuccess(TaskName)
-                : LaunchTaskResult.CreateFailed(TaskName, _errorMessage ?? "Resource download failed.");
+                : CreateDownloadFailureResult("Resource download failed.");
+            CleanupHandler(handler);
+            return result;
         }
 #endif
 
@@ -207,7 +209,7 @@ namespace LFramework.Runtime.LaunchPipeline
         private async UniTask<bool> RunHandlerAsync(IResourceDownloadHandler handler)
         {
             _tcs = new UniTaskCompletionSource<bool>();
-            _errorMessage = null;
+            _downloadFailure = null;
             handler.DownloadSuccessfulEventHandler += OnDownloadSuccessful;
             handler.DownloadFailureEventHandler += OnDownloadFailure;
             handler.DownloadUpdateEventHandler += OnDownloadUpdate;
@@ -228,6 +230,11 @@ namespace LFramework.Runtime.LaunchPipeline
 
         protected override LaunchErrorCategory ClassifyFailure(LaunchTaskResult result, Exception exception, LaunchContext context)
         {
+            if (_downloadFailure != null)
+            {
+                return ClassifyUpdateResultType(_downloadFailure.ResultType);
+            }
+
             string errorMessage = result?.ErrorMessage ?? exception?.Message;
             if (string.IsNullOrWhiteSpace(errorMessage))
             {
@@ -288,7 +295,12 @@ namespace LFramework.Runtime.LaunchPipeline
 
         protected virtual void OnDownloadFailure(object sender, ResourcesDownloadFailureEvent e)
         {
-            _errorMessage = $"Resource download failed, result type: {e.UpdateResultType}";
+            string failureContext = !string.IsNullOrWhiteSpace(_currentPlanName)
+                ? $"package '{_currentPlanName}'"
+                : sender is IResourceDownloadHandler handler
+                    ? $"handler '{handler.Name}'"
+                    : "resource handler";
+            _downloadFailure = new DownloadFailureSnapshot(e.UpdateResultType, failureContext);
             _tcs?.TrySetResult(false);
         }
 
@@ -340,7 +352,37 @@ namespace LFramework.Runtime.LaunchPipeline
 
             _handlerSerialId = 0;
             _tcs = null;
-            _errorMessage = null;
+        }
+
+        private LaunchTaskResult CreateDownloadFailureResult(string fallbackMessage)
+        {
+            return LaunchTaskResult.CreateFailed(
+                TaskName,
+                _downloadFailure?.ErrorMessage ?? fallbackMessage);
+        }
+
+        private static LaunchErrorCategory ClassifyUpdateResultType(UpdateResultType resultType)
+        {
+            return resultType switch
+            {
+                UpdateResultType.NotReachable => LaunchErrorCategory.Network,
+                UpdateResultType.DownloadFailure => LaunchErrorCategory.Network,
+                UpdateResultType.CheckCatalogsFailure => LaunchErrorCategory.Server,
+                UpdateResultType.GetDownloadSizeFailure => LaunchErrorCategory.Server,
+                _ => LaunchErrorCategory.Unknown
+            };
+        }
+
+        private sealed class DownloadFailureSnapshot
+        {
+            public DownloadFailureSnapshot(UpdateResultType resultType, string context)
+            {
+                ResultType = resultType;
+                ErrorMessage = $"Resource download failed for {context}, result type: {resultType}.";
+            }
+
+            public UpdateResultType ResultType { get; }
+            public string ErrorMessage { get; }
         }
 
         private static ResourceComponentSetting LoadResourceComponentSetting()

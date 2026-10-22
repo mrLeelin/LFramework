@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.ExceptionServices;
 using GameFramework;
 using GameFramework.Event;
 using UniRx;
@@ -161,9 +162,8 @@ namespace LFramework.Runtime
             {
                 _subModuleKeyMap.Add(subWindow.GetType(), subWindow);
 
-                // 缓存实现了 ISubModuleUpdate 接口的子模块
-                if (subWindow is ISubModuleUpdate updatable)
-                    _updatableSubModules.Add(updatable);
+                if (subWindow.RequiresUpdate)
+                    _updatableSubModules.Add(subWindow);
             }
 
             OnInit(userData);
@@ -200,17 +200,58 @@ namespace LFramework.Runtime
 
         public sealed override void OnInterClose(bool isShutDown, object userData)
         {
-            InterUnSubscribe(LFrameworkAspect.Instance.Get<EventComponent>());
-            foreach (var subWindow in subModuleList)
+            List<Exception> cleanupErrors = null;
+
+            void TryCleanup(Action cleanup)
             {
-                subWindow.OnClose(isShutDown, userData);
+                try
+                {
+                    cleanup();
+                }
+                catch (Exception exception)
+                {
+                    cleanupErrors ??= new List<Exception>();
+                    cleanupErrors.Add(exception);
+                }
             }
 
-            OnClose(isShutDown, userData);
-            _customUserData?.Release();
+            EventComponent eventComponent = null;
+            TryCleanup(() => eventComponent = LFrameworkAspect.Instance.Get<EventComponent>());
+            TryCleanup(() => UnSubscribe(eventComponent));
+            foreach (var subWindow in subModuleList)
+            {
+                TryCleanup(() => subWindow.UnSubscribe(eventComponent));
+            }
+
+            foreach (var subWindow in subModuleList)
+            {
+                TryCleanup(() => subWindow.OnClose(isShutDown, userData));
+            }
+
+            TryCleanup(() => OnClose(isShutDown, userData));
+
+            NativeReference customUserData = _customUserData;
             _customUserData = null;
-            this.RemoveChild();
-            base.OnInterClose(isShutDown, userData);
+            if (customUserData != null)
+            {
+                TryCleanup(customUserData.Release);
+            }
+
+            TryCleanup(this.RemoveChild);
+            TryCleanup(() => base.OnInterClose(isShutDown, userData));
+
+            if (cleanupErrors == null)
+            {
+                return;
+            }
+
+            if (cleanupErrors.Count == 1)
+            {
+                ExceptionDispatchInfo.Capture(cleanupErrors[0]).Throw();
+                return;
+            }
+
+            throw new AggregateException("Window close completed with cleanup errors.", cleanupErrors);
         }
 
         public sealed override void OnInterDepthChanged(int uiGroupDepth, int depthInUIGroup)
@@ -265,10 +306,9 @@ namespace LFramework.Runtime
             base.OnInterUpdate(elapseSeconds, realElapseSeconds);
             OnUpdate(elapseSeconds, realElapseSeconds);
 
-            // 只调用实现了 ISubModuleUpdate 接口的子模块
             for (int i = 0; i < _updatableSubModules.Count; i++)
             {
-                _updatableSubModules[i].OnSubModuleUpdate(elapseSeconds, realElapseSeconds);
+                _updatableSubModules[i].DispatchUpdate(elapseSeconds, realElapseSeconds);
             }
         }
 

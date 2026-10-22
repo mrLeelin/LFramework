@@ -205,6 +205,22 @@ namespace LFramework.Editor.Tests.Hotfix
         }
 
         [Test]
+        public void FailedRegistrationKeepsRollbackFailureTrackedForDisposeRetry()
+        {
+            CreateApplication(typeof(RollbackStopFailsOnceProvider), typeof(FailingProvider));
+
+            var exception = Assert.Throws<AggregateException>(
+                () => _application.TryRegisterProvider(FailingState));
+
+            Assert.That(exception.InnerExceptions.Count, Is.EqualTo(2));
+            Assert.That(exception.InnerExceptions[0].Message, Does.Contain("ordering rollback test"));
+            Assert.That(exception.InnerExceptions[1].Message, Does.Contain("rollback stop retry test"));
+            Assert.That(RollbackStopFailsOnceProvider.LastInstance.StopCallCount, Is.EqualTo(1));
+            Assert.DoesNotThrow(() => _application.DisposeAllActiveProviders());
+            Assert.That(RollbackStopFailsOnceProvider.LastInstance.StopCallCount, Is.EqualTo(2));
+        }
+
+        [Test]
         public void DisposeUsesGlobalOrderAndRemovesAllUpdatesAndSync()
         {
             CreateApplication();
@@ -277,6 +293,32 @@ namespace LFramework.Editor.Tests.Hotfix
             AssertPhase("Sync", nameof(MiddleListProvider));
         }
 
+        [Test]
+        public void SyncPropertyCacheIncludesOriginDtoType()
+        {
+            CreateApplication(typeof(LowSingleProvider));
+            _application.TryRegisterProvider(InitialState);
+            var first = new SingleData();
+            var second = new SingleData();
+
+            _application.Sync(new CommonData { Single = first }, false);
+            _application.Sync(new AlternateCommonData { Value = second }, false);
+
+            Assert.That(LServices.Get<LowSingleProvider>().LastData, Is.SameAs(second));
+        }
+
+        [Test]
+        public void SyncFailureInOneProviderDoesNotSkipLaterProviders()
+        {
+            CreateApplication(typeof(ThrowingSyncProvider), typeof(LowSingleProvider));
+            _application.TryRegisterProvider(InitialState);
+            var payload = new SingleData();
+
+            _application.Sync(new CommonData { Single = payload }, false);
+
+            Assert.That(LServices.Get<LowSingleProvider>().LastData, Is.SameAs(payload));
+        }
+
         private void CreateApplication(params Type[] types)
         {
             var hotfixComponent = new HotfixComponent();
@@ -337,6 +379,11 @@ namespace LFramework.Editor.Tests.Hotfix
         {
             public SingleData Single { get; set; }
             public List<ListData> Items { get; set; }
+        }
+
+        public sealed class AlternateCommonData
+        {
+            public SingleData Value { get; set; }
         }
 
         public abstract class RecordingProvider : SystemProviderBase, IInjectable
@@ -402,6 +449,15 @@ namespace LFramework.Editor.Tests.Hotfix
         {
         }
 
+        [BelongTo(InitialState, sort: 200)]
+        public sealed class ThrowingSyncProvider : RecordingProvider, ISyncServerData<SingleData>
+        {
+            public void SyncServerData(SingleData serverData, bool isBasedLogin)
+            {
+                throw new InvalidOperationException("Provider sync isolation test.");
+            }
+        }
+
         [BelongTo(InitialState, ProviderLifeCycle.Forever, 50)]
         public sealed class MiddleListProvider : RecordingProvider, ISyncServerListData<ListData>
         {
@@ -458,6 +514,31 @@ namespace LFramework.Editor.Tests.Hotfix
                 {
                     ThrowOnNextStop = false;
                     throw new InvalidOperationException("Provider stop retry test.");
+                }
+
+                base.OnStop();
+            }
+        }
+
+        [BelongTo(FailingState, sort: 100)]
+        public sealed class RollbackStopFailsOnceProvider : SingleProvider
+        {
+            public static RollbackStopFailsOnceProvider LastInstance { get; private set; }
+            public int StopCallCount { get; private set; }
+
+            public override void AwakeComponent()
+            {
+                LastInstance = this;
+                StopCallCount = 0;
+                base.AwakeComponent();
+            }
+
+            public override void OnStop()
+            {
+                StopCallCount++;
+                if (StopCallCount == 1)
+                {
+                    throw new InvalidOperationException("Provider rollback stop retry test.");
                 }
 
                 base.OnStop();

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using Cysharp.Threading.Tasks;
+using GameFramework;
 using GameFramework.ObjectPool;
 using GameFramework.Resource;
 using GameFramework.UI;
@@ -21,11 +23,13 @@ namespace LFramework.Editor.Tests.UI
         private TestResourceManager _resourceManager;
         private TestUIFormHelper _uiFormHelper;
         private bool _isShutdown;
+        private object _awaitableEventManager;
 
         [SetUp]
         public void SetUp()
         {
             _isShutdown = false;
+            _awaitableEventManager = null;
             _manager = CreateInternalModule<IUIManager>("GameFramework.UI.UIManager");
             _objectPoolManager =
                 CreateInternalModule<IObjectPoolManager>("GameFramework.ObjectPool.ObjectPoolManager");
@@ -40,6 +44,11 @@ namespace LFramework.Editor.Tests.UI
         [TearDown]
         public void TearDown()
         {
+            if (_awaitableEventManager != null)
+            {
+                AwaitableExtensions.ClearAll();
+                InvokeModuleMethod(_awaitableEventManager, "Shutdown");
+            }
             if (!_isShutdown)
             {
                 InvokeModuleMethod(_manager, "Shutdown");
@@ -142,6 +151,44 @@ namespace LFramework.Editor.Tests.UI
         }
 
         [Test]
+        public void PooledGroup_CreateFailure_DiscardsRegisteredInstance()
+        {
+            AddGroup("Pooled", false);
+            _uiFormHelper.FailCreate = true;
+            _manager.OpenUIFormFailure += (_, _) => { };
+
+            _manager.OpenUIForm("UI/BrokenWindow", "Pooled");
+            object failedInstance = new object();
+            _resourceManager.CompleteSuccess(0, failedInstance);
+
+            Assert.That(_uiFormHelper.ReleaseCalls, Has.Count.EqualTo(1));
+            AssertRelease(failedInstance, 0, recycledBeforeRelease: false);
+
+            _uiFormHelper.FailCreate = false;
+            _manager.OpenUIForm("UI/BrokenWindow", "Pooled");
+            Assert.That(_resourceManager.PendingLoads, Has.Count.EqualTo(2),
+                "A registered instance whose form creation failed must be discarded.");
+        }
+
+        [Test]
+        public void PooledGroup_OnInitFailure_CleansLifecycleAndDiscardsInstance()
+        {
+            AddGroup("Pooled", false);
+            _uiFormHelper.ThrowOnInit = true;
+            _manager.OpenUIFormFailure += (_, _) => { };
+
+            _manager.OpenUIForm("UI/BrokenInit", "Pooled");
+            object failedInstance = new object();
+            _resourceManager.CompleteSuccess(0, failedInstance);
+
+            TestUIForm failedForm = _uiFormHelper.CreatedForms[0];
+            Assert.That(failedForm.CloseCount, Is.EqualTo(1));
+            Assert.That(failedForm.RecycleCount, Is.EqualTo(1));
+            Assert.That(_uiFormHelper.ReleaseCalls, Has.Count.EqualTo(1));
+            AssertRelease(failedInstance, 0, recycledBeforeRelease: true);
+        }
+
+        [Test]
         public void DisabledPoolGroup_OnOpenFailure_ClosesRecyclesAndReleasesInstanceExactlyOnce()
         {
             AddGroup("Direct", true);
@@ -161,6 +208,168 @@ namespace LFramework.Editor.Tests.UI
             Assert.That(_uiFormHelper.ReleaseCalls, Has.Count.EqualTo(1));
             AssertRelease(loadedInstance, 0, recycledBeforeRelease: true);
 
+            InvokeModuleMethod(_manager, "Update", 0f, 0f);
+            Assert.That(_uiFormHelper.ReleaseCalls, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public void PooledGroup_OnOpenFailure_DiscardsDirtyInstance()
+        {
+            AddGroup("Pooled", false);
+            _uiFormHelper.ThrowOnOpen = true;
+            _manager.OpenUIFormFailure += (_, _) => { };
+
+            _manager.OpenUIForm("UI/BrokenWindow", "Pooled");
+            object failedInstance = new object();
+            _resourceManager.CompleteSuccess(0, failedInstance);
+
+            TestUIForm failedForm = _uiFormHelper.CreatedForms[0];
+            Assert.That(failedForm.CloseCount, Is.EqualTo(1));
+            Assert.That(failedForm.RecycleCount, Is.EqualTo(1));
+            Assert.That(_uiFormHelper.ReleaseCalls, Has.Count.EqualTo(1));
+            AssertRelease(failedInstance, 0, recycledBeforeRelease: true);
+
+            _uiFormHelper.ThrowOnOpen = false;
+            _manager.OpenUIForm("UI/BrokenWindow", "Pooled");
+            Assert.That(_resourceManager.PendingLoads, Has.Count.EqualTo(2),
+                "An instance touched by a failed open callback must not return to the pool.");
+        }
+
+        [Test]
+        public void PooledGroup_ReentrantCloseDuringFailedOpen_DiscardsDirtyInstance()
+        {
+            AddGroup("Pooled", false);
+            _uiFormHelper.ThrowOnOpen = true;
+            _manager.OpenUIFormFailure += (_, _) => { };
+            int serialId = _manager.OpenUIForm("UI/Reentrant", "Pooled");
+            _uiFormHelper.OpenAction = () => _manager.CloseUIForm(serialId);
+
+            object failedInstance = new object();
+            _resourceManager.CompleteSuccess(0, failedInstance);
+            Assert.That(_uiFormHelper.ReleaseCalls, Is.Empty,
+                "The queued close still owns recycle until the next manager update.");
+
+            InvokeModuleMethod(_manager, "Update", 0f, 0f);
+            Assert.That(_uiFormHelper.ReleaseCalls, Has.Count.EqualTo(1));
+
+            _uiFormHelper.ThrowOnOpen = false;
+            _uiFormHelper.OpenAction = null;
+            _manager.OpenUIForm("UI/Reentrant", "Pooled");
+            Assert.That(_resourceManager.PendingLoads, Has.Count.EqualTo(2));
+        }
+
+        [Test]
+        public void PooledGroup_ReentrantShutdownDuringFailedOpen_ReleasesInstanceOnce()
+        {
+            AddGroup("Pooled", false);
+            _uiFormHelper.ThrowOnOpen = true;
+            _manager.OpenUIFormFailure += (_, _) => { };
+            _uiFormHelper.OpenAction = () => InvokeModuleMethod(_manager, "Shutdown");
+
+            _manager.OpenUIForm("UI/ReentrantShutdown", "Pooled");
+            object failedInstance = new object();
+            _resourceManager.CompleteSuccess(0, failedInstance);
+            _isShutdown = true;
+
+            Assert.That(_manager.UIGroupCount, Is.Zero);
+            Assert.That(_uiFormHelper.ReleaseCalls, Has.Count.EqualTo(1));
+            AssertRelease(failedInstance, 0, recycledBeforeRelease: true);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void OnOpenReentrantShutdown_CancelsOpenWithoutPublishingOrThrowing(bool disableInstancePool)
+        {
+            string groupName = disableInstancePool ? "Direct" : "Pooled";
+            AddGroup(groupName, disableInstancePool);
+            int successEventCount = 0;
+            int failureEventCount = 0;
+            _manager.OpenUIFormSuccess += (_, _) => successEventCount++;
+            _manager.OpenUIFormFailure += (_, _) => failureEventCount++;
+            _uiFormHelper.OpenAction = () => InvokeModuleMethod(_manager, "Shutdown");
+
+            _manager.OpenUIForm("UI/ReentrantShutdown", groupName);
+            object canceledInstance = new object();
+            Assert.DoesNotThrow(() => _resourceManager.CompleteSuccess(0, canceledInstance));
+            _isShutdown = true;
+
+            Assert.That(successEventCount, Is.Zero);
+            Assert.That(failureEventCount, Is.Zero);
+            Assert.That(_manager.UIGroupCount, Is.Zero);
+            Assert.That(_uiFormHelper.ReleaseCalls, Has.Count.EqualTo(1));
+            AssertRelease(canceledInstance, 0, recycledBeforeRelease: true);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void OnInitReentrantShutdown_CleansLifecycleWithoutPublishingOrThrowing(bool disableInstancePool)
+        {
+            string groupName = disableInstancePool ? "Direct" : "Pooled";
+            AddGroup(groupName, disableInstancePool);
+            int successEventCount = 0;
+            int failureEventCount = 0;
+            _manager.OpenUIFormSuccess += (_, _) => successEventCount++;
+            _manager.OpenUIFormFailure += (_, _) => failureEventCount++;
+            _uiFormHelper.InitAction = () => InvokeModuleMethod(_manager, "Shutdown");
+
+            _manager.OpenUIForm("UI/ReentrantInitShutdown", groupName);
+            object canceledInstance = new object();
+            Assert.DoesNotThrow(() => _resourceManager.CompleteSuccess(0, canceledInstance));
+            _isShutdown = true;
+
+            TestUIForm form = _uiFormHelper.CreatedForms[0];
+            Assert.That(successEventCount, Is.Zero);
+            Assert.That(failureEventCount, Is.Zero);
+            Assert.That(form.CloseCount, Is.EqualTo(1));
+            Assert.That(form.RecycleCount, Is.EqualTo(1));
+            Assert.That(_uiFormHelper.ReleaseCalls, Has.Count.EqualTo(1));
+            AssertRelease(canceledInstance, 0, recycledBeforeRelease: true);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void BusinessOperationCanceledExceptionDuringOpen_PublishesFailure(bool disableInstancePool)
+        {
+            string groupName = disableInstancePool ? "Direct" : "Pooled";
+            AddGroup(groupName, disableInstancePool);
+            int successEventCount = 0;
+            int failureEventCount = 0;
+            _manager.OpenUIFormSuccess += (_, _) => successEventCount++;
+            _manager.OpenUIFormFailure += (_, _) => failureEventCount++;
+            _uiFormHelper.ThrowOperationCanceledOnOpen = true;
+
+            _manager.OpenUIForm("UI/BusinessCancellation", groupName);
+            object failedInstance = new object();
+            Assert.DoesNotThrow(() => _resourceManager.CompleteSuccess(0, failedInstance));
+
+            TestUIForm form = _uiFormHelper.CreatedForms[0];
+            Assert.That(successEventCount, Is.Zero);
+            Assert.That(failureEventCount, Is.EqualTo(1));
+            Assert.That(form.CloseCount, Is.EqualTo(1));
+            Assert.That(form.RecycleCount, Is.EqualTo(1));
+            Assert.That(_uiFormHelper.ReleaseCalls, Has.Count.EqualTo(1));
+            AssertRelease(failedInstance, 0, recycledBeforeRelease: true);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void OnOpenReentrantClose_CancelsOpenWithoutPublishingOrThrowing(bool disableInstancePool)
+        {
+            string groupName = disableInstancePool ? "Direct" : "Pooled";
+            AddGroup(groupName, disableInstancePool);
+            int successEventCount = 0;
+            int failureEventCount = 0;
+            _manager.OpenUIFormSuccess += (_, _) => successEventCount++;
+            _manager.OpenUIFormFailure += (_, _) => failureEventCount++;
+            int serialId = _manager.OpenUIForm("UI/ReentrantClose", groupName);
+            _uiFormHelper.OpenAction = () => _manager.CloseUIForm(serialId);
+
+            object canceledInstance = new object();
+            Assert.DoesNotThrow(() => _resourceManager.CompleteSuccess(0, canceledInstance));
+
+            Assert.That(successEventCount, Is.Zero);
+            Assert.That(failureEventCount, Is.Zero);
+            Assert.That(_manager.HasUIForm(serialId), Is.False);
             InvokeModuleMethod(_manager, "Update", 0f, 0f);
             Assert.That(_uiFormHelper.ReleaseCalls, Has.Count.EqualTo(1));
         }
@@ -311,6 +520,51 @@ namespace LFramework.Editor.Tests.UI
         }
 
         [Test]
+        public void PooledGroup_OnCloseFailure_DiscardsDirtyInstance()
+        {
+            AddGroup("Pooled", false);
+            int serialId = _manager.OpenUIForm("UI/PooledClose", "Pooled");
+            object dirtyInstance = new object();
+            _resourceManager.CompleteSuccess(0, dirtyInstance);
+            TestUIForm form = _uiFormHelper.CreatedForms[0];
+            form.ThrowOnClose = true;
+
+            Assert.Throws<InvalidOperationException>(() => _manager.CloseUIForm(serialId));
+            InvokeModuleMethod(_manager, "Update", 0f, 0f);
+            Assert.That(_uiFormHelper.ReleaseCalls, Has.Count.EqualTo(1));
+
+            _manager.OpenUIForm("UI/PooledClose", "Pooled");
+            Assert.That(_resourceManager.PendingLoads, Has.Count.EqualTo(2),
+                "An instance whose close callback failed must be discarded.");
+        }
+
+        [Test]
+        public void TopCloseFailure_StillRefreshesUnderlyingFormState()
+        {
+            AddGroup("Pooled", false);
+            int lowerSerialId = _manager.OpenUIForm("UI/Lower", "Pooled", false, null);
+            _resourceManager.CompleteSuccess(0, new object());
+            TestUIForm lowerForm = _uiFormHelper.CreatedForms[0];
+
+            int topSerialId = _manager.OpenUIForm("UI/Top", "Pooled", true, null);
+            _resourceManager.CompleteSuccess(1, new object());
+            TestUIForm topForm = _uiFormHelper.CreatedForms[1];
+            Assert.That(lowerForm.PauseCount, Is.EqualTo(1));
+            Assert.That(lowerForm.CoverCount, Is.EqualTo(1));
+            int resumeCountBeforeClose = lowerForm.ResumeCount;
+            int revealCountBeforeClose = lowerForm.RevealCount;
+            topForm.ThrowOnClose = true;
+
+            Assert.Throws<InvalidOperationException>(() => _manager.CloseUIForm(topSerialId));
+
+            Assert.That(lowerForm.ResumeCount, Is.EqualTo(resumeCountBeforeClose + 1));
+            Assert.That(lowerForm.RevealCount, Is.EqualTo(revealCountBeforeClose + 1));
+
+            _manager.CloseUIForm(lowerSerialId);
+            InvokeModuleMethod(_manager, "Update", 0f, 0f);
+        }
+
+        [Test]
         public void DisabledPoolGroup_ReentrantShutdownDuringRecycle_ReleasesInstanceOnce()
         {
             AddGroup("Direct", true);
@@ -370,6 +624,196 @@ namespace LFramework.Editor.Tests.UI
             }
         }
 
+        [TestCase(false, "Loading")]
+        [TestCase(true, "Loading")]
+        [TestCase(false, "Init")]
+        [TestCase(true, "Init")]
+        [TestCase(false, "Open")]
+        [TestCase(true, "Open")]
+        public void PublicOpenAwait_CloseAtAnyPhase_CancelsAndUnsubscribes(bool disableInstancePool, string phase)
+        {
+            AddGroup("Await", disableInstancePool);
+            UIComponent component = CreateAwaitableComponent();
+            Action closeCurrent = () => component.CloseUIForm(_uiFormHelper.CreatedForms[0].SerialId);
+            if (phase == "Init") _uiFormHelper.InitAction = closeCurrent;
+            if (phase == "Open") _uiFormHelper.OpenAction = closeCurrent;
+
+            var task = component.OpenUIFormAsync("UI/Await", "Await", 0, false, null);
+            int serialId = _manager.GetAllLoadingUIFormSerialIds()[0];
+            if (phase == "Loading") component.CloseUIForm(serialId);
+            else _resourceManager.CompleteSuccess(0, new object());
+
+            Assert.That(task.Status, Is.EqualTo(UniTaskStatus.Canceled));
+            Assert.Throws<OperationCanceledException>(() => task.GetAwaiter().GetResult());
+            Assert.That(_manager.HasUIForm(serialId), Is.False);
+            Assert.That(_manager.IsLoadingUIForm(serialId), Is.False);
+            AssertAwaitHandlersDetached(component);
+            if (phase == "Loading") _resourceManager.CompleteSuccess(0, new object());
+            InvokeModuleMethod(_manager, "Update", 0f, 0f);
+            Assert.That(_uiFormHelper.ReleaseCalls, Has.Count.EqualTo(1));
+        }
+
+        [TestCase(false, "Success")]
+        [TestCase(true, "Success")]
+        [TestCase(false, "Failure")]
+        [TestCase(true, "Failure")]
+        [TestCase(false, "Cancel")]
+        [TestCase(true, "Cancel")]
+        public void PublicOpenAwait_SynchronousBackendCallback_ReachesTerminalState(bool disableInstancePool, string result)
+        {
+            AddGroup("Await", disableInstancePool);
+            UIComponent component = CreateAwaitableComponent();
+            if (result == "Cancel")
+                _uiFormHelper.OpenAction = () => component.CloseUIForm(_uiFormHelper.CreatedForms[0].SerialId);
+            _resourceManager.InstantiateAction = index =>
+            {
+                if (result == "Failure") _resourceManager.CompleteFailure(index);
+                else _resourceManager.CompleteSuccess(index, new object());
+            };
+
+            var task = component.OpenUIFormAsync("UI/Await", "Await", 0, false, null);
+
+            if (result == "Success")
+            {
+                Assert.That(task.Status, Is.EqualTo(UniTaskStatus.Succeeded));
+                Assert.That(task.GetAwaiter().GetResult(), Is.EqualTo(_uiFormHelper.CreatedForms[0].SerialId));
+            }
+            else if (result == "Failure")
+            {
+                Assert.That(task.Status, Is.EqualTo(UniTaskStatus.Faulted));
+                Assert.Throws<GameFrameworkException>(() => task.GetAwaiter().GetResult());
+            }
+            else
+            {
+                Assert.That(task.Status, Is.EqualTo(UniTaskStatus.Canceled));
+                Assert.Throws<OperationCanceledException>(() => task.GetAwaiter().GetResult());
+            }
+            AssertAwaitHandlersDetached(component);
+        }
+
+        [Test]
+        public void PublicOpenAwait_SynchronousValidationFailure_DetachesHandlers()
+        {
+            UIComponent component = CreateAwaitableComponent();
+            var task = component.OpenUIFormAsync("UI/Await", "MissingGroup", 0, false, null);
+            Assert.That(task.Status, Is.EqualTo(UniTaskStatus.Faulted));
+            Assert.Throws<GameFrameworkException>(() => task.GetAwaiter().GetResult());
+            AssertAwaitHandlersDetached(component);
+        }
+
+        [Test]
+        public void PublicOpenAwait_ClearAllDuringSynchronousOpen_AlreadyTracksTheWaiter()
+        {
+            AddGroup("Await", false);
+            UIComponent component = CreateAwaitableComponent();
+            _uiFormHelper.OpenAction = AwaitableExtensions.ClearAll;
+            _resourceManager.InstantiateAction = index => _resourceManager.CompleteSuccess(index, new object());
+
+            var task = component.OpenUIFormAsync("UI/Await", "Await", 0, false, null);
+
+            Assert.That(task.Status, Is.EqualTo(UniTaskStatus.Canceled));
+            Assert.Throws<OperationCanceledException>(() => task.GetAwaiter().GetResult());
+            AssertAwaitHandlersDetached(component);
+        }
+
+        [TestCase("Loading")]
+        [TestCase("Init")]
+        [TestCase("Open")]
+        public void PublicOpenAwait_Shutdown_CancelsWithoutPumpingEvents(string phase)
+        {
+            AddGroup("Await", true);
+            UIComponent component = CreateAwaitableComponent();
+            Action shutdown = () =>
+            {
+                _isShutdown = true;
+                InvokeModuleMethod(_manager, "Shutdown");
+            };
+            if (phase == "Init") _uiFormHelper.InitAction = shutdown;
+            if (phase == "Open") _uiFormHelper.OpenAction = shutdown;
+            var task = component.OpenUIFormAsync("UI/Await", "Await", 0, false, null);
+            if (phase == "Loading") shutdown();
+            else _resourceManager.CompleteSuccess(0, new object());
+
+            Assert.That(task.Status, Is.EqualTo(UniTaskStatus.Canceled));
+            Assert.Throws<OperationCanceledException>(() => task.GetAwaiter().GetResult());
+            AssertAwaitHandlersDetached(component);
+            if (phase == "Loading") _resourceManager.CompleteSuccess(0, new object());
+            Assert.That(_uiFormHelper.ReleaseCalls, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public void PublicOpenAwait_CancelRollbackFailure_IsFaultedInsteadOfSilentlyCanceled()
+        {
+            AddGroup("Await", false);
+            UIComponent component = CreateAwaitableComponent();
+            _uiFormHelper.InitAction = () =>
+            {
+                TestUIForm form = _uiFormHelper.CreatedForms[0];
+                form.ThrowOnClose = true;
+                component.CloseUIForm(form.SerialId);
+            };
+            var task = component.OpenUIFormAsync("UI/Await", "Await", 0, false, null);
+            _resourceManager.CompleteSuccess(0, new object());
+
+            Assert.That(task.Status, Is.EqualTo(UniTaskStatus.Faulted));
+            var exception = Assert.Throws<GameFrameworkException>(() => task.GetAwaiter().GetResult());
+            Assert.That(exception.Message, Does.Contain("Test OnClose failure"));
+            Assert.That(_uiFormHelper.ReleaseCalls, Has.Count.EqualTo(1));
+            AssertAwaitHandlersDetached(component);
+        }
+
+        [Test]
+        public void PublicOpenAwait_CancelContinuation_CannotRemoveTheNewWaiter()
+        {
+            AddGroup("Await", false);
+            UIComponent component = CreateAwaitableComponent();
+            var first = component.OpenUIFormAsync("UI/First", "Await", 0, false, null);
+            UniTask<int?> second = default;
+            var firstAwaiter = first.GetAwaiter();
+            firstAwaiter.OnCompleted(() =>
+            {
+                Assert.Throws<OperationCanceledException>(() => firstAwaiter.GetResult());
+                second = component.OpenUIFormAsync("UI/Second", "Await", 0, false, null);
+            });
+
+            component.CloseAllLoadingUIForms();
+            Assert.That(second.Status, Is.EqualTo(UniTaskStatus.Pending));
+            Assert.That(_manager.GetAllLoadingUIFormSerialIds(), Has.Length.EqualTo(1));
+            _resourceManager.CompleteSuccess(0, new object());
+            Assert.That(second.Status, Is.EqualTo(UniTaskStatus.Pending));
+            _resourceManager.CompleteSuccess(1, new object());
+            Assert.That(second.Status, Is.EqualTo(UniTaskStatus.Succeeded));
+            second.GetAwaiter().GetResult();
+            AssertAwaitHandlersDetached(component);
+        }
+
+        private UIComponent CreateAwaitableComponent()
+        {
+            _awaitableEventManager = Activator.CreateInstance(
+                typeof(IUIManager).Assembly.GetType("GameFramework.Event.EventManager", true), true);
+            var events = new EventComponent();
+            SetPrivateField(events, "m_EventManager", _awaitableEventManager);
+            var component = new UIComponent();
+            SetPrivateField(component, "m_UIManager", _manager);
+            SetPrivateField(component, "m_EventComponent", events);
+            foreach (string eventName in new[] { "OpenUIFormSuccess", "OpenUIFormFailure", "OpenUIFormCanceled" })
+            {
+                EventInfo notification = _manager.GetType().GetEvent(eventName);
+                MethodInfo forwarder = typeof(UIComponent).GetMethod("On" + eventName,
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                notification.AddEventHandler(_manager,
+                    Delegate.CreateDelegate(notification.EventHandlerType, component, forwarder));
+            }
+            return component;
+        }
+
+        private static void AssertAwaitHandlersDetached(UIComponent component)
+        {
+            foreach (string name in new[] { "OpenUIFormSucceeded", "OpenUIFormFailed", "OpenUIFormCanceled" })
+                Assert.That(typeof(UIComponent).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)
+                    .GetValue(component), Is.Null, "An ended await must not retain its component event handlers.");
+        }
+
         private void AddGroup(string name, bool disableInstancePool)
         {
             Assert.That(
@@ -422,6 +866,7 @@ namespace LFramework.Editor.Tests.UI
             }
 
             internal readonly List<PendingLoad> PendingLoads = new List<PendingLoad>();
+            internal Action<int> InstantiateAction;
 
             public string ReadOnlyPath => string.Empty;
             public string ReadWritePath => string.Empty;
@@ -435,12 +880,20 @@ namespace LFramework.Editor.Tests.UI
                     Callbacks = callbacks,
                     UserData = userData
                 });
+                InstantiateAction?.Invoke(PendingLoads.Count - 1);
             }
 
             internal void CompleteSuccess(int index, object instance)
             {
                 PendingLoad load = PendingLoads[index];
                 load.Callbacks.LoadAssetSuccessCallback(load.AssetName, instance, 0.1f, load.UserData);
+            }
+
+            internal void CompleteFailure(int index)
+            {
+                PendingLoad load = PendingLoads[index];
+                load.Callbacks.LoadAssetFailureCallback(load.AssetName, LoadResourceStatus.NotExist,
+                    "Test load failure.", load.UserData);
             }
 
             public void SetReadOnlyPath(string readOnlyPath) => throw new NotSupportedException();
@@ -507,7 +960,11 @@ namespace LFramework.Editor.Tests.UI
             internal readonly List<TestUIForm> CreatedForms = new List<TestUIForm>();
             internal readonly List<ReleaseCall> ReleaseCalls = new List<ReleaseCall>();
             internal bool FailCreate;
+            internal bool ThrowOnInit;
             internal bool ThrowOnOpen;
+            internal bool ThrowOperationCanceledOnOpen;
+            internal Action InitAction;
+            internal Action OpenAction;
 
             public object InstantiateUIForm(object uiFormAsset)
             {
@@ -522,7 +979,8 @@ namespace LFramework.Editor.Tests.UI
                     return null;
                 }
 
-                var uiForm = new TestUIForm(uiFormInstance, ThrowOnOpen);
+                var uiForm = new TestUIForm(uiFormInstance, ThrowOnInit, ThrowOnOpen,
+                    ThrowOperationCanceledOnOpen, InitAction, OpenAction);
                 CreatedForms.Add(uiForm);
                 return uiForm;
             }
@@ -554,11 +1012,20 @@ namespace LFramework.Editor.Tests.UI
         private sealed class TestUIForm : IUIForm
         {
             private readonly bool _throwOnOpen;
+            private readonly bool _throwOperationCanceledOnOpen;
+            private readonly bool _throwOnInit;
+            private readonly Action _initAction;
+            private readonly Action _openAction;
 
-            internal TestUIForm(object handle, bool throwOnOpen)
+            internal TestUIForm(object handle, bool throwOnInit, bool throwOnOpen,
+                bool throwOperationCanceledOnOpen, Action initAction, Action openAction)
             {
                 Handle = handle;
+                _throwOnInit = throwOnInit;
                 _throwOnOpen = throwOnOpen;
+                _throwOperationCanceledOnOpen = throwOperationCanceledOnOpen;
+                _initAction = initAction;
+                _openAction = openAction;
             }
 
             public int SerialId { get; private set; }
@@ -569,6 +1036,10 @@ namespace LFramework.Editor.Tests.UI
             public bool PauseCoveredUIForm { get; private set; }
             internal int CloseCount { get; private set; }
             internal int RecycleCount { get; private set; }
+            internal int PauseCount { get; private set; }
+            internal int ResumeCount { get; private set; }
+            internal int CoverCount { get; private set; }
+            internal int RevealCount { get; private set; }
             internal bool LastCloseWasShutdown { get; private set; }
             internal bool ThrowOnClose { get; set; }
             internal bool ThrowOnRecycle { get; set; }
@@ -581,6 +1052,11 @@ namespace LFramework.Editor.Tests.UI
                 UIFormAssetName = uiFormAssetName;
                 UIGroup = uiGroup;
                 PauseCoveredUIForm = pauseCoveredUIForm;
+                _initAction?.Invoke();
+                if (_throwOnInit)
+                {
+                    throw new InvalidOperationException("Test OnInit failure.");
+                }
             }
 
             public void OnRecycle()
@@ -595,6 +1071,12 @@ namespace LFramework.Editor.Tests.UI
 
             public void OnOpen(object userData)
             {
+                _openAction?.Invoke();
+                if (_throwOperationCanceledOnOpen)
+                {
+                    throw new OperationCanceledException("Test business cancellation.");
+                }
+
                 if (_throwOnOpen)
                 {
                     throw new InvalidOperationException("Test OnOpen failure.");
@@ -613,18 +1095,22 @@ namespace LFramework.Editor.Tests.UI
 
             public void OnPause()
             {
+                PauseCount++;
             }
 
             public void OnResume()
             {
+                ResumeCount++;
             }
 
             public void OnCover()
             {
+                CoverCount++;
             }
 
             public void OnReveal()
             {
+                RevealCount++;
             }
 
             public void OnRefocus(object userData)

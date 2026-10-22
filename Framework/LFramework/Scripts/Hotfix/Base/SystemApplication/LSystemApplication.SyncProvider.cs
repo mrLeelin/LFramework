@@ -10,8 +10,8 @@ namespace LFramework.Hotfix
 {
     public partial class LSystemApplication
     {
-        private static readonly IDictionary<string, PropertyInfo> CachePropertyInfoByClass =
-            new Dictionary<string, PropertyInfo>();
+        private static readonly IDictionary<(Type OriginType, Type PayloadType), PropertyInfo> CachePropertyInfoByClass =
+            new Dictionary<(Type OriginType, Type PayloadType), PropertyInfo>();
 
         // 新增：缓存类型的属性信息，避免每次反射
         private static readonly ConcurrentDictionary<Type, PropertyInfo[]> TypePropertiesCache = new();
@@ -68,7 +68,18 @@ namespace LFramework.Hotfix
                 // 如果value是list并且Count == 0那么Return
                 if (value is System.Collections.ICollection { Count: 0 }) continue;
 
-                serverData.SyncServer(value, isLogin);
+                try
+                {
+                    serverData.SyncServer(value, isLogin);
+                }
+                catch (Exception exception)
+                {
+                    Log.Error(
+                        "[LSystemApplication.SyncProvider] Provider '{0}' failed to sync payload '{1}'. {2}",
+                        registration.ProviderType.FullName,
+                        dataType.FullName,
+                        exception);
+                }
             }
         }
 
@@ -110,7 +121,7 @@ namespace LFramework.Hotfix
         {
             if (type == null) throw new Exception("Type is null.");
 
-            var key = $"{type.FullName}";
+            var key = (origin.GetType(), type);
             if (CachePropertyInfoByClass.TryGetValue(key, out var info)) return info;
 
             var result =

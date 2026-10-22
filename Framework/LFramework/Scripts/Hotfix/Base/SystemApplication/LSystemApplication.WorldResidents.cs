@@ -67,30 +67,13 @@ namespace LFramework.Hotfix
                 transition?.EnterWorld(_worldBase);
                 transition?.Commit();
             }
-            catch (Exception exception)
+            catch (Exception exception) when (transition != null && transition.IsCompleted)
             {
-                if (transition != null && transition.IsCompleted)
-                {
-                    // 提交后旧对象的清理失败不能撤销已生效的新 World。
-                    Log.Error(exception);
-                }
-                else
-                {
-                    try
-                    {
-                        CancelWorldResidentTransition();
-                    }
-                    catch (Exception rollbackException)
-                    {
-                        throw new AggregateException(
-                            "World resident transition failed and rollback failed.",
-                            exception,
-                            rollbackException);
-                    }
-
-                    throw;
-                }
+                // 提交后旧对象的清理失败不能撤销已生效的新 World。
+                Log.Error(exception);
             }
+            // 提交前失败时保留事务，由调用方在清理 World/外部注册后调用 CancelWorldResidentTransition 回滚；
+            // 此处立即回滚会在外部注册仍占用服务时丢失保留对象的绑定。
             finally
             {
                 if (transition == null || transition.IsCompleted) ClearResidentTransitionState();

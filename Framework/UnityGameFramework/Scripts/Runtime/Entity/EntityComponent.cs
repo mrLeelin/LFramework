@@ -95,6 +95,8 @@ namespace UnityGameFramework.Runtime
 
             m_EntityManager.ShowEntitySuccess += OnShowEntitySuccess;
             m_EntityManager.ShowEntityFailure += OnShowEntityFailure;
+            m_EntityManager.ShowEntityCanceled += OnShowEntityCanceled;
+            m_EntityManager.ShowEntityOperationDispatch += OnShowEntityOperationDispatch;
 
             if (m_EnableShowEntityUpdateEvent)
             {
@@ -1129,6 +1131,16 @@ namespace UnityGameFramework.Runtime
         private void OnShowEntitySuccess(object sender, GameFramework.Entity.ShowEntitySuccessEventArgs e)
         {
             m_EventComponent.Fire(this, ShowEntitySuccessEventArgs.Create(e));
+        }
+
+        private void OnShowEntityCanceled(int entityId, object userData)
+        {
+            if (userData is ShowEntityInfo info) info.Release(info.Version);
+        }
+
+        private void OnShowEntityOperationDispatch(object userData, bool dispatching)
+        {
+            if (userData is ShowEntityInfo info) info.SetDispatching(dispatching);
         }
 
         private void OnShowEntityFailure(object sender, GameFramework.Entity.ShowEntityFailureEventArgs e)

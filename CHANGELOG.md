@@ -2,6 +2,48 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.3.18]
+
+### Fixed
+
+- 修复循环计时器不触发、暂停后恢复提前到期、清空后 ID 复用以及回调重入导致重复派发的问题；一次更新最多同步处理两轮，防止循环回调反复缩短到期时间时卡住主线程，并保护暂停恢复时的时间戳上限。
+- 资源句柄提前释放时立即取消等待，但延迟到底层操作完成及回调分发结束后再归还对象池，避免旧操作完成时污染复用后的句柄；补齐 Addressables 与 YooAsset 加载失败的释放路径。
+- 修复 YooAsset 按标签批量创建句柄时，中途抛异常造成已创建句柄泄漏的问题，失败时释放此前取得的全部句柄。
+- Entity 异步等待覆盖加载取消、组件关闭及晚到回调；在 `OnInit`/`OnShow` 中取消时，等待显示回调退出并清理旧实体后才完成取消，允许 continuation 安全复用同一实体 ID。
+- 修复 UI 对象池复用时的组状态、打开失败回滚和关闭异常清理；子窗口禁用后仍完成关闭、取消订阅和资源释放。
+- 修复 UI/Entity 子模块部分订阅成功后抛异常导致的事件残留；订阅失败自动撤销，清理失败保留异常并支持重试，重入取消延迟到当前订阅结束。
+- 单例注册失败时回滚，阻止重复启动清空现有服务，并拦截 `Register()` 内同类型同步重入，失败后允许重新注册。
+- Provider 与 World 清理保留失败项以便重试；World Helper 注册前检查接口冲突；同步字段缓存同时区分 DTO 类型与 Provider 类型。
+- 网络队列跟踪延期重试并在清空时撤销计时器、释放请求消息；资源下载失败分类使用清理前保存的失败信息。
+
+### Added
+
+- 增加资源句柄、Entity 取消、UI 生命周期、计时器、网络重试、启动、Provider/World 清理及下载失败回归测试。
+- 增加循环计时器回调重入、同 ID Entity 取消后重新加载、部分订阅失败与清理重试、单例注册重入以及批量句柄创建异常的专项回归测试。
+
+### Upgrade Notes
+
+- 更新 Runtime、GameFramework 及相关 Hotfix 调用程序集后重新编译；保留原有不带取消令牌的 Entity 异步扩展方法签名。
+- 计时器回调中递归请求的更新最多在当前更新内追加一轮，其余工作由后续更新处理；Entity 显示回调内发起的取消在当前显示回调返回并完成清理后通知等待方。
+
+## [0.3.17]
+
+### Fixed
+
+- 修复组件设置转换时，仅供辅助器（Helper）直接读取、不参与组件字段映射的派生设置字段被误判为缺失并反复输出 Editor 错误的问题：`ResourceComponentSetting` 的 6 个 YooAsset 多包/路由/Hotfix 字段与 `LocalizationComponentSetting` 的 5 个本地化字段现在通过 `[ComponentSettingMappingIgnore]` 显式声明跳过映射，不再产生错误日志。
+- 组件设置字段映射诊断改为 `UnityEngine.Debug.LogError`（仅 Editor 编译），避免在未定义 `ENABLE_LOG`/`ENABLE_ERROR_AND_ABOVE_LOG` 等日志宏的工程中被整体编译掉，导致真实映射错误静默消失；诊断信息现在提示可用 `[ComponentSettingMappingIgnore]` 显式忽略。
+- 组件字段查找扩展为沿完整继承链查找（含 public 字段与基类私有字段），修复 public 字段与继承字段无法映射的问题。
+- 修复 `ResourceComponentSetting.m_CustomResourceHelper` 与 `ResourceComponent.m_CustomResourceHelper` 字段类型不一致（`SettingHelperBase` 与 `ResourceHelperBase`）导致该字段被静默跳过的问题，自定义 Resource Helper 现在可以通过设置资产生效。
+
+### Added
+
+- 新增组件设置字段映射回归测试，覆盖显式忽略字段、未标记缺失字段的 Editor 诊断、继承链与 public 字段映射、真实模板资产转换，以及设置字段与组件字段的类型对称性。
+
+### Upgrade Notes
+
+- 仅供辅助器读取、不参与组件字段映射的设置字段需标注 `[ComponentSettingMappingIgnore]`；未标注且组件上确实不存在的字段仍会在 Editor 输出错误日志。
+- `ResourceComponentSetting.m_CustomResourceHelper` 的序列化类型由 `SettingHelperBase` 调整为 `ResourceHelperBase`；已有设置资产中该字段为空引用（`fileID: 0`），无需迁移。
+
 ## [0.3.16]
 
 ### Fixed

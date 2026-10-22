@@ -58,6 +58,11 @@ namespace GameFramework.Entity
         /// </summary>
         event EventHandler<HideEntityCompleteEventArgs> HideEntityComplete;
 
+        /// <summary>Raised synchronously when a pending entity show is canceled.</summary>
+        event Action<int, object> ShowEntityCanceled;
+        /// <summary>Brackets terminal event dispatch so adapters can defer pooled user-data release.</summary>
+        event Action<object, bool> ShowEntityOperationDispatch;
+
         /// <summary>
         /// 设置对象池管理器。
         /// </summary>

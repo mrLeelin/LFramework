@@ -4,12 +4,45 @@ using System.Reflection;
 using GameFramework.Resource;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.ResourceManagement.ResourceLocations;
 using YooAsset;
 
 namespace LFramework.Editor.Tests.ResourceComponent
 {
     public class YooAssetResourceHelperTests
     {
+        [Test]
+        public void AcquireHandles_ReleasesPreviouslyAcquiredHandles_WhenLaterLoadThrows()
+        {
+            Type helperType = Type.GetType(
+                "LFramework.Runtime.YooAssetResourceHelper, LFramework.Runtime");
+            Assert.That(helperType, Is.Not.Null);
+
+            MethodInfo method = helperType.GetMethod(
+                "AcquireHandles",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+
+            method = method.MakeGenericMethod(typeof(int), typeof(TrackedHandle));
+            var acquired = new TrackedHandle();
+            var releaseCount = 0;
+            Func<int, TrackedHandle> acquire = index => index == 1
+                ? acquired
+                : throw new InvalidOperationException("second load failed");
+            Action<TrackedHandle> release = handle =>
+            {
+                Assert.That(handle, Is.SameAs(acquired));
+                releaseCount++;
+            };
+
+            var exception = Assert.Throws<TargetInvocationException>(() => method.Invoke(
+                null,
+                new object[] { new[] { 1, 2 }, acquire, release }));
+
+            Assert.That(exception.InnerException, Is.TypeOf<InvalidOperationException>());
+            Assert.That(releaseCount, Is.EqualTo(1));
+        }
+
         [Test]
         public void ResolveTaggedAssetInfos_UsesTagLookupAndNormalizesNullResults()
         {
@@ -35,6 +68,10 @@ namespace LFramework.Editor.Tests.ResourceComponent
             Assert.That(resolvedTag, Is.EqualTo("code_dll"));
             Assert.That(result, Is.Empty);
         }
+
+        private sealed class TrackedHandle
+        {
+        }
     }
 
     public class AddressableResourceHelperTests
@@ -43,7 +80,7 @@ namespace LFramework.Editor.Tests.ResourceComponent
         public void ContainsPrimaryKeyMatch_ReturnsTrue_OnlyForExactPrimaryKey()
         {
             MethodInfo method = GetAddressableHelperMethod("ContainsPrimaryKeyMatch");
-            var locations = new List<object>
+            var locations = new List<IResourceLocation>
             {
                 new TestResourceLocation("shared_label"),
                 new TestResourceLocation("ui/home")
@@ -95,7 +132,7 @@ namespace LFramework.Editor.Tests.ResourceComponent
             return method;
         }
 
-        private sealed class TestResourceLocation
+        private sealed class TestResourceLocation : IResourceLocation
         {
             public TestResourceLocation(string primaryKey)
             {
@@ -103,6 +140,21 @@ namespace LFramework.Editor.Tests.ResourceComponent
             }
 
             public string PrimaryKey { get; }
+            public string InternalId => PrimaryKey;
+            public string ProviderId => "test";
+            public IList<IResourceLocation> Dependencies => Array.Empty<IResourceLocation>();
+            public int DependencyHashCode => 0;
+            public bool HasDependencies => false;
+            public object Data => null;
+            public Type ResourceType => typeof(UnityEngine.Object);
+
+            public int Hash(Type resultType)
+            {
+                unchecked
+                {
+                    return (PrimaryKey?.GetHashCode() ?? 0) * 397 ^ (resultType?.GetHashCode() ?? 0);
+                }
+            }
         }
     }
 

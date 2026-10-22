@@ -14,6 +14,8 @@ namespace UnityGameFramework.Runtime
         protected float _progress;
         private Action _onRelease;
         private bool _isFromPool;
+        private bool _releaseFinalized;
+        private int _completionNotificationDepth;
 
         /// <summary>
         /// 是否加载完成
@@ -38,7 +40,13 @@ namespace UnityGameFramework.Runtime
         /// <summary>
         /// 设置加载进度
         /// </summary>
-        public void SetProgress(float progress) => _progress = progress;
+        public void SetProgress(float progress)
+        {
+            if (!_isDone)
+            {
+                _progress = progress;
+            }
+        }
 
         /// <summary>
         /// 标记此 Handle 来自对象池
@@ -58,15 +66,65 @@ namespace UnityGameFramework.Runtime
         /// </summary>
         public void SetError(string errorMessage)
         {
+            if (!TryBeginCompletion())
+            {
+                return;
+            }
+
             _error = errorMessage;
-            _isDone = true;
-            SetErrorInternal(errorMessage);
+            try
+            {
+                SetErrorInternal(errorMessage);
+            }
+            finally
+            {
+                EndCompletion();
+            }
         }
 
         /// <summary>
         /// 子类实现的错误处理逻辑
         /// </summary>
         protected abstract void SetErrorInternal(string errorMessage);
+
+        /// <summary>
+        /// Cancels a waiter when the handle is released before its backend operation completes.
+        /// The backend still owns the handle until it reports completion.
+        /// </summary>
+        protected virtual void CancelWaiterInternal()
+        {
+        }
+
+        /// <summary>
+        /// Clears a completed result when release is finalized.
+        /// </summary>
+        protected virtual void ReleaseResultInternal()
+        {
+        }
+
+        /// <summary>
+        /// Starts a terminal completion notification.
+        /// </summary>
+        protected bool TryBeginCompletion()
+        {
+            if (_isDone)
+            {
+                return false;
+            }
+
+            _isDone = true;
+            _completionNotificationDepth++;
+            return true;
+        }
+
+        /// <summary>
+        /// Ends a terminal completion notification and performs any deferred release.
+        /// </summary>
+        protected void EndCompletion()
+        {
+            _completionNotificationDepth--;
+            TryFinalizeRelease();
+        }
 
         /// <summary>
         /// 释放资源
@@ -78,19 +136,55 @@ namespace UnityGameFramework.Runtime
         /// </summary>
         public virtual void Dispose()
         {
-            if (_isDisposed) return;
+            if (_isDisposed)
+            {
+                return;
+            }
+
             _isDisposed = true;
-            var onRelease = _onRelease;
+
+            if (!_isDone)
+            {
+                _completionNotificationDepth++;
+                try
+                {
+                    CancelWaiterInternal();
+                }
+                finally
+                {
+                    _completionNotificationDepth--;
+                }
+            }
+
+            TryFinalizeRelease();
+        }
+
+        private void TryFinalizeRelease()
+        {
+            if (!_isDisposed || !_isDone || _releaseFinalized || _completionNotificationDepth != 0)
+            {
+                return;
+            }
+
+            _releaseFinalized = true;
+            Action onRelease = _onRelease;
             _onRelease = null;
             try
             {
-                onRelease?.Invoke();
+                ReleaseResultInternal();
             }
             finally
             {
-                if (_isFromPool)
+                try
                 {
-                    ReferencePool.Release(this);
+                    onRelease?.Invoke();
+                }
+                finally
+                {
+                    if (_isFromPool)
+                    {
+                        ReferencePool.Release(this);
+                    }
                 }
             }
         }
@@ -106,6 +200,8 @@ namespace UnityGameFramework.Runtime
             _progress = 0f;
             _onRelease = null;
             _isFromPool = false;
+            _releaseFinalized = false;
+            _completionNotificationDepth = 0;
         }
     }
 }

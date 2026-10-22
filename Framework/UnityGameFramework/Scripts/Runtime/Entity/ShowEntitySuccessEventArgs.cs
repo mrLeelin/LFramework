@@ -92,7 +92,7 @@ namespace UnityGameFramework.Runtime
             showEntitySuccessEventArgs.Entity = (Entity)e.Entity;
             showEntitySuccessEventArgs.Duration = e.Duration;
             showEntitySuccessEventArgs.UserData = showEntityInfo.UserData;
-            ReferencePool.Release(showEntityInfo);
+            showEntityInfo.Release(showEntityInfo.Version);
             return showEntitySuccessEventArgs;
         }
 

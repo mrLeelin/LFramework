@@ -28,7 +28,27 @@ namespace LFramework.Hotfix
             {
                 if (ownsTransition)
                 {
-                    CompleteWorldResidentTransition();
+                    try
+                    {
+                        CompleteWorldResidentTransition();
+                    }
+                    catch (Exception completeException)
+                    {
+                        // 提交失败不会自动回滚，自身发起的事务需在此取消
+                        try
+                        {
+                            CancelWorldResidentTransition();
+                        }
+                        catch (Exception rollbackException)
+                        {
+                            throw new AggregateException(
+                                "World resident transition failed and rollback failed.",
+                                completeException,
+                                rollbackException);
+                        }
+
+                        throw;
+                    }
                 }
 
                 return null;

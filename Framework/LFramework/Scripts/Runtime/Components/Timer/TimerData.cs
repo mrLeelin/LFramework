@@ -1,8 +1,5 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using GameFramework;
-using UnityEngine;
 using UnityGameFramework.Runtime;
 
 namespace LFramework.Runtime
@@ -41,6 +38,7 @@ namespace LFramework.Runtime
         private long _startTimeStamp;
         private long _endTimeStamp;
         private long _totalTime;
+        private long _pauseStartedTimestamp;
         private object _userData;
         private OnTimerCallBack _callBack;
         private bool _running;
@@ -52,11 +50,11 @@ namespace LFramework.Runtime
         public long EndTimeStamp => _endTimeStamp;
         public bool Running => _running;
 
-        public long RemainTimeToLong => _endTimeStamp - _timerComponent.ServerTimeStamp;
+        public long RemainTimeToLong => _endTimeStamp - CurrentTimestamp;
 
-        public float RemainTimeToFloat => (_endTimeStamp - _timerComponent.ServerTimeStamp).ToSeconds();
+        public float RemainTimeToFloat => (_endTimeStamp - CurrentTimestamp).ToSeconds();
 
-        public long PastTime => _timerComponent.ServerTimeStamp - _startTimeStamp;
+        public long PastTime => CurrentTimestamp - _startTimeStamp;
 
         public float Progress =>  (PastTime / (float)(_endTimeStamp - _startTimeStamp));
 
@@ -70,9 +68,30 @@ namespace LFramework.Runtime
                     return;
                 }
 
+                if (_pause == value)
+                {
+                    return;
+                }
+
+                if (value)
+                {
+                    _pauseStartedTimestamp = _timerComponent.ServerTimeStamp;
+                }
+                else
+                {
+                    var pausedDuration = _timerComponent.ServerTimeStamp - _pauseStartedTimestamp;
+                    _startTimeStamp += pausedDuration;
+                    _endTimeStamp = pausedDuration > long.MaxValue - _endTimeStamp
+                        ? long.MaxValue
+                        : _endTimeStamp + pausedDuration;
+                    _pauseStartedTimestamp = 0;
+                }
+
                 _pause = value;
             }
         }
+
+        private long CurrentTimestamp => _pause ? _pauseStartedTimestamp : _timerComponent.ServerTimeStamp;
 
         internal event OnTimerCallBack TimerCallBack
         {
@@ -82,21 +101,32 @@ namespace LFramework.Runtime
 
         public void InitWithSecond(int onlyId, float totalTime, OnTimerCallBack callBack, bool loop, object userData)
         {
-            InitializeWithMillisecond(onlyId, totalTime.ToTicks(), callBack, loop, userData);
+            if (!TimerExtension.TryGetPositiveTicks(totalTime, out var ticks))
+            {
+                throw new ArgumentOutOfRangeException(nameof(totalTime), "Timer duration must fit a positive tick count.");
+            }
+
+            InitializeWithMillisecond(onlyId, ticks, callBack, loop, userData);
         }
 
         public void InitializeWithMillisecond(int onlyId, long totalTime, OnTimerCallBack callBack, bool loop,
             object userData)
         {
-            this._onlyId = onlyId;
-            this._totalTime = totalTime;
-            TimerCallBack += callBack;
-            this._pause = false;
-            this._userData = userData;
-            this._startTimeStamp = _timerComponent.ServerTimeStamp;
-            this._endTimeStamp = _startTimeStamp + this._totalTime;
-            this._loop = loop;
-            RefreshRunning();
+            if (totalTime <= 0 || _timerComponent.ServerTimeStamp > long.MaxValue - totalTime)
+            {
+                throw new ArgumentOutOfRangeException(nameof(totalTime), "Timer duration must fit a future timestamp.");
+            }
+
+            _onlyId = onlyId;
+            _totalTime = totalTime;
+            _callBack = callBack;
+            _pause = false;
+            _pauseStartedTimestamp = 0;
+            _userData = userData;
+            _startTimeStamp = _timerComponent.ServerTimeStamp;
+            _endTimeStamp = _startTimeStamp + _totalTime;
+            _loop = loop;
+            _running = true;
         }
 
         public void SetComponent(TimerComponent timerComponent)
@@ -107,10 +137,38 @@ namespace LFramework.Runtime
 
         public void OnUpdate()
         {
-            if (_running)
+            if (_timerComponent == null)
             {
-                Timing();
+                return;
             }
+
+            if (_timerComponent.IsUpdating)
+            {
+                _timerComponent.RequestUpdate();
+                return;
+            }
+
+            if (CheckExpiration())
+            {
+                RearmLoop();
+                TriggerCallBack();
+            }
+        }
+
+        internal bool CheckExpiration()
+        {
+            if (!_running || _pause || _timerComponent.ServerTimeStamp < _endTimeStamp)
+            {
+                return false;
+            }
+
+            if (_loop)
+            {
+                return true;
+            }
+
+            _timerComponent.JoinDeleteList(_onlyId, true);
+            return false;
         }
 
         public void IncreaseTime(long time)
@@ -134,7 +192,7 @@ namespace LFramework.Runtime
             if (_running)
             {
                 _endTimeStamp -= time.ToTicks();
-                Timing();
+                OnUpdate();
             }
         }
 
@@ -147,7 +205,10 @@ namespace LFramework.Runtime
 
             _startTimeStamp = _timerComponent.ServerTimeStamp;
             _endTimeStamp = _startTimeStamp + _totalTime;
-            Timing();
+            if (_pause)
+            {
+                _pauseStartedTimestamp = _startTimeStamp;
+            }
         }
 
 
@@ -171,30 +232,25 @@ namespace LFramework.Runtime
             }
         }
 
-        private void Timing()
+        internal void RearmLoop()
         {
-            RefreshRunning();
-            if (!Running)
-            {
-                if (Loop)
-                {
-                    Reset();
-                }
-                else
-                {
-                    _timerComponent.JoinDeleteList(OnlyId, true);
-                }
-            }
-        }
-
-        private void RefreshRunning()
-        {
-            if (Pause)
+            if (!_running || !_loop)
             {
                 return;
             }
 
-            _running = _timerComponent.ServerTimeStamp < _endTimeStamp;
+            var now = _timerComponent.ServerTimeStamp;
+            // 直接跳过已经错过的周期，避免极短周期在一帧内逐次累加。
+            var elapsed = unchecked((ulong)now - (ulong)_endTimeStamp);
+            var remaining = _totalTime - (long)(elapsed % (ulong)_totalTime);
+            if (now > long.MaxValue - remaining)
+            {
+                _timerComponent.JoinDeleteList(_onlyId, false);
+                return;
+            }
+
+            _endTimeStamp = now + remaining;
+            _startTimeStamp = _endTimeStamp - _totalTime;
         }
 
         public void Clear()
@@ -207,6 +263,7 @@ namespace LFramework.Runtime
             _startTimeStamp = 0;
             _endTimeStamp = 0;
             _totalTime = 0;
+            _pauseStartedTimestamp = 0;
             _userData = null;
             _callBack = null;
             _running = false;

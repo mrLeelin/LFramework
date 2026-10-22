@@ -22,5 +22,23 @@
         {
             return  (long)(seconds * 1000 * 10000);
         }
+
+        internal static bool TryGetPositiveTicks(float seconds, out long ticks)
+        {
+            ticks = 0;
+            if (float.IsNaN(seconds) || float.IsInfinity(seconds) || seconds <= 0)
+            {
+                return false;
+            }
+
+            double convertedTicks = (double)seconds * System.TimeSpan.TicksPerSecond;
+            if (convertedTicks < 1d || convertedTicks >= long.MaxValue)
+            {
+                return false;
+            }
+
+            ticks = (long)convertedTicks;
+            return true;
+        }
     }
 }

@@ -64,10 +64,30 @@ namespace LFramework.Runtime
             var uniqueHelpers = new HashSet<IWorldHelper>(
                 _worldHelpers.Values,
                 WorldHelperReferenceComparer.Instance);
+            var releaseErrors = new List<Exception>();
             foreach (var worldHelper in uniqueHelpers)
             {
-                ReferencePool.Release(worldHelper);
+                try
+                {
+                    ReferencePool.Release(worldHelper);
+                    RemoveReleasedWorldHelper(worldHelper);
+                }
+                catch (Exception exception)
+                {
+                    releaseErrors.Add(exception);
+                }
             }
+
+            if (releaseErrors.Count == 1)
+            {
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(releaseErrors[0]).Throw();
+            }
+
+            if (releaseErrors.Count > 0)
+            {
+                throw new AggregateException("World helper cleanup failed.", releaseErrors);
+            }
+
             _interfaceWorldHelpers.Clear();
             _linkWorldHelperAndInterface.Clear();
             _worldHelpers.Clear();
@@ -78,6 +98,39 @@ namespace LFramework.Runtime
             _autoRegisteredWorldHelperInstances.Clear();
 #endif
             OnDeInitialized();
+        }
+
+        private void RemoveReleasedWorldHelper(IWorldHelper worldHelper)
+        {
+            foreach (var helperType in new List<Type>(_worldHelpers.Keys))
+            {
+                if (ReferenceEquals(_worldHelpers[helperType], worldHelper))
+                {
+                    _worldHelpers.Remove(helperType);
+                }
+            }
+
+            foreach (var interfaceType in new List<Type>(_interfaceWorldHelpers.Keys))
+            {
+                if (ReferenceEquals(_interfaceWorldHelpers[interfaceType], worldHelper))
+                {
+                    _interfaceWorldHelpers.Remove(interfaceType);
+                }
+            }
+
+            if (worldHelper is IWorldUpdate worldUpdate)
+            {
+                _worldUpdates.RemoveAll(update => ReferenceEquals(update, worldUpdate));
+            }
+
+            if (worldHelper is IWorldLateUpdate worldLateUpdate)
+            {
+                _worldLateUpdates.RemoveAll(update => ReferenceEquals(update, worldLateUpdate));
+            }
+
+#if UNITY_EDITOR
+            _autoRegisteredWorldHelperInstances.Remove(worldHelper);
+#endif
         }
 
         public void LinkProcedure(ProcedureBase procedure)
@@ -231,8 +284,10 @@ namespace LFramework.Runtime
         /// <returns></returns>
         protected T BuildWorldHelpers<T>() where T : class, IWorldHelper, new()
         {
+            var interfaceType = GetWorldHelperInterfaces(typeof(T));
+            // 先校验再从池中取出，冲突时不会遗留未归还的实例
+            EnsureWorldHelperCanRegister(typeof(T), interfaceType);
             var t = ReferencePool.Acquire<T>();
-            var interfaceType = GetWorldHelperInterfaces(t.GetType());
             return BuildWorldHelpers(t, interfaceType);
         }
 
@@ -270,6 +325,7 @@ namespace LFramework.Runtime
 
         private void BuildWorldHelpers(IWorldHelper worldHelperBase, Type interfaceType)
         {
+            EnsureWorldHelperCanRegister(worldHelperBase.GetType(), interfaceType);
             if (worldHelperBase is IWorldUpdate worldUpdate)
             {
                 _worldUpdates.Add(worldUpdate);
@@ -288,6 +344,27 @@ namespace LFramework.Runtime
             }
 
             _worldHelpers.Add(worldHelperBase.GetType(), worldHelperBase);
+        }
+
+        /// <summary>
+        /// 在修改任何注册状态前检查类型与接口是否已被占用，避免冲突时留下部分注册的 Helper
+        /// </summary>
+        private void EnsureWorldHelperCanRegister(Type helperType, Type interfaceType)
+        {
+            if (_worldHelpers.ContainsKey(helperType))
+            {
+                throw new GameFrameworkException(Utility.Text.Format(
+                    "[WorldBase] World helper '{0}' is already registered.", helperType.FullName));
+            }
+
+            if (interfaceType != null && _interfaceWorldHelpers.TryGetValue(interfaceType, out var existing))
+            {
+                throw new GameFrameworkException(Utility.Text.Format(
+                    "[WorldBase] World helper interface '{0}' is already bound to '{1}'; cannot register '{2}'.",
+                    interfaceType.FullName,
+                    existing.GetType().FullName,
+                    helperType.FullName));
+            }
         }
 
         private void InitializeAllHelpers()

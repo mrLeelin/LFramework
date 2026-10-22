@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Reflection;
 using GameFramework;
+using UnityEngine;
 using UnityGameFramework.Runtime;
 
 namespace LFramework.Runtime.Settings
@@ -55,6 +56,7 @@ namespace LFramework.Runtime.Settings
                 return;
             }
 
+            var settingType = componentSetting.GetType();
             foreach (var field in fields)
             {
                 // 基类字段是设置元数据，不参与运行时组件参数映射。
@@ -63,11 +65,26 @@ namespace LFramework.Runtime.Settings
                     continue;
                 }
 
-                var componentFiled = componentType.GetField(field.Name,BindingFlags.Instance | BindingFlags.NonPublic);
+                // 静态字段不属于实例配置，不参与运行时组件参数映射。
+                if (field.IsStatic)
+                {
+                    continue;
+                }
+
+                // 仅由 Helper 通过设置资产直接读取的字段，显式忽略组件参数映射与字段缺失诊断。
+                if (field.GetCustomAttribute<ComponentSettingMappingIgnoreAttribute>(true) != null)
+                {
+                    continue;
+                }
+
+                var componentFiled = FindComponentField(componentType, field.Name);
                 if (componentFiled == null)
                 {
 #if UNITY_EDITOR
-                    Log.Error($"Type '{componentType.FullName}'  Field '{field.Name}'  is not in setting or component .");
+                    // 诊断使用 UnityEngine.Debug 输出，避免项目未定义 ENABLE_LOG 等日志宏时调用被整体编译掉，
+                    // 导致真实的映射错误在不同工程配置下静默消失；该分支仅编辑器编译。
+                    Debug.LogError(
+                        $"[ComponentSetting] Field '{settingType.FullName}.{field.Name}' is not mapped: component '{componentType.FullName}' has no field with that name. Add [ComponentSettingMappingIgnore] to the setting field if this is intentional.");
 #endif
                     continue;
                 }
@@ -79,6 +96,24 @@ namespace LFramework.Runtime.Settings
 
                 componentFiled.SetValue(componentInstance, field.GetValue(componentSetting));
             }
+        }
+
+        /// <summary>
+        /// 在组件类型及其基类中查找同名字段，包含 public 字段和基类私有字段。
+        /// </summary>
+        private static FieldInfo FindComponentField(Type componentType, string fieldName)
+        {
+            for (var type = componentType; type != null && type != typeof(object); type = type.BaseType)
+            {
+                var field = type.GetField(fieldName,
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
+                if (field != null)
+                {
+                    return field;
+                }
+            }
+
+            return null;
         }
     }
 }

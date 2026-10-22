@@ -13,6 +13,7 @@ namespace LFramework.Runtime
     public static class SingletonManager
     {
         private static readonly Dictionary<Type, ISingleton> SingletonTypes = new();
+        private static readonly HashSet<Type> RegisteringSingletonTypes = new();
         private static readonly Stack<ISingleton> Singletons = new();
         private static readonly Queue<ISingleton> Updates = new();
         private static readonly Queue<ISingleton> LateUpdates = new();
@@ -25,6 +26,7 @@ namespace LFramework.Runtime
         /// <returns></returns>
         public static T AddSingleton<T>() where T : Singleton<T>, new()
         {
+            EnsureSingletonTypeAvailable(typeof(T));
             var singleton = new T();
             AddSingleton(singleton);
             return singleton;
@@ -37,6 +39,7 @@ namespace LFramework.Runtime
         /// <returns></returns>
         public static T AddSingletonMonoBehaviour<T>() where T : SingletonMonoBehaviour<T>, new()
         {
+            EnsureSingletonTypeAvailable(typeof(T));
             var singleton = new GameObject($"[Singleton : {nameof(T)}]")
                 .AddComponent<T>();
             Object.DontDestroyOnLoad(singleton.gameObject);
@@ -69,15 +72,46 @@ namespace LFramework.Runtime
         public static void AddSingleton(ISingleton singleton)
         {
             var singletonType = singleton.GetType();
-            if (SingletonTypes.ContainsKey(singletonType))
+            EnsureSingletonTypeAvailable(singletonType);
+            if (singleton.IsDisposed())
             {
-                throw new Exception($"already exist singleton: {singletonType.Name}");
+                throw new ObjectDisposedException(singletonType.FullName);
+            }
+
+            if (singleton is ISingletonRegistrationState registrationState &&
+                registrationState.RegisteredInstance != null)
+            {
+                throw new Exception($"singleton register twice! {singletonType.Name}");
+            }
+
+            RegisteringSingletonTypes.Add(singletonType);
+            try
+            {
+                singleton.Register();
+            }
+            catch (Exception registrationException)
+            {
+                try
+                {
+                    RollbackFailedRegistration(singleton);
+                }
+                catch (Exception cleanupException)
+                {
+                    throw new AggregateException(
+                        "Singleton registration and rollback failed.",
+                        registrationException,
+                        cleanupException);
+                }
+
+                throw;
+            }
+            finally
+            {
+                RegisteringSingletonTypes.Remove(singletonType);
             }
 
             SingletonTypes.Add(singletonType, singleton);
             Singletons.Push(singleton);
-
-            singleton.Register();
 
             if (singleton is ISingletonUpdate)
             {
@@ -88,6 +122,26 @@ namespace LFramework.Runtime
             {
                 LateUpdates.Enqueue(singleton);
             }
+        }
+
+        private static void EnsureSingletonTypeAvailable(Type singletonType)
+        {
+            if (SingletonTypes.ContainsKey(singletonType) || RegisteringSingletonTypes.Contains(singletonType))
+            {
+                throw new Exception($"already exist singleton: {singletonType.Name}");
+            }
+        }
+
+        private static void RollbackFailedRegistration(ISingleton singleton)
+        {
+            if (singleton is ISingletonRegistrationState registrationState &&
+                registrationState.RegisteredInstance != null &&
+                !ReferenceEquals(registrationState.RegisteredInstance, singleton))
+            {
+                return;
+            }
+
+            singleton.Destroy();
         }
 
         public static void Update(float elapseSeconds, float realElapseSeconds)

@@ -114,7 +114,7 @@ namespace UnityGameFramework.Runtime
             showEntityFailureEventArgs.EntityGroupName = e.EntityGroupName;
             showEntityFailureEventArgs.ErrorMessage = e.ErrorMessage;
             showEntityFailureEventArgs.UserData = showEntityInfo.UserData;
-            ReferencePool.Release(showEntityInfo);
+            showEntityInfo.Release(showEntityInfo.Version);
             return showEntityFailureEventArgs;
         }
 

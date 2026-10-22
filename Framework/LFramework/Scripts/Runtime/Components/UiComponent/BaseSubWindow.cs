@@ -1,3 +1,5 @@
+using System;
+using System.Runtime.ExceptionServices;
 using Sirenix.OdinInspector;
 using UniRx;
 using UnityGameFramework.Runtime;
@@ -22,6 +24,15 @@ namespace LFramework.Runtime
         /// 子模块启用状态
         /// </summary>
         public bool IsEnabled { get; private set; } = true;
+
+        /// <summary>
+        /// 是否已实际执行事件订阅，保证取消订阅与订阅成对出现
+        /// </summary>
+        private bool _isSubscribed;
+        private bool _isSubscriptionTransition;
+        private bool _unsubscribeRequested;
+
+        internal bool RequiresUpdate => this is ISubModuleUpdate;
 
         internal string GetKey() => key;
 
@@ -102,7 +113,6 @@ namespace LFramework.Runtime
 
         public void OnClose(bool isShutDown, object userData)
         {
-            if (!IsEnabled) return;
             OnInternalClose(isShutDown, userData);
         }
 
@@ -156,14 +166,73 @@ namespace LFramework.Runtime
 
         public void Subscribe(EventComponent eventComponent)
         {
-            if (!IsEnabled) return;
-            OnInternalSubscribe(eventComponent);
+            if (!IsEnabled || _isSubscribed || _isSubscriptionTransition) return;
+            _isSubscribed = true;
+            _isSubscriptionTransition = true;
+            Exception subscribeError = null;
+            try
+            {
+                OnInternalSubscribe(eventComponent);
+            }
+            catch (Exception exception)
+            {
+                subscribeError = exception;
+            }
+            finally
+            {
+                _isSubscriptionTransition = false;
+            }
+
+            if (subscribeError == null && !_unsubscribeRequested) return;
+
+            _unsubscribeRequested = false;
+            Exception cleanupError = null;
+            try
+            {
+                UnSubscribe(eventComponent);
+            }
+            catch (Exception exception)
+            {
+                cleanupError = exception;
+            }
+
+            if (subscribeError != null && cleanupError != null)
+                throw new AggregateException("Sub-window subscription and cleanup both failed.", subscribeError, cleanupError);
+            if (subscribeError != null) ExceptionDispatchInfo.Capture(subscribeError).Throw();
+            if (cleanupError != null) ExceptionDispatchInfo.Capture(cleanupError).Throw();
         }
 
         public void UnSubscribe(EventComponent eventComponent)
         {
-            if (!IsEnabled) return;
-            OnInternalUnSubscribe(eventComponent);
+            // Undo an attempted subscription, including a partially failed one.
+            if (!_isSubscribed) return;
+            if (_isSubscriptionTransition)
+            {
+                _unsubscribeRequested = true;
+                return;
+            }
+
+            _isSubscriptionTransition = true;
+            try
+            {
+                OnInternalUnSubscribe(eventComponent);
+                _isSubscribed = false;
+                _unsubscribeRequested = false;
+            }
+            finally
+            {
+                _isSubscriptionTransition = false;
+            }
+        }
+
+        internal void DispatchUpdate(float elapseSeconds, float realElapseSeconds)
+        {
+            if (!IsEnabled)
+            {
+                return;
+            }
+
+            ((ISubModuleUpdate)this).OnSubModuleUpdate(elapseSeconds, realElapseSeconds);
         }
 
         #endregion
@@ -175,14 +244,14 @@ namespace LFramework.Runtime
         /// <param name="isEnableGameObject"></param>
         public void SetEnabled(bool en,bool isEnableGameObject  = false)
         {
-            if (IsEnabled == enabled) return;
+            if (IsEnabled == en) return;
 
-            IsEnabled = enabled;
+            IsEnabled = en;
             if (isEnableGameObject)
             {
-                gameObject.SetActive(enabled);
+                gameObject.SetActive(en);
             }
-            OnInternalEnabledChanged(enabled);
+            OnInternalEnabledChanged(en);
         }
 
         /// <summary>

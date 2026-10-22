@@ -745,6 +745,8 @@ namespace LFramework.Runtime
         private async void LoadAssetHandleAsync<T>(ResourceAssetHandle<T> handle, string assetName, string packageId)
             where T : UnityEngine.Object
         {
+            AssetHandle op = null;
+            bool ownsOp = false;
             try
             {
                 PackageInitializationResult ready = await EnsurePackageReadyAsync(assetName, packageId);
@@ -765,7 +767,8 @@ namespace LFramework.Runtime
                     return;
                 }
 
-                var op = package.LoadAssetAsync(assetName,typeof(System.Object));
+                op = package.LoadAssetAsync(assetName,typeof(System.Object));
+                ownsOp = true;
                 while (!op.IsDone)
                 {
                     handle.SetProgress(op.Progress);
@@ -780,21 +783,35 @@ namespace LFramework.Runtime
                             out var typedAsset,
                             out var errorMessage))
                     {
-                        handle.RegisterReleaseAction(() => op.Release());
+                        handle.RegisterReleaseAction(() => SafeReleaseHandle(op));
+                        ownsOp = false;
                         handle.SetResult((T)typedAsset);
                     }
                     else
                     {
+                        ownsOp = false;
+                        SafeReleaseHandle(op);
                         handle.SetError(errorMessage);
-                        op.Release();
                     }
                 }
                 else
                 {
-                    handle.SetError(op.LastError ?? $"Load asset '{assetName}' failed.");
+                    string errorMessage = op.LastError ?? $"Load asset '{assetName}' failed.";
+                    ownsOp = false;
+                    SafeReleaseHandle(op);
+                    handle.SetError(errorMessage);
                 }
             }
-            catch (Exception ex) { handle.SetError(ex.Message); }
+            catch (Exception ex)
+            {
+                if (ownsOp)
+                {
+                    ownsOp = false;
+                    SafeReleaseHandle(op);
+                }
+
+                handle.SetError(ex.Message);
+            }
         }
 
         /// <summary>
@@ -818,6 +835,8 @@ namespace LFramework.Runtime
         /// </summary>
         private async void InstantiateAssetHandleAsync(ResourceAssetHandle<GameObject> handle, string assetName, string packageId)
         {
+            AssetHandle assetOp = null;
+            bool ownsAssetOp = false;
             try
             {
                 PackageInitializationResult ready = await EnsurePackageReadyAsync(assetName, packageId);
@@ -838,7 +857,8 @@ namespace LFramework.Runtime
                     return;
                 }
 
-                var assetOp = package.LoadAssetAsync<GameObject>(assetName);
+                assetOp = package.LoadAssetAsync<GameObject>(assetName);
+                ownsAssetOp = true;
                 while (!assetOp.IsDone)
                 {
                     handle.SetProgress(assetOp.Progress * 0.5f);
@@ -846,7 +866,10 @@ namespace LFramework.Runtime
                 }
                 if (assetOp.Status != EOperationStatus.Succeed)
                 {
-                    handle.SetError(assetOp.LastError ?? $"Load asset '{assetName}' for instantiate failed.");
+                    string errorMessage = assetOp.LastError ?? $"Load asset '{assetName}' for instantiate failed.";
+                    ownsAssetOp = false;
+                    SafeReleaseHandle(assetOp);
+                    handle.SetError(errorMessage);
                     return;
                 }
                 var instOp = assetOp.InstantiateAsync();
@@ -861,17 +884,28 @@ namespace LFramework.Runtime
                     handle.RegisterReleaseAction(() =>
                     {
                         if (instance != null) UnityEngine.Object.Destroy(instance);
-                        assetOp.Release();
+                        SafeReleaseHandle(assetOp);
                     });
+                    ownsAssetOp = false;
                     handle.SetResult(instance);
                 }
                 else
                 {
-                    assetOp.Release();
+                    ownsAssetOp = false;
+                    SafeReleaseHandle(assetOp);
                     handle.SetError($"Instantiate asset '{assetName}' failed.");
                 }
             }
-            catch (Exception ex) { handle.SetError(ex.Message); }
+            catch (Exception ex)
+            {
+                if (ownsAssetOp)
+                {
+                    ownsAssetOp = false;
+                    SafeReleaseHandle(assetOp);
+                }
+
+                handle.SetError(ex.Message);
+            }
         }
 
         /// <summary>
@@ -896,6 +930,8 @@ namespace LFramework.Runtime
         /// </summary>
         private async void LoadSceneHandleAsync(ResourceSceneHandle handle, string sceneAssetName, string packageId)
         {
+            YooAsset.SceneHandle op = null;
+            bool ownsOp = false;
             try
             {
                 PackageInitializationResult ready = await EnsurePackageReadyAsync(sceneAssetName, packageId);
@@ -916,7 +952,8 @@ namespace LFramework.Runtime
                     return;
                 }
 
-                var op = package.LoadSceneAsync(sceneAssetName,LoadSceneMode.Additive);
+                op = package.LoadSceneAsync(sceneAssetName,LoadSceneMode.Additive);
+                ownsOp = true;
                 while (!op.IsDone)
                 {
                     handle.SetProgress(op.Progress);
@@ -924,15 +961,28 @@ namespace LFramework.Runtime
                 }
                 if (op.Status == EOperationStatus.Succeed)
                 {
-                    handle.RegisterReleaseAction(() => op.UnloadAsync());
+                    handle.RegisterReleaseAction(() => SafeUnloadScene(op));
+                    ownsOp = false;
                     handle.SetCompleted();
                 }
                 else
                 {
-                    handle.SetError(op.LastError ?? $"Load scene '{sceneAssetName}' failed.");
+                    string errorMessage = op.LastError ?? $"Load scene '{sceneAssetName}' failed.";
+                    ownsOp = false;
+                    SafeReleaseHandle(op);
+                    handle.SetError(errorMessage);
                 }
             }
-            catch (Exception ex) { handle.SetError(ex.Message); }
+            catch (Exception ex)
+            {
+                if (ownsOp)
+                {
+                    ownsOp = false;
+                    SafeReleaseHandle(op);
+                }
+
+                handle.SetError(ex.Message);
+            }
         }
 
         /// <summary>
@@ -956,6 +1006,8 @@ namespace LFramework.Runtime
         /// </summary>
         private async void LoadRawFileHandleAsync(ResourceRawFileHandle handle, string binaryAssetName, string packageId)
         {
+            RawFileHandle op = null;
+            bool ownsOp = false;
             try
             {
                 PackageInitializationResult ready = await EnsurePackageReadyAsync(binaryAssetName, packageId);
@@ -976,7 +1028,8 @@ namespace LFramework.Runtime
                     return;
                 }
 
-                var op = package.LoadRawFileAsync(binaryAssetName);
+                op = package.LoadRawFileAsync(binaryAssetName);
+                ownsOp = true;
                 while (!op.IsDone)
                 {
                     handle.SetProgress(op.Progress);
@@ -984,15 +1037,28 @@ namespace LFramework.Runtime
                 }
                 if (op.Status == EOperationStatus.Succeed)
                 {
-                    handle.RegisterReleaseAction(() => op.Release());
+                    handle.RegisterReleaseAction(() => SafeReleaseHandle(op));
+                    ownsOp = false;
                     handle.SetResult(op.GetRawFileData());
                 }
                 else
                 {
-                    handle.SetError(op.LastError ?? $"Load binary '{binaryAssetName}' failed.");
+                    string errorMessage = op.LastError ?? $"Load binary '{binaryAssetName}' failed.";
+                    ownsOp = false;
+                    SafeReleaseHandle(op);
+                    handle.SetError(errorMessage);
                 }
             }
-            catch (Exception ex) { handle.SetError(ex.Message); }
+            catch (Exception ex)
+            {
+                if (ownsOp)
+                {
+                    ownsOp = false;
+                    SafeReleaseHandle(op);
+                }
+
+                handle.SetError(ex.Message);
+            }
         }
 
         /// <summary>
@@ -1038,9 +1104,10 @@ namespace LFramework.Runtime
                     return;
                 }
 
-                operations = assetInfos
-                    .Select(assetInfo => package.LoadAssetAsync(assetInfo))
-                    .ToList();
+                operations = AcquireHandles<AssetInfo, AssetHandle>(
+                    assetInfos,
+                    assetInfo => package.LoadAssetAsync(assetInfo),
+                    SafeReleaseHandle);
                 while (operations.Any(operation => !operation.IsDone))
                 {
                     handle.SetProgress(operations.Sum(operation => operation.Progress) / operations.Count);
@@ -1051,7 +1118,10 @@ namespace LFramework.Runtime
                     operation.Status != EOperationStatus.Succeed);
                 if (failedOperation != null)
                 {
-                    handle.SetError(failedOperation.LastError ?? $"Load assets by tag '{tag}' failed.");
+                    string errorMessage = failedOperation.LastError ?? $"Load assets by tag '{tag}' failed.";
+                    ReleaseAssetHandles(operations);
+                    releaseOnExit = false;
+                    handle.SetError(errorMessage);
                     return;
                 }
 
@@ -1072,6 +1142,12 @@ namespace LFramework.Runtime
             }
             catch (Exception ex)
             {
+                if (releaseOnExit)
+                {
+                    ReleaseAssetHandles(operations);
+                    releaseOnExit = false;
+                }
+
                 handle.SetError(ex.Message);
             }
             finally
@@ -1100,11 +1176,72 @@ namespace LFramework.Runtime
             return resolver(tag) ?? Array.Empty<AssetInfo>();
         }
 
+        private static List<THandle> AcquireHandles<TSource, THandle>(
+            IReadOnlyList<TSource> sources,
+            Func<TSource, THandle> acquire,
+            Action<THandle> release)
+        {
+            var handles = new List<THandle>(sources.Count);
+            try
+            {
+                foreach (TSource source in sources)
+                {
+                    handles.Add(acquire(source));
+                }
+
+                return handles;
+            }
+            catch
+            {
+                foreach (THandle handle in handles)
+                {
+                    release(handle);
+                }
+
+                throw;
+            }
+        }
+
         private static void ReleaseAssetHandles(IEnumerable<AssetHandle> operations)
         {
             foreach (AssetHandle operation in operations ?? Enumerable.Empty<AssetHandle>())
             {
-                operation?.Release();
+                SafeReleaseHandle(operation);
+            }
+        }
+
+        private static void SafeReleaseHandle(HandleBase handle)
+        {
+            if (handle == null)
+            {
+                return;
+            }
+
+            try
+            {
+                handle.Release();
+            }
+            catch (Exception ex)
+            {
+                Log.Error("YooAsset handle release failed: {0}", ex);
+            }
+        }
+
+        private static void SafeUnloadScene(YooAsset.SceneHandle handle)
+        {
+            if (handle == null)
+            {
+                return;
+            }
+
+            try
+            {
+                handle.UnloadAsync();
+            }
+            catch (Exception ex)
+            {
+                Log.Error("YooAsset scene unload failed: {0}", ex);
+                SafeReleaseHandle(handle);
             }
         }
 

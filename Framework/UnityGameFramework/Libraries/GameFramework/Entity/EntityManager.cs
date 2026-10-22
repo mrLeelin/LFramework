@@ -24,6 +24,7 @@ namespace GameFramework.Entity
         private readonly Dictionary<int, EntityInfo> m_EntityInfos;
         private readonly Dictionary<string, EntityGroup> m_EntityGroups;
         private readonly Dictionary<int, int> m_EntitiesBeingLoaded;
+        private readonly Dictionary<int, ShowEntityInfo> m_LoadingEntityInfos = new Dictionary<int, ShowEntityInfo>();
         private readonly HashSet<int> m_EntitiesToReleaseOnLoad;
         private readonly Queue<EntityInfo> m_RecycleQueue;
         private readonly LoadAssetCallbacks m_LoadAssetCallbacks;
@@ -37,6 +38,9 @@ namespace GameFramework.Entity
         private EventHandler<ShowEntityUpdateEventArgs> m_ShowEntityUpdateEventHandler;
         private EventHandler<ShowEntityDependencyAssetEventArgs> m_ShowEntityDependencyAssetEventHandler;
         private EventHandler<HideEntityCompleteEventArgs> m_HideEntityCompleteEventHandler;
+
+        public event Action<int, object> ShowEntityCanceled;
+        public event Action<object, bool> ShowEntityOperationDispatch;
 
         /// <summary>
         /// 鍒濆鍖栧疄浣撶鐞嗗櫒鐨勬柊瀹炰緥銆?
@@ -167,10 +171,10 @@ namespace GameFramework.Entity
         internal override void Shutdown()
         {
             m_IsShutdown = true;
+            HideAllLoadingEntities();
             HideAllLoadedEntities();
             m_EntityGroups.Clear();
             m_EntitiesBeingLoaded.Clear();
-            m_EntitiesToReleaseOnLoad.Clear();
             m_RecycleQueue.Clear();
         }
 
@@ -588,6 +592,7 @@ namespace GameFramework.Entity
         public void ShowEntity(int entityId, string entityAssetName, string entityGroupName, int priority,
             object userData)
         {
+            if (m_IsShutdown) throw new GameFrameworkException("Entity manager is shut down.");
             if (m_ResourceManager == null)
             {
                 throw new GameFrameworkException("You must set resource manager first.");
@@ -632,8 +637,23 @@ namespace GameFramework.Entity
             {
                 int serialId = ++m_Serial;
                 m_EntitiesBeingLoaded.Add(entityId, serialId);
-                m_ResourceManager.InstantiateAsset(entityAssetName, m_LoadAssetCallbacks,
-                    ShowEntityInfo.Create(serialId, entityId, entityGroup, userData));
+                var showInfo = ShowEntityInfo.Create(serialId, entityId, entityGroup, userData);
+                m_LoadingEntityInfos.Add(serialId, showInfo);
+                try
+                {
+                    m_ResourceManager.InstantiateAsset(entityAssetName, m_LoadAssetCallbacks, showInfo);
+                }
+                catch
+                {
+                    if (m_EntitiesBeingLoaded.TryGetValue(entityId, out int pendingSerial) && pendingSerial == serialId)
+                    {
+                        m_EntitiesBeingLoaded.Remove(entityId);
+                        m_LoadingEntityInfos.Remove(serialId);
+                        ReferencePool.Release(showInfo);
+                    }
+                    else if (m_EntitiesToReleaseOnLoad.Remove(serialId)) ReferencePool.Release(showInfo);
+                    throw;
+                }
                 return;
             }
 
@@ -659,8 +679,15 @@ namespace GameFramework.Entity
         {
             if (IsLoadingEntity(entityId))
             {
-                m_EntitiesToReleaseOnLoad.Add(m_EntitiesBeingLoaded[entityId]);
+                int serial = m_EntitiesBeingLoaded[entityId];
+                m_EntitiesToReleaseOnLoad.Add(serial);
                 m_EntitiesBeingLoaded.Remove(entityId);
+                if (m_LoadingEntityInfos.TryGetValue(serial, out var info))
+                {
+                    m_LoadingEntityInfos.Remove(serial);
+                    DispatchShowCanceled(entityId, info.UserData);
+                }
+                else DispatchShowCanceled(entityId, null);
                 return;
             }
 
@@ -729,12 +756,24 @@ namespace GameFramework.Entity
         /// </summary>
         public void HideAllLoadingEntities()
         {
+            var canceled = new List<KeyValuePair<int, object>>();
             foreach (KeyValuePair<int, int> entityBeingLoaded in m_EntitiesBeingLoaded)
             {
                 m_EntitiesToReleaseOnLoad.Add(entityBeingLoaded.Value);
+                m_LoadingEntityInfos.TryGetValue(entityBeingLoaded.Value, out var info);
+                canceled.Add(new KeyValuePair<int, object>(entityBeingLoaded.Key, info?.UserData));
+                m_LoadingEntityInfos.Remove(entityBeingLoaded.Value);
             }
 
             m_EntitiesBeingLoaded.Clear();
+            foreach (var operation in canceled) DispatchShowCanceled(operation.Key, operation.Value);
+        }
+
+        private void DispatchShowCanceled(int entityId, object userData)
+        {
+            ShowEntityOperationDispatch?.Invoke(userData, true);
+            try { ShowEntityCanceled?.Invoke(entityId, userData); }
+            finally { ShowEntityOperationDispatch?.Invoke(userData, false); }
         }
 
         /// <summary>
@@ -1165,6 +1204,7 @@ namespace GameFramework.Entity
         private void InternalShowEntity(int entityId, string entityAssetName, EntityGroup entityGroup,
             object entityInstance, bool isNewInstance, float duration, object userData)
         {
+            ShowEntityOperationDispatch?.Invoke(userData, true);
             try
             {
                 IEntity entity = m_EntityHelper.CreateEntity(entityInstance, entityGroup, userData);
@@ -1187,8 +1227,8 @@ namespace GameFramework.Entity
                 {
                     ShowEntitySuccessEventArgs showEntitySuccessEventArgs =
                         ShowEntitySuccessEventArgs.Create(entity, duration, userData);
-                    m_ShowEntitySuccessEventHandler(this, showEntitySuccessEventArgs);
-                    ReferencePool.Release(showEntitySuccessEventArgs);
+                    try { m_ShowEntitySuccessEventHandler(this, showEntitySuccessEventArgs); }
+                    finally { ReferencePool.Release(showEntitySuccessEventArgs); }
                 }
             }
             catch (Exception exception)
@@ -1197,13 +1237,14 @@ namespace GameFramework.Entity
                 {
                     ShowEntityFailureEventArgs showEntityFailureEventArgs = ShowEntityFailureEventArgs.Create(entityId,
                         entityAssetName, entityGroup.Name, exception.ToString(), userData);
-                    m_ShowEntityFailureEventHandler(this, showEntityFailureEventArgs);
-                    ReferencePool.Release(showEntityFailureEventArgs);
+                    try { m_ShowEntityFailureEventHandler(this, showEntityFailureEventArgs); }
+                    finally { ReferencePool.Release(showEntityFailureEventArgs); }
                     return;
                 }
 
                 throw;
             }
+            finally { ShowEntityOperationDispatch?.Invoke(userData, false); }
         }
 
         private void InternalHideEntity(EntityInfo entityInfo, object userData)
@@ -1220,6 +1261,7 @@ namespace GameFramework.Entity
             }
 
             IEntity entity = entityInfo.Entity;
+            bool wasAddedToGroup = entityInfo.Status >= EntityStatus.WillShow;
             DetachEntity(entity.Id, userData);
             entityInfo.Status = EntityStatus.WillHide;
             entity.OnHide(m_IsShutdown, userData);
@@ -1231,7 +1273,9 @@ namespace GameFramework.Entity
                 throw new GameFrameworkException("Entity group is invalid.");
             }
 
-            entityGroup.RemoveEntity(entity);
+            // OnInit may fail before AddEntity; cancellation must still release its manager entry.
+            if (wasAddedToGroup)
+                entityGroup.RemoveEntity(entity);
             if (!m_EntityInfos.Remove(entity.Id))
             {
                 throw new GameFrameworkException("Entity info is unmanaged.");
@@ -1260,19 +1304,23 @@ namespace GameFramework.Entity
             if (m_EntitiesToReleaseOnLoad.Contains(showEntityInfo.SerialId))
             {
                 m_EntitiesToReleaseOnLoad.Remove(showEntityInfo.SerialId);
-                ReferencePool.Release(showEntityInfo);
-                m_EntityHelper.ReleaseEntity(entityAsset, null);
+                try { m_EntityHelper.ReleaseEntity(entityAsset, null); }
+                finally { ReferencePool.Release(showEntityInfo); }
                 return;
             }
 
             m_EntitiesBeingLoaded.Remove(showEntityInfo.EntityId);
+            m_LoadingEntityInfos.Remove(showEntityInfo.SerialId);
             EntityInstanceObject entityInstanceObject =
                 EntityInstanceObject.Create(entityAssetName, entityAsset, entityAsset, m_EntityHelper);
             showEntityInfo.EntityGroup.RegisterEntityInstanceObject(entityInstanceObject, true);
 
-            InternalShowEntity(showEntityInfo.EntityId, entityAssetName, showEntityInfo.EntityGroup,
-                entityInstanceObject.Target, true, duration, showEntityInfo.UserData);
-            ReferencePool.Release(showEntityInfo);
+            try
+            {
+                InternalShowEntity(showEntityInfo.EntityId, entityAssetName, showEntityInfo.EntityGroup,
+                    entityInstanceObject.Target, true, duration, showEntityInfo.UserData);
+            }
+            finally { ReferencePool.Release(showEntityInfo); }
         }
 
         private void LoadAssetFailureCallback(string entityAssetName, LoadResourceStatus status, string errorMessage,
@@ -1287,10 +1335,12 @@ namespace GameFramework.Entity
             if (m_EntitiesToReleaseOnLoad.Contains(showEntityInfo.SerialId))
             {
                 m_EntitiesToReleaseOnLoad.Remove(showEntityInfo.SerialId);
+                ReferencePool.Release(showEntityInfo);
                 return;
             }
 
             m_EntitiesBeingLoaded.Remove(showEntityInfo.EntityId);
+            m_LoadingEntityInfos.Remove(showEntityInfo.SerialId);
             string appendErrorMessage =
                 Utility.Text.Format("Load entity failure, asset name '{0}', status '{1}', error message '{2}'.",
                     entityAssetName, status, errorMessage);
@@ -1299,11 +1349,21 @@ namespace GameFramework.Entity
                 ShowEntityFailureEventArgs showEntityFailureEventArgs =
                     ShowEntityFailureEventArgs.Create(showEntityInfo.EntityId, entityAssetName,
                         showEntityInfo.EntityGroup.Name, appendErrorMessage, showEntityInfo.UserData);
-                m_ShowEntityFailureEventHandler(this, showEntityFailureEventArgs);
-                ReferencePool.Release(showEntityFailureEventArgs);
+                ShowEntityOperationDispatch?.Invoke(showEntityInfo.UserData, true);
+                try { m_ShowEntityFailureEventHandler(this, showEntityFailureEventArgs); }
+                finally
+                {
+                    try { ShowEntityOperationDispatch?.Invoke(showEntityInfo.UserData, false); }
+                    finally
+                    {
+                        ReferencePool.Release(showEntityFailureEventArgs);
+                        ReferencePool.Release(showEntityInfo);
+                    }
+                }
                 return;
             }
 
+            ReferencePool.Release(showEntityInfo);
             throw new GameFrameworkException(appendErrorMessage);
         }
 
@@ -1315,13 +1375,20 @@ namespace GameFramework.Entity
                 throw new GameFrameworkException("Show entity info is invalid.");
             }
 
+            if (m_EntitiesToReleaseOnLoad.Contains(showEntityInfo.SerialId)) return;
             if (m_ShowEntityUpdateEventHandler != null)
             {
                 ShowEntityUpdateEventArgs showEntityUpdateEventArgs =
                     ShowEntityUpdateEventArgs.Create(showEntityInfo.EntityId, entityAssetName,
                         showEntityInfo.EntityGroup.Name, progress, showEntityInfo.UserData);
-                m_ShowEntityUpdateEventHandler(this, showEntityUpdateEventArgs);
-                ReferencePool.Release(showEntityUpdateEventArgs);
+                object operationData = showEntityInfo.UserData;
+                ShowEntityOperationDispatch?.Invoke(operationData, true);
+                try { m_ShowEntityUpdateEventHandler(this, showEntityUpdateEventArgs); }
+                finally
+                {
+                    try { ShowEntityOperationDispatch?.Invoke(operationData, false); }
+                    finally { ReferencePool.Release(showEntityUpdateEventArgs); }
+                }
             }
         }
 
@@ -1334,14 +1401,21 @@ namespace GameFramework.Entity
                 throw new GameFrameworkException("Show entity info is invalid.");
             }
 
+            if (m_EntitiesToReleaseOnLoad.Contains(showEntityInfo.SerialId)) return;
             if (m_ShowEntityDependencyAssetEventHandler != null)
             {
                 ShowEntityDependencyAssetEventArgs showEntityDependencyAssetEventArgs =
                     ShowEntityDependencyAssetEventArgs.Create(showEntityInfo.EntityId, entityAssetName,
                         showEntityInfo.EntityGroup.Name, dependencyAssetName, loadedCount, totalCount,
                         showEntityInfo.UserData);
-                m_ShowEntityDependencyAssetEventHandler(this, showEntityDependencyAssetEventArgs);
-                ReferencePool.Release(showEntityDependencyAssetEventArgs);
+                object operationData = showEntityInfo.UserData;
+                ShowEntityOperationDispatch?.Invoke(operationData, true);
+                try { m_ShowEntityDependencyAssetEventHandler(this, showEntityDependencyAssetEventArgs); }
+                finally
+                {
+                    try { ShowEntityOperationDispatch?.Invoke(operationData, false); }
+                    finally { ReferencePool.Release(showEntityDependencyAssetEventArgs); }
+                }
             }
         }
     }

@@ -24,9 +24,9 @@ namespace LFramework.Runtime
         private readonly GameFrameworkMultiDictionary<Type, BaseSubWindow> _subModuleKeyMap = new();
 
         /// <summary>
-        /// 缓存需要每帧更新的子模块（实现了 ISubModuleUpdate 接口）
+        /// 缓存需要每帧更新的子模块
         /// </summary>
-        private readonly List<ISubModuleUpdate> _updatableSubModules = new();
+        private readonly List<BaseSubWindow> _updatableSubModules = new();
 
         /// <summary>
         /// 获取子模块列表（推荐使用此重载，复用 List 避免 GC）

@@ -13,8 +13,21 @@ namespace LFramework.Runtime
 
         public LFrameworkAspect()
         {
-            LServices.Reset();
-            Injection.ClearReflectionCache();
+        }
+
+        public override void Register()
+        {
+            base.Register();
+            try
+            {
+                LServices.Reset();
+                Injection.ClearReflectionCache();
+            }
+            catch
+            {
+                RollbackRegistration();
+                throw;
+            }
         }
 
         public override void Dispose()

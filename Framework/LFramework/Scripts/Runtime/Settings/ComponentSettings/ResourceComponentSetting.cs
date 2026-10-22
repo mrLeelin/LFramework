@@ -24,8 +24,10 @@ namespace LFramework.Runtime.Settings
         [SerializeField]
         private string m_ResourceHelperTypeName = "LFramework.Runtime.YooAssetResourceHelper";
 
+        // 类型必须与 UnityGameFramework ResourceComponent.m_CustomResourceHelper（ResourceHelperBase）保持一致，
+        // 否则设置字段与组件字段类型不相等，映射时会被静默跳过，自定义 Resource Helper 永远不会生效。
         [SerializeField]
-        private SettingHelperBase m_CustomResourceHelper = null;
+        private ResourceHelperBase m_CustomResourceHelper = null;
 
         [BoxGroup("Unload")]
         [LabelText("Min Unload Interval Seconds")]
@@ -37,38 +39,46 @@ namespace LFramework.Runtime.Settings
         [SerializeField]
         private float _maxUnloadInterval = 300f;
         
+        // 以下字段由 Resource Helper 通过 SettingManager.GetProjectSelector().GetComponentSetting<ResourceComponentSetting>()
+        // 直接读取，不属于组件参数映射范围，因此显式忽略。
         [BoxGroup("YooAsset")]
         [LabelText("Default Package Id")]
         [ShowIf("_resourceMode", ResourceMode.YooAsset)]
+        [ComponentSettingMappingIgnore]
         [SerializeField]
         private string _defaultPackageId;
 
         [BoxGroup("YooAsset")]
         [LabelText("Packages")]
         [ShowIf("_resourceMode", ResourceMode.YooAsset)]
+        [ComponentSettingMappingIgnore]
         [SerializeField]
         private List<PackageDefinition> _yooAssetPackages = new List<PackageDefinition>();
 
         [BoxGroup("YooAsset")]
         [LabelText("Routing")]
         [ShowIf("_resourceMode", ResourceMode.YooAsset)]
+        [ComponentSettingMappingIgnore]
         [SerializeField]
         private RoutingSettings _routing = new RoutingSettings();
 
         [BoxGroup("Addressable")]
         [LabelText("Hotfix Profile Name")]
         [ShowIf("_resourceMode", ResourceMode.Addressable)]
+        [ComponentSettingMappingIgnore]
         [SerializeField]
         private string _hotfixProfileName;
 
         [BoxGroup("Addressable")]
         [LabelText("Force Single Slash Urls")]
         [ShowIf("_resourceMode", ResourceMode.Addressable)]
+        [ComponentSettingMappingIgnore]
         [SerializeField]
         private bool _forceSingleSlashUrls;
 
         [BoxGroup("Addressable")]
         [LabelText("Log Load Urls")]
+        [ComponentSettingMappingIgnore]
         [SerializeField]
         private bool _logLoadUrls;
 

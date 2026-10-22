@@ -24,9 +24,9 @@ namespace LFramework.Runtime
         private readonly GameFrameworkMultiDictionary<Type, BaseSubEntity> _subModuleKeyMap = new();
 
         /// <summary>
-        /// 缓存需要每帧更新的子模块（实现了 ISubModuleUpdate 接口）
+        /// 缓存需要每帧更新的子模块
         /// </summary>
-        private readonly List<ISubModuleUpdate> _updatableSubEntities = new();
+        private readonly List<BaseSubEntity> _updatableSubEntities = new();
 
         /// <summary>
         /// 获取第一个SubModule 根据类型

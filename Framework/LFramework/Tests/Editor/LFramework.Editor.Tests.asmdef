@@ -7,6 +7,8 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "UniTask",
+        "UniRx",
+        "Unity.ResourceManager",
         "YooAsset",
         "UnityGameFramework.Runtime",
         "GameFramework",

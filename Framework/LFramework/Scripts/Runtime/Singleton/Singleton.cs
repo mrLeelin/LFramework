@@ -12,7 +12,13 @@ namespace LFramework.Runtime
         bool IsDisposed();
     }
 
-    public abstract class Singleton<T> : ISingleton where T : Singleton<T>, new()
+    // 注册前检查静态实例，避免失败回滚影响已经生效的直接注册。
+    internal interface ISingletonRegistrationState
+    {
+        ISingleton RegisteredInstance { get; }
+    }
+
+    public abstract class Singleton<T> : ISingleton, ISingletonRegistrationState where T : Singleton<T>, new()
     {
         private bool _isDisposed;
 
@@ -21,6 +27,8 @@ namespace LFramework.Runtime
 
 
         public static T Instance => _sInstance;
+
+        ISingleton ISingletonRegistrationState.RegisteredInstance => _sInstance;
 
 
         public virtual void Register()
@@ -33,6 +41,14 @@ namespace LFramework.Runtime
             _sInstance = (T)this;
         }
 
+        protected void RollbackRegistration()
+        {
+            if (ReferenceEquals(_sInstance, this))
+            {
+                _sInstance = null;
+            }
+        }
+
 
         public void Destroy()
         {
@@ -43,9 +59,8 @@ namespace LFramework.Runtime
 
             this._isDisposed = true;
 
-            T t = _sInstance;
-            _sInstance = null;
-            t.Dispose();
+            RollbackRegistration();
+            Dispose();
         }
 
         public bool IsDisposed() => _isDisposed;
@@ -57,7 +72,7 @@ namespace LFramework.Runtime
     }
 
 
-    public abstract class SingletonMonoBehaviour<T> : UnityEngine.MonoBehaviour, ISingleton where T : SingletonMonoBehaviour<T>, new()
+    public abstract class SingletonMonoBehaviour<T> : UnityEngine.MonoBehaviour, ISingleton, ISingletonRegistrationState where T : SingletonMonoBehaviour<T>, new()
     {
         private bool _isDisposed;
 
@@ -65,6 +80,8 @@ namespace LFramework.Runtime
 
 
         public static T Instance => _sInstance;
+
+        ISingleton ISingletonRegistrationState.RegisteredInstance => _sInstance == null ? null : _sInstance;
         
         
         public void Register()
@@ -93,9 +110,12 @@ namespace LFramework.Runtime
 
             this._isDisposed = true;
 
-            T t = _sInstance;
-            _sInstance = null;
-            t.Dispose();
+            if (ReferenceEquals(_sInstance, this))
+            {
+                _sInstance = null;
+            }
+
+            Dispose();
         }
 
         public bool IsDisposed()

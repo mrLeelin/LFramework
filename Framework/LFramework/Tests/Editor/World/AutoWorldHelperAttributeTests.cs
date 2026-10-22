@@ -112,6 +112,31 @@ namespace LFramework.Editor.Tests.World
         }
 
         [Test]
+        public void ClearRetryOnlyReleasesHelpersWhosePreviousReleaseFailed()
+        {
+            bool strictCheck = ReferencePool.EnableStrictCheck;
+            ReferencePool.EnableStrictCheck = true;
+            SuccessfulClearWorldHelper.ClearCount = 0;
+            FailsOnceClearWorldHelper.ClearCount = 0;
+            var world = new LifecycleTestWorld();
+            world.RegisterHelper<SuccessfulClearWorldHelper>();
+            world.RegisterHelper<FailsOnceClearWorldHelper>();
+
+            try
+            {
+                Assert.Throws<InvalidOperationException>(world.Clear);
+                Assert.DoesNotThrow(world.Clear);
+
+                Assert.That(SuccessfulClearWorldHelper.ClearCount, Is.EqualTo(1));
+                Assert.That(FailsOnceClearWorldHelper.ClearCount, Is.EqualTo(2));
+            }
+            finally
+            {
+                ReferencePool.EnableStrictCheck = strictCheck;
+            }
+        }
+
+        [Test]
         public void DuplicateWorldHelperInterfaceFailsBeforePartialRegistration()
         {
             var world = new LifecycleTestWorld();
@@ -305,6 +330,38 @@ namespace LFramework.Editor.Tests.World
             public override void StopGame()
             {
             }
+        }
+
+        private sealed class SuccessfulClearWorldHelper : WorldHelperBase
+        {
+            public static int ClearCount { get; set; }
+
+            public override void Clear()
+            {
+                ClearCount++;
+            }
+
+            public override void Initialize() { }
+            public override void StartGame() { }
+            public override void StopGame() { }
+        }
+
+        private sealed class FailsOnceClearWorldHelper : WorldHelperBase
+        {
+            public static int ClearCount { get; set; }
+
+            public override void Clear()
+            {
+                ClearCount++;
+                if (ClearCount == 1)
+                {
+                    throw new InvalidOperationException("World helper clear retry test.");
+                }
+            }
+
+            public override void Initialize() { }
+            public override void StartGame() { }
+            public override void StopGame() { }
         }
 
         private sealed class TestRegisterCondition : IAutoWorldHelperRegisterCondition

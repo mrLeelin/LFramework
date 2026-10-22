@@ -41,9 +41,8 @@ namespace LFramework.Runtime
                 subModule.OnInit(this, userData);
                 _subModuleKeyMap.Add(subModule.GetType(), subModule);
 
-                // 缓存实现了 ISubModuleUpdate 接口的子模块
-                if (subModule is ISubModuleUpdate updatable)
-                    _updatableSubEntities.Add(updatable);
+                if (subModule.RequiresUpdate)
+                    _updatableSubEntities.Add(subModule);
             }
         }
 
@@ -84,10 +83,9 @@ namespace LFramework.Runtime
         {
             base.OnUpdate(elapseSeconds, realElapseSeconds);
 
-            // 只调用实现了 ISubModuleUpdate 接口的子模块
             for (int i = 0; i < _updatableSubEntities.Count; i++)
             {
-                _updatableSubEntities[i].OnSubModuleUpdate(elapseSeconds, realElapseSeconds);
+                _updatableSubEntities[i].DispatchUpdate(elapseSeconds, realElapseSeconds);
             }
         }
 

@@ -30,10 +30,21 @@ namespace UnityGameFramework.Runtime
         /// </summary>
         public void SetResult(List<T> result)
         {
+            if (!TryBeginCompletion())
+            {
+                return;
+            }
+
             Result = result;
-            _isDone = true;
             _progress = 1f;
-            _tcs.TrySetResult(result);
+            try
+            {
+                _tcs.TrySetResult(result);
+            }
+            finally
+            {
+                EndCompletion();
+            }
         }
 
         /// <summary>
@@ -46,12 +57,26 @@ namespace UnityGameFramework.Runtime
         }
 
         /// <summary>
+        /// 取消尚未完成的等待者
+        /// </summary>
+        protected override void CancelWaiterInternal()
+        {
+            _tcs.TrySetCanceled();
+        }
+
+        /// <summary>
+        /// 清除已完成的加载结果
+        /// </summary>
+        protected override void ReleaseResultInternal()
+        {
+            Result = null;
+        }
+
+        /// <summary>
         /// 释放资源
         /// </summary>
         public override void Dispose()
         {
-            if (_isDisposed) return;
-            Result = null;
             base.Dispose();
         }
 
