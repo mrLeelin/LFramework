@@ -139,13 +139,6 @@ MonoBehaviour:
     category: 1
     isRequired: 1
     description: 
-  - settingId: LFramework.Runtime.SpriteCollectionComponentSetting
-    settingTypeName: LFramework.Runtime.SpriteCollectionComponentSetting, LFramework.Runtime
-    templateAsset: {fileID: 11400000, guid: 56da43fba49f5ef4ca09e8e4f1632116, type: 2}
-    templateVersion: 1
-    category: 1
-    isRequired: 1
-    description: 
   - settingId: LFramework.Runtime.Settings.TableComponentSetting
     settingTypeName: LFramework.Runtime.Settings.TableComponentSetting, LFramework.Runtime
     templateAsset: {fileID: 11400000, guid: 8009c6580d1cee94194b56064b835662, type: 2}

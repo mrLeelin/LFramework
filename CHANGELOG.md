@@ -2,6 +2,16 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.3.20]
+
+### Removed
+
+- 移除已无运行时组件或业务调用的 `SpriteCollectionComponentSetting` 配置类、Inspector 和模板注册项。
+
+### Upgrade Notes
+
+- 曾初始化该遗留配置的工程需移除对应工程资产，并清理 `ProjectSettingSelector` 和 `SettingSyncState` 中的条目，避免升级后保留缺失脚本引用。
+
 ## [0.3.19]
 
 ### Added
