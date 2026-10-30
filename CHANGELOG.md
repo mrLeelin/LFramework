@@ -2,6 +2,19 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.3.21]
+
+### Fixed
+
+- 修复 `PrefabSubModuleUpdater` 在 PlayMode 或播放状态切换期间自动加载、刷新子模块并写回 Prefab 的问题；收集和执行入口均检查状态，退出到稳定 EditMode 后自动继续处理。
+- 待处理路径继续使用 HashSet 去重，并通过 SessionState 保存路径、GUID 和等待状态，支持开启或关闭域重载，避免队列丢失、重复调度和递归保存。
+- 执行时读取最新 Prefab，跳过已删除、已移动或 GUID 不匹配的资源，避免旧路径被其他 Prefab 占用后写错目标。
+
+### Upgrade Notes
+
+- 本次仅调整 Editor 自动更新行为，保留用户正常保存及实体/UI 的 `FindSubModules` 调用链；播放期间保存的子模块列表延后到退出播放后自动刷新。
+- 不会自动恢复已经丢失的材质引用；使用 AVPro 等编辑器执行组件的项目仍需验证业务 Prefab 的材质引用与实际播放表现。
+
 ## [0.3.20]
 
 ### Removed
