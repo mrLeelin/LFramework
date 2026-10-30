@@ -1,5 +1,19 @@
 # LFramework 打包系统文档
 
+## Player Dev / Release Options 配置
+
+`PlayerBuildSetting.asset` 按 Android、iOS、Windows 各保存独立的 Dev / Release 两套 Unity `BuildOptions` 多选配置。外层按 `isRelease` 选择对应配置，`BuildOptionsConfig` 本身不包含模式参数。新建 Dev 配置默认 `Development | AllowDebugging`，Release 默认 `None`。默认值仅用于初始化，用户可自由取消勾选，不会在构建时自动补齐。
+
+- 在 `LFramework/GameSetting → Game Setting/GameSettings` 中编辑工程侧 `PlayerBuildSetting`；标准位置为 `Assets/Game/Settings/Base/PlayerBuildSetting.asset`。
+- 新工程通过框架配置初始化功能从模板创建并注册；已有工程可初始化补齐，或使用 `Create → LFramework → Settings → PlayerBuildSetting` 创建资产并加入 `ProjectSettingSelector`。构建缺少注册时明确报错。
+- 窗口和命令行构建均通过 `SettingManager` 读取同一配置，不再使用 `IsDeepProfiler` / `isDeepProfiler` 参数。
+- 可选择组合 Development、AllowDebugging、ConnectWithProfiler、EnableDeepProfilingSupport、压缩等 Unity 构建选项；选 `None` 可关闭以前平台代码中固定的调试选项。
+- `Development` 等选项完全由配置控制，不会因勾选深度分析、调试或连接选项而自动补齐。LZ4 与 LZ4HC 同时勾选会报错。
+- Android 导出项目始终保留 `AcceptExternalModificationsToPlayer`；APK/AAB 不能通过勾选此标记绕过打包类型。
+- App 或 DLL 构建期间会按最终 Options 同步 `EditorUserBuildSettings.development`，保证 HybridCLR 与 Player 的开发模式一致，并在成功或失败后恢复编辑器原值。仅构建资源、不编译 DLL 时不依赖此配置。
+- 资源构建窗口的“母包为正式构建”必须与母包的 `IsRelease` 一致，并保持对应的 Dev / Release Options 与母包一致，避免热更 DLL 的编译模式与母包不同。
+- 工程首次初始化应收集完整模板集合，不能只创建一个工程侧配置：窗口优先显示工程配置目录。必需模板引用缺失时初始化会明确失败。
+
 ## 📋 目录
 
 - [架构概述](#架构概述)

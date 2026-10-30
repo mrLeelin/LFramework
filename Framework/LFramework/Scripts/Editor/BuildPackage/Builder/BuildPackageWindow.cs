@@ -32,7 +32,6 @@ namespace LFramework.Editor.Builder
 
         public BuildType BuildType;
         public bool IsBuildDll;
-        public bool IsDeepProfiler;
         public bool IsRelease;
 
         public string AppVersion;
@@ -63,7 +62,6 @@ namespace LFramework.Editor.Builder
                 iosChannel = BuildIOSChannel,
                 buildType = BuildType,
                 isbuildDll = IsBuildDll,
-                isDeepProfiler = IsDeepProfiler,
                 isRelease = IsRelease,
                 appVersion = AppVersion,
                 versionCode = int.Parse(VersionCode),//VersionCode,

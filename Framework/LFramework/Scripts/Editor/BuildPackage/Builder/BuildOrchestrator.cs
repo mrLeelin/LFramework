@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using LFramework.Editor.Builder.PlatformConfig;
 using LFramework.Editor.Builder.Pipeline;
 using LFramework.Editor.Builder.Pipeline.Pipelines;
@@ -8,7 +7,6 @@ using LFramework.Runtime;
 using LFramework.Runtime.Settings;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEngine;
 using UnityGameFramework.Runtime;
@@ -60,7 +58,18 @@ namespace LFramework.Editor.Builder
                 Debug.Log($"[BuildOrchestrator] Selected pipeline: {pipeline.PipelineName}");
 
                 // 执行管线
-                bool success = pipeline.Execute(context);
+                bool success;
+                // DLL 预生成读取编辑器的 Development 状态，必须与最终 Player 保持一致。
+                if (_buildSetting.buildType == BuildType.App || _buildSetting.isbuildDll)
+                {
+                    var options = platformConfig.GetBuildPlayerOptions(_buildSetting).options;
+                    using (new PlayerDevelopmentBuildScope(options))
+                        success = pipeline.Execute(context);
+                }
+                else
+                {
+                    success = pipeline.Execute(context);
+                }
 
                 if (success)
                 {
@@ -94,10 +103,11 @@ namespace LFramework.Editor.Builder
 
         private void SetResourceModel()
         {
-            var resSetting = AssetUtilities.GetAllAssetsOfType<ResourceComponentSetting>().FirstOrDefault();
+            var resSetting = SettingManager.GetProjectSelector()?.GetComponentSetting<ResourceComponentSetting>();
             if (resSetting == null)
             {
-                return;
+                throw new InvalidOperationException(
+                    "[BuildOrchestrator] ResourceComponentSetting is not registered in ProjectSettingSelector.");
             }
 
             _buildSetting.ResourceSystem = resSetting.ResourceMode;

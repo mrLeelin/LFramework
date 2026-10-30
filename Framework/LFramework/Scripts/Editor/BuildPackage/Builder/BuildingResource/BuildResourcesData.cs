@@ -43,6 +43,9 @@ namespace LFramework.Editor.Builder
         /// </summary>
         [Header("母包版本")] public string AppVersion;
         [Header("母包版本")] public int VersionCode;
+        [LabelText("母包为正式构建")]
+        [Tooltip("必须与母包的 IsRelease 一致，并保持对应的 Dev / Release Options 与母包一致。")]
+        public bool IsRelease;
         public string ResourcesVersion;
         public bool IsResourcesBuildIn;
 
@@ -79,6 +82,7 @@ namespace LFramework.Editor.Builder
                 iosChannel = data.IOSChannel,
                 appVersion = data.AppVersion,
                 versionCode = data.VersionCode,
+                isRelease = data.IsRelease,
                 resourcesVersion = data.ResourcesVersion,
                 isResourcesBuildIn = data.IsResourcesBuildIn,
                 isbuildDll = data.IsBuildDll,

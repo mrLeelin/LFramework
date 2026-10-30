@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using LFramework.Runtime;
 using LFramework.Runtime.Settings;
-using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEngine;
 #if YOOASSET_SUPPORT
@@ -200,7 +199,13 @@ namespace LFramework.Editor.Builder.BuildingResource
                 throw new InvalidOperationException("YooAsset AssetBundleCollectorSettingData.Setting is null.");
             }
 
-            ResourceComponentSetting setting = AssetUtilities.GetAllAssetsOfType<ResourceComponentSetting>().FirstOrDefault();
+            ResourceComponentSetting setting =
+                SettingManager.GetProjectSelector()?.GetComponentSetting<ResourceComponentSetting>();
+            if (setting == null)
+            {
+                throw new InvalidOperationException(
+                    "[YooAssetDllRegistrar] ResourceComponentSetting is not registered in ProjectSettingSelector.");
+            }
             string packageName = YooAssetMultiPackageUtility.ResolveDefaultPackageName(
                 setting,
                 GetPreviewRuntimePlatform(),

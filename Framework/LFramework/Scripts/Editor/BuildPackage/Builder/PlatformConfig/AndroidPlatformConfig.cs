@@ -52,16 +52,8 @@ namespace LFramework.Editor.Builder.PlatformConfig
                 options.options = BuildOptions.None;
             }
 
-            if (!buildSetting.isRelease)
-            {
-                /*
-                options.options |= BuildOptions.Development;
-                */
-                if (buildSetting.isDeepProfiler)
-                {
-                    options.options |= BuildOptions.EnableDeepProfilingSupport;
-                }
-            }
+            options.options = PlayerBuildOptionsUtility.Apply(
+                options.options, RuntimePlatform.Android, buildSetting.isRelease);
 
             return options;
         }
@@ -118,12 +110,6 @@ namespace LFramework.Editor.Builder.PlatformConfig
         {
             string releaseType = buildSetting.isRelease ? "Release" : "Debug";
             string appName = $"Build_{releaseType}_{buildSetting.GetAppVersion()}";
-
-            if (buildSetting.isDeepProfiler)
-            {
-                appName += "_DeepProfiler";
-            }
-
             // 根据构建类型返回不同路径
             if (buildSetting.buildAndroidAppType == BuildAndroidAppType.ExportAndroidProject)
             {

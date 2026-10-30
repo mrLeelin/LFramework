@@ -52,7 +52,6 @@ namespace LFramework.Editor
         /// 资源更新还是出包
         /// </summary>
         public BuildType buildType = BuildType.App;
-        public bool isDeepProfiler = false;
         public bool isRelease = false;
         public string appVersion = "1.0.0";
         public int versionCode = 1;
@@ -80,7 +79,6 @@ namespace LFramework.Editor
             stringBuilder.AppendLine($"iosChannel:{iosChannel}");
             stringBuilder.AppendLine($"buildAndroidAppType:{buildAndroidAppType}");
             stringBuilder.AppendLine($"buildType:{buildType}");
-            stringBuilder.AppendLine($"isDeepProfiler:{isDeepProfiler}");
             stringBuilder.AppendLine($"isRelease:{isRelease}");
             stringBuilder.AppendLine($"appVersion:{appVersion}");
             stringBuilder.AppendLine($"versionCode:{versionCode}");

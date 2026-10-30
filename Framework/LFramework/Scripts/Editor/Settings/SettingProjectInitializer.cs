@@ -79,6 +79,15 @@ namespace LFramework.Editor.Settings
                 throw new InvalidOperationException("[SettingProjectInitializer] SettingTemplateRegistry asset not found. Please create or include the registry asset.");
             }
             
+            foreach (SettingTemplateEntry entry in registry.Entries)
+            {
+                if (entry != null && entry.isRequired && entry.templateAsset == null)
+                {
+                    throw new InvalidOperationException(
+                        $"[SettingProjectInitializer] Required template '{entry.settingId}' is missing. Repair SettingTemplateRegistry before initializing project settings.");
+                }
+            }
+
             return registry.Entries
                 .Where(entry => entry != null && entry.templateAsset != null)
                 .Select(entry => entry.templateAsset)

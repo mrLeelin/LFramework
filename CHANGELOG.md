@@ -2,6 +2,27 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.3.19]
+
+### Added
+
+- 新增 `PlayerBuildSetting` 配置资产，Android、iOS、Windows 分别提供独立的 Dev / Release `BuildOptions` 多选配置，支持 Inspector 和框架设置窗口编辑。
+- 新建 Dev 配置默认 `Development | AllowDebugging`，Release 默认 `None`；默认值仅用于初始化，构建时按保存值应用，不自动补齐 `Development` 或其他调试选项。
+- 增加平台与构建模式隔离、选项原样传递、序列化、配置完整性、资源设置选择及 Development 状态恢复的回归测试。
+
+### Fixed
+
+- 移除平台构建代码中的固定调试选项及旧 `IsDeepProfiler` / `isDeepProfiler` 参数，统一按 `isRelease` 选择对应配置；保留 Android 导出项目所需标记，并对压缩选项冲突和导出类型冲突明确报错。
+- 修复资源构建可能误读框架模板的问题，构建编排器、Addressables 构建和 YooAsset DLL 注册统一读取 `ProjectSettingSelector` 注册的工程配置。
+- App 或 DLL 构建期间按最终 Options 同步 HybridCLR 使用的 Development 状态，并在成功或失败后恢复编辑器原值；资源构建窗口补充母包 Release 状态传递。
+- 补齐 `SpriteCollectionComponentSetting` 模板并修正注册类型信息；必需模板引用失效时，初始化明确报错，避免过滤空引用后静默遗漏配置。
+
+### Upgrade Notes
+
+- 升级后通过框架配置初始化功能补齐并注册工程侧 `PlayerBuildSetting`，确认 Dev / Release 配置符合项目需要；已有配置不会因默认值调整而在构建时被覆盖。
+- 工程首次初始化需收集完整模板集合，避免只创建单个工程配置后，窗口优先显示工程目录而隐藏其他模板配置。
+- 热更 DLL 构建需使用与母包一致的 `IsRelease` 和对应 Options；`Development` 是否启用完全由该组选项决定。
+
 ## [0.3.18]
 
 ### Fixed

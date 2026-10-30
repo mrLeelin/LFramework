@@ -47,20 +47,8 @@ namespace LFramework.Editor.Builder.PlatformConfig
                 locationPathName = GetOutputPath(buildSetting)
             };
 
-            if (buildSetting.isRelease)
-            {
-                options.options = BuildOptions.None;
-            }
-            else
-            {
-                options.options = BuildOptions.Development |
-                                  BuildOptions.ConnectWithProfiler;
-
-                if (buildSetting.isDeepProfiler)
-                {
-                    options.options |= BuildOptions.EnableDeepProfilingSupport;
-                }
-            }
+            options.options = PlayerBuildOptionsUtility.Apply(
+                options.options, RuntimePlatform.IPhonePlayer, buildSetting.isRelease);
 
             return options;
         }

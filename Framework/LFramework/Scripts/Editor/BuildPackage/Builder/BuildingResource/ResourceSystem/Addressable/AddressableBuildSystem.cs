@@ -1,10 +1,8 @@
 #if ADDRESSABLE_SUPPORT
 using System;
 using System.IO;
-using System.Linq;
 using LFramework.Runtime;
 using LFramework.Runtime.Settings;
-using Sirenix.Utilities.Editor;
 using ThirdParty.Framework.LFramework.Scripts.Editor.BuildPackage.Builder.BuildingResource;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
@@ -26,11 +24,11 @@ namespace LFramework.Editor.Builder.BuildingResource
         public void Build(BuildSetting buildResourcesData)
         {
             var resourceComponentSetting =
-                AssetUtilities.GetAllAssetsOfType<ResourceComponentSetting>().FirstOrDefault();
+                SettingManager.GetProjectSelector()?.GetComponentSetting<ResourceComponentSetting>();
             if (resourceComponentSetting == null)
             {
                 throw new InvalidOperationException(
-                    "[AddressableBuildSystem] ResourceComponentSetting not found in project.");
+                    "[AddressableBuildSystem] ResourceComponentSetting is not registered in ProjectSettingSelector.");
             }
 
             var settings = AddressableAssetSettingsDefaultObject.Settings;

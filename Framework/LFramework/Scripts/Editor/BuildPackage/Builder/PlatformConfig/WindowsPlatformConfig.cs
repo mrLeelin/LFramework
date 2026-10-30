@@ -39,22 +39,8 @@ namespace LFramework.Editor.Builder.PlatformConfig
                 locationPathName = GetOutputPath(buildSetting)
             };
 
-            if (buildSetting.isRelease)
-            {
-                options.options = BuildOptions.None;
-            }
-            else
-            {
-                options.options = BuildOptions.AllowDebugging |
-                                  BuildOptions.Development |
-                                  BuildOptions.ConnectWithProfiler |
-                                  BuildOptions.WaitForPlayerConnection;
-
-                if (buildSetting.isDeepProfiler)
-                {
-                    options.options |= BuildOptions.EnableDeepProfilingSupport;
-                }
-            }
+            options.options = PlayerBuildOptionsUtility.Apply(
+                options.options, RuntimePlatform.WindowsPlayer, buildSetting.isRelease);
 
             return options;
         }
@@ -69,11 +55,6 @@ namespace LFramework.Editor.Builder.PlatformConfig
             string timeInfo = DateTime.Now.ToString("yyyyMMddHHmmss");
             string releaseType = buildSetting.isRelease ? "Release" : "Debug";
             string appName = $"Build_{releaseType}_{buildSetting.GetAppVersion()}";
-
-            if (buildSetting.isDeepProfiler)
-            {
-                appName += "_DeepProfiler";
-            }
 
             return Application.dataPath +
                 $"/../Builds/Window_{releaseType}_{buildSetting.GetAppVersion()}_{timeInfo}/{appName}.exe";

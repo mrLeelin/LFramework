@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b65c4fbba59255445bca7f34c2a55125, type: 3}
+  m_Name: PlayerBuildSetting
+  m_EditorClassIdentifier: LFramework.Runtime::LFramework.Runtime.Settings.PlayerBuildSetting
+  settingId: LFramework.Runtime.Settings.PlayerBuildSetting
+  displayName: "Player \u6784\u5EFA\u914D\u7F6E"
+  description: 
+  tags: []
+  android:
+    buildOptions: 513
+  androidRelease:
+    buildOptions: 0
+  ios:
+    buildOptions: 513
+  iosRelease:
+    buildOptions: 0
+  windows:
+    buildOptions: 513
+  windowsRelease:
+    buildOptions: 0
