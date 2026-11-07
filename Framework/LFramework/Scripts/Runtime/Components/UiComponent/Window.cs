@@ -148,7 +148,6 @@ namespace LFramework.Runtime
 
             _windowAnimation = gameObject.GetComponent<IAnimation>();
             _canvas = gameObject.GetOrAddComponent<Canvas>();
-            _canvas.overrideSorting = true;
             _canvas.vertexColorAlwaysGammaSpace = UIComponent.VertexColorAlwaysGammaSpace;
             OriginalDepth = _canvas.sortingOrder;
             _canvasGroup = gameObject.GetOrAddComponent<CanvasGroup>();
@@ -182,6 +181,8 @@ namespace LFramework.Runtime
 
             PrepareForEnterAnimation();
             base.OnInterOpen(userData);
+            // Canvas 激活后先开启独立排序，确保打开回调中的排序赋值生效。
+            _canvas.overrideSorting = true;
             InterSubscribe(LFrameworkAspect.Instance.Get<EventComponent>());
             _windowAnimationState = WindowAnimationState.None;
             _isClosing = false;
@@ -191,6 +192,8 @@ namespace LFramework.Runtime
                 subWindow.OnOpen(userData);
             }
 
+            // 窗口根 Canvas 统一独立排序，覆盖旧业务打开回调中的关闭赋值。
+            _canvas.overrideSorting = true;
             RestoreAfterEnterAnimation();
             if (AutoPlayEnterAnimation)
             {

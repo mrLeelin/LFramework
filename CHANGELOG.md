@@ -2,6 +2,22 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.3.22]
+
+### Fixed
+
+- 修复新建窗口在未激活时设置 `Canvas.overrideSorting = true` 不生效的问题，改为激活后、事件订阅及业务打开回调前开启独立排序，使打开回调中的 Sorting Order / Sorting Layer 赋值正常生效。
+- 业务及子模块打开回调结束后再次强制开启窗口根 Canvas 的独立排序，确保首次打开和对象池复用后的窗口统一使用独立排序。
+
+### Tests
+
+- 新增首次打开、对象池复用、初始化及打开回调主动关闭排序的回归用例，并检查打开回调中的排序值；Unity 6000.3.6f1 下 16 个 UI 生命周期 EditMode 测试全部通过。
+
+### Upgrade Notes
+
+- 窗口根 Canvas 的 Override Sorting 统一为 `true`，业务 `OnInit` / `OnOpen` 中关闭该开关的赋值会在打开流程结束前被覆盖；子 Canvas 的 Override Sorting 配置保持原样。
+- 消费工程需更新框架包并重新编译 Runtime；本次不自动更新消费工程的依赖或热更产物。
+
 ## [0.3.21]
 
 ### Fixed

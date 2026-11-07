@@ -84,6 +84,52 @@ namespace LFramework.Editor.Tests.UI
             Assert.That(uiForm.PauseCoveredUIForm, Is.False);
         }
 
+        [TestCase(false, false)]
+        [TestCase(false, true)]
+        [TestCase(true, false)]
+        [TestCase(true, true)]
+        public void UIForm_OpenInactiveWindow_EnforcesIndependentSorting(
+            bool disableSortingInCallbacks, bool reopen)
+        {
+            LServices.Register(new EventComponent());
+            LServices.Register(new ViewComponent());
+            var groupObject = CreateTrackedRectTransformGameObject("UI Group");
+            groupObject.AddComponent<Canvas>();
+            var group = new TestUIGroup(groupObject.AddComponent<TestUIGroupHelper>());
+            var uiObject = CreateTrackedRectTransformGameObject("Window");
+            uiObject.transform.SetParent(groupObject.transform, false);
+            uiObject.SetActive(false);
+            var window = uiObject.AddComponent<TestWindow>();
+            window.DisableSortingInCallbacks = disableSortingInCallbacks;
+            window.SortingOrderOnOpen = 37;
+            var uiForm = uiObject.AddComponent<UIForm>();
+            uiForm.OnInit(1, "UI/Window", group, false, true, null);
+
+            uiForm.OnOpen(null);
+
+            Assert.That(uiObject.activeInHierarchy, Is.True);
+            Assert.That(window.SortingAtOnOpen, Is.True);
+            Assert.That(window.Canvas.overrideSorting, Is.True);
+            Assert.That(window.Canvas.sortingOrder, Is.EqualTo(37));
+            Assert.That(window.Canvas.sortingLayerID, Is.Zero);
+            if (!reopen)
+            {
+                uiForm.OnClose(false, null);
+                return;
+            }
+
+            uiForm.OnClose(false, null);
+            uiForm.OnRecycle();
+            uiForm.OnInit(2, "UI/Window", group, false, false, null);
+            uiForm.OnOpen(null);
+
+            Assert.That(window.SortingAtOnOpen, Is.True);
+            Assert.That(window.Canvas.overrideSorting, Is.True);
+            Assert.That(window.Canvas.sortingOrder, Is.EqualTo(37));
+            Assert.That(window.Canvas.sortingLayerID, Is.Zero);
+            uiForm.OnClose(false, null);
+        }
+
         [Test]
         public void UIForm_RealWindowRecycleFailureIsObservable()
         {
@@ -505,6 +551,32 @@ namespace LFramework.Editor.Tests.UI
             public bool ThrowOnClose { get; set; }
             public bool ThrowOnRecycle { get; set; }
             public bool ThrowOnUnSubscribe { get; set; }
+            public bool DisableSortingInCallbacks { get; set; }
+            public int? SortingOrderOnOpen { get; set; }
+            public bool SortingAtOnOpen { get; private set; }
+
+            protected override void OnInit(object userData)
+            {
+                if (DisableSortingInCallbacks)
+                {
+                    Canvas.overrideSorting = false;
+                }
+            }
+
+            protected override void OnOpen(object userData)
+            {
+                SortingAtOnOpen = Canvas.overrideSorting;
+                if (SortingOrderOnOpen.HasValue)
+                {
+                    Canvas.sortingOrder = SortingOrderOnOpen.Value;
+                    Canvas.sortingLayerID = 0;
+                }
+
+                if (DisableSortingInCallbacks)
+                {
+                    Canvas.overrideSorting = false;
+                }
+            }
 
             protected override void UnSubscribe(EventComponent eventComponent)
             {
