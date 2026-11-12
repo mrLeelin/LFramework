@@ -286,7 +286,7 @@ namespace Luban.Editor
             if(IS_WINDOWS)
             {
                 exe  = "cmd";
-                args = $"/c \"{BAT_FILE}\"";
+                args = $"/c \".\\{BAT_FILE}\"";
 
                 File.WriteAllBytes($"./{BAT_FILE}", BuildWindowsBatchFileBytes(command));
             }

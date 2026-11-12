@@ -2,6 +2,16 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.3.23]
+
+### Fixed
+
+- Windows 导表显式执行当前目录的 `.\gen.bat`，修复进程环境包含 `NoDefaultCurrentDirectoryInExePath=1` 时无法找到批处理脚本的问题，消除对当前目录命令搜索行为的依赖。
+
+### Tests
+
+- 隔离批处理验证：未设置 `NoDefaultCurrentDirectoryInExePath` 和设为 `1` 两种情况均执行成功；尚未验证完整 Unity 编译和实际导表。
+
 ## [0.3.22]
 
 ### Fixed
