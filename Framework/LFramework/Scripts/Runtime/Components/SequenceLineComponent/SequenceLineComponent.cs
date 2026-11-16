@@ -18,6 +18,8 @@ namespace LFramework.Runtime
         private readonly Dictionary<string, SequenceLineChunkGroupHandle> _multiGroups =
             new();
 
+        private readonly HashSet<string> _sameFrameGroupTypes = new();
+
 
         private readonly IDictionary<string, IList<ISequenceLineChunk>> _chunksBuffer
             = new Dictionary<string, IList<ISequenceLineChunk>>();
@@ -66,6 +68,31 @@ namespace LFramework.Runtime
 
             _chunksBuffer.Clear();
             _multiGroups.Clear();
+            _sameFrameGroupTypes.Clear();
+        }
+
+        /// <summary>
+        /// Opt a queue type into draining completed chunks in the same frame.
+        /// Other queue types retain the original coroutine scheduling behavior.
+        /// </summary>
+        public void SetSameFrameExecution(string groupType, bool enabled)
+        {
+            if (string.IsNullOrEmpty(groupType))
+            {
+                throw new ArgumentException("A queue group type is required.", nameof(groupType));
+            }
+
+            if (enabled) _sameFrameGroupTypes.Add(groupType);
+            else _sameFrameGroupTypes.Remove(groupType);
+
+            if (!_multiGroups.TryGetValue(groupType, out var handle) || handle.Groups == null) return;
+            foreach (var group in handle.Groups)
+            {
+                if (group is SequenceLineChunkGroup chunkGroup)
+                {
+                    chunkGroup.SameFrameExecution = enabled;
+                }
+            }
         }
 
         public int Insert(ISequenceLineChunkSetting setting)
@@ -366,7 +393,7 @@ namespace LFramework.Runtime
         private ISequenceLineChunkGroup InternalDefaultGroup(string type, bool isEternity,
             ISequenceLineChunk chunk = null)
         {
-            ISequenceLineChunkGroup @group = null;
+            SequenceLineChunkGroup @group = null;
             if (!isEternity)
             {
                 group = new SequenceLineChunkGroup(type, this, chunk);
@@ -376,6 +403,7 @@ namespace LFramework.Runtime
                 group = new EternitySequenceLineChunkGroup(type, this);
             }
 
+            group.SameFrameExecution = _sameFrameGroupTypes.Contains(type);
             group.InsertChunkInGroup += OnAddNewChunkInGroup;
             return group;
         }

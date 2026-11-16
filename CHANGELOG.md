@@ -2,6 +2,27 @@
 
 All notable changes to this package are documented in this file.
 
+## [0.3.24]
+
+### Added
+
+- 新增 `SequenceLineComponent.SetSameFrameExecution(groupType, enabled)`，可按队列类型开启同步完成任务的同帧连续推进；普通队列与常驻队列使用同一推进逻辑，未开启的队列保留原协程调度方式。
+- 新增可选的 `ISequenceLineChunkFrameBoundary` 契约及 `SequenceLineChunkSetting<T>.WaitForNextFrameAfterCompletion`，让延迟事件等任务显式保留完成后的帧边界；连续完成 64 项任务后让出一帧，避免动态追加同步任务占满主线程。
+
+### Fixed
+
+- 队列在任务初始化、执行或释放回调中被清空时停止继续推进，并防止释放中的当前任务被重复释放；暂停仍只阻止下一项任务启动。
+
+### Tests
+
+- 框架宿主工程通过 Unity CLI 批处理执行 20 项隔离调度验证，消费工程通过 Unity 编译并执行同样的 20 项验证，覆盖默认调度、同步连续执行、异步等待、事件帧边界、暂停、动态插入、清空、释放、异常及单帧上限。隔离脚本验证不等同于 Unity Test Runner 测试。
+- 消费工程已完成一次 Editor 进场复测，确认同步任务可在同帧推进；尚未验证 Player、设备及正式热更产物。
+
+### Upgrade Notes
+
+- 默认行为保持不变，业务需显式开启目标队列；使用 `EventComponent.Fire` 的事件任务应声明完成后的帧边界，保留延迟事件的处理顺序。
+- 本次新增 Runtime API，消费工程需更新框架包并重新编译；正式发布需同步重建 Player/AOT 与 Hotfix，不能只替换 Hotfix DLL bytes。
+
 ## [0.3.23]
 
 ### Fixed

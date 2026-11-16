@@ -20,7 +20,11 @@ namespace LFramework.Runtime
         private bool _isAllChunkCompleted;
         private EventHandler<InsertChunkArgs> _insertChunkInGroup;
         private Coroutine _coroutine;
+        private bool _disposed;
+        private ISequenceLineChunk _disposingChunk;
+        private const int MaxChunksPerFrame = 64;
         public bool IsPlaying { get; private set; } = false;
+        public bool SameFrameExecution { get; internal set; }
         public LinkedList<ISequenceLineChunk> Chunks { get; } = new LinkedList<ISequenceLineChunk>();
 
         public string GroupType { get; }
@@ -162,40 +166,91 @@ namespace LFramework.Runtime
             Root.transform.SetParent(GroupHandle.Root.transform);
 #endif
             _curRunningChunk = null;
-            _coroutine = MainThreadDispatcher.StartCoroutine(Coroutine());
+            _isAllChunkCompleted = false;
+            _disposed = false;
             IsPlaying = true;
+            _coroutine = MainThreadDispatcher.StartCoroutine(Coroutine());
         }
 
         protected virtual IEnumerator Coroutine()
         {
-            if (Chunks.Count <= 0)
+            var execution = RunChunks(false);
+            // Drive the shared iterator directly: yielding it would add another scheduling boundary.
+            while (execution.MoveNext())
             {
-                _isAllChunkCompleted = true;
-                yield break;
+                yield return execution.Current;
             }
 
-            var first = Chunks.First;
-            do
+            _isAllChunkCompleted = true;
+        }
+
+        protected IEnumerator RunChunks(bool keepAlive)
+        {
+            var completedThisFrame = 0;
+            while (!_disposed)
             {
-                if (Pause)
+                if (Chunks.Count == 0)
                 {
+                    if (!keepAlive) yield break;
+                    completedThisFrame = 0;
                     yield return null;
                     continue;
                 }
 
-                _curRunningChunk = first.Value;
-                first.Value.Reset();
-                yield return first.Value;
-                first.Value.Dispose();
-                var completed = first;
-                first = first.Next;
-                if (completed.List != null)
+                if (Pause)
                 {
-                    Chunks.Remove(completed);
+                    completedThisFrame = 0;
+                    yield return null;
+                    continue;
                 }
-            } while (first != null);
 
-            _isAllChunkCompleted = true;
+                var first = Chunks.First;
+                var chunk = first.Value;
+                _curRunningChunk = chunk;
+                chunk.Reset();
+                if (_disposed) yield break;
+
+                if (SameFrameExecution)
+                {
+                    while (true)
+                    {
+                        var waiting = chunk.MoveNext();
+                        if (_disposed) yield break;
+                        if (!waiting) break;
+                        completedThisFrame = 0;
+                        yield return null;
+                    }
+                }
+                else
+                {
+                    completedThisFrame = 0;
+                    yield return chunk;
+                }
+
+                if (_disposed) yield break;
+                var frameBoundary = chunk.Current is ISequenceLineChunkFrameBoundary boundary &&
+                    boundary.WaitForNextFrameAfterCompletion;
+                // Keep the node visible during Dispose, but do not dispose it twice if it clears the queue.
+                _disposingChunk = chunk;
+                try
+                {
+                    chunk.Dispose();
+                }
+                finally
+                {
+                    _disposingChunk = null;
+                }
+                if (_disposed) yield break;
+                if (first.List != null) Chunks.Remove(first);
+
+                completedThisFrame++;
+                if (SameFrameExecution && (frameBoundary ||
+                    (completedThisFrame >= MaxChunksPerFrame && Chunks.Count > 0)))
+                {
+                    completedThisFrame = 0;
+                    yield return null;
+                }
+            }
         }
 
         private LinkedListNode<ISequenceLineChunk> FindChunkNode(int serialID)
@@ -225,9 +280,13 @@ namespace LFramework.Runtime
 
         public void Dispose()
         {
+            if (_disposed) return;
+            _disposed = true;
+            _isAllChunkCompleted = true;
+            IsPlaying = false;
             foreach (var chunk in Chunks)
             {
-                chunk.Dispose();
+                if (!ReferenceEquals(chunk, _disposingChunk)) chunk.Dispose();
             }
 
             Chunks.Clear();
@@ -241,8 +300,6 @@ namespace LFramework.Runtime
             {
                 MainThreadDispatcher.StopCoroutine(_coroutine);
             }
-
-            IsPlaying = false;
         }
     }
 }

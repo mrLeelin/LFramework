@@ -10,35 +10,11 @@ namespace LFramework.Runtime
 
         protected override IEnumerator Coroutine()
         {
-            while (true)
+            var execution = RunChunks(true);
+            while (execution.MoveNext())
             {
-                if (Chunks.Count <= 0)
-                {
-                    yield return null;
-                    continue;
-                }
-                
-                var first = Chunks.First;
-                do
-                {
-                    if (Pause)
-                    {
-                        yield return null;
-                        continue;
-                    }
-                    _curRunningChunk = first.Value;
-                    first.Value.Reset();
-                    yield return first.Value;
-                    first.Value.Dispose();
-                    var completed = first;
-                    first = first.Next;
-                    if (completed.List != null)
-                    {
-                        Chunks.Remove(completed);
-                    }
-                } while (first != null);
+                yield return execution.Current;
             }
-            // ReSharper disable once IteratorNeverReturns
         }
     }
 }

@@ -26,7 +26,15 @@ namespace LFramework.Runtime
 
     }
     
-    public abstract class SequenceLineChunkSetting<T> : ISequenceLineChunkSetting
+    /// <summary>
+    /// Optional scheduling contract; existing setting implementations remain compatible.
+    /// </summary>
+    public interface ISequenceLineChunkFrameBoundary
+    {
+        bool WaitForNextFrameAfterCompletion { get; }
+    }
+
+    public abstract class SequenceLineChunkSetting<T> : ISequenceLineChunkSetting, ISequenceLineChunkFrameBoundary
         where T : ISequenceLineChunk
 
     {
@@ -47,6 +55,11 @@ namespace LFramework.Runtime
 
         public string Tag { get; set; } = string.Empty;
         public bool NotBeDel { get; set; } = false;
+
+        /// <summary>
+        /// Preserve a frame boundary after completion when same-frame execution is enabled.
+        /// </summary>
+        public bool WaitForNextFrameAfterCompletion { get; set; }
 
 
         public SequenceLineChunkSetting(string type)
